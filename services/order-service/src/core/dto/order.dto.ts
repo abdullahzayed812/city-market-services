@@ -1,6 +1,8 @@
 import { OrderStatus } from "@city-market/shared";
-import { OrderItem } from "../entities/order-item.entity";
-import { Order } from "../entities/order.entity";
+import { VendorOrderItem } from "../entities/vendor-order-item.entity";
+import { CustomerOrder } from "../entities/customer-order.entity";
+import { VendorOrder } from "../entities/vendor-order.entity";
+import { OrderItemProposal } from "../entities/order-item-proposal.entity";
 
 export interface CreateOrderItemDto {
   productId: string;
@@ -9,7 +11,6 @@ export interface CreateOrderItemDto {
 
 export interface CreateOrderDto {
   customerId: string;
-  vendorId: string;
   items: CreateOrderItemDto[];
   deliveryAddress: string;
   deliveryLatitude?: number;
@@ -22,7 +23,13 @@ export interface UpdateOrderStatusDto {
   notes?: string;
 }
 
+export interface ProposeChangesDto {
+  itemId: string;
+  type: "QUANTITY_REDUCTION" | "UNAVAILABLE";
+  proposedQuantity?: number;
+}
+
 export interface OrderWithItems {
-  order: Order;
-  items: OrderItem[];
+  order: CustomerOrder;
+  vendorOrders: (VendorOrder & { items: VendorOrderItem[] })[];
 }

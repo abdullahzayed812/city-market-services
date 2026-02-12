@@ -10,24 +10,39 @@ export class OrderStatusHistoryRepository implements IOrderStatusHistoryReposito
     this.pool = this.db.getPool();
   }
 
-  async create(history: OrderStatusHistory): Promise<void> {
+  async create(history: OrderStatusHistory): Promise<OrderStatusHistory> {
     const query = `
-      INSERT INTO order_status_history (id, order_id, status, notes)
-      VALUES (?, ?, ?, ?)
+      INSERT INTO order_status_history (
+        id, customer_order_id, vendor_order_id, status, notes
+      ) VALUES (?, ?, ?, ?, ?)
     `;
-    await this.pool.execute(query, [history.id, history.orderId, history.status, history.notes || null]);
+    await this.pool.query(query, [
+      history.id,
+      history.customerOrderId || null,
+      history.vendorOrderId || null,
+      history.status,
+      history.notes || null,
+    ]);
+    return history;
   }
 
-  async findByOrderId(orderId: string): Promise<OrderStatusHistory[]> {
-    const query = "SELECT * FROM order_status_history WHERE order_id = ? ORDER BY created_at";
-    const [rows] = await this.pool.execute<RowDataPacket[]>(query, [orderId]);
+  async findByCustomerOrder(customerOrderId: string): Promise<OrderStatusHistory[]> {
+    const query = "SELECT * FROM order_status_history WHERE customer_order_id = ? ORDER BY created_at DESC";
+    const [rows] = await this.pool.query<RowDataPacket[]>(query, [customerOrderId]);
+    return rows.map((row) => this.mapToEntity(row));
+  }
+
+  async findByVendorOrder(vendorOrderId: string): Promise<OrderStatusHistory[]> {
+    const query = "SELECT * FROM order_status_history WHERE vendor_order_id = ? ORDER BY created_at DESC";
+    const [rows] = await this.pool.query<RowDataPacket[]>(query, [vendorOrderId]);
     return rows.map((row) => this.mapToEntity(row));
   }
 
   private mapToEntity(row: any): OrderStatusHistory {
     return {
       id: row.id,
-      orderId: row.order_id,
+      customerOrderId: row.customer_order_id,
+      vendorOrderId: row.vendor_order_id,
       status: row.status,
       notes: row.notes,
       createdAt: row.created_at,

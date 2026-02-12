@@ -2,12 +2,15 @@ import express from "express";
 import { createOrderRoutes } from "./presentation/routes/order.routes";
 import { OrderController } from "./presentation/controllers/order.controller";
 import { OrderService } from "./application/services/order.service";
-import { OrderRepository } from "./infrastructure/repositories/order.repository";
-import { OrderItemRepository } from "./infrastructure/repositories/order-item.repository";
+import { CustomerOrderRepository } from "./infrastructure/repositories/customer-order.repository";
+import { VendorOrderRepository } from "./infrastructure/repositories/vendor-order.repository";
+import { VendorOrderItemRepository } from "./infrastructure/repositories/vendor-order-item.repository";
+import { OrderItemProposalRepository } from "./infrastructure/repositories/order-item-proposal.repository";
 import { OrderStatusHistoryRepository } from "./infrastructure/repositories/order-status-history.repository";
 import { CatalogHttpClient } from "./infrastructure/http/catalog-http-client";
+import { VendorHttpClient } from "./infrastructure/http/vendor-http-client";
 import { errorHandler, Database } from "@city-market/shared";
-import { eventBus, rabbitMQBus, EventType } from "@city-market/shared";
+import { rabbitMQBus, EventType } from "@city-market/shared";
 import { DeliveryUpdatedConsumer } from "./application/events/delivery-updated.consumer";
 import { config } from "./config/env";
 
@@ -24,12 +27,25 @@ export const createApp = () => {
     database: config.dbName,
   });
 
-  const orderRepo = new OrderRepository(db);
-  const orderItemRepo = new OrderItemRepository(db);
+  const customerOrderRepo = new CustomerOrderRepository(db);
+  const vendorOrderRepo = new VendorOrderRepository(db);
+  const vendorOrderItemRepo = new VendorOrderItemRepository(db);
+  const proposalRepo = new OrderItemProposalRepository(db);
   const statusHistoryRepo = new OrderStatusHistoryRepository(db);
   const catalogClient = new CatalogHttpClient(config.catalogServiceUrl);
+  const vendorClient = new VendorHttpClient(config.vendorServiceUrl);
 
-  const orderService = new OrderService(orderRepo, orderItemRepo, statusHistoryRepo, catalogClient, rabbitMQBus);
+  const orderService = new OrderService(
+    customerOrderRepo,
+    vendorOrderRepo,
+    vendorOrderItemRepo,
+    proposalRepo,
+    statusHistoryRepo,
+    catalogClient,
+    vendorClient,
+    rabbitMQBus,
+    db
+  );
 
   const orderController = new OrderController(orderService);
 

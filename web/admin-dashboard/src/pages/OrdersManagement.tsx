@@ -19,51 +19,44 @@ import { OrderStatus } from "@/types/order";
 interface Order {
   id: string;
   customerId: string;
-  vendorId: string;
   status: string;
   subtotal: number;
   deliveryFee: number;
   commissionAmount: number;
   totalAmount: number;
   deliveryAddress: string;
-  deliveryLatitude: string;
-  deliveryLongitude: string;
-  customerNotes: string | null;
-  cancellationReason: string | null;
   createdAt: string;
   updatedAt: string;
+}
+
+interface VendorOrder {
+  id: string;
+  vendorId: string;
+  vendorName: string;
+  status: string;
+  totalAmount: number;
+  items: any[];
 }
 
 const OrdersManagement: React.FC = () => {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
-  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const { socket } = useSocket();
 
   useEffect(() => {
     if (!socket) return;
-
     const handleOrderUpdate = () => {
       queryClient.invalidateQueries({ queryKey: ["orders"] });
+      if (selectedOrderId) {
+        queryClient.invalidateQueries({ queryKey: ["order-details", selectedOrderId] });
+      }
     };
-
-    const events = [
-      "ORDER_CREATED",
-      "ORDER_CONFIRMED",
-      "ORDER_CANCELLED",
-      "ORDER_READY",
-      "ORDER_PICKED_UP",
-      "ORDER_ON_THE_WAY",
-      "ORDER_DELIVERED",
-    ];
-
+    const events = ["ORDER_CREATED", "ORDER_CONFIRMED", "ORDER_CANCELLED", "ORDER_READY", "ORDER_PICKED_UP", "ORDER_ON_THE_WAY", "ORDER_DELIVERED"];
     events.forEach((event) => socket.on(event, handleOrderUpdate));
-
-    return () => {
-      events.forEach((event) => socket.off(event, handleOrderUpdate));
-    };
-  }, [socket, queryClient]);
+    return () => events.forEach((event) => socket.off(event, handleOrderUpdate));
+  }, [socket, queryClient, selectedOrderId]);
 
   const { data: orders, isLoading } = useQuery<Order[]>({
     queryKey: ["orders"],
@@ -73,6 +66,16 @@ const OrdersManagement: React.FC = () => {
     },
   });
 
+  const { data: orderDetails, isLoading: isLoadingDetails } = useQuery({
+    queryKey: ["order-details", selectedOrderId],
+    queryFn: async () => {
+      if (!selectedOrderId) return null;
+      const response = await adminApi.getOrderById(selectedOrderId);
+      return response?.data?.data;
+    },
+    enabled: !!selectedOrderId,
+  });
+
   const updateStatusMutation = useMutation({
     mutationFn: ({ id, status }: { id: string; status: string }) => adminApi.updateOrderStatus(id, status),
     onSuccess: () => {
@@ -80,43 +83,33 @@ const OrdersManagement: React.FC = () => {
     },
   });
 
-  const handleViewDetails = (order: Order) => {
-    setSelectedOrder(order);
+  const handleViewDetails = (id: string) => {
+    setSelectedOrderId(id);
     setIsModalOpen(true);
   };
 
   const getStatusColor = (status: string) => {
+    if (!status) return "bg-gray-100 text-gray-800";
     const statusUpper = status.toUpperCase();
     switch (statusUpper) {
-      case OrderStatus.CREATED:
-        return "bg-yellow-100 text-yellow-800";
-      case OrderStatus.CONFIRMED:
-        return "bg-blue-100 text-blue-800";
-      case OrderStatus.PREPARING:
-        return "bg-purple-100 text-purple-800";
-      case OrderStatus.READY:
-        return "bg-cyan-100 text-cyan-800";
-      case OrderStatus.PICKED_UP:
-        return "bg-indigo-100 text-indigo-800";
-      case OrderStatus.ON_THE_WAY:
-        return "bg-orange-100 text-orange-800";
-      case OrderStatus.DELIVERED:
-        return "bg-green-100 text-green-800";
-      case OrderStatus.CANCELLED:
-        return "bg-red-100 text-red-800";
-      default:
-        return "bg-gray-100 text-gray-800";
+      case OrderStatus.CREATED: return "bg-yellow-100 text-yellow-800";
+      case OrderStatus.CONFIRMED: return "bg-blue-100 text-blue-800";
+      case OrderStatus.PREPARING: return "bg-purple-100 text-purple-800";
+      case OrderStatus.READY: return "bg-cyan-100 text-cyan-800";
+      case OrderStatus.PICKED_UP: return "bg-indigo-100 text-indigo-800";
+      case OrderStatus.ON_THE_WAY: return "bg-orange-100 text-orange-800";
+      case OrderStatus.DELIVERED: return "bg-green-100 text-green-800";
+      case OrderStatus.CANCELLED: return "bg-red-100 text-red-800";
+      default: return "bg-gray-100 text-gray-800";
     }
   };
 
   const formatStatus = (status: string) => {
-    return status
-      .split("_")
-      .map((word) => word.charAt(0) + word.slice(1).toLowerCase())
-      .join(" ");
+    if (!status) return "Unknown";
+    return status.split("_").map((word) => word.charAt(0) + word.slice(1).toLowerCase()).join(" ");
   };
 
-  if (isLoading) return <div>Loading...</div>;
+  if (isLoading) return <div className="p-8 text-center">Loading orders...</div>;
 
   return (
     <div className="space-y-6">
@@ -139,7 +132,7 @@ const OrdersManagement: React.FC = () => {
               <TableRow key={order.id}>
                 <TableCell className="font-medium">{order.id.substring(0, 8)}</TableCell>
                 <TableCell>{order.customerId.substring(0, 8)}</TableCell>
-                <TableCell>${order.totalAmount.toFixed(2)}</TableCell>
+                <TableCell>${order.totalAmount?.toFixed(2)}</TableCell>
                 <TableCell>
                   <Badge className={getStatusColor(order.status)}>
                     {formatStatus(order.status)}
@@ -154,29 +147,19 @@ const OrdersManagement: React.FC = () => {
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => handleViewDetails(order)}>
+                      <DropdownMenuItem onClick={() => handleViewDetails(order.id)}>
                         <Eye className="me-2 h-4 w-4" />
                         View Details
                       </DropdownMenuItem>
                       <DropdownMenuItem
-                        onClick={() =>
-                          updateStatusMutation.mutate({
-                            id: order.id,
-                            status: "CONFIRMED",
-                          })
-                        }
+                        onClick={() => updateStatusMutation.mutate({ id: order.id, status: "CONFIRMED" })}
                       >
                         <CheckCircle className="me-2 h-4 w-4" />
                         Mark as Confirmed
                       </DropdownMenuItem>
                       <DropdownMenuItem
                         className="text-destructive"
-                        onClick={() =>
-                          updateStatusMutation.mutate({
-                            id: order.id,
-                            status: "CANCELLED",
-                          })
-                        }
+                        onClick={() => updateStatusMutation.mutate({ id: order.id, status: "CANCELLED" })}
                       >
                         <XCircle className="me-2 h-4 w-4" />
                         Cancel Order
@@ -190,78 +173,77 @@ const OrdersManagement: React.FC = () => {
         </Table>
       </div>
 
-      {selectedOrder && (
-        <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-          <DialogContent className="sm:max-w-[600px]">
-            <DialogHeader>
-              <DialogTitle>Order Details</DialogTitle>
-              <DialogDescription>Detailed information for order #{selectedOrder.id.substring(0, 8)}</DialogDescription>
-            </DialogHeader>
-            <div className="grid gap-4 py-4">
-              <div className="grid grid-cols-2 gap-4">
+      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+        <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Order Details</DialogTitle>
+            <DialogDescription>Detailed information for multi-vendor order</DialogDescription>
+          </DialogHeader>
+
+          {isLoadingDetails ? (
+            <div className="py-8 text-center">Loading details...</div>
+          ) : orderDetails ? (
+            <div className="grid gap-6 py-4">
+              <div className="grid grid-cols-2 gap-4 bg-muted/30 p-4 rounded-lg">
                 <div>
                   <p className="text-sm font-medium text-gray-500">Customer ID</p>
-                  <div>{selectedOrder.customerId}</div>
+                  <div className="text-sm font-mono">{orderDetails.order.customerId}</div>
                 </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-500">Vendor ID</p>
-                  <div>{selectedOrder.vendorId}</div>
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
                 <div>
                   <p className="text-sm font-medium text-gray-500">Status</p>
-                  <div>
-                    <Badge className={getStatusColor(selectedOrder.status)}>
-                      {formatStatus(selectedOrder.status)}
-                    </Badge>
-                  </div>
+                  <Badge className={getStatusColor(orderDetails.order.status)}>
+                    {formatStatus(orderDetails.order.status)}
+                  </Badge>
                 </div>
                 <div>
                   <p className="text-sm font-medium text-gray-500">Total Amount</p>
-                  <div>${selectedOrder.totalAmount.toFixed(2)}</div>
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <p className="text-sm font-medium text-gray-500">Subtotal</p>
-                  <div>${selectedOrder.subtotal.toFixed(2)}</div>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-500">Delivery Fee</p>
-                  <div>${selectedOrder.deliveryFee.toFixed(2)}</div>
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <p className="text-sm font-medium text-gray-500">Commission Amount</p>
-                  <div>${selectedOrder.commissionAmount.toFixed(2)}</div>
+                  <div className="font-bold text-lg">${orderDetails.order.totalAmount?.toFixed(2)}</div>
                 </div>
                 <div>
                   <p className="text-sm font-medium text-gray-500">Created At</p>
-                  <div>{new Date(selectedOrder.createdAt).toLocaleString()}</div>
+                  <div>{new Date(orderDetails.order.createdAt).toLocaleString()}</div>
                 </div>
               </div>
-              <div>
-                <p className="text-sm font-medium text-gray-500">Delivery Address</p>
-                <div>{selectedOrder.deliveryAddress}</div>
+
+              <div className="space-y-4">
+                <h3 className="font-bold border-b pb-2">Vendor Sub-Orders</h3>
+                {orderDetails.vendorOrders.map((vo: VendorOrder) => (
+                  <div key={vo.id} className="border rounded-lg p-4 space-y-3">
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <span className="font-semibold text-primary">{vo.vendorName}</span>
+                        <span className="text-xs text-muted-foreground ml-2">#{vo.id.substring(0, 8)}</span>
+                      </div>
+                      <Badge className={getStatusColor(vo.status)}>
+                        {formatStatus(vo.status)}
+                      </Badge>
+                    </div>
+                    <div className="text-sm space-y-1">
+                      {vo.items.map((item: any) => (
+                        <div key={item.id} className="flex justify-between">
+                          <span>{item.productName} x {item.quantity}</span>
+                          <span>${item.totalPrice?.toFixed(2)}</span>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="flex justify-between pt-2 border-t font-semibold">
+                      <span>Sub-order Total</span>
+                      <span>${vo.totalAmount?.toFixed(2)}</span>
+                    </div>
+                  </div>
+                ))}
               </div>
-              {selectedOrder.customerNotes && (
-                <div>
-                  <p className="text-sm font-medium text-gray-500">Customer Notes</p>
-                  <div>{selectedOrder.customerNotes}</div>
-                </div>
-              )}
-              {selectedOrder.cancellationReason && (
-                <div>
-                  <p className="text-sm font-medium text-gray-500">Cancellation Reason</p>
-                  <div>{selectedOrder.cancellationReason}</div>
-                </div>
-              )}
+
+              <div className="bg-muted/20 p-4 rounded-lg">
+                <p className="text-sm font-medium text-gray-500 mb-1">Delivery Address</p>
+                <div className="text-sm">{orderDetails.order.deliveryAddress}</div>
+              </div>
             </div>
-          </DialogContent>
-        </Dialog>
-      )}
+          ) : (
+            <div className="py-8 text-center text-destructive">Failed to load order details.</div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

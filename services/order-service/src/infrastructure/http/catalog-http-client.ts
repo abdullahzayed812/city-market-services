@@ -2,6 +2,7 @@ import axios from "axios";
 
 export interface ProductInfo {
   id: string;
+  vendorId: string;
   name: string;
   price: number;
   stockQuantity: number;
@@ -9,7 +10,7 @@ export interface ProductInfo {
 }
 
 export class CatalogHttpClient {
-  constructor(private baseUrl: string) {}
+  constructor(private baseUrl: string) { }
 
   async getProduct(productId: string, token?: string): Promise<ProductInfo | null> {
     try {

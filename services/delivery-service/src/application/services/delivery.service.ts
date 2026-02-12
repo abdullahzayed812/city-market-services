@@ -7,9 +7,11 @@ import { RegisterCourierDto, UpdateCourierDto } from "../../core/dto/courier.dto
 import { CreateDeliveryDto, AssignCourierDto, UpdateDeliveryStatusDto } from "../../core/dto/delivery.dto";
 import { DeliveryStatus } from "@city-market/shared";
 import { ValidationError, NotFoundError } from "@city-market/shared";
-import { RabbitMQBus, EventType } from "@city-market/shared";
+import { RabbitMQBus, EventType, Logger } from "@city-market/shared";
 import { OrderHttpClient } from "../../infrastructure/http/order-http-client";
 import { VendorHttpClient } from "../../infrastructure/http/vendor-http-client";
+
+const DISTANCE_THRESHOLD_KM = 2.0;
 
 export class DeliveryService {
   constructor(
@@ -47,23 +49,11 @@ export class DeliveryService {
 
   async getAllCouriers(page: number = 1, limit: number = 20): Promise<Courier[]> {
     const offset = (page - 1) * limit;
-    const courier = await this.courierRepo.findAll(limit, offset);
-    if (!courier) {
-      throw new NotFoundError("Courier not found");
-    }
-    return courier;
+    return this.courierRepo.findAll(limit, offset);
   }
 
   async getCourierById(id: string): Promise<Courier> {
     const courier = await this.courierRepo.findById(id);
-    if (!courier) {
-      throw new NotFoundError("Courier not found");
-    }
-    return courier;
-  }
-
-  async getCourierByUserId(userId: string): Promise<Courier> {
-    const courier = await this.courierRepo.findByUserId(userId);
     if (!courier) {
       throw new NotFoundError("Courier not found");
     }
@@ -103,52 +93,113 @@ export class DeliveryService {
     return this.deliveryRepo.create(delivery);
   }
 
-  async createDeliveryFromOrder(orderId: string, token?: string): Promise<Delivery> {
-    const { order } = await this.orderClient.getOrder(orderId, token);
-    if (!order) {
-      throw new NotFoundError(`Order ${orderId} not found`);
+  async createDeliveryFromOrder(customerOrderId: string, token?: string): Promise<Delivery[]> {
+    const orderData = await this.orderClient.getOrder(customerOrderId, token);
+    if (!orderData || !orderData.order) {
+      throw new NotFoundError(`Customer Order ${customerOrderId} not found`);
     }
 
-    const vendor = await this.vendorClient.getVendor(order.vendorId, token);
-    if (!vendor) {
-      throw new NotFoundError(`Vendor ${order.vendorId} not found`);
+    const customerOrder = orderData.order;
+    const vendorOrders = orderData.vendorOrders;
+
+    // Fetch all vendor details
+    const vendors = await Promise.all(
+      vendorOrders.map(async (vo: any) => {
+        const vendor = await this.vendorClient.getVendor(vo.vendorId, token);
+        return { ...vo, vendorInfo: vendor };
+      })
+    );
+
+    // Calculate pairwise distances between vendors
+    const allFarApart = this.checkDistances(vendors);
+
+    const createdDeliveries: Delivery[] = [];
+
+    if (!allFarApart) {
+      // Group all into ONE delivery
+      // We'll use the first vendor's location as a primary pickup or just use a combined approach
+      // For simplicity, we create one delivery linked to the customerOrder
+      const delivery = await this.createIndividualDelivery(customerOrder, vendors, customerOrderId);
+      createdDeliveries.push(delivery);
+
+      // Link all vendor orders to this delivery
+      for (const vo of vendorOrders) {
+        await this.eventBus.publish({
+          id: randomUUID(),
+          type: EventType.DELIVERY_CREATED,
+          timestamp: new Date(),
+          payload: { deliveryId: delivery.id, vendorOrderId: vo.id, customerOrderId }
+        });
+      }
+    } else {
+      // Separate Delivery per VendorOrder
+      for (const v of vendors) {
+        const delivery = await this.createIndividualDelivery(customerOrder, [v], customerOrderId);
+        createdDeliveries.push(delivery);
+
+        await this.eventBus.publish({
+          id: randomUUID(),
+          type: EventType.DELIVERY_CREATED,
+          timestamp: new Date(),
+          payload: { deliveryId: delivery.id, vendorOrderId: v.id, customerOrderId }
+        });
+      }
     }
 
-    // Determine pickup address (assuming vendor address)
-    // Adjust based on actual vendor object structure, here assuming vendor.address or vendor.businessAddress
-    // If vendor object has address string directly or within an object
-    const pickupAddress = vendor.address || vendor.businessAddress || "Unknown Vendor Address";
+    return createdDeliveries;
+  }
+
+  private async createIndividualDelivery(customerOrder: any, vendors: any[], customerOrderId: string): Promise<Delivery> {
+    // Determine pickup locations (if multiple, maybe use first or a central point)
+    const primaryVendor = vendors[0];
+    const pickupAddress = vendors.map(v => v.vendorInfo.address || v.vendorInfo.businessAddress).join(" | ");
 
     const delivery: Delivery = {
       id: randomUUID(),
-      orderId,
+      orderId: customerOrderId,
       status: DeliveryStatus.PENDING,
-      pickupAddress: pickupAddress,
-      deliveryAddress: order.deliveryAddress,
-      pickupLatitude: vendor.latitude || null,
-      pickupLongitude: vendor.longitude || null,
-      deliveryLatitude: order.deliveryLatitude || null,
-      deliveryLongitude: order.deliveryLongitude || null,
+      pickupAddress,
+      deliveryAddress: customerOrder.deliveryAddress,
+      pickupLatitude: primaryVendor.vendorInfo.latitude,
+      pickupLongitude: primaryVendor.vendorInfo.longitude,
+      deliveryLatitude: customerOrder.deliveryLatitude,
+      deliveryLongitude: customerOrder.deliveryLongitude,
       createdAt: new Date(),
       updatedAt: new Date(),
     };
 
-    const createdDelivery = await this.deliveryRepo.create(delivery);
+    return this.deliveryRepo.create(delivery);
+  }
 
-    await this.eventBus.publish({
-      id: randomUUID(),
-      type: EventType.DELIVERY_CREATED,
-      timestamp: new Date(),
-      payload: {
-        deliveryId: createdDelivery.id,
-        orderId: createdDelivery.orderId,
-        status: createdDelivery.status,
-        vendorId: order.vendorId,
-        customerId: order.customerId
-      },
-    });
+  private checkDistances(vendors: any[]): boolean {
+    if (vendors.length <= 1) return false;
 
-    return createdDelivery;
+    for (let i = 0; i < vendors.length; i++) {
+      for (let j = i + 1; j < vendors.length; j++) {
+        const dist = this.haversineDistance(
+          vendors[i].vendorInfo.latitude,
+          vendors[i].vendorInfo.longitude,
+          vendors[j].vendorInfo.latitude,
+          vendors[j].vendorInfo.longitude
+        );
+        if (dist > DISTANCE_THRESHOLD_KM) return true; // At least one pair is far apart
+      }
+    }
+    return false;
+  }
+
+  private haversineDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
+    const R = 6371; // km
+    const dLat = (lat2 - lat1) * (Math.PI / 180);
+    const dLon = (lon2 - lon1) * (Math.PI / 180);
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(lat1 * (Math.PI / 180)) *
+      Math.cos(lat2 * (Math.PI / 180)) *
+      Math.sin(dLon / 2) *
+      Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
   }
 
   async getDeliveryById(id: string): Promise<Delivery> {
@@ -157,55 +208,6 @@ export class DeliveryService {
       throw new NotFoundError("Delivery not found");
     }
     return delivery;
-  }
-
-  async getDeliveryByOrderId(orderId: string): Promise<Delivery> {
-    const delivery = await this.deliveryRepo.findByOrderId(orderId);
-    if (!delivery) {
-      throw new NotFoundError("Delivery not found");
-    }
-    return delivery;
-  }
-
-  async getPendingDeliveries(): Promise<Delivery[]> {
-    return this.deliveryRepo.findPending();
-  }
-
-  async getCourierDeliveries(courierId: string, page: number = 1, limit: number = 20): Promise<Delivery[]> {
-    const offset = (page - 1) * limit;
-    return this.deliveryRepo.findByCourier(courierId, limit, offset);
-  }
-
-  async getAllDeliveries(page: number = 1, limit: number = 20): Promise<Delivery[]> {
-    const offset = (page - 1) * limit;
-    return this.deliveryRepo.findAll(limit, offset);
-  }
-
-  async assignCourier(deliveryId: string, dto: AssignCourierDto): Promise<void> {
-    const delivery = await this.getDeliveryById(deliveryId);
-    const courier = await this.getCourierById(dto.courierId);
-
-    if (delivery.status !== DeliveryStatus.PENDING) {
-      throw new ValidationError("Delivery already assigned");
-    }
-
-    if (!courier.isAvailable) {
-      throw new ValidationError("Courier is not available");
-    }
-
-    await this.deliveryRepo.assignCourier(deliveryId, dto.courierId);
-    await this.courierRepo.updateAvailability(dto.courierId, false);
-
-    await this.eventBus.publish({
-      id: randomUUID(),
-      type: EventType.COURIER_ASSIGNED,
-      timestamp: new Date(),
-      payload: {
-        deliveryId,
-        orderId: delivery.orderId,
-        courierId: dto.courierId,
-      },
-    });
   }
 
   async updateDeliveryStatus(deliveryId: string, dto: UpdateDeliveryStatusDto): Promise<void> {
@@ -230,15 +232,6 @@ export class DeliveryService {
       });
     }
 
-    if (dto.status === DeliveryStatus.ON_THE_WAY) {
-      await this.eventBus.publish({
-        id: randomUUID(),
-        type: EventType.ORDER_ON_THE_WAY,
-        timestamp: new Date(),
-        payload: { deliveryId, orderId: delivery.orderId },
-      });
-    }
-
     if (dto.status === DeliveryStatus.DELIVERED) {
       updates.deliveredAt = new Date();
       if (delivery.courierId) {
@@ -257,7 +250,7 @@ export class DeliveryService {
   }
 
   private isValidStatusTransition(currentStatus: DeliveryStatus, newStatus: DeliveryStatus): boolean {
-    const transitions: Record<DeliveryStatus, DeliveryStatus[]> = {
+    const transitions: Record<string, DeliveryStatus[]> = {
       [DeliveryStatus.PENDING]: [DeliveryStatus.ASSIGNED, DeliveryStatus.FAILED],
       [DeliveryStatus.ASSIGNED]: [DeliveryStatus.PICKED_UP, DeliveryStatus.FAILED],
       [DeliveryStatus.PICKED_UP]: [DeliveryStatus.ON_THE_WAY, DeliveryStatus.FAILED],

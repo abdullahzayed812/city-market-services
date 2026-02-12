@@ -12,7 +12,7 @@ export class OrderController {
       const token = req.headers.authorization?.split(" ")[1];
       const dto = { ...req.body, customerId: req.user!.userId };
       const order = await this.orderService.createOrder(dto, token);
-      Logger.info("Order created", { orderId: order.order.id });
+      Logger.info("Customer order created", { customerOrderId: order.order.id });
       res.status(201).json(ApiResponse.success(order, "Order created"));
     } catch (error) {
       next(error);
@@ -21,8 +21,64 @@ export class OrderController {
 
   getById = async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
-      const order = await this.orderService.getOrderById(req.params.id);
+      const token = req.headers.authorization?.split(" ")[1];
+      const order = await this.orderService.getOrderById(req.params.id, token);
       res.json(ApiResponse.success(order));
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  getVendorOrderById = async (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+      const token = req.headers.authorization?.split(" ")[1];
+      const order = await this.orderService.getVendorOrderById(req.params.id, token);
+      res.json(ApiResponse.success(order));
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  acceptVendorOrder = async (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+      await this.orderService.acceptVendorOrder(req.params.id);
+      res.json(ApiResponse.success(null, "Vendor order accepted"));
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  proposeChanges = async (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+      await this.orderService.proposeChanges(req.params.id, req.body);
+      res.json(ApiResponse.success(null, "Changes proposed"));
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  updateVendorOrderStatus = async (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+      await this.orderService.updateVendorOrderStatus(req.params.id, req.body.status, req.body.notes);
+      res.json(ApiResponse.success(null, "Vendor order status updated"));
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  acceptProposal = async (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+      await this.orderService.acceptProposal(req.params.id);
+      res.json(ApiResponse.success(null, "Proposal accepted"));
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  rejectProposal = async (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+      await this.orderService.rejectProposal(req.params.id, req.body.cancelEntireOrder);
+      res.json(ApiResponse.success(null, "Proposal rejected"));
     } catch (error) {
       next(error);
     }
@@ -63,18 +119,11 @@ export class OrderController {
 
   updateStatus = async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
-      const token = req.headers.authorization?.split(" ")[1];
-      await this.orderService.updateOrderStatus(req.params.id, req.body, token);
-      res.json(ApiResponse.success(null, "Order status updated"));
-    } catch (error) {
-      next(error);
-    }
-  };
-
-  cancel = async (req: AuthRequest, res: Response, next: NextFunction) => {
-    try {
-      await this.orderService.cancelOrder(req.params.id, req.body.reason);
-      res.json(ApiResponse.success(null, "Order cancelled"));
+      // Manual status override for CustomerOrder (mostly for Admin)
+      // This might bypass sync logic, so use with caution.
+      // For now, I'll just keep it simple as expected by dashboards.
+      const { status, notes } = req.body;
+      res.status(501).json(ApiResponse.error("Direct customer order status update not recommended. Update vendor orders instead."));
     } catch (error) {
       next(error);
     }

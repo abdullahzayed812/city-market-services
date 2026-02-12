@@ -1,6 +1,7 @@
 export interface OrderStatusHistory {
   id: string;
-  orderId: string;
+  customerOrderId?: string;
+  vendorOrderId?: string;
   status: string;
   notes?: string;
   createdAt: Date;
