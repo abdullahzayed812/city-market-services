@@ -1,4 +1,4 @@
-import { Database, SEED_DATA } from "@city-market/shared";
+import { Database, SEED_DATA, ShopStatus } from "@city-market/shared";
 import { config } from "../../config/env";
 import { randomUUID } from "crypto";
 
@@ -21,7 +21,7 @@ const seedDb = async () => {
                 shop_description: "Delicious burgers and fries",
                 phone: "+201000000001",
                 address: "456 Food St, Borg El Arab",
-                status: "OPEN",
+                status: ShopStatus.OPEN,
                 commission_rate: 10.00
             },
             {
@@ -31,7 +31,7 @@ const seedDb = async () => {
                 shop_description: "Authentic Italian pizzas",
                 phone: "+201000000002",
                 address: "789 Pizza Ave, Alexandria",
-                status: "OPEN",
+                status: ShopStatus.OPEN,
                 commission_rate: 12.00
             }
         ];

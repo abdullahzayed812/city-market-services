@@ -1,3 +1,5 @@
+import { ShopStatus } from "@city-market/shared";
+
 export interface CreateVendorDto {
   userId: string;
   shopName: string;
@@ -18,7 +20,7 @@ export interface UpdateVendorDto {
 }
 
 export interface UpdateStatusDto {
-  status: string;
+  status: ShopStatus;
 }
 
 export interface SetWorkingHoursDto {

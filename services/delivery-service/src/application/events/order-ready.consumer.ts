@@ -2,23 +2,23 @@ import { BaseEvent, EventSubscriber, EventType, Logger } from "@city-market/shar
 import { DeliveryService } from "../services/delivery.service";
 
 export class OrderReadyConsumer implements EventSubscriber {
-    constructor(private deliveryService: DeliveryService) { }
+  constructor(private deliveryService: DeliveryService) {}
 
-    async handle(event: BaseEvent): Promise<void> {
-        if (event.type !== EventType.ORDER_READY) {
-            return;
-        }
-
-        try {
-            const { orderId } = event.payload;
-            Logger.info(`Processing ORDER_READY event for order ${orderId}`);
-
-            // Assuming the event payload might contain a token or we need a system token.
-            // For now, passing undefined as the event structure doesn't seem to carry user token.
-            // If the services require auth, we need a mechanism to get a token here.
-            await this.deliveryService.createDeliveryFromOrder(orderId, (event as any).payload.token);
-        } catch (error) {
-            Logger.error(`Failed to process ORDER_READY event for order ${event.payload.orderId}`, error);
-        }
+  async handle(event: BaseEvent): Promise<void> {
+    if (event.type !== EventType.ORDER_READY) {
+      return;
     }
+
+    try {
+      const { customerOrderId } = event.payload;
+      Logger.info(`Processing ORDER_READY event for order ${customerOrderId}`);
+
+      // Assuming the event payload might contain a token or we need a system token.
+      // For now, passing undefined as the event structure doesn't seem to carry user token.
+      // If the services require auth, we need a mechanism to get a token here.
+      await this.deliveryService.createDeliveryFromOrder(customerOrderId, (event as any).payload.token);
+    } catch (error) {
+      Logger.error(`Failed to process ORDER_READY event for order ${event.payload.customerOrderId}`, error);
+    }
+  }
 }

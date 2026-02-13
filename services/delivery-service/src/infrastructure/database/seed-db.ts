@@ -1,4 +1,4 @@
-import { Database, SEED_DATA } from "@city-market/shared";
+import { Database, SEED_DATA, DeliveryStatus } from "@city-market/shared";
 import { config } from "../../config/env";
 import { randomUUID } from "crypto";
 
@@ -25,7 +25,7 @@ const seedDb = async () => {
 
         await connection.execute(
             "INSERT IGNORE INTO deliveries (id, order_id, courier_id, status, pickup_address, delivery_address, pickup_latitude, pickup_longitude, delivery_latitude, delivery_longitude) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-            [randomUUID(), orderId, courierId, "ASSIGNED", "456 Food St", "123 Main St", 30.9123, 29.6789, 30.9500, 29.7000]
+            [randomUUID(), orderId, courierId, DeliveryStatus.ASSIGNED, "456 Food St", "123 Main St", 30.9123, 29.6789, 30.9500, 29.7000]
         );
 
         console.log("Database seeded successfully");

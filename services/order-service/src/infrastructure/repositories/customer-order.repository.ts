@@ -1,7 +1,8 @@
-import { Pool, RowDataPacket } from "mysql2/promise";
+import * as mysql from "mysql2/promise"; // For mysql.ResultSetHeader
+import { Pool, RowDataPacket, PoolConnection, ResultSetHeader } from "mysql2/promise"; // Direct types
 import { CustomerOrder } from "../../core/entities/customer-order.entity";
 import { ICustomerOrderRepository } from "../../core/interfaces/customer-order.repository";
-import { Database } from "@city-market/shared";
+import { CustomerOrderStatus, Database } from "@city-market/shared"; // Added CustomerOrderStatus
 
 export class CustomerOrderRepository implements ICustomerOrderRepository {
     private pool: Pool;
@@ -10,7 +11,8 @@ export class CustomerOrderRepository implements ICustomerOrderRepository {
         this.pool = this.db.getPool();
     }
 
-    async create(order: CustomerOrder): Promise<CustomerOrder> {
+    async create(order: CustomerOrder, connection?: PoolConnection): Promise<CustomerOrder> {
+        const conn = connection || this.pool;
         const query = `
       INSERT INTO customer_orders (
         id, customer_id, status, subtotal, delivery_fee,
@@ -18,7 +20,7 @@ export class CustomerOrderRepository implements ICustomerOrderRepository {
         delivery_longitude, customer_notes
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
-        await this.pool.query(query, [
+        await conn.query(query, [
             order.id,
             order.customerId,
             order.status,
@@ -34,41 +36,47 @@ export class CustomerOrderRepository implements ICustomerOrderRepository {
         return order;
     }
 
-    async findById(id: string): Promise<CustomerOrder | null> {
+    async findById(id: string, connection?: PoolConnection): Promise<CustomerOrder | null> {
+        const conn = connection || this.pool;
         const query = "SELECT * FROM customer_orders WHERE id = ?";
-        const [rows] = await this.pool.execute<RowDataPacket[]>(query, [id]);
+        const [rows] = await conn.execute<RowDataPacket[]>(query, [id]);
         return rows.length > 0 ? this.mapToEntity(rows[0]) : null;
     }
 
-    async findByCustomer(customerId: string, limit: number, offset: number): Promise<CustomerOrder[]> {
+    async findByCustomer(customerId: string, limit: number, offset: number, connection?: PoolConnection): Promise<CustomerOrder[]> {
+        const conn = connection || this.pool;
         const query = `
       SELECT * FROM customer_orders 
       WHERE customer_id = ? 
       ORDER BY created_at DESC 
       LIMIT ? OFFSET ?
     `;
-        const [rows] = await this.pool.query<RowDataPacket[]>(query, [customerId, limit, offset]);
+        const [rows] = await conn.query<RowDataPacket[]>(query, [customerId, limit, offset]);
         return rows.map((row) => this.mapToEntity(row));
     }
 
-    async findByStatus(status: string): Promise<CustomerOrder[]> {
+    async findByStatus(status: string, connection?: PoolConnection): Promise<CustomerOrder[]> {
+        const conn = connection || this.pool;
         const query = "SELECT * FROM customer_orders WHERE status = ? ORDER BY created_at DESC";
-        const [rows] = await this.pool.execute<RowDataPacket[]>(query, [status]);
+        const [rows] = await conn.execute<RowDataPacket[]>(query, [status]);
         return rows.map((row) => this.mapToEntity(row));
     }
 
-    async findAll(limit: number, offset: number): Promise<CustomerOrder[]> {
+    async findAll(limit: number, offset: number, connection?: PoolConnection): Promise<CustomerOrder[]> {
+        const conn = connection || this.pool;
         const query = "SELECT * FROM customer_orders ORDER BY created_at DESC LIMIT ? OFFSET ?";
-        const [rows] = await this.pool.query<RowDataPacket[]>(query, [limit, offset]);
+        const [rows] = await conn.query<RowDataPacket[]>(query, [limit, offset]);
         return rows.map((row) => this.mapToEntity(row));
     }
 
-    async updateStatus(id: string, status: string): Promise<void> {
+    async updateStatus(id: string, status: string, connection?: PoolConnection): Promise<void> {
+        const conn = connection || this.pool;
         const query = "UPDATE customer_orders SET status = ? WHERE id = ?";
-        await this.pool.execute(query, [status, id]);
+        await conn.execute(query, [status, id]);
     }
 
-    async update(id: string, data: Partial<CustomerOrder>): Promise<void> {
+    async update(id: string, data: Partial<CustomerOrder>, connection?: PoolConnection): Promise<void> {
+        const conn = connection || this.pool;
         const fields: string[] = [];
         const values: any[] = [];
 
@@ -80,12 +88,45 @@ export class CustomerOrderRepository implements ICustomerOrderRepository {
             fields.push("cancellation_reason = ?");
             values.push(data.cancellationReason);
         }
+        // Add other updatable fields here if necessary, e.g., total amounts
+        if (data.subtotal !== undefined) {
+          fields.push("subtotal = ?");
+          values.push(data.subtotal);
+        }
+        if (data.deliveryFee !== undefined) {
+          fields.push("delivery_fee = ?");
+          values.push(data.deliveryFee);
+        }
+        if (data.commissionAmount !== undefined) {
+          fields.push("commission_amount = ?");
+          values.push(data.commissionAmount);
+        }
+        if (data.totalAmount !== undefined) {
+          fields.push("total_amount = ?");
+          values.push(data.totalAmount);
+        }
+
 
         if (fields.length === 0) return;
 
         values.push(id);
         const query = `UPDATE customer_orders SET ${fields.join(", ")} WHERE id = ?`;
-        await this.pool.execute(query, values);
+        await conn.execute(query, values);
+    }
+
+    async conditionalUpdateStatusToReady(id: string, connection?: PoolConnection): Promise<number> {
+        const conn = connection || this.pool;
+        const query = `
+            UPDATE customer_orders
+            SET status = ?
+            WHERE id = ? AND status != ?
+        `;
+        const [result] = await conn.execute(query, [
+            CustomerOrderStatus.READY,
+            id,
+            CustomerOrderStatus.READY,
+        ]);
+        return (result as mysql.ResultSetHeader).affectedRows;
     }
 
     private mapToEntity(row: any): CustomerOrder {

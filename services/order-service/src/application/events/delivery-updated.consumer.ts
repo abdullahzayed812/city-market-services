@@ -1,4 +1,4 @@
-import { BaseEvent, EventSubscriber, EventType, Logger, OrderStatus } from "@city-market/shared";
+import { BaseEvent, EventSubscriber, EventType, Logger, CustomerOrderStatus, VendorOrderStatus } from "@city-market/shared";
 import { OrderService } from "../services/order.service";
 
 export class DeliveryUpdatedConsumer implements EventSubscriber {
@@ -9,27 +9,34 @@ export class DeliveryUpdatedConsumer implements EventSubscriber {
             const { customerOrderId, vendorOrderId } = event.payload;
             Logger.info(`Processing delivery update event ${event.type} for order ${customerOrderId || vendorOrderId}`);
 
-            const statusMap: Partial<Record<EventType, OrderStatus>> = {
-                [EventType.ORDER_PICKED_UP]: OrderStatus.PICKED_UP,
-                [EventType.ORDER_ON_THE_WAY]: OrderStatus.ON_THE_WAY,
-                [EventType.ORDER_DELIVERED]: OrderStatus.DELIVERED,
+            const customerStatusMap: Partial<Record<EventType, CustomerOrderStatus>> = {
+                [EventType.ORDER_PICKED_UP]: CustomerOrderStatus.IN_DELIVERY,
+                [EventType.ORDER_ON_THE_WAY]: CustomerOrderStatus.IN_DELIVERY,
+                [EventType.ORDER_DELIVERED]: CustomerOrderStatus.COMPLETED,
             };
 
-            const status = statusMap[event.type];
-            if (!status) return;
+            const vendorStatusMap: Partial<Record<EventType, VendorOrderStatus>> = {
+                [EventType.ORDER_PICKED_UP]: VendorOrderStatus.PICKED_UP,
+                [EventType.ORDER_ON_THE_WAY]: VendorOrderStatus.ON_THE_WAY,
+                [EventType.ORDER_DELIVERED]: VendorOrderStatus.DELIVERED,
+            };
 
-            if (vendorOrderId) {
-                await this.orderService.updateVendorOrderStatus(vendorOrderId, status, `Delivery update: ${event.type}`);
-            } else if (customerOrderId) {
-                // If the event only has customerOrderId, we might need to update all associated vendor orders
-                // but usually the event should have the specific target.
-                // For now, let's assume if it's customer-level, we update the whole thing.
-                // In my DeliveryService, I publish with customerOrderId.
-                const orderData = await this.orderService.getOrderById(customerOrderId);
-                for (const vo of orderData.vendorOrders) {
-                    await this.orderService.updateVendorOrderStatus(vo.id, status, `Global delivery update: ${event.type}`);
-                }
+            // Handle Customer Order Status
+            const customerStatus = customerStatusMap[event.type];
+            if (customerOrderId && customerStatus) {
+                await this.orderService.updateCustomerOrderStatus(customerOrderId, customerStatus, `Delivery update: ${event.type}`);
             }
+
+            // Handle Vendor Order Status
+            const vendorStatus = vendorStatusMap[event.type];
+            if (vendorOrderId && vendorStatus) {
+                await this.orderService.updateVendorOrderStatus(vendorOrderId, vendorStatus, `Delivery update: ${event.type}`);
+            }
+
+            if (!customerOrderId && !vendorOrderId) {
+                Logger.warn(`Delivery event ${event.type} received without customerOrderId or vendorOrderId.`);
+            }
+
         } catch (error) {
             Logger.error(`Failed to process event ${event.type} for order ${event.payload?.customerOrderId}`, error);
         }

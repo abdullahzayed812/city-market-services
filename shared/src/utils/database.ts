@@ -1,4 +1,5 @@
 import * as mysql from "mysql2/promise";
+import { PoolConnection } from "mysql2/promise"; // Import PoolConnection for type hinting
 
 export interface DatabaseConfig {
   host: string;
@@ -12,6 +13,9 @@ export interface DatabaseConfig {
 export interface IDatabase {
   getPool(): mysql.Pool;
   close(): Promise<void>;
+  beginTransaction(): Promise<PoolConnection>; // New method
+  commit(connection: PoolConnection): Promise<void>; // New method
+  rollback(connection: PoolConnection): Promise<void>; // New method
 }
 
 export class Database implements IDatabase {
@@ -47,5 +51,22 @@ export class Database implements IDatabase {
 
   public async close(): Promise<void> {
     await this.pool.end();
+  }
+
+  // New transaction methods
+  public async beginTransaction(): Promise<PoolConnection> {
+    const connection = await this.pool.getConnection();
+    await connection.beginTransaction();
+    return connection;
+  }
+
+  public async commit(connection: PoolConnection): Promise<void> {
+    await connection.commit();
+    connection.release(); // Release the connection back to the pool
+  }
+
+  public async rollback(connection: PoolConnection): Promise<void> {
+    await connection.rollback();
+    connection.release(); // Release the connection back to the pool
   }
 }

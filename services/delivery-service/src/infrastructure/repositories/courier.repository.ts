@@ -1,4 +1,4 @@
-import { Pool, RowDataPacket } from "mysql2/promise";
+import { Pool, RowDataPacket, PoolConnection } from "mysql2/promise";
 import { Courier } from "../../core/entities/courier.entity";
 import { ICourierRepository } from "../../core/interfaces/courier.repository";
 import { Database } from "@city-market/shared";
@@ -10,14 +10,15 @@ export class CourierRepository implements ICourierRepository {
     this.pool = this.db.getPool();
   }
 
-  async create(courier: Courier): Promise<Courier> {
+  async create(courier: Courier, connection?: PoolConnection): Promise<Courier> {
+    const conn = connection || this.pool;
     const query = `
       INSERT INTO couriers (
         id, user_id, full_name, phone, vehicle_type, license_plate,
         is_available, is_active, rating, total_deliveries
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
-    await this.pool.execute(query, [
+    await conn.execute(query, [
       courier.id,
       courier.userId,
       courier.fullName,
@@ -32,31 +33,36 @@ export class CourierRepository implements ICourierRepository {
     return courier;
   }
 
-  async findById(id: string): Promise<Courier | null> {
+  async findById(id: string, connection?: PoolConnection): Promise<Courier | null> {
+    const conn = connection || this.pool;
     const query = "SELECT * FROM couriers WHERE id = ?";
-    const [rows] = await this.pool.execute<RowDataPacket[]>(query, [id]);
+    const [rows] = await conn.execute<RowDataPacket[]>(query, [id]);
     return rows.length > 0 ? this.mapToEntity(rows[0]) : null;
   }
 
-  async findByUserId(userId: string): Promise<Courier | null> {
+  async findByUserId(userId: string, connection?: PoolConnection): Promise<Courier | null> {
+    const conn = connection || this.pool;
     const query = "SELECT * FROM couriers WHERE user_id = ?";
-    const [rows] = await this.pool.execute<RowDataPacket[]>(query, [userId]);
+    const [rows] = await conn.execute<RowDataPacket[]>(query, [userId]);
     return rows.length > 0 ? this.mapToEntity(rows[0]) : null;
   }
 
-  async findAvailable(): Promise<Courier[]> {
+  async findAvailable(connection?: PoolConnection): Promise<Courier[]> {
+    const conn = connection || this.pool;
     const query = "SELECT * FROM couriers WHERE is_available = TRUE AND is_active = TRUE";
-    const [rows] = await this.pool.execute<RowDataPacket[]>(query);
+    const [rows] = await conn.execute<RowDataPacket[]>(query);
     return rows.map((row) => this.mapToEntity(row));
   }
 
-  async findAll(limit: number, offset: number): Promise<Courier[]> {
+  async findAll(limit: number, offset: number, connection?: PoolConnection): Promise<Courier[]> {
+    const conn = connection || this.pool;
     const query = "SELECT * FROM couriers ORDER BY created_at DESC LIMIT ? OFFSET ?";
-    const [rows] = await this.pool.query<RowDataPacket[]>(query, [limit, offset]);
+    const [rows] = await conn.query<RowDataPacket[]>(query, [limit, offset]);
     return rows.map((row) => this.mapToEntity(row));
   }
 
-  async update(id: string, data: Partial<Courier>): Promise<void> {
+  async update(id: string, data: Partial<Courier>, connection?: PoolConnection): Promise<void> {
+    const conn = connection || this.pool;
     const fields: string[] = [];
     const values: any[] = [];
 
@@ -81,17 +87,19 @@ export class CourierRepository implements ICourierRepository {
 
     values.push(id);
     const query = `UPDATE couriers SET ${fields.join(", ")} WHERE id = ?`;
-    await this.pool.execute(query, values);
+    await conn.execute(query, values);
   }
 
-  async updateAvailability(id: string, isAvailable: boolean): Promise<void> {
+  async updateAvailability(id: string, isAvailable: boolean, connection?: PoolConnection): Promise<void> {
+    const conn = connection || this.pool;
     const query = "UPDATE couriers SET is_available = ? WHERE id = ?";
-    await this.pool.query(query, [isAvailable, id]);
+    await conn.query(query, [isAvailable, id]);
   }
 
-  async incrementDeliveries(id: string): Promise<void> {
+  async incrementDeliveries(id: string, connection?: PoolConnection): Promise<void> {
+    const conn = connection || this.pool;
     const query = "UPDATE couriers SET total_deliveries = total_deliveries + 1 WHERE id = ?";
-    await this.pool.execute(query, [id]);
+    await conn.execute(query, [id]);
   }
 
   private mapToEntity(row: any): Courier {

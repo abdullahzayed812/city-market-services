@@ -119,11 +119,9 @@ export class OrderController {
 
   updateStatus = async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
-      // Manual status override for CustomerOrder (mostly for Admin)
-      // This might bypass sync logic, so use with caution.
-      // For now, I'll just keep it simple as expected by dashboards.
       const { status, notes } = req.body;
-      res.status(501).json(ApiResponse.error("Direct customer order status update not recommended. Update vendor orders instead."));
+      await this.orderService.updateCustomerOrderStatus(req.params.id, status, notes);
+      res.json(ApiResponse.success(null, "Customer order status updated"));
     } catch (error) {
       next(error);
     }

@@ -1,8 +1,10 @@
 import { DeliveryStatus } from "@city-market/shared";
+import { PickupLocation } from "../entities/pickup-location.entity"; // Import PickupLocation
 
 export interface CreateDeliveryDto {
-  orderId: string;
-  pickupAddress: string;
+  customerOrderId: string;
+  vendorOrderId?: string; // Keep this for now, though it might become less relevant.
+  pickupLocations: PickupLocation[]; // New: List of pickup locations
   deliveryAddress: string;
   pickupLatitude?: number;
   pickupLongitude?: number;
@@ -16,5 +18,6 @@ export interface AssignCourierDto {
 
 export interface UpdateDeliveryStatusDto {
   status: DeliveryStatus;
+  vendorOrderId: string;
   notes?: string;
 }

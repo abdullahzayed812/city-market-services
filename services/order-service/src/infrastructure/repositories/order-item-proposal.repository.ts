@@ -1,4 +1,4 @@
-import { Pool, RowDataPacket } from "mysql2/promise";
+import { Pool, RowDataPacket, PoolConnection } from "mysql2/promise";
 import { OrderItemProposal, ProposalType, ProposalStatus } from "../../core/entities/order-item-proposal.entity";
 import { IOrderItemProposalRepository } from "../../core/interfaces/order-item-proposal.repository";
 import { Database } from "@city-market/shared";
@@ -10,13 +10,14 @@ export class OrderItemProposalRepository implements IOrderItemProposalRepository
         this.pool = this.db.getPool();
     }
 
-    async create(proposal: OrderItemProposal): Promise<OrderItemProposal> {
+    async create(proposal: OrderItemProposal, connection?: PoolConnection): Promise<OrderItemProposal> {
+        const conn = connection || this.pool;
         const query = `
       INSERT INTO order_item_proposals (
         id, vendor_order_item_id, type, proposed_quantity, status
       ) VALUES (?, ?, ?, ?, ?)
     `;
-        await this.pool.query(query, [
+        await conn.query(query, [
             proposal.id,
             proposal.vendorOrderItemId,
             proposal.type,
@@ -26,32 +27,36 @@ export class OrderItemProposalRepository implements IOrderItemProposalRepository
         return proposal;
     }
 
-    async findById(id: string): Promise<OrderItemProposal | null> {
+    async findById(id: string, connection?: PoolConnection): Promise<OrderItemProposal | null> {
+        const conn = connection || this.pool;
         const query = "SELECT * FROM order_item_proposals WHERE id = ?";
-        const [rows] = await this.pool.execute<RowDataPacket[]>(query, [id]);
+        const [rows] = await conn.execute<RowDataPacket[]>(query, [id]);
         return rows.length > 0 ? this.mapToEntity(rows[0]) : null;
     }
 
-    async findByVendorOrderItem(vendorOrderItemId: string): Promise<OrderItemProposal[]> {
+    async findByVendorOrderItem(vendorOrderItemId: string, connection?: PoolConnection): Promise<OrderItemProposal[]> {
+        const conn = connection || this.pool;
         const query = "SELECT * FROM order_item_proposals WHERE vendor_order_item_id = ?";
-        const [rows] = await this.pool.execute<RowDataPacket[]>(query, [vendorOrderItemId]);
+        const [rows] = await conn.execute<RowDataPacket[]>(query, [vendorOrderItemId]);
         return rows.map((row) => this.mapToEntity(row));
     }
 
-    async findByVendorOrder(vendorOrderId: string): Promise<OrderItemProposal[]> {
+    async findByVendorOrder(vendorOrderId: string, connection?: PoolConnection): Promise<OrderItemProposal[]> {
+        const conn = connection || this.pool;
         const query = `
             SELECT p.* 
             FROM order_item_proposals p
             JOIN vendor_order_items i ON p.vendor_order_item_id = i.id
             WHERE i.vendor_order_id = ?
         `;
-        const [rows] = await this.pool.execute<RowDataPacket[]>(query, [vendorOrderId]);
+        const [rows] = await conn.execute<RowDataPacket[]>(query, [vendorOrderId]);
         return rows.map((row) => this.mapToEntity(row));
     }
 
-    async updateStatus(id: string, status: string): Promise<void> {
+    async updateStatus(id: string, status: string, connection?: PoolConnection): Promise<void> {
+        const conn = connection || this.pool;
         const query = "UPDATE order_item_proposals SET status = ? WHERE id = ?";
-        await this.pool.execute(query, [status, id]);
+        await conn.execute(query, [status, id]);
     }
 
     private mapToEntity(row: any): OrderItemProposal {

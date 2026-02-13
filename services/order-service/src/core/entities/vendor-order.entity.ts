@@ -1,10 +1,10 @@
-import { OrderStatus } from "@city-market/shared";
+import { VendorOrderStatus } from "@city-market/shared";
 
 export interface VendorOrder {
     id: string;
     customerOrderId: string;
     vendorId: string;
-    status: OrderStatus;
+    status: VendorOrderStatus;
     subtotal: number;
     commissionAmount: number;
     totalAmount: number;

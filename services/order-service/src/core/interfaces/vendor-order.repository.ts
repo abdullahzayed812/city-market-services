@@ -1,11 +1,11 @@
 import { VendorOrder } from "../entities/vendor-order.entity";
 
 export interface IVendorOrderRepository {
-    create(order: VendorOrder): Promise<VendorOrder>;
-    findById(id: string): Promise<VendorOrder | null>;
-    findByCustomerOrder(customerOrderId: string): Promise<VendorOrder[]>;
-    findByVendor(vendorId: string, limit: number, offset: number): Promise<VendorOrder[]>;
-    findByStatus(status: string): Promise<VendorOrder[]>;
-    updateStatus(id: string, status: string): Promise<void>;
-    update(id: string, data: Partial<VendorOrder>): Promise<void>;
+    create(order: VendorOrder, connection?: any): Promise<VendorOrder>;
+    findById(id: string, connection?: any): Promise<VendorOrder | null>;
+    findByCustomerOrder(customerOrderId: string, connection?: any): Promise<VendorOrder[]>;
+    findByVendor(vendorId: string, limit: number, offset: number, connection?: any): Promise<VendorOrder[]>;
+    findByStatus(status: string, connection?: any): Promise<VendorOrder[]>;
+    updateStatus(id: string, status: string, connection?: any): Promise<void>;
+    update(id: string, data: Partial<VendorOrder>, connection?: any): Promise<void>;
 }

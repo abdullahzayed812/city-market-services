@@ -1,4 +1,4 @@
-import { OrderStatus } from "@city-market/shared";
+import { CustomerOrderStatus, VendorOrderStatus } from "@city-market/shared";
 import { VendorOrderItem } from "../entities/vendor-order-item.entity";
 import { CustomerOrder } from "../entities/customer-order.entity";
 import { VendorOrder } from "../entities/vendor-order.entity";
@@ -18,8 +18,13 @@ export interface CreateOrderDto {
   customerNotes?: string;
 }
 
-export interface UpdateOrderStatusDto {
-  status: OrderStatus;
+export interface UpdateCustomerOrderStatusDto {
+  status: CustomerOrderStatus;
+  notes?: string;
+}
+
+export interface UpdateVendorOrderStatusDto {
+  status: VendorOrderStatus;
   notes?: string;
 }
 

@@ -59,7 +59,7 @@
     "db:init:delivery": "cd services/delivery-service && npm run db:init",
     "db:init:notification": "cd services/notification-service && npm run db:init",
     "db:init:payment": "cd services/payment-service && npm run db:init",
-    "db:seed": "npm run db:seed:auth && npm run db:seed:user && npm run db:seed:vendor && npm run db:seed:catalog && npm run db:seed:order && npm run db:seed:delivery && npm run db:seed:notification && npm run db:seed:payment",
+    "db:seed": "npm run db:seed:auth && npm run db:seed:user && npm run db:seed:vendor && npm run db:seed:catalog",
     "db:seed:auth": "cd services/auth-service && npm run db:seed",
     "db:seed:user": "cd services/user-service && npm run db:seed",
     "db:seed:vendor": "cd services/vendor-service && npm run db:seed",

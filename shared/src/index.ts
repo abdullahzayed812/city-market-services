@@ -3,6 +3,8 @@ export * from "./enums/roles";
 export * from "./enums/order-status";
 export * from "./enums/delivery-status";
 export * from "./enums/shop-status";
+export * from "./enums/customer-order-status";
+export * from "./enums/vendor-order-status";
 
 // Events
 export * from "./events/event-types";

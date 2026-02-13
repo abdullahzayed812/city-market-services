@@ -10,7 +10,7 @@ export interface ProductInfo {
 }
 
 export class CatalogHttpClient {
-  constructor(private baseUrl: string) { }
+  constructor(private baseUrl: string) {}
 
   async getProduct(productId: string, token?: string): Promise<ProductInfo | null> {
     try {
@@ -26,12 +26,28 @@ export class CatalogHttpClient {
     }
   }
 
-  async checkAndDecrementStock(productId: string, quantity: number): Promise<boolean> {
+  async checkAndDecrementStock(productId: string, quantity: number, token?: string): Promise<void> {
     try {
-      const response = await axios.post(`${this.baseUrl}/products/${productId}/decrement-stock`, { quantity });
-      return response.data.success;
-    } catch (error) {
-      return false;
+      // Assuming the catalog service's endpoint for decrement-stock performs the safe update pattern:
+      // UPDATE products SET stock = stock - ? WHERE id = ? AND stock >= ?
+      // And returns success only if affectedRows === 1.
+      const response = await axios.patch(
+        `${this.baseUrl}/products/${productId}/stock`,
+        { stock: quantity },
+        {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        }
+      );
+      if (!response.data?.success) {
+        // If the catalog service indicates failure (e.g., insufficient stock), throw an error
+        throw new Error(
+          `Failed to decrement stock for product ${productId}: ${response.data.message || "Unknown reason"}`
+        );
+      }
+      // If success is true, no need to return anything, just complete
+    } catch (error: any) {
+      // Re-throw any error so the calling service can catch and rollback
+      throw new Error(`Catalog service stock decrement failed for product ${productId}: ${error.message}`);
     }
   }
 }
