@@ -165,7 +165,12 @@ export class OrderService {
         };
 
         await this.vendorOrderRepo.create(vendorOrder, connection);
-        await this.recordStatusChange({ vendorOrderId: vendorOrder.id }, VendorOrderStatus.PENDING, undefined, connection);
+        await this.recordStatusChange(
+          { vendorOrderId: vendorOrder.id },
+          VendorOrderStatus.PENDING,
+          undefined,
+          connection
+        );
 
         for (const item of voData.items) {
           item.vendorOrderId = vendorOrder.id;
@@ -198,7 +203,6 @@ export class OrderService {
       });
 
       await this.db.commit(connection);
-
     } catch (error) {
       if (connection) {
         await this.db.rollback(connection);
@@ -211,12 +215,12 @@ export class OrderService {
       }
     }
 
-    if (!createdCustomerOrder) { // Should not happen with successful commit
+    if (!createdCustomerOrder) {
+      // Should not happen with successful commit
       throw new Error("Customer order was not created successfully.");
     }
     return { order: createdCustomerOrder, vendorOrders: createdVendorOrders };
   }
-
 
   async getOrderById(id: string, token?: string): Promise<OrderWithItems> {
     const customerOrder = await this.customerOrderRepo.findById(id);
@@ -300,7 +304,12 @@ export class OrderService {
 
       // Update vendor order status to reflect proposal
       await this.vendorOrderRepo.updateStatus(vendorOrderId, VendorOrderStatus.PROPOSAL_SENT, connection);
-      await this.recordStatusChange({ vendorOrderId }, VendorOrderStatus.PROPOSAL_SENT, `Proposal ${proposal.id} sent.`, connection);
+      await this.recordStatusChange(
+        { vendorOrderId },
+        VendorOrderStatus.PROPOSAL_SENT,
+        `Proposal ${proposal.id} sent.`,
+        connection
+      );
 
       eventsToPublish.push({
         id: randomUUID(),
@@ -682,7 +691,13 @@ export class OrderService {
         id: randomUUID(),
         type: EventType.PROPOSAL_REJECTED,
         timestamp: new Date(),
-        payload: { proposalId, vendorOrderId: vo.id, customerOrderId: co.id, vendorId: vo.vendorId, customerId: co.customerId },
+        payload: {
+          proposalId,
+          vendorOrderId: vo.id,
+          customerOrderId: co.id,
+          vendorId: vo.vendorId,
+          customerId: co.customerId,
+        },
       });
 
       if (cancelEntireOrder) {
@@ -729,7 +744,6 @@ export class OrderService {
       if (!cancelEntireOrder) {
         await this.syncCustomerOrderStatus(co.id);
       }
-
     } catch (error) {
       if (connection) {
         await this.db.rollback(connection);

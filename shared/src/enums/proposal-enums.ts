@@ -1,0 +1,10 @@
+export enum ProposalType {
+  QUANTITY_REDUCTION = "QUANTITY_REDUCTION",
+  UNAVAILABLE = "UNAVAILABLE",
+}
+
+export enum ProposalStatus {
+  PENDING = "PENDING",
+  ACCEPTED = "ACCEPTED",
+  REJECTED = "REJECTED",
+}

@@ -14,29 +14,16 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { MoreHorizontal, Eye, CheckCircle, XCircle } from "lucide-react";
-import { OrderStatus } from "@/types/order";
+import {
+  type CustomerOrder,
+  CustomerOrderStatus,
+  type OrderWithItems,
+  type VendorOrder,
+  VendorOrderStatus,
+} from "@city-market/shared"; // Import shared types
 
-interface Order {
-  id: string;
-  customerId: string;
-  status: string;
-  subtotal: number;
-  deliveryFee: number;
-  commissionAmount: number;
-  totalAmount: number;
-  deliveryAddress: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-interface VendorOrder {
-  id: string;
-  vendorId: string;
-  vendorName: string;
-  status: string;
-  totalAmount: number;
-  items: any[];
-}
+// Removed local Order and VendorOrder interfaces
+// Removed local OrderStatus enum
 
 const OrdersManagement: React.FC = () => {
   const { t } = useTranslation();
@@ -53,12 +40,21 @@ const OrdersManagement: React.FC = () => {
         queryClient.invalidateQueries({ queryKey: ["order-details", selectedOrderId] });
       }
     };
-    const events = ["ORDER_CREATED", "ORDER_CONFIRMED", "ORDER_CANCELLED", "ORDER_READY", "ORDER_PICKED_UP", "ORDER_ON_THE_WAY", "ORDER_DELIVERED"];
+    const events = [
+      "ORDER_CREATED",
+      "ORDER_CONFIRMED",
+      "ORDER_CANCELLED",
+      "ORDER_READY",
+      "ORDER_PICKED_UP",
+      "ORDER_ON_THE_WAY",
+      "ORDER_DELIVERED",
+    ];
     events.forEach((event) => socket.on(event, handleOrderUpdate));
     return () => events.forEach((event) => socket.off(event, handleOrderUpdate));
   }, [socket, queryClient, selectedOrderId]);
 
-  const { data: orders, isLoading } = useQuery<Order[]>({
+  const { data: orders, isLoading } = useQuery<CustomerOrder[]>({
+    // Use CustomerOrder[]
     queryKey: ["orders"],
     queryFn: async () => {
       const response = await adminApi.getOrders();
@@ -66,7 +62,8 @@ const OrdersManagement: React.FC = () => {
     },
   });
 
-  const { data: orderDetails, isLoading: isLoadingDetails } = useQuery({
+  const { data: orderDetails, isLoading: isLoadingDetails } = useQuery<OrderWithItems | null>({
+    // Use OrderWithItems
     queryKey: ["order-details", selectedOrderId],
     queryFn: async () => {
       if (!selectedOrderId) return null;
@@ -77,7 +74,9 @@ const OrdersManagement: React.FC = () => {
   });
 
   const updateStatusMutation = useMutation({
-    mutationFn: ({ id, status }: { id: string; status: string }) => adminApi.updateOrderStatus(id, status),
+    mutationFn: (
+      { id, status }: { id: string; status: CustomerOrderStatus } // Use CustomerOrderStatus
+    ) => adminApi.updateOrderStatus(id, status),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["orders"] });
     },
@@ -88,25 +87,49 @@ const OrdersManagement: React.FC = () => {
     setIsModalOpen(true);
   };
 
-  const getStatusColor = (status: string) => {
+  const getStatusColor = (status: CustomerOrderStatus | VendorOrderStatus) => {
+    // Accept CustomerOrderStatus or VendorOrderStatus
     if (!status) return "bg-gray-100 text-gray-800";
-    const statusUpper = status.toUpperCase();
-    switch (statusUpper) {
-      case OrderStatus.CREATED: return "bg-yellow-100 text-yellow-800";
-      case OrderStatus.CONFIRMED: return "bg-blue-100 text-blue-800";
-      case OrderStatus.PREPARING: return "bg-purple-100 text-purple-800";
-      case OrderStatus.READY: return "bg-cyan-100 text-cyan-800";
-      case OrderStatus.PICKED_UP: return "bg-indigo-100 text-indigo-800";
-      case OrderStatus.ON_THE_WAY: return "bg-orange-100 text-orange-800";
-      case OrderStatus.DELIVERED: return "bg-green-100 text-green-800";
-      case OrderStatus.CANCELLED: return "bg-red-100 text-red-800";
-      default: return "bg-gray-100 text-gray-800";
+    switch (status) {
+      case CustomerOrderStatus.PENDING_VENDOR_CONFIRMATION:
+        return "bg-yellow-100 text-yellow-800"; // New status
+      case CustomerOrderStatus.WAITING_CUSTOMER_DECISION:
+        return "bg-blue-100 text-blue-800"; // New status
+      case CustomerOrderStatus.READY:
+        return "bg-cyan-100 text-cyan-800";
+      case CustomerOrderStatus.IN_DELIVERY:
+        return "bg-indigo-100 text-indigo-800"; // New status
+      case CustomerOrderStatus.COMPLETED:
+        return "bg-green-100 text-green-800"; // New status
+      case CustomerOrderStatus.CANCELLED:
+        return "bg-red-100 text-red-800";
+
+      case VendorOrderStatus.PENDING:
+        return "bg-yellow-100 text-yellow-800";
+      case VendorOrderStatus.PROPOSAL_SENT:
+        return "bg-blue-100 text-blue-800";
+      case VendorOrderStatus.CONFIRMED:
+        return "bg-purple-110 text-purple-800"; // Changed color
+      case VendorOrderStatus.PICKED_UP:
+        return "bg-indigo-100 text-indigo-800";
+      case VendorOrderStatus.ON_THE_WAY:
+        return "bg-orange-100 text-orange-800";
+      case VendorOrderStatus.DELIVERED:
+        return "bg-green-100 text-green-800";
+      case VendorOrderStatus.CANCELLED:
+        return "bg-red-100 text-red-800";
+
+      default:
+        return "bg-gray-100 text-gray-800";
     }
   };
 
   const formatStatus = (status: string) => {
     if (!status) return "Unknown";
-    return status.split("_").map((word) => word.charAt(0) + word.slice(1).toLowerCase()).join(" ");
+    return status
+      .split("_")
+      .map((word) => word.charAt(0) + word.slice(1).toLowerCase())
+      .join(" ");
   };
 
   if (isLoading) return <div className="p-8 text-center">Loading orders...</div>;
@@ -128,47 +151,53 @@ const OrdersManagement: React.FC = () => {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {orders?.map((order: Order) => (
-              <TableRow key={order.id}>
-                <TableCell className="font-medium">{order.id.substring(0, 8)}</TableCell>
-                <TableCell>{order.customerId.substring(0, 8)}</TableCell>
-                <TableCell>${order.totalAmount?.toFixed(2)}</TableCell>
-                <TableCell>
-                  <Badge className={getStatusColor(order.status)}>
-                    {formatStatus(order.status)}
-                  </Badge>
-                </TableCell>
-                <TableCell>{new Date(order.createdAt).toLocaleDateString()}</TableCell>
-                <TableCell className="text-right">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon">
-                        <MoreHorizontal className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => handleViewDetails(order.id)}>
-                        <Eye className="me-2 h-4 w-4" />
-                        View Details
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        onClick={() => updateStatusMutation.mutate({ id: order.id, status: "CONFIRMED" })}
-                      >
-                        <CheckCircle className="me-2 h-4 w-4" />
-                        Mark as Confirmed
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        className="text-destructive"
-                        onClick={() => updateStatusMutation.mutate({ id: order.id, status: "CANCELLED" })}
-                      >
-                        <XCircle className="me-2 h-4 w-4" />
-                        Cancel Order
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </TableCell>
-              </TableRow>
-            ))}
+            {orders?.map(
+              (
+                order: CustomerOrder // Use CustomerOrder
+              ) => (
+                <TableRow key={order.id}>
+                  <TableCell className="font-medium">{order.id.substring(0, 8)}</TableCell>
+                  <TableCell>{order.customerId.substring(0, 8)}</TableCell>
+                  <TableCell>${order.totalAmount?.toFixed(2)}</TableCell>
+                  <TableCell>
+                    <Badge className={getStatusColor(order.status)}>{formatStatus(order.status)}</Badge>
+                  </TableCell>
+                  <TableCell>{new Date(order.createdAt).toLocaleDateString()}</TableCell>
+                  <TableCell className="text-right">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon">
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => handleViewDetails(order.id)}>
+                          <Eye className="me-2 h-4 w-4" />
+                          View Details
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() =>
+                            updateStatusMutation.mutate({ id: order.id, status: CustomerOrderStatus.READY })
+                          } // Use CustomerOrderStatus
+                        >
+                          <CheckCircle className="me-2 h-4 w-4" />
+                          Mark as Ready
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          className="text-destructive"
+                          onClick={() =>
+                            updateStatusMutation.mutate({ id: order.id, status: CustomerOrderStatus.CANCELLED })
+                          } // Use CustomerOrderStatus
+                        >
+                          <XCircle className="me-2 h-4 w-4" />
+                          Cancel Order
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </TableCell>
+                </TableRow>
+              )
+            )}
           </TableBody>
         </Table>
       </div>
@@ -207,31 +236,39 @@ const OrdersManagement: React.FC = () => {
 
               <div className="space-y-4">
                 <h3 className="font-bold border-b pb-2">Vendor Sub-Orders</h3>
-                {orderDetails.vendorOrders.map((vo: VendorOrder) => (
-                  <div key={vo.id} className="border rounded-lg p-4 space-y-3">
-                    <div className="flex justify-between items-center">
-                      <div>
-                        <span className="font-semibold text-primary">{vo.vendorName}</span>
-                        <span className="text-xs text-muted-foreground ml-2">#{vo.id.substring(0, 8)}</span>
-                      </div>
-                      <Badge className={getStatusColor(vo.status)}>
-                        {formatStatus(vo.status)}
-                      </Badge>
-                    </div>
-                    <div className="text-sm space-y-1">
-                      {vo.items.map((item: any) => (
-                        <div key={item.id} className="flex justify-between">
-                          <span>{item.productName} x {item.quantity}</span>
-                          <span>${item.totalPrice?.toFixed(2)}</span>
+                {orderDetails.vendorOrders.map(
+                  (
+                    vo: VendorOrder // Use VendorOrder
+                  ) => (
+                    <div key={vo.id} className="border rounded-lg p-4 space-y-3">
+                      <div className="flex justify-between items-center">
+                        <div>
+                          <span className="font-semibold text-primary">{vo.vendorName}</span>
+                          <span className="text-xs text-muted-foreground ml-2">#{vo.id.substring(0, 8)}</span>
                         </div>
-                      ))}
+                        <Badge className={getStatusColor(vo.status)}>{formatStatus(vo.status)}</Badge>
+                      </div>
+                      <div className="text-sm space-y-1">
+                        {vo.items.map(
+                          (
+                            item: VendorOrderItem // item: VendorOrderItem
+                          ) => (
+                            <div key={item.id} className="flex justify-between">
+                              <span>
+                                {item.productName} x {item.quantity}
+                              </span>
+                              <span>${item.totalPrice?.toFixed(2)}</span>
+                            </div>
+                          )
+                        )}
+                      </div>
+                      <div className="flex justify-between pt-2 border-t font-semibold">
+                        <span>Sub-order Total</span>
+                        <span>${vo.totalAmount?.toFixed(2)}</span>
+                      </div>
                     </div>
-                    <div className="flex justify-between pt-2 border-t font-semibold">
-                      <span>Sub-order Total</span>
-                      <span>${vo.totalAmount?.toFixed(2)}</span>
-                    </div>
-                  </div>
-                ))}
+                  )
+                )}
               </div>
 
               <div className="bg-muted/20 p-4 rounded-lg">

@@ -10,7 +10,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { MoreHorizontal, Eye, CheckCircle, XCircle, Package, ChefHat } from "lucide-react";
-import { OrderStatus, type Order } from "@/types/order";
+import { VendorOrder, VendorOrderStatus } from "@city-market/shared"; // Import shared types
 
 const Orders = () => {
   const { t } = useTranslation();
@@ -20,23 +20,21 @@ const Orders = () => {
     return <div className="flex items-center justify-center h-full">Loading...</div>;
   }
 
-  const getStatusColor = (status: OrderStatus) => {
+  const getStatusColor = (status: VendorOrderStatus) => { // Use VendorOrderStatus
     switch (status) {
-      case OrderStatus.CREATED:
+      case VendorOrderStatus.PENDING:
         return "bg-yellow-100 text-yellow-800";
-      case OrderStatus.CONFIRMED:
+      case VendorOrderStatus.PROPOSAL_SENT: // New status
         return "bg-blue-100 text-blue-800";
-      case OrderStatus.PREPARING:
+      case VendorOrderStatus.CONFIRMED:
         return "bg-purple-100 text-purple-800";
-      case OrderStatus.READY:
-        return "bg-cyan-100 text-cyan-800";
-      case OrderStatus.PICKED_UP:
+      case VendorOrderStatus.PICKED_UP:
         return "bg-indigo-100 text-indigo-800";
-      case OrderStatus.ON_THE_WAY:
+      case VendorOrderStatus.ON_THE_WAY:
         return "bg-orange-100 text-orange-800";
-      case OrderStatus.DELIVERED:
+      case VendorOrderStatus.DELIVERED:
         return "bg-green-100 text-green-800";
-      case OrderStatus.CANCELLED:
+      case VendorOrderStatus.CANCELLED:
         return "bg-red-100 text-red-800";
       default:
         return "bg-gray-100 text-gray-800";
@@ -72,11 +70,11 @@ const Orders = () => {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {orders.map((order: Order) => (
+            {orders.map((order: VendorOrder) => ( // Use VendorOrder
               <TableRow key={order.id}>
                 <TableCell className="font-medium">#{order.id.slice(0, 8)}</TableCell>
                 <TableCell>{new Date(order.createdAt).toLocaleDateString()}</TableCell>
-                <TableCell>{order.customerName || "Customer"}</TableCell>
+                <TableCell>{order.customerName || "Customer"}</TableCell> {/* customerName is not directly on VendorOrder */}
                 <TableCell>
                   <Badge className={getStatusColor(order.status)}>{formatStatus(order.status)}</Badge>
                 </TableCell>
@@ -94,11 +92,11 @@ const Orders = () => {
                       </DropdownMenuItem>
 
                       {/* Status Transitions */}
-                      {order.status === OrderStatus.CREATED && (
+                      {order.status === VendorOrderStatus.PENDING && (
                         <>
                           <DropdownMenuItem
                             className="gap-2 text-green-600"
-                            onClick={() => updateStatus({ id: order.id, status: OrderStatus.CONFIRMED })}
+                            onClick={() => updateStatus({ id: order.id, status: VendorOrderStatus.CONFIRMED })}
                           >
                             <CheckCircle className="h-4 w-4" /> Confirm Order
                           </DropdownMenuItem>
@@ -108,13 +106,13 @@ const Orders = () => {
                         </>
                       )}
 
-                      {order.status === OrderStatus.CONFIRMED && (
+                      {order.status === VendorOrderStatus.CONFIRMED && (
                         <>
                           <DropdownMenuItem
                             className="gap-2 text-blue-600"
-                            onClick={() => updateStatus({ id: order.id, status: OrderStatus.PREPARING })}
+                            onClick={() => updateStatus({ id: order.id, status: VendorOrderStatus.PICKED_UP })} // Changed from PREPARING to PICKED_UP
                           >
-                            <ChefHat className="h-4 w-4" /> Start Preparing
+                            <ChefHat className="h-4 w-4" /> Mark as Picked Up
                           </DropdownMenuItem>
                           <DropdownMenuItem className="gap-2 text-destructive" onClick={() => cancelOrder(order.id)}>
                             <XCircle className="h-4 w-4" /> Cancel Order
@@ -122,13 +120,27 @@ const Orders = () => {
                         </>
                       )}
 
-                      {order.status === OrderStatus.PREPARING && (
+                      {order.status === VendorOrderStatus.PICKED_UP && ( // Changed from PREPARING
                         <>
                           <DropdownMenuItem
                             className="gap-2 text-green-600"
-                            onClick={() => updateStatus({ id: order.id, status: OrderStatus.READY })}
+                            onClick={() => updateStatus({ id: order.id, status: VendorOrderStatus.ON_THE_WAY })} // Changed from READY to ON_THE_WAY
                           >
-                            <Package className="h-4 w-4" /> Mark as Ready
+                            <Package className="h-4 w-4" /> Mark as On The Way
+                          </DropdownMenuItem>
+                          <DropdownMenuItem className="gap-2 text-destructive" onClick={() => cancelOrder(order.id)}>
+                            <XCircle className="h-4 w-4" /> Cancel Order
+                          </DropdownMenuItem>
+                        </>
+                      )}
+
+                      {order.status === VendorOrderStatus.ON_THE_WAY && ( // Changed from PREPARING
+                        <>
+                          <DropdownMenuItem
+                            className="gap-2 text-green-600"
+                            onClick={() => updateStatus({ id: order.id, status: VendorOrderStatus.DELIVERED })} // Changed from READY to ON_THE_WAY
+                          >
+                            <Package className="h-4 w-4" /> Mark as Delivered
                           </DropdownMenuItem>
                           <DropdownMenuItem className="gap-2 text-destructive" onClick={() => cancelOrder(order.id)}>
                             <XCircle className="h-4 w-4" /> Cancel Order

@@ -3,6 +3,7 @@ import { useEffect } from "react";
 import { orderService } from "@/services/api/order.service";
 import { useAuth } from "@/components/AuthProvider";
 import { useSocket } from "@/contexts/SocketContext";
+import { VendorOrderStatus } from "@city-market/shared"; // Import VendorOrderStatus
 
 export const useOrders = () => {
   const { vendor } = useAuth();
@@ -42,7 +43,7 @@ export const useOrders = () => {
   }, [socket, vendorId, queryClient]);
 
   const updateStatusMutation = useMutation({
-    mutationFn: ({ id, status }: { id: string; status: string }) => orderService.updateOrderStatus(id, status),
+    mutationFn: ({ id, status }: { id: string; status: VendorOrderStatus }) => orderService.updateOrderStatus(id, status),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["vendor-orders", vendorId] });
     },

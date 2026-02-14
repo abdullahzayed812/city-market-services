@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { MapPin, Phone, Package, Clock, User } from "lucide-react";
-import { DeliveryStatus } from "@/types/status";
+import { Delivery, Courier, DeliveryStatus } from "@city-market/shared"; // Import shared types
 
 const Deliveries = () => {
   const { t } = useTranslation();
@@ -17,12 +17,12 @@ const Deliveries = () => {
   const [selectedCourier, setSelectedCourier] = useState<string>("");
   const [assigningDeliveryId, setAssigningDeliveryId] = useState<string | null>(null);
 
-  const { data: deliveries = [], isLoading } = useQuery({
+  const { data: deliveries = [], isLoading } = useQuery<Delivery[] | undefined>({ // Use Delivery[]
     queryKey: ["deliveries"],
     queryFn: deliveryService.getAllDeliveries,
   });
 
-  const { data: availableCouriers = [] } = useQuery({
+  const { data: availableCouriers = [] } = useQuery<Courier[] | undefined>({ // Use Courier[]
     queryKey: ["available-couriers"],
     queryFn: deliveryService.getAvailableCouriers,
   });
@@ -54,7 +54,7 @@ const Deliveries = () => {
 
   const assignMutation = useMutation({
     mutationFn: ({ deliveryId, courierId }: { deliveryId: string; courierId: string }) =>
-      deliveryService.assignCourier(deliveryId, courierId),
+      deliveryService.assignCourier(deliveryId, { courierId }), // Pass as DTO
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["deliveries"] });
       queryClient.invalidateQueries({ queryKey: ["available-couriers"] });
@@ -64,8 +64,8 @@ const Deliveries = () => {
   });
 
   // const updateStatusMutation = useMutation({
-  //   mutationFn: ({ id, status }: { id: string; status: string }) =>
-  //     deliveryService.updateDeliveryStatus(id, status),
+  //   mutationFn: ({ id, status }: { id: string; status: DeliveryStatus }) => // Use DeliveryStatus and UpdateDeliveryStatusDto
+  //     deliveryService.updateDeliveryStatus(id, { status, vendorOrderId: "TODO" }), // TODO: vendorOrderId needs to be passed
   //   onSuccess: () => {
   //     queryClient.invalidateQueries({ queryKey: ["deliveries"] });
   //   },
@@ -81,8 +81,8 @@ const Deliveries = () => {
     return <div className="flex items-center justify-center h-full">Loading...</div>;
   }
 
-  const getStatusColor = (status: string) => {
-    switch (status.toUpperCase()) {
+  const getStatusColor = (status: DeliveryStatus) => { // Use DeliveryStatus
+    switch (status) {
       case DeliveryStatus.PENDING:
         return "bg-yellow-100 text-yellow-800";
       case DeliveryStatus.ASSIGNED:
@@ -93,6 +93,8 @@ const Deliveries = () => {
         return "bg-indigo-100 text-indigo-800";
       case DeliveryStatus.DELIVERED:
         return "bg-green-100 text-green-800";
+      case DeliveryStatus.FAILED:
+        return "bg-red-100 text-red-800";
       default:
         return "bg-gray-100 text-gray-800";
     }
@@ -116,12 +118,12 @@ const Deliveries = () => {
             <p className="text-muted-foreground">No deliveries found.</p>
           </div>
         ) : (
-          deliveries.map((delivery: any) => (
+          deliveries.map((delivery: Delivery) => ( // Use Delivery
             <Card key={delivery.id} className="overflow-hidden">
               <CardHeader className="flex flex-row items-center justify-between bg-muted/30 py-4">
                 <div className="flex items-center gap-2">
                   <Package className="w-5 h-5 text-primary" />
-                  <CardTitle className="text-lg">Order #{delivery.orderId}</CardTitle>
+                  <CardTitle className="text-lg">Order #{delivery.customerOrderId?.substring(0, 8)}</CardTitle>
                 </div>
                 <Badge className={getStatusColor(delivery.status)}>
                   {formatStatus(delivery.status)}
@@ -136,7 +138,8 @@ const Deliveries = () => {
                       </div>
                       <div>
                         <p className="text-sm font-semibold">{t("orders.pickup_details")}</p>
-                        <p className="text-sm text-muted-foreground">{delivery.pickupAddress}</p>
+                        {/* Assuming first pickup location is the main one for display */}
+                        <p className="text-sm text-muted-foreground">{delivery.pickupLocations[0]?.address}</p>
                       </div>
                     </div>
                     <div className="flex items-start gap-3">
@@ -150,10 +153,10 @@ const Deliveries = () => {
                     </div>
                   </div>
                   <div className="space-y-4">
-                    <div className="flex items-center gap-3">
+                    {/* <div className="flex items-center gap-3">
                       <Phone className="w-4 h-4 text-muted-foreground" />
-                      <p className="text-sm">{delivery.customerPhone}</p>
-                    </div>
+                      <p className="text-sm">{delivery.customerPhone}</p> // customerPhone is not directly in Delivery
+                    </div> */}
                     <div className="flex items-center gap-3">
                       <Clock className="w-4 h-4 text-muted-foreground" />
                       <p className="text-sm">Created at: {new Date(delivery.createdAt).toLocaleString()}</p>
@@ -161,11 +164,11 @@ const Deliveries = () => {
                     {delivery.courierId && (
                       <div className="flex items-center gap-3">
                         <User className="w-4 h-4 text-muted-foreground" />
-                        <p className="text-sm">Courier: {delivery.courier?.name || "Assigned"}</p>
+                        <p className="text-sm">Courier: {delivery.courierId} (ID)</p> {/* Displaying ID for now */}
                       </div>
                     )}
 
-                    {delivery.status.toLowerCase() === "pending" && (
+                    {delivery.status === DeliveryStatus.PENDING && ( // Use DeliveryStatus
                       <Dialog>
                         <DialogTrigger asChild>
                           <Button className="w-full mt-4" onClick={() => setAssigningDeliveryId(delivery.id)}>
@@ -182,7 +185,7 @@ const Deliveries = () => {
                                 <SelectValue placeholder="Select a courier" />
                               </SelectTrigger>
                               <SelectContent>
-                                {availableCouriers.map((courier: any) => (
+                                {availableCouriers.map((courier: Courier) => ( // Use Courier
                                   <SelectItem key={courier.id} value={courier.id}>
                                     {courier.fullName} ({courier.vehicleType})
                                   </SelectItem>
@@ -201,33 +204,33 @@ const Deliveries = () => {
                       </Dialog>
                     )}
 
-                    {/* {delivery.status.toLowerCase() === "assigned" && (
+                    {/* {delivery.status === DeliveryStatus.ASSIGNED && (
                       <Button
                         className="w-full mt-4"
                         variant="outline"
-                        onClick={() => updateStatusMutation.mutate({ id: delivery.id, status: "PICKED_UP" })}
+                        onClick={() => updateStatusMutation.mutate({ id: delivery.id, status: DeliveryStatus.PICKED_UP, vendorOrderId: "TODO" })}
                         disabled={updateStatusMutation.isPending}
                       >
                         Mark as Picked Up
                       </Button>
                     )}
 
-                    {delivery.status.toLowerCase() === "picked_up" && (
+                    {delivery.status === DeliveryStatus.PICKED_UP && (
                       <Button
                         className="w-full mt-4"
                         variant="outline"
-                        onClick={() => updateStatusMutation.mutate({ id: delivery.id, status: "ON_THE_WAY" })}
+                        onClick={() => updateStatusMutation.mutate({ id: delivery.id, status: DeliveryStatus.ON_THE_WAY, vendorOrderId: "TODO" })}
                         disabled={updateStatusMutation.isPending}
                       >
                         Mark as On The Way
                       </Button>
                     )}
 
-                    {delivery.status.toLowerCase() === "on_the_way" && (
+                    {delivery.status === DeliveryStatus.ON_THE_WAY && (
                       <Button
                         className="w-full mt-4"
                         variant="default"
-                        onClick={() => updateStatusMutation.mutate({ id: delivery.id, status: "DELIVERED" })}
+                        onClick={() => updateStatusMutation.mutate({ id: delivery.id, status: DeliveryStatus.DELIVERED, vendorOrderId: "TODO" })}
                         disabled={updateStatusMutation.isPending}
                       >
                         Mark as Delivered
