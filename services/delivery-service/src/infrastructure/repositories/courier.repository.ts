@@ -1,7 +1,7 @@
 import { Pool, RowDataPacket, PoolConnection } from "mysql2/promise";
 import { Courier } from "../../core/entities/courier.entity";
 import { ICourierRepository } from "../../core/interfaces/courier.repository";
-import { Database } from "@city-market/shared";
+import { Database } from "@city-market/shared/node";
 
 export class CourierRepository implements ICourierRepository {
   private pool: Pool;

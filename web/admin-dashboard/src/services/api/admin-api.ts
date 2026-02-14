@@ -13,9 +13,6 @@ import {
   type UpdateUserStatusRequest,
   type RevenueReport,
   type PayoutsReport,
-  UserStatus,
-  type UpdateVendorDto, // Re-adding UpdateVendorDto as it's used by admin-service suspend/update
-  type UpdateProductDto, // Re-adding UpdateProductDto as it's used by admin-service stock update (implicitly)
 } from "@city-market/shared";
 
 export const adminApi = {

@@ -1,11 +1,11 @@
 import { Response, NextFunction } from "express";
 import { OrderService } from "../../application/services/order.service";
 import { ApiResponse } from "@city-market/shared";
-import { Logger } from "@city-market/shared";
-import { AuthRequest } from "@city-market/shared";
+import { Logger } from "@city-market/shared/node";
+import { AuthRequest } from "@city-market/shared/node";
 
 export class OrderController {
-  constructor(private orderService: OrderService) { }
+  constructor(private orderService: OrderService) {}
 
   create = async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
@@ -117,7 +117,7 @@ export class OrderController {
     }
   };
 
-  updateStatus = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  updateCustomerOrderStatus = async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
       const { status, notes } = req.body;
       await this.orderService.updateCustomerOrderStatus(req.params.id, status, notes);

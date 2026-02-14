@@ -1,5 +1,7 @@
-export * from "./enums";
-export * from "./events";
-export * from "./interfaces";
-export * from "./middlewares";
-export * from "./utils";
+// Frontend-safe exports only
+// For Node-specific code (RabbitMQ, Database, Auth), import from "@city-market/shared/node"
+
+export * from "./enums/index.js";
+export * from "./interfaces/index.js";
+export * from "./events/index.js";
+export * from "./utils/index.js";

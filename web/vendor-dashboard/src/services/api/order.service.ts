@@ -1,5 +1,6 @@
 import apiClient from "./client";
-import { ApiResponse, VendorOrder, VendorOrderItem, VendorOrderStatus, ProposalType, ProposeChangesDto, OrderItemProposal } from "@city-market/shared";
+import { ApiResponse, VendorOrderStatus } from "@city-market/shared";
+import type { VendorOrder, VendorOrderItem, ProposeChangesDto, OrderItemProposal } from "@city-market/shared";
 
 export const orderService = {
   getVendorOrders: async (vendorId: string) => {

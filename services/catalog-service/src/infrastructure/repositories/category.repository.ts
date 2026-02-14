@@ -1,7 +1,7 @@
 import { Pool, RowDataPacket } from "mysql2/promise";
 import { Category } from "../../core/entities/category.entity";
 import { ICategoryRepository } from "../../core/interfaces/category.repository";
-import { Database } from "@city-market/shared";
+import { Database } from "@city-market/shared/node";
 
 export class CategoryRepository implements ICategoryRepository {
   private pool: Pool;

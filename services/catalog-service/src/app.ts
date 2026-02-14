@@ -8,7 +8,7 @@ import { ProductService } from "./application/services/product.service";
 import { CategoryService } from "./application/services/category.service";
 import { ProductRepository } from "./infrastructure/repositories/product.repository";
 import { CategoryRepository } from "./infrastructure/repositories/category.repository";
-import { errorHandler, Database, Logger } from "@city-market/shared";
+import { errorHandler, Database, Logger } from "@city-market/shared/node";
 import { config } from "./config/env";
 
 export const createApp = () => {

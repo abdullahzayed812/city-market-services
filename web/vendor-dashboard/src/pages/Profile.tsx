@@ -8,9 +8,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Camera, Clock, MapPin, Phone, Store, Eye, Upload } from "lucide-react";
+import { Clock, MapPin, Phone, Store, Eye, Upload } from "lucide-react";
 import { toast } from "sonner";
 import ProductImageModal from "@/components/ProductImageModal";
+import { type UpdateVendorDto } from "@city-market/shared";
+import { AxiosError } from "axios";
 
 const Profile = () => {
   const { t } = useTranslation();
@@ -43,7 +45,7 @@ const Profile = () => {
   });
 
   const updateProfileMutation = useMutation({
-    mutationFn: (data) => vendorService.updateProfile(vendor?.id, data),
+    mutationFn: (data: UpdateVendorDto) => vendorService.updateProfile(vendor?.id, data),
     onSuccess: () => {
       //   queryClient.invalidateQueries({ queryKey: ["vendor-profile"] });
       toast.success("Profile updated successfully");
@@ -56,7 +58,7 @@ const Profile = () => {
       queryClient.invalidateQueries({ queryKey: ["vendor-profile"] });
       toast.success("Store image uploaded successfully");
     },
-    onError: (error) => {
+    onError: (error: AxiosError<{ message: string }>) => {
       toast.error(error?.response?.data?.message || "Failed to upload image");
     },
   });

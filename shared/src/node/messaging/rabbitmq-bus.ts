@@ -1,7 +1,8 @@
 import amqp, { Channel, ConsumeMessage } from "amqplib";
-import { Logger } from "../utils/logger";
-import { BaseEvent } from "./base-event";
-import { EventType } from "./event-types";
+import { Logger } from "../utils/logger.js";
+import { BaseEvent } from "../../events/base-event";
+import { EventType } from "../../events/event-types";
+
 
 type EventHandler = (event: BaseEvent) => Promise<void>;
 
@@ -11,7 +12,7 @@ export class RabbitMQBus {
   private isConnected = false;
   private handlers: Map<string, EventHandler[]> = new Map();
 
-  constructor(private url: string = "amqp://localhost") {}
+  constructor(private url: string = "amqp://localhost") { }
 
   async connect(): Promise<void> {
     if (this.isConnected) return;

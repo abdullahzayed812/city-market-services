@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import { AuthService } from "../../application/services/auth.service";
-import { Logger, ApiResponse } from "@city-market/shared";
+import { ApiResponse } from "@city-market/shared";
+import { Logger } from "@city-market/shared/node";
 
 export class AuthController {
   constructor(private authService: AuthService) {}

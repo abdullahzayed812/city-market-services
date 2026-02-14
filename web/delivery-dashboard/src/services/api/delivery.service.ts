@@ -1,5 +1,6 @@
 import apiClient from "./client";
-import { ApiResponse, type Courier, type Delivery, type AssignCourierDto } from "@city-market/shared";
+import { ApiResponse } from "@city-market/shared";
+import type { Courier, Delivery, AssignCourierDto } from "@city-market/shared";
 
 export const deliveryService = {
   // Couriers Management

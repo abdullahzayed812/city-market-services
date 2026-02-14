@@ -1,4 +1,5 @@
-import { BaseEvent, EventSubscriber, EventType, Logger } from "@city-market/shared";
+import { BaseEvent, EventSubscriber, EventType } from "@city-market/shared";
+import { Logger } from "@city-market/shared/node";
 import { DeliveryService } from "../services/delivery.service";
 
 export class OrderReadyConsumer implements EventSubscriber {

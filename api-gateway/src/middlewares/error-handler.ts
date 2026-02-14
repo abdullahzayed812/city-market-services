@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from "express";
-import { AppError, ApiResponse, Logger } from "@city-market/shared";
+import { AppError, ApiResponse } from "@city-market/shared";
+import { Logger } from "@city-market/shared/node";
 
 export const errorHandler = (err: Error, req: Request, res: Response, next: NextFunction) => {
   if (err instanceof AppError) {

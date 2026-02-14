@@ -1,4 +1,5 @@
-import { BaseEvent, EventSubscriber, EventType, Logger, CustomerOrderStatus, VendorOrderStatus } from "@city-market/shared";
+import { BaseEvent, EventSubscriber, EventType, CustomerOrderStatus, VendorOrderStatus } from "@city-market/shared";
+import { Logger } from "@city-market/shared/node";
 import { OrderService } from "../services/order.service";
 
 export class DeliveryUpdatedConsumer implements EventSubscriber {
@@ -22,13 +23,13 @@ export class DeliveryUpdatedConsumer implements EventSubscriber {
             };
 
             // Handle Customer Order Status
-            const customerStatus = customerStatusMap[event.type];
+            const customerStatus = customerStatusMap[event.type as keyof typeof customerStatusMap];
             if (customerOrderId && customerStatus) {
                 await this.orderService.updateCustomerOrderStatus(customerOrderId, customerStatus, `Delivery update: ${event.type}`);
             }
 
             // Handle Vendor Order Status
-            const vendorStatus = vendorStatusMap[event.type];
+            const vendorStatus = vendorStatusMap[event.type as keyof typeof vendorStatusMap];
             if (vendorOrderId && vendorStatus) {
                 await this.orderService.updateVendorOrderStatus(vendorOrderId, vendorStatus, `Delivery update: ${event.type}`);
             }

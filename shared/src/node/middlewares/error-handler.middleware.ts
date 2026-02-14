@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from "express";
-import { AppError } from "../utils/errors";
-import { ApiResponse } from "../utils/response";
-import { Logger } from "../utils/logger";
+import { AppError } from "../../utils/errors.js";
+import { ApiResponse } from "../../utils/response.js";
+import { Logger } from "../utils/logger.js";
 
 export const errorHandler = (err: Error, req: Request, res: Response, next: NextFunction) => {
     if (err instanceof AppError) {

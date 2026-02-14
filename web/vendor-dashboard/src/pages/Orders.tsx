@@ -10,7 +10,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { MoreHorizontal, Eye, CheckCircle, XCircle, Package, ChefHat } from "lucide-react";
-import { VendorOrder, VendorOrderStatus } from "@city-market/shared"; // Import shared types
+import { VendorOrderStatus } from "@city-market/shared";
+import type { VendorOrder } from "@city-market/shared";
 
 const Orders = () => {
   const { t } = useTranslation();
@@ -74,7 +75,7 @@ const Orders = () => {
               <TableRow key={order.id}>
                 <TableCell className="font-medium">#{order.id.slice(0, 8)}</TableCell>
                 <TableCell>{new Date(order.createdAt).toLocaleDateString()}</TableCell>
-                <TableCell>{order.customerName || "Customer"}</TableCell> {/* customerName is not directly on VendorOrder */}
+                <TableCell>Customer</TableCell>
                 <TableCell>
                   <Badge className={getStatusColor(order.status)}>{formatStatus(order.status)}</Badge>
                 </TableCell>

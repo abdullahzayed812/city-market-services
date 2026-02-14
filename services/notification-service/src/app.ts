@@ -1,7 +1,7 @@
 import express from "express";
 import { NotificationService } from "./application/services/notification.service";
 import { eventBus } from "@city-market/shared";
-import { errorHandler } from "@city-market/shared";
+import { errorHandler } from "@city-market/shared/node";
 
 export const createApp = () => {
   const app = express();

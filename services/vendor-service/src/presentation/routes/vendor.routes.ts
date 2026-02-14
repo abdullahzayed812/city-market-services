@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { VendorController } from "../controllers/vendor.controller";
-import { authenticate, authorize, UserRole } from "@city-market/shared";
+import { UserRole } from "@city-market/shared";
+import { authenticate, authorize } from "@city-market/shared/node";
 import { uploadVendorImage } from "../middlewares/upload.middleware";
 
 export const createVendorRoutes = (controller: VendorController): Router => {

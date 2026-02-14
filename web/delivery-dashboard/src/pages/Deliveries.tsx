@@ -8,8 +8,9 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { MapPin, Phone, Package, Clock, User } from "lucide-react";
-import { Delivery, Courier, DeliveryStatus } from "@city-market/shared"; // Import shared types
+import { MapPin, Package, Clock, User } from "lucide-react";
+import { DeliveryStatus } from "@city-market/shared";
+import type { Delivery, Courier } from "@city-market/shared"; // Import shared types
 
 const Deliveries = () => {
   const { t } = useTranslation();

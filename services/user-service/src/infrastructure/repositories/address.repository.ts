@@ -1,7 +1,7 @@
 import { Pool, RowDataPacket } from "mysql2/promise";
 import { Address } from "../../core/entities/address.entity";
 import { IAddressRepository } from "../../core/interfaces/address.repository";
-import { Database } from "@city-market/shared";
+import { Database } from "@city-market/shared/node";
 
 export class AddressRepository implements IAddressRepository {
   private pool: Pool;

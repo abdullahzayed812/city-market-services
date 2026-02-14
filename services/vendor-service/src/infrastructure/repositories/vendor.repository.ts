@@ -1,7 +1,7 @@
 import { Pool, RowDataPacket } from "mysql2/promise";
 import { Vendor } from "../../core/entities/vendor.entity";
 import { IVendorRepository } from "../../core/interfaces/vendor.repository";
-import { Database } from "@city-market/shared";
+import { Database } from "@city-market/shared/node";
 
 export class VendorRepository implements IVendorRepository {
   private pool: Pool;

@@ -1,7 +1,7 @@
 import { Pool, RowDataPacket } from "mysql2/promise";
 import { User } from "../../core/entities/user.entity";
 import { IUserRepository } from "../../core/interfaces/user.repository";
-import { Database } from "@city-market/shared";
+import { Database } from "@city-market/shared/node";
 
 export class UserRepository implements IUserRepository {
   private pool: Pool;

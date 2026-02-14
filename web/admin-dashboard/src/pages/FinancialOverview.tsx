@@ -14,7 +14,7 @@ const FinancialOverview: React.FC = () => {
     queryFn: async () => {
       try {
         const response = await adminApi.getRevenue();
-        return response?.data;
+        return response?.data?.data;
       } catch (error) {
         // Mock data
         return {

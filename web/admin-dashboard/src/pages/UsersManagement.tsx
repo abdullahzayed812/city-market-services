@@ -11,6 +11,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { type UserStatus } from "@city-market/shared";
+import { UserStatus as UserStatusEnum } from "@city-market/shared";
 import { MoreHorizontal, UserCheck, UserX } from "lucide-react";
 
 const UsersManagement: React.FC = () => {
@@ -33,16 +35,16 @@ const UsersManagement: React.FC = () => {
             lastName: "Doe",
             email: "john@example.com",
             role: "customer",
-            status: "active",
+            status: UserStatusEnum.ACTIVE,
           },
-          { id: "2", firstName: "Jane", lastName: "Smith", email: "jane@vendor.com", role: "vendor", status: "active" },
+          { id: "2", firstName: "Jane", lastName: "Smith", email: "jane@vendor.com", role: "vendor", status: UserStatusEnum.ACTIVE },
           {
             id: "3",
             firstName: "Bob",
             lastName: "Wilson",
             email: "bob@courier.com",
             role: "courier",
-            status: "inactive",
+            status: UserStatusEnum.INACTIVE,
           },
         ];
       }
@@ -50,7 +52,7 @@ const UsersManagement: React.FC = () => {
   });
 
   const updateStatusMutation = useMutation({
-    mutationFn: ({ id, status }: { id: string; status: string }) => adminApi.updateUserStatus(id, status),
+    mutationFn: ({ id, status }: { id: string; status: UserStatus }) => adminApi.updateUserStatus(id, { status }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["users"] });
     },
@@ -113,15 +115,15 @@ const UsersManagement: React.FC = () => {
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                       <DropdownMenuItem
-                        onClick={() => updateStatusMutation.mutate({ id: user.id, status: "active" })}
-                        disabled={user.status === "active"}
+                        onClick={() => updateStatusMutation.mutate({ id: user.id, status: UserStatusEnum.ACTIVE })}
+                        disabled={user.status === UserStatusEnum.ACTIVE}
                       >
                         <UserCheck className="me-2 h-4 w-4" />
                         Activate
                       </DropdownMenuItem>
                       <DropdownMenuItem
-                        onClick={() => updateStatusMutation.mutate({ id: user.id, status: "inactive" })}
-                        disabled={user.status === "inactive"}
+                        onClick={() => updateStatusMutation.mutate({ id: user.id, status: UserStatusEnum.INACTIVE })}
+                        disabled={user.status === UserStatusEnum.INACTIVE}
                         className="text-destructive"
                       >
                         <UserX className="me-2 h-4 w-4" />

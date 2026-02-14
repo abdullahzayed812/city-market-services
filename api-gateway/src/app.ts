@@ -3,16 +3,18 @@ import cors from "cors";
 import helmet from "helmet";
 import { createRoutes } from "./routes";
 import { rateLimit } from "./middlewares/rate-limit.middleware";
-import { Logger, errorHandler } from "@city-market/shared";
+import { Logger, errorHandler } from "@city-market/shared/node";
 
 export const createApp = () => {
   const app = express();
 
   // Security middleware
-  app.use(helmet({
-    crossOriginResourcePolicy: { policy: "cross-origin" },
-    crossOriginEmbedderPolicy: false,
-  }));
+  app.use(
+    helmet({
+      crossOriginResourcePolicy: { policy: "cross-origin" },
+      crossOriginEmbedderPolicy: false,
+    })
+  );
   app.use(cors());
   app.use(express.json({ limit: "10mb" }));
   app.use(express.urlencoded({ extended: true }));

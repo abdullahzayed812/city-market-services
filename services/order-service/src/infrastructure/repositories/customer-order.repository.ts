@@ -2,7 +2,8 @@ import * as mysql from "mysql2/promise"; // For mysql.ResultSetHeader
 import { Pool, RowDataPacket, PoolConnection, ResultSetHeader } from "mysql2/promise"; // Direct types
 import { CustomerOrder } from "../../core/entities/customer-order.entity";
 import { ICustomerOrderRepository } from "../../core/interfaces/customer-order.repository";
-import { CustomerOrderStatus, Database } from "@city-market/shared"; // Added CustomerOrderStatus
+import { CustomerOrderStatus } from "@city-market/shared";
+import { Database } from "@city-market/shared/node";
 
 export class CustomerOrderRepository implements ICustomerOrderRepository {
     private pool: Pool;

@@ -1,8 +1,8 @@
 import { Response, NextFunction } from "express";
 import { UserService } from "../../application/services/user.service";
 import { ApiResponse } from "@city-market/shared";
-import { Logger } from "@city-market/shared";
-import { AuthRequest } from "@city-market/shared";
+import { Logger } from "@city-market/shared/node";
+import { AuthRequest } from "@city-market/shared/node";
 
 export class UserController {
   constructor(private userService: UserService) {}

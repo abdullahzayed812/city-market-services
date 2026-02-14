@@ -4,7 +4,8 @@ import { randomUUID } from "crypto";
 import { IProductRepository } from "../../core/interfaces/product.repository";
 import { Product } from "../../core/entities/product.entity";
 import { CreateProductDto, UpdateProductDto, ProductFilter } from "../../core/dto/product.dto";
-import { ValidationError, NotFoundError, Logger } from "@city-market/shared";
+import { ValidationError, NotFoundError } from "@city-market/shared";
+import { Logger } from "@city-market/shared/node";
 
 export class ProductService {
   constructor(private productRepo: IProductRepository) { }

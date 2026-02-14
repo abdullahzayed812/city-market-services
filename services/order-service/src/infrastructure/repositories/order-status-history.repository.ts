@@ -1,7 +1,7 @@
 import { Pool, RowDataPacket, PoolConnection } from "mysql2/promise";
 import { OrderStatusHistory } from "../../core/entities/order-status-history.entity";
 import { IOrderStatusHistoryRepository } from "../../core/interfaces/order-status-history.repository";
-import { Database } from "@city-market/shared";
+import { Database } from "@city-market/shared/node";
 
 export class OrderStatusHistoryRepository implements IOrderStatusHistoryRepository {
   private pool: Pool;

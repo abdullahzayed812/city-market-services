@@ -1,5 +1,6 @@
 import apiClient from "./client";
-import { ApiResponse, Product, CreateProductDto, UpdateProductDto, Category } from "@city-market/shared";
+import { ApiResponse } from "@city-market/shared";
+import type { Product, CreateProductDto, UpdateProductDto, Category } from "@city-market/shared";
 
 export const productService = {
   getVendorProducts: async (vendorId: string) => {

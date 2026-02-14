@@ -1,7 +1,7 @@
 import { Pool, RowDataPacket, PoolConnection } from "mysql2/promise";
 import { VendorOrder } from "../../core/entities/vendor-order.entity";
 import { IVendorOrderRepository } from "../../core/interfaces/vendor-order.repository";
-import { Database } from "@city-market/shared";
+import { Database } from "@city-market/shared/node";
 
 export class VendorOrderRepository implements IVendorOrderRepository {
   private pool: Pool;
@@ -10,96 +10,101 @@ export class VendorOrderRepository implements IVendorOrderRepository {
     this.pool = this.db.getPool();
   }
 
-      async create(order: VendorOrder, connection?: PoolConnection): Promise<VendorOrder> {
-          const conn = connection || this.pool;
-          const query = `
+  async create(order: VendorOrder, connection?: PoolConnection): Promise<VendorOrder> {
+    const conn = connection || this.pool;
+    const query = `
         INSERT INTO vendor_orders (
           id, customer_order_id, vendor_id, status, subtotal,
           commission_amount, total_amount, delivery_id
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
       `;
-          await conn.query(query, [
-              order.id,
-              order.customerOrderId,
-              order.vendorId,
-              order.status,
-              order.subtotal,
-              order.commissionAmount,
-              order.totalAmount,
-              order.deliveryId || null,
-          ]);
-          return order;
-      }
-      async findById(id: string, connection?: PoolConnection): Promise<VendorOrder | null> {
-          const conn = connection || this.pool;
-          const query = "SELECT * FROM vendor_orders WHERE id = ?";
-          const [rows] = await conn.execute<RowDataPacket[]>(query, [id]);
-          return rows.length > 0 ? this.mapToEntity(rows[0]) : null;
-      }
-      async findByCustomerOrder(customerOrderId: string, connection?: PoolConnection): Promise<VendorOrder[]> {
-          const conn = connection || this.pool;
-          const query = "SELECT * FROM vendor_orders WHERE customer_order_id = ?";
-          const [rows] = await conn.execute<RowDataPacket[]>(query, [customerOrderId]);
-          return rows.map((row) => this.mapToEntity(row));
-      }
-      async findByVendor(vendorId: string, limit: number, offset: number, connection?: PoolConnection): Promise<VendorOrder[]> {
-          const conn = connection || this.pool;
-          const query = `
+    await conn.query(query, [
+      order.id,
+      order.customerOrderId,
+      order.vendorId,
+      order.status,
+      order.subtotal,
+      order.commissionAmount,
+      order.totalAmount,
+      order.deliveryId || null,
+    ]);
+    return order;
+  }
+  async findById(id: string, connection?: PoolConnection): Promise<VendorOrder | null> {
+    const conn = connection || this.pool;
+    const query = "SELECT * FROM vendor_orders WHERE id = ?";
+    const [rows] = await conn.execute<RowDataPacket[]>(query, [id]);
+    return rows.length > 0 ? this.mapToEntity(rows[0]) : null;
+  }
+  async findByCustomerOrder(customerOrderId: string, connection?: PoolConnection): Promise<VendorOrder[]> {
+    const conn = connection || this.pool;
+    const query = "SELECT * FROM vendor_orders WHERE customer_order_id = ?";
+    const [rows] = await conn.execute<RowDataPacket[]>(query, [customerOrderId]);
+    return rows.map((row) => this.mapToEntity(row));
+  }
+  async findByVendor(
+    vendorId: string,
+    limit: number,
+    offset: number,
+    connection?: PoolConnection
+  ): Promise<VendorOrder[]> {
+    const conn = connection || this.pool;
+    const query = `
         SELECT * FROM vendor_orders 
         WHERE vendor_id = ? 
         ORDER BY created_at DESC 
         LIMIT ? OFFSET ?
       `;
-          const [rows] = await conn.query<RowDataPacket[]>(query, [vendorId, limit, offset]);
-          return rows.map((row) => this.mapToEntity(row));
-      }
-      async findByStatus(status: string, connection?: PoolConnection): Promise<VendorOrder[]> {
-          const conn = connection || this.pool;
-          const query = "SELECT * FROM vendor_orders WHERE status = ? ORDER BY created_at DESC";
-          const [rows] = await conn.execute<RowDataPacket[]>(query, [status]);
-          return rows.map((row) => this.mapToEntity(row));
-      }
-      async updateStatus(id: string, status: string, connection?: PoolConnection): Promise<void> {
-          const conn = connection || this.pool;
-          const query = "UPDATE vendor_orders SET status = ? WHERE id = ?";
-          await conn.execute(query, [status, id]);
-      }
-      async update(id: string, data: Partial<VendorOrder>, connection?: PoolConnection): Promise<void> {
-          const conn = connection || this.pool;
-          const fields: string[] = [];
-          const values: any[] = [];
-  
-          if (data.status) {
-              fields.push("status = ?");
-              values.push(data.status);
-          }
-          if (data.deliveryId !== undefined) {
-              fields.push("delivery_id = ?");
-              values.push(data.deliveryId);
-          }
-          if (data.cancellationReason !== undefined) {
-              fields.push("cancellation_reason = ?");
-              values.push(data.cancellationReason);
-          }
-          if (data.subtotal !== undefined) {
-              fields.push("subtotal = ?");
-              values.push(data.subtotal);
-          }
-          if (data.commissionAmount !== undefined) {
-              fields.push("commission_amount = ?");
-              values.push(data.commissionAmount);
-          }
-          if (data.totalAmount !== undefined) {
-              fields.push("total_amount = ?");
-              values.push(data.totalAmount);
-          }
-  
-          if (fields.length === 0) return;
-  
-          values.push(id);
-          const query = `UPDATE vendor_orders SET ${fields.join(", ")} WHERE id = ?`;
-          await conn.execute(query, values);
-      }
+    const [rows] = await conn.query<RowDataPacket[]>(query, [vendorId, limit, offset]);
+    return rows.map((row) => this.mapToEntity(row));
+  }
+  async findByStatus(status: string, connection?: PoolConnection): Promise<VendorOrder[]> {
+    const conn = connection || this.pool;
+    const query = "SELECT * FROM vendor_orders WHERE status = ? ORDER BY created_at DESC";
+    const [rows] = await conn.execute<RowDataPacket[]>(query, [status]);
+    return rows.map((row) => this.mapToEntity(row));
+  }
+  async updateStatus(id: string, status: string, connection?: PoolConnection): Promise<void> {
+    const conn = connection || this.pool;
+    const query = "UPDATE vendor_orders SET status = ? WHERE id = ?";
+    await conn.execute(query, [status, id]);
+  }
+  async update(id: string, data: Partial<VendorOrder>, connection?: PoolConnection): Promise<void> {
+    const conn = connection || this.pool;
+    const fields: string[] = [];
+    const values: any[] = [];
+
+    if (data.status) {
+      fields.push("status = ?");
+      values.push(data.status);
+    }
+    if (data.deliveryId !== undefined) {
+      fields.push("delivery_id = ?");
+      values.push(data.deliveryId);
+    }
+    if (data.cancellationReason !== undefined) {
+      fields.push("cancellation_reason = ?");
+      values.push(data.cancellationReason);
+    }
+    if (data.subtotal !== undefined) {
+      fields.push("subtotal = ?");
+      values.push(data.subtotal);
+    }
+    if (data.commissionAmount !== undefined) {
+      fields.push("commission_amount = ?");
+      values.push(data.commissionAmount);
+    }
+    if (data.totalAmount !== undefined) {
+      fields.push("total_amount = ?");
+      values.push(data.totalAmount);
+    }
+
+    if (fields.length === 0) return;
+
+    values.push(id);
+    const query = `UPDATE vendor_orders SET ${fields.join(", ")} WHERE id = ?`;
+    await conn.execute(query, values);
+  }
   private mapToEntity(row: any): VendorOrder {
     return {
       id: row.id,

@@ -1,5 +1,6 @@
 import { Server } from "socket.io";
-import { rabbitMQBus, EventType, UserRole } from "@city-market/shared"; // Removed CustomerOrder, VendorOrder imports
+import { EventType, UserRole } from "@city-market/shared";
+import { rabbitMQBus } from "@city-market/shared/node";
 import axios from "axios";
 
 const ORDER_SERVICE_URL = process.env.ORDER_SERVICE_URL || "http://localhost:3005";

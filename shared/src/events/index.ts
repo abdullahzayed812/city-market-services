@@ -1,5 +1,4 @@
-// Events
-export * from "./event-types";
-export * from "./base-event";
-export * from "./event-bus";
-export * from "./rabbitmq-bus";
+// Events - Types and interfaces only (frontend-safe)
+export * from "./event-types.js";
+export * from "./base-event.js";
+export * from "./event-bus.js";

@@ -1,4 +1,5 @@
-import { Database, SEED_DATA } from "@city-market/shared";
+import { SEED_DATA } from "@city-market/shared";
+import { Database } from "@city-market/shared/node";
 import bcrypt from "bcrypt";
 import { config } from "../../config/env";
 

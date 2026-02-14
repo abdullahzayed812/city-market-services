@@ -2,7 +2,7 @@ import { Pool, RowDataPacket } from "mysql2/promise";
 import { Product } from "../../core/entities/product.entity";
 import { IProductRepository } from "../../core/interfaces/product.repository";
 import { ProductFilter } from "../../core/dto/product.dto";
-import { Database } from "@city-market/shared";
+import { Database } from "@city-market/shared/node";
 
 export class ProductRepository implements IProductRepository {
   private pool: Pool;

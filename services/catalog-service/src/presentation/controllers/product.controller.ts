@@ -1,11 +1,11 @@
 import { Response, NextFunction } from "express";
 import { ProductService } from "../../application/services/product.service";
 import { ApiResponse, ValidationError } from "@city-market/shared";
-import { Logger } from "@city-market/shared";
-import { AuthRequest } from "@city-market/shared";
+import { Logger } from "@city-market/shared/node";
+import { AuthRequest } from "@city-market/shared/node";
 
 export class ProductController {
-  constructor(private productService: ProductService) { }
+  constructor(private productService: ProductService) {}
 
   create = async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {

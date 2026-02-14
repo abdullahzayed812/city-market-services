@@ -1,4 +1,4 @@
-import { Database } from "@city-market/shared";
+import { Database } from "@city-market/shared/node";
 import { config } from "../../config/env";
 
 const resetDb = async () => {

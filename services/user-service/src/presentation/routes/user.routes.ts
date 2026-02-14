@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { UserController } from "../controllers/user.controller";
-import { authenticate } from "@city-market/shared";
+import { authenticate } from "@city-market/shared/node";
 
 export const createUserRoutes = (controller: UserController): Router => {
   const router = Router();

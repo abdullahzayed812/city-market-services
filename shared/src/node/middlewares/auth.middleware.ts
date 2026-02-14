@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from "express";
-import * as jwt from "jsonwebtoken";
-import { UnauthorizedError } from "../utils/errors";
-import { UserRole } from "../enums/roles";
+import jwt from "jsonwebtoken";
+import { UnauthorizedError } from "../../utils/errors.js";
+import { UserRole } from "../../enums/roles.js";
 
 export interface AuthRequest extends Request {
   user?: {
@@ -20,7 +20,7 @@ export const authenticate = (req: AuthRequest, res: Response, next: NextFunction
     }
 
     const secret = process.env.JWT_SECRET || "access_secret_key";
-    const decoded = jwt.verify(token, secret) as any;
+    const decoded = jwt?.verify(token, secret) as any;
     req.user = {
       userId: decoded.userId,
       email: decoded.email,

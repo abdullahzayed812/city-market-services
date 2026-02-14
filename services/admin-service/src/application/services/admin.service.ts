@@ -1,5 +1,5 @@
 import { ServiceClient } from "../../infrastructure/http/service-client";
-import { Logger } from "@city-market/shared";
+import { Logger } from "@city-market/shared/node";
 
 export interface DashboardStats {
   totalOrders: number;

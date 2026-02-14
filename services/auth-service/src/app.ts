@@ -4,7 +4,7 @@ import { AuthController } from "./presentation/controllers/auth.controller";
 import { AuthService } from "./application/services/auth.service";
 import { UserRepository } from "./infrastructure/repositories/user.repository";
 import { RefreshTokenRepository } from "./infrastructure/repositories/refresh-token.repository";
-import { errorHandler, Database, Logger } from "@city-market/shared";
+import { errorHandler, Database, Logger } from "@city-market/shared/node";
 import { config } from "./config/env";
 
 export const createApp = () => {

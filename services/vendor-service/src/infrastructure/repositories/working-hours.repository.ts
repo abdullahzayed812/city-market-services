@@ -1,7 +1,7 @@
 import { Pool, RowDataPacket } from "mysql2/promise";
 import { WorkingHours } from "../../core/entities/working-hours.entity";
 import { IWorkingHoursRepository } from "../../core/interfaces/working-hours.repository";
-import { Database } from "@city-market/shared";
+import { Database } from "@city-market/shared/node";
 
 export class WorkingHoursRepository implements IWorkingHoursRepository {
   private pool: Pool;

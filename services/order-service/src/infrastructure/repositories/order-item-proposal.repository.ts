@@ -1,7 +1,7 @@
 import { Pool, RowDataPacket, PoolConnection } from "mysql2/promise";
 import { OrderItemProposal, ProposalType, ProposalStatus } from "../../core/entities/order-item-proposal.entity";
 import { IOrderItemProposalRepository } from "../../core/interfaces/order-item-proposal.repository";
-import { Database } from "@city-market/shared";
+import { Database } from "@city-market/shared/node";
 
 export class OrderItemProposalRepository implements IOrderItemProposalRepository {
     private pool: Pool;

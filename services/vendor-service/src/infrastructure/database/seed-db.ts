@@ -1,4 +1,5 @@
-import { Database, SEED_DATA, ShopStatus } from "@city-market/shared";
+import { SEED_DATA, ShopStatus } from "@city-market/shared";
+import { Database } from "@city-market/shared/node";
 import { config } from "../../config/env";
 import { randomUUID } from "crypto";
 

@@ -7,7 +7,8 @@ import { Vendor } from "../../core/entities/vendor.entity";
 import { WorkingHours } from "../../core/entities/working-hours.entity";
 import { CreateVendorDto, UpdateVendorDto, SetWorkingHoursDto } from "../../core/dto/vendor.dto";
 import { ShopStatus } from "@city-market/shared";
-import { ValidationError, NotFoundError, Logger } from "@city-market/shared";
+import { ValidationError, NotFoundError } from "@city-market/shared";
+import { Logger } from "@city-market/shared/node";
 import { EventBus, BaseEvent, EventType } from "@city-market/shared";
 
 export class VendorService {

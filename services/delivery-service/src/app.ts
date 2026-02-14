@@ -4,8 +4,9 @@ import { DeliveryController } from "./presentation/controllers/delivery.controll
 import { DeliveryService } from "./application/services/delivery.service";
 import { CourierRepository } from "./infrastructure/repositories/courier.repository";
 import { DeliveryRepository } from "./infrastructure/repositories/delivery.repository";
-import { errorHandler, Database } from "@city-market/shared";
-import { eventBus, EventType, rabbitMQBus } from "@city-market/shared";
+import { errorHandler, Database } from "@city-market/shared/node";
+import { eventBus, EventType } from "@city-market/shared";
+import { rabbitMQBus } from "@city-market/shared/node";
 import { OrderReadyConsumer } from "./application/events/order-ready.consumer";
 import { DeliveryStatusConsumer } from "./application/events/delivery-status.consumer";
 import { OrderHttpClient } from "./infrastructure/http/order-http-client";

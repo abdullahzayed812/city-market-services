@@ -1,8 +1,8 @@
 import { Response, NextFunction } from "express";
 import { VendorService } from "../../application/services/vendor.service";
 import { ApiResponse, ValidationError } from "@city-market/shared";
-import { Logger } from "@city-market/shared";
-import { AuthRequest } from "@city-market/shared";
+import { Logger } from "@city-market/shared/node";
+import { AuthRequest } from "@city-market/shared/node";
 
 export class VendorController {
   constructor(private vendorService: VendorService) { }

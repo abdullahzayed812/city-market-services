@@ -9,8 +9,8 @@ import { OrderItemProposalRepository } from "./infrastructure/repositories/order
 import { OrderStatusHistoryRepository } from "./infrastructure/repositories/order-status-history.repository";
 import { CatalogHttpClient } from "./infrastructure/http/catalog-http-client";
 import { VendorHttpClient } from "./infrastructure/http/vendor-http-client";
-import { errorHandler, Database } from "@city-market/shared";
-import { rabbitMQBus, EventType } from "@city-market/shared";
+import { EventType } from "@city-market/shared";
+import { errorHandler, Database, rabbitMQBus } from "@city-market/shared/node";
 import { DeliveryUpdatedConsumer } from "./application/events/delivery-updated.consumer";
 import { config } from "./config/env";
 

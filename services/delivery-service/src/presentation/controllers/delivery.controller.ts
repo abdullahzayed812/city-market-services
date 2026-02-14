@@ -1,8 +1,8 @@
 import { Response, NextFunction } from "express";
 import { DeliveryService } from "../../application/services/delivery.service";
 import { ApiResponse } from "@city-market/shared";
-import { Logger } from "@city-market/shared";
-import { AuthRequest } from "@city-market/shared";
+import { Logger } from "@city-market/shared/node";
+import { AuthRequest } from "@city-market/shared/node";
 
 export class DeliveryController {
   constructor(private deliveryService: DeliveryService) {}

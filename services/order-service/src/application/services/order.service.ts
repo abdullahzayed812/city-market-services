@@ -22,10 +22,9 @@ import {
   VendorOrderStatus,
   ValidationError,
   NotFoundError,
-  RabbitMQBus,
   EventType,
-  Database,
 } from "@city-market/shared";
+import { RabbitMQBus, Database } from "@city-market/shared/node";
 import { CatalogHttpClient, ProductInfo } from "../../infrastructure/http/catalog-http-client";
 import { VendorHttpClient } from "../../infrastructure/http/vendor-http-client";
 
@@ -43,7 +42,7 @@ export class OrderService {
     private vendorClient: VendorHttpClient,
     private eventBus: RabbitMQBus,
     private db: Database
-  ) {}
+  ) { }
 
   async createOrder(dto: CreateOrderDto, token?: string): Promise<OrderWithItems> {
     let connection: PoolConnection | undefined;

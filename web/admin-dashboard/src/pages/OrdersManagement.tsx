@@ -18,7 +18,6 @@ import {
   type CustomerOrder,
   CustomerOrderStatus,
   type OrderWithItems,
-  type VendorOrder,
   VendorOrderStatus,
 } from "@city-market/shared"; // Import shared types
 
@@ -58,7 +57,7 @@ const OrdersManagement: React.FC = () => {
     queryKey: ["orders"],
     queryFn: async () => {
       const response = await adminApi.getOrders();
-      return response?.data?.data;
+      return response?.data?.data || [];
     },
   });
 
@@ -68,7 +67,7 @@ const OrdersManagement: React.FC = () => {
     queryFn: async () => {
       if (!selectedOrderId) return null;
       const response = await adminApi.getOrderById(selectedOrderId);
-      return response?.data?.data;
+      return response?.data?.data || null;
     },
     enabled: !!selectedOrderId,
   });
@@ -76,7 +75,7 @@ const OrdersManagement: React.FC = () => {
   const updateStatusMutation = useMutation({
     mutationFn: (
       { id, status }: { id: string; status: CustomerOrderStatus } // Use CustomerOrderStatus
-    ) => adminApi.updateOrderStatus(id, status),
+    ) => adminApi.updateOrderStatus(id, { status }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["orders"] });
     },
@@ -236,10 +235,7 @@ const OrdersManagement: React.FC = () => {
 
               <div className="space-y-4">
                 <h3 className="font-bold border-b pb-2">Vendor Sub-Orders</h3>
-                {orderDetails.vendorOrders.map(
-                  (
-                    vo: VendorOrder // Use VendorOrder
-                  ) => (
+                {orderDetails.vendorOrders.map((vo) => (
                     <div key={vo.id} className="border rounded-lg p-4 space-y-3">
                       <div className="flex justify-between items-center">
                         <div>
@@ -249,10 +245,7 @@ const OrdersManagement: React.FC = () => {
                         <Badge className={getStatusColor(vo.status)}>{formatStatus(vo.status)}</Badge>
                       </div>
                       <div className="text-sm space-y-1">
-                        {vo.items.map(
-                          (
-                            item: VendorOrderItem // item: VendorOrderItem
-                          ) => (
+                        {vo.items.map((item) => (
                             <div key={item.id} className="flex justify-between">
                               <span>
                                 {item.productName} x {item.quantity}

@@ -1,7 +1,7 @@
 import express from "express";
 import http from "http";
 import { Server } from "socket.io";
-import { rabbitMQBus } from "@city-market/shared";
+import { rabbitMQBus } from "@city-market/shared/node";
 import { setupSocketServer } from "./socket";
 import { setupEventConsumer } from "./events";
 import { config } from "dotenv";

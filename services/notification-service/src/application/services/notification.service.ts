@@ -1,5 +1,5 @@
 import { EventBus, BaseEvent, EventType, EventSubscriber } from "@city-market/shared";
-import { Logger } from "@city-market/shared";
+import { Logger } from "@city-market/shared/node";
 
 export class NotificationService implements EventSubscriber {
   constructor(private eventBus: EventBus) {

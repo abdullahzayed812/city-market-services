@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { CategoryController } from "../controllers/category.controller";
-import { authenticate, authorize, UserRole } from "@city-market/shared";
+import { UserRole } from "@city-market/shared";
+import { authenticate, authorize } from "@city-market/shared/node";
 
 export const createCategoryRoutes = (controller: CategoryController): Router => {
   const router = Router();

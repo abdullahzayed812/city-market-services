@@ -1,4 +1,4 @@
-import { Database } from "@city-market/shared";
+import { Database } from "@city-market/shared/node";
 import fs from "fs";
 import path from "path";
 import { config } from "../../config/env";

@@ -1,6 +1,6 @@
 import express from "express";
 
-import { errorHandler } from "@city-market/shared";
+import { errorHandler } from "@city-market/shared/node";
 
 export const app = express();
 

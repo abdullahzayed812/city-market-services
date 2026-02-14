@@ -1,5 +1,5 @@
 import axios from "axios";
-import { Logger } from "@city-market/shared";
+import { Logger } from "@city-market/shared/node";
 
 export class VendorHttpClient {
   constructor(private baseUrl: string) {}

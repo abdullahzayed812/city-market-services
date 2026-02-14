@@ -7,8 +7,10 @@ import { Delivery } from "../../core/entities/delivery.entity";
 import { RegisterCourierDto, UpdateCourierDto } from "../../core/dto/courier.dto";
 import { CreateDeliveryDto, AssignCourierDto, UpdateDeliveryStatusDto } from "../../core/dto/delivery.dto";
 import { DeliveryStatus } from "@city-market/shared";
-import { ValidationError, NotFoundError, Database } from "@city-market/shared";
-import { RabbitMQBus, EventType, Logger } from "@city-market/shared";
+import { ValidationError, NotFoundError } from "@city-market/shared";
+import { Database } from "@city-market/shared/node";
+import { EventType } from "@city-market/shared";
+import { RabbitMQBus, Logger } from "@city-market/shared/node";
 import { OrderHttpClient } from "../../infrastructure/http/order-http-client";
 import { VendorHttpClient } from "../../infrastructure/http/vendor-http-client";
 

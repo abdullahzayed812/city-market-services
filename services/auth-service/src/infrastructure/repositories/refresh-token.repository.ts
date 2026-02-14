@@ -1,7 +1,7 @@
 import { Pool, RowDataPacket } from "mysql2/promise";
 import { RefreshToken } from "../../core/entities/refresh-token.entity";
 import { IRefreshTokenRepository } from "../../core/interfaces/refresh-token.repository";
-import { Database } from "@city-market/shared";
+import { Database } from "@city-market/shared/node";
 
 export class RefreshTokenRepository implements IRefreshTokenRepository {
   private pool: Pool;

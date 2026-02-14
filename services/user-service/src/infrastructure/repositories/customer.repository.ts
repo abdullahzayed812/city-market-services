@@ -1,7 +1,7 @@
 import { Pool, RowDataPacket } from "mysql2/promise";
 import { Customer } from "../../core/entities/customer.entity";
 import { ICustomerRepository } from "../../core/interfaces/customer.repository";
-import { Database } from "@city-market/shared";
+import { Database } from "@city-market/shared/node";
 
 export class CustomerRepository implements ICustomerRepository {
   private pool: Pool;

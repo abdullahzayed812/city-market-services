@@ -1,4 +1,5 @@
-import { BaseEvent, EventSubscriber, EventType, Logger, CustomerOrderStatus, VendorOrderStatus } from "@city-market/shared";
+import { BaseEvent, EventSubscriber, EventType, CustomerOrderStatus, VendorOrderStatus } from "@city-market/shared";
+import { Logger } from "@city-market/shared/node";
 import { OrderHttpClient } from "../../infrastructure/http/order-http-client";
 
 export class DeliveryStatusConsumer implements EventSubscriber {

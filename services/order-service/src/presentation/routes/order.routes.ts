@@ -1,14 +1,15 @@
 import { Router } from "express";
 import { OrderController } from "../controllers/order.controller";
-import { authenticate } from "@city-market/shared";
+import { authenticate } from "@city-market/shared/node";
 
 export const createOrderRoutes = (controller: OrderController): Router => {
   const router = Router();
 
   // Customer Routes
   router.post("/", authenticate, controller.create);
-  router.get("/customer/me", authenticate, controller.getMyOrders);
-  router.get("/:id", authenticate, controller.getById);
+  router.get("/customer-orders", authenticate, controller.getMyOrders);
+  router.get("/customer-orders/:id", authenticate, controller.getById);
+  router.patch("/customer-orders/:id/status", authenticate, controller.updateCustomerOrderStatus);
 
   // Vendor Routes
   router.get("/vendor/:vendorId", authenticate, controller.getVendorOrders); // restored
@@ -23,7 +24,6 @@ export const createOrderRoutes = (controller: OrderController): Router => {
 
   // Admin/Service Routes
   router.get("/", authenticate, controller.getAllOrders);
-  router.patch("/:id/status", authenticate, controller.updateStatus);
 
   return router;
 };

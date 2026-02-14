@@ -1,5 +1,6 @@
 import apiClient from "./client";
-import { ApiResponse, Vendor, ShopStatus, UpdateVendorDto, WorkingHours, SetWorkingHoursDto } from "@city-market/shared";
+import { ApiResponse, ShopStatus } from "@city-market/shared";
+import type { Vendor, UpdateVendorDto, WorkingHours, SetWorkingHoursDto } from "@city-market/shared";
 
 
 export const vendorService = {

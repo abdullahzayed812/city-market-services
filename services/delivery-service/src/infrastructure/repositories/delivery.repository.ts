@@ -3,7 +3,8 @@ import { randomUUID } from "crypto";
 import { Delivery } from "../../core/entities/delivery.entity";
 import { PickupLocation } from "../../core/entities/pickup-location.entity";
 import { IDeliveryRepository } from "../../core/interfaces/delivery.repository";
-import { Database, DeliveryStatus } from "@city-market/shared";
+import { DeliveryStatus } from "@city-market/shared";
+import { Database } from "@city-market/shared/node";
 
 export class DeliveryRepository implements IDeliveryRepository {
   private pool: Pool;

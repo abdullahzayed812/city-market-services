@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { AdminController } from "../controllers/admin.controller";
-import { authenticate, authorize, UserRole } from "@city-market/shared";
+import { UserRole } from "@city-market/shared";
+import { authenticate, authorize } from "@city-market/shared/node";
 
 export const createAdminRoutes = (controller: AdminController): Router => {
   const router = Router();

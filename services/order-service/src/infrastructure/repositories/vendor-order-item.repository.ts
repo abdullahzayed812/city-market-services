@@ -1,7 +1,7 @@
 import { Pool, RowDataPacket, PoolConnection } from "mysql2/promise";
 import { VendorOrderItem } from "../../core/entities/vendor-order-item.entity";
 import { IVendorOrderItemRepository } from "../../core/interfaces/vendor-order-item.repository";
-import { Database } from "@city-market/shared";
+import { Database } from "@city-market/shared/node";
 
 export class VendorOrderItemRepository implements IVendorOrderItemRepository {
     private pool: Pool;

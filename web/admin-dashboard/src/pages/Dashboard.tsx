@@ -35,11 +35,11 @@ const Dashboard: React.FC = () => {
       } catch (error: any) {
         // Return mock data if API fails
         return {
-          ordersCount: 1250,
-          usersCount: 5400,
-          vendorsCount: 120,
-          couriersCount: 45,
-          totalRevenue: 25000,
+          totalOrders: 1250,
+          totalUsers: 5400,
+          totalVendors: 120,
+          totalCouriers: 45,
+          revenueToday: 25000,
         };
       }
     },
@@ -54,21 +54,21 @@ const Dashboard: React.FC = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
         <StatCard
           title={t("dashboard.total_orders")}
-          value={stats?.totalOrders}
+          value={stats?.totalOrders ?? 0}
           icon={ShoppingBag}
           color="bg-blue-500"
         />
-        <StatCard title={t("dashboard.total_users")} value={stats?.totalUsers} icon={Users} color="bg-green-500" />
-        <StatCard title={t("dashboard.total_vendors")} value={stats?.totalVendors} icon={Store} color="bg-purple-500" />
+        <StatCard title={t("dashboard.total_users")} value={stats?.totalUsers ?? 0} icon={Users} color="bg-green-500" />
+        <StatCard title={t("dashboard.total_vendors")} value={stats?.totalVendors ?? 0} icon={Store} color="bg-purple-500" />
         <StatCard
           title={t("dashboard.total_couriers")}
-          value={stats?.totalCouriers}
+          value={stats?.totalCouriers ?? 0}
           icon={Truck}
           color="bg-orange-500"
         />
         <StatCard
           title={t("common.revenue")}
-          value={`$${stats?.revenueToday}`}
+          value={`$${stats?.revenueToday ?? 0}`}
           icon={DollarSign}
           color="bg-emerald-500"
         />

@@ -1,6 +1,6 @@
 import { createApp } from "./app";
 import { config } from "./config/env";
-import { Logger, rabbitMQBus } from "@city-market/shared";
+import { Logger, rabbitMQBus } from "@city-market/shared/node";
 
 const app = createApp();
 
