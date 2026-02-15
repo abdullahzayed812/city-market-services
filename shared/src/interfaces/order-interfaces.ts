@@ -86,3 +86,7 @@ export interface ProposeChangesDto {
   type: ProposalType;
   proposedQuantity?: number;
 }
+
+export interface VendorOrderWithItemsDto extends VendorOrder {
+  items: VendorOrderItem[];
+}

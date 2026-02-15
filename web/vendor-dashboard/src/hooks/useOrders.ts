@@ -3,7 +3,7 @@ import { useEffect } from "react";
 import { orderService } from "@/services/api/order.service";
 import { useAuth } from "@/components/AuthProvider";
 import { useSocket } from "@/contexts/SocketContext";
-import { VendorOrderStatus } from "@city-market/shared"; // Import VendorOrderStatus
+import { VendorOrderStatus, type ProposeChangesDto } from "@city-market/shared"; // Import VendorOrderStatus
 
 export const useOrders = () => {
   const { vendor } = useAuth();
@@ -27,6 +27,8 @@ export const useOrders = () => {
 
     const events = [
       "VENDOR_ORDER_CREATED",
+      "VENDOR_ORDER_UPDATED", // Added
+      "PROPOSAL_STATUS_UPDATED", // Added
       "ORDER_CONFIRMED",
       "ORDER_CANCELLED",
       "ORDER_READY",
@@ -43,7 +45,8 @@ export const useOrders = () => {
   }, [socket, vendorId, queryClient]);
 
   const updateStatusMutation = useMutation({
-    mutationFn: ({ id, status }: { id: string; status: VendorOrderStatus }) => orderService.updateOrderStatus(id, status),
+    mutationFn: ({ id, status }: { id: string; status: VendorOrderStatus }) =>
+      orderService.updateOrderStatus(id, status),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["vendor-orders", vendorId] });
     },
@@ -56,12 +59,21 @@ export const useOrders = () => {
     },
   });
 
+  const proposeChangesMutation = useMutation({
+    mutationFn: ({ orderId, proposals }: { orderId: string; proposals: ProposeChangesDto[] }) =>
+      orderService.proposeChanges(orderId, proposals),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["vendor-orders", vendorId] });
+    },
+  });
+
   return {
     orders: ordersQuery.data || [],
     isLoading: ordersQuery.isLoading,
     isError: ordersQuery.isError,
     updateStatus: updateStatusMutation.mutate,
     cancelOrder: cancelOrderMutation.mutate,
-    isUpdating: updateStatusMutation.isPending || cancelOrderMutation.isPending,
+    proposeChanges: proposeChangesMutation.mutate,
+    isUpdating: updateStatusMutation.isPending || cancelOrderMutation.isPending || proposeChangesMutation.isPending,
   };
 };

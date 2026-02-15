@@ -2,6 +2,7 @@ import { Pool, RowDataPacket, PoolConnection } from "mysql2/promise";
 import { VendorOrder } from "../../core/entities/vendor-order.entity";
 import { IVendorOrderRepository } from "../../core/interfaces/vendor-order.repository";
 import { Database } from "@city-market/shared/node";
+import { VendorOrderWithItemsDto, VendorOrderItem } from "@city-market/shared";
 
 export class VendorOrderRepository implements IVendorOrderRepository {
   private pool: Pool;
@@ -58,6 +59,73 @@ export class VendorOrderRepository implements IVendorOrderRepository {
     const [rows] = await conn.query<RowDataPacket[]>(query, [vendorId, limit, offset]);
     return rows.map((row) => this.mapToEntity(row));
   }
+  
+  async findByVendorWithItems(vendorId: string, limit: number, offset: number, connection?: PoolConnection): Promise<VendorOrderWithItemsDto[]> {
+    const conn = connection || this.pool;
+    const query = `
+      SELECT
+        vo.*,
+        voi.id AS item_id,
+        voi.product_id AS item_product_id,
+        voi.product_name AS item_product_name,
+        voi.quantity AS item_quantity,
+        voi.unit_price AS item_unit_price,
+        voi.total_price AS item_total_price
+      FROM vendor_orders vo
+      LEFT JOIN vendor_order_items voi ON vo.id = voi.vendor_order_id
+      WHERE vo.id IN (
+        SELECT id FROM (
+          SELECT id
+          FROM vendor_orders
+          WHERE vendor_id = ?
+          ORDER BY created_at DESC
+          LIMIT ? OFFSET ?
+        ) AS paged_orders
+      )
+      ORDER BY vo.created_at DESC, voi.id;
+    `;
+    const [rows] = await conn.query<RowDataPacket[]>(query, [vendorId, limit, offset]);
+    
+    const ordersMap = new Map<string, VendorOrderWithItemsDto>();
+
+    for (const row of rows) {
+      const orderId = row.id;
+      let order = ordersMap.get(orderId);
+
+      if (!order) {
+        order = {
+          id: row.id,
+          customerOrderId: row.customer_order_id,
+          vendorId: row.vendor_id,
+          status: row.status,
+          subtotal: parseFloat(row.subtotal),
+          commissionAmount: parseFloat(row.commission_amount),
+          totalAmount: parseFloat(row.total_amount),
+          deliveryId: row.delivery_id,
+          cancellationReason: row.cancellation_reason,
+          createdAt: row.created_at,
+          updatedAt: row.updated_at,
+          items: [],
+        };
+        ordersMap.set(orderId, order);
+      }
+
+      if (row.item_id) {
+        order.items.push({
+          id: row.item_id,
+          vendorOrderId: row.id,
+          productId: row.item_product_id,
+          productName: row.item_product_name,
+          quantity: row.item_quantity,
+          unitPrice: parseFloat(row.item_unit_price),
+          totalPrice: parseFloat(row.item_total_price),
+        });
+      }
+    }
+
+    return Array.from(ordersMap.values());
+  }
+
   async findByStatus(status: string, connection?: PoolConnection): Promise<VendorOrder[]> {
     const conn = connection || this.pool;
     const query = "SELECT * FROM vendor_orders WHERE status = ? ORDER BY created_at DESC";

@@ -16,14 +16,9 @@ import {
   UpdateVendorOrderStatusDto,
   OrderWithItems,
   ProposeChangesDto,
+  VendorOrderWithItemsDto,
 } from "../../core/dto/order.dto";
-import {
-  CustomerOrderStatus,
-  VendorOrderStatus,
-  ValidationError,
-  NotFoundError,
-  EventType,
-} from "@city-market/shared";
+import { CustomerOrderStatus, VendorOrderStatus, ValidationError, NotFoundError, EventType } from "@city-market/shared";
 import { RabbitMQBus, Database } from "@city-market/shared/node";
 import { CatalogHttpClient, ProductInfo } from "../../infrastructure/http/catalog-http-client";
 import { VendorHttpClient } from "../../infrastructure/http/vendor-http-client";
@@ -42,7 +37,7 @@ export class OrderService {
     private vendorClient: VendorHttpClient,
     private eventBus: RabbitMQBus,
     private db: Database
-  ) { }
+  ) {}
 
   async createOrder(dto: CreateOrderDto, token?: string): Promise<OrderWithItems> {
     let connection: PoolConnection | undefined;
@@ -221,7 +216,7 @@ export class OrderService {
     return { order: createdCustomerOrder, vendorOrders: createdVendorOrders };
   }
 
-  async getOrderById(id: string, token?: string): Promise<OrderWithItems> {
+  async getCustomerOrderById(id: string, token?: string): Promise<OrderWithItems> {
     const customerOrder = await this.customerOrderRepo.findById(id);
     if (!customerOrder) {
       throw new NotFoundError("Order not found");
@@ -235,7 +230,7 @@ export class OrderService {
         const proposals = await this.proposalRepo.findByVendorOrder(vo.id);
         return {
           ...vo,
-          vendorName: vendor?.businessName || "Unknown Vendor",
+          vendorName: vendor?.shopName || "Unknown Vendor",
           items,
           proposals: proposals.filter((p) => p.status === ProposalStatus.PENDING),
         };
@@ -255,9 +250,9 @@ export class OrderService {
     return this.customerOrderRepo.findAll(limit, offset);
   }
 
-  async getVendorOrders(vendorId: string, page: number = 1, limit: number = 20): Promise<VendorOrder[]> {
+  async getVendorOrders(vendorId: string, page: number = 1, limit: number = 20): Promise<VendorOrderWithItemsDto[]> {
     const offset = (page - 1) * limit;
-    return this.vendorOrderRepo.findByVendor(vendorId, limit, offset);
+    return this.vendorOrderRepo.findByVendorWithItems(vendorId, limit, offset);
   }
 
   async getVendorOrderById(
@@ -273,13 +268,13 @@ export class OrderService {
     const proposals = await this.proposalRepo.findByVendorOrder(vo.id);
     return {
       ...vo,
-      vendorName: vendor?.businessName || "Unknown Vendor",
+      vendorName: vendor?.shopName || "Unknown Vendor",
       items,
       proposals: proposals.filter((p) => p.status === ProposalStatus.PENDING),
     };
   }
 
-  async proposeChanges(vendorOrderId: string, dto: ProposeChangesDto): Promise<void> {
+  async proposeChanges(vendorOrderId: string, dto: ProposeChangesDto[]): Promise<void> {
     let connection: PoolConnection | undefined;
     const eventsToPublish: any[] = [];
 
@@ -289,24 +284,29 @@ export class OrderService {
       const vo = await this.vendorOrderRepo.findById(vendorOrderId, connection);
       if (!vo) throw new NotFoundError("Vendor order not found");
 
-      const proposal = {
-        id: randomUUID(),
-        vendorOrderItemId: dto.itemId,
-        type: dto.type as ProposalType,
-        proposedQuantity: dto.proposedQuantity,
-        status: ProposalStatus.PENDING,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
+      for (let item of dto) {
+        const proposal = {
+          id: randomUUID(),
+          vendorOrderItemId: item.itemId,
+          type: item.type as ProposalType,
+          proposedQuantity: item.proposedQuantity,
+          status: ProposalStatus.PENDING,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        };
 
-      await this.proposalRepo.create(proposal, connection);
+        await this.proposalRepo.create(proposal, connection);
+      }
 
-      // Update vendor order status to reflect proposal
+      // Update vendor order status to reflect proposal ( PROPOSAL_SENT )
       await this.vendorOrderRepo.updateStatus(vendorOrderId, VendorOrderStatus.PROPOSAL_SENT, connection);
+
+      // TODO: Update customer order status to reflect proposal ( WAITING_CUSTOMER_DECISION )
+
       await this.recordStatusChange(
         { vendorOrderId },
         VendorOrderStatus.PROPOSAL_SENT,
-        `Proposal ${proposal.id} sent.`,
+        `Proposals for vendor order #${vendorOrderId} sent.`,
         connection
       );
 
@@ -314,7 +314,7 @@ export class OrderService {
         id: randomUUID(),
         type: EventType.VENDOR_ORDER_PROPOSED,
         timestamp: new Date(),
-        payload: { vendorOrderId, proposalId: proposal.id, customerOrderId: vo.customerOrderId, vendorId: vo.vendorId }, // Added customerOrderId, vendorId
+        payload: { vendorOrderId, customerOrderId: vo.customerOrderId, vendorId: vo.vendorId }, // Added customerOrderId, vendorId
       });
 
       await this.db.commit(connection);
@@ -471,93 +471,6 @@ export class OrderService {
     }
   }
 
-  private async syncCustomerOrderStatus(customerOrderId: string, externalConnection?: PoolConnection): Promise<void> {
-    let conn: PoolConnection | undefined = externalConnection;
-    let shouldCommitOrRollback = false;
-    const eventsToEmit: any[] = []; // Collect events to emit after commit
-
-    try {
-      if (!conn) {
-        conn = await this.db.beginTransaction();
-        shouldCommitOrRollback = true;
-      }
-
-      const customerOrder = await this.customerOrderRepo.findById(customerOrderId, conn);
-      if (!customerOrder) {
-        if (shouldCommitOrRollback && conn) await this.db.rollback(conn);
-        return;
-      }
-
-      const vendorOrders = await this.vendorOrderRepo.findByCustomerOrder(customerOrderId, conn);
-
-      const allConfirmed = vendorOrders.every((vo) => vo.status === VendorOrderStatus.CONFIRMED);
-      const anyCancelled = vendorOrders.some((vo) => vo.status === VendorOrderStatus.CANCELLED);
-      const allCancelled = vendorOrders.every((vo) => vo.status === VendorOrderStatus.CANCELLED);
-
-      let newStatus: CustomerOrderStatus | null = null;
-
-      if (allCancelled) {
-        newStatus = CustomerOrderStatus.CANCELLED;
-      } else if (allConfirmed) {
-        newStatus = CustomerOrderStatus.READY;
-      } else if (
-        vendorOrders.some(
-          (vo) => vo.status === VendorOrderStatus.CONFIRMED || vo.status === VendorOrderStatus.PROPOSAL_SENT
-        )
-      ) {
-        newStatus = CustomerOrderStatus.WAITING_CUSTOMER_DECISION;
-      } else if (vendorOrders.some((vo) => vo.status === VendorOrderStatus.PENDING)) {
-        newStatus = CustomerOrderStatus.PENDING_VENDOR_CONFIRMATION;
-      }
-
-      if (newStatus && newStatus !== customerOrder.status) {
-        if (newStatus === CustomerOrderStatus.READY) {
-          const affectedRows = await this.customerOrderRepo.conditionalUpdateStatusToReady(customerOrderId, conn);
-          if (affectedRows === 1) {
-            // Only emit ORDER_READY if the status was actually changed by this execution
-            await this.recordStatusChange({ customerOrderId }, newStatus, undefined, conn);
-            const eventType = this.getEventTypeForCustomerStatus(newStatus);
-            if (eventType) {
-              eventsToEmit.push({
-                id: randomUUID(),
-                type: eventType,
-                timestamp: new Date(),
-                payload: { customerOrderId, status: newStatus, customerId: customerOrder.customerId },
-              });
-            }
-          }
-        } else {
-          // For other status transitions, update normally and record change
-          await this.customerOrderRepo.updateStatus(customerOrderId, newStatus, conn);
-          await this.recordStatusChange({ customerOrderId }, newStatus, undefined, conn);
-          const eventType = this.getEventTypeForCustomerStatus(newStatus);
-          if (eventType) {
-            eventsToEmit.push({
-              id: randomUUID(),
-              type: eventType,
-              timestamp: new Date(),
-              payload: { customerOrderId, status: newStatus, customerId: customerOrder.customerId },
-            });
-          }
-        }
-      }
-
-      if (shouldCommitOrRollback && conn) {
-        await this.db.commit(conn);
-      }
-    } catch (error) {
-      if (shouldCommitOrRollback && conn) {
-        await this.db.rollback(conn);
-      }
-      throw error;
-    } finally {
-      // Emit events after transaction (whether it was committed locally or externally)
-      for (const event of eventsToEmit) {
-        await this.eventBus.publish(event);
-      }
-    }
-  }
-
   async acceptProposal(proposalId: string): Promise<void> {
     let connection: PoolConnection | undefined;
     try {
@@ -589,11 +502,9 @@ export class OrderService {
       if (proposal.type === ProposalType.QUANTITY_REDUCTION && proposal.proposedQuantity !== undefined) {
         newQuantity = proposal.proposedQuantity;
       } else if (proposal.type === ProposalType.UNAVAILABLE) {
-        newQuantity = 0; // Item is now unavailable
+        newQuantity = 0;
       }
 
-      // If newQuantity is 0, we can either remove the item or set quantity to 0.
-      // For now, setting quantity to 0, which will make its totalPrice 0.
       const newTotalPrice = item.unitPrice * newQuantity;
       await this.vendorOrderItemRepo.update(item.id, { quantity: newQuantity, totalPrice: newTotalPrice }, connection);
 
@@ -601,7 +512,7 @@ export class OrderService {
       const vendorOrderItems = await this.vendorOrderItemRepo.findByVendorOrder(vo.id, connection);
       const newVendorSubtotal = vendorOrderItems.reduce((sum, currentItem) => sum + currentItem.totalPrice, 0);
       const newVendorCommissionAmount = newVendorSubtotal * COMMISSION_RATE;
-      const newVendorTotalAmount = newVendorSubtotal; // Vendor total doesn't include customer delivery fee
+      const newVendorTotalAmount = newVendorSubtotal;
 
       await this.vendorOrderRepo.update(
         vo.id,
@@ -609,7 +520,7 @@ export class OrderService {
           subtotal: newVendorSubtotal,
           commissionAmount: newVendorCommissionAmount,
           totalAmount: newVendorTotalAmount,
-          status: VendorOrderStatus.CONFIRMED, // Also update vendor order status to CONFIRMED
+          // Remove status update from here - let syncVendorOrderStatus handle it
         },
         connection
       );
@@ -617,7 +528,6 @@ export class OrderService {
       // 3) Recalculate customer total
       const allVendorOrders = await this.vendorOrderRepo.findByCustomerOrder(co.id, connection);
       const newCustomerSubtotal = allVendorOrders.reduce((sum, currentVo) => {
-        // Only include non-cancelled vendor orders in customer subtotal calculation
         return sum + (currentVo.status !== VendorOrderStatus.CANCELLED ? currentVo.subtotal : 0);
       }, 0);
       const newCustomerCommissionAmount = newCustomerSubtotal * COMMISSION_RATE;
@@ -636,23 +546,12 @@ export class OrderService {
       // 4) Update proposal.status -> ACCEPTED
       await this.proposalRepo.updateStatus(proposalId, ProposalStatus.ACCEPTED, connection);
 
-      // 5) Update vendor_order.status -> CONFIRMED (already done in step 2 update above)
-      await this.recordStatusChange(
-        { vendorOrderId: vo.id },
-        VendorOrderStatus.CONFIRMED,
-        `Proposal ${proposal.id} accepted.`,
-        connection
-      );
-
       await this.db.commit(connection);
 
-      // Emit events after successful commit
-      await this.eventBus.publish({
-        id: randomUUID(),
-        type: EventType.VENDOR_ORDER_CONFIRMED,
-        timestamp: new Date(),
-        payload: { vendorOrderId: vo.id, customerOrderId: co.id },
-      });
+      // 5) Sync vendor order status after commit
+      await this.syncVendorOrderStatus(vo.id);
+
+      // 6) Sync customer order status
       await this.syncCustomerOrderStatus(co.id);
     } catch (error) {
       if (connection) {
@@ -713,23 +612,6 @@ export class OrderService {
           timestamp: new Date(),
           payload: { customerOrderId: co.id, customerId: co.customerId },
         });
-      } else {
-        await this.vendorOrderRepo.updateStatus(vo.id, VendorOrderStatus.CANCELLED, connection);
-        await this.recordStatusChange(
-          { vendorOrderId: vo.id },
-          VendorOrderStatus.CANCELLED,
-          "Proposal rejected by customer",
-          connection
-        );
-        eventsToPublish.push({
-          id: randomUUID(),
-          type: EventType.VENDOR_ORDER_CANCELLED,
-          timestamp: new Date(),
-          payload: { vendorOrderId: vo.id, customerOrderId: co.id, vendorId: vo.vendorId },
-        });
-        // Call syncCustomerOrderStatus to update customer order status based on vendor order changes
-        // This is called outside the transaction, and it manages its own transaction and event emission.
-        // It's important that this is called AFTER this transaction commits, so it sees the new state.
       }
 
       await this.db.commit(connection);
@@ -739,8 +621,9 @@ export class OrderService {
         await this.eventBus.publish(event);
       }
 
-      // If not cancelling entire order, sync customer order status after events are published
+      // Sync vendor order status if not cancelling entire order
       if (!cancelEntireOrder) {
+        await this.syncVendorOrderStatus(vo.id);
         await this.syncCustomerOrderStatus(co.id);
       }
     } catch (error) {
@@ -748,6 +631,187 @@ export class OrderService {
         await this.db.rollback(connection);
       }
       throw error;
+    }
+  }
+
+  private async syncCustomerOrderStatus(
+    customerOrderId: string,
+    externalConnection?: PoolConnection,
+    token?: string
+  ): Promise<void> {
+    let conn: PoolConnection | undefined = externalConnection;
+    let shouldCommitOrRollback = false;
+    const eventsToEmit: any[] = []; // Collect events to emit after commit
+
+    try {
+      if (!conn) {
+        conn = await this.db.beginTransaction();
+        shouldCommitOrRollback = true;
+      }
+
+      const customerOrder = await this.customerOrderRepo.findById(customerOrderId, conn);
+      if (!customerOrder) {
+        if (shouldCommitOrRollback && conn) await this.db.rollback(conn);
+        return;
+      }
+
+      const vendorOrders = await this.vendorOrderRepo.findByCustomerOrder(customerOrderId, conn);
+
+      const allConfirmed = vendorOrders.every((vo) => vo.status === VendorOrderStatus.CONFIRMED);
+      const anyCancelled = vendorOrders.some((vo) => vo.status === VendorOrderStatus.CANCELLED);
+      const allCancelled = vendorOrders.every((vo) => vo.status === VendorOrderStatus.CANCELLED);
+
+      let newStatus: CustomerOrderStatus | null = null;
+
+      if (allCancelled) {
+        newStatus = CustomerOrderStatus.CANCELLED;
+      } else if (allConfirmed) {
+        newStatus = CustomerOrderStatus.READY;
+      } else if (
+        vendorOrders.some(
+          (vo) => vo.status === VendorOrderStatus.CONFIRMED || vo.status === VendorOrderStatus.PROPOSAL_SENT
+        )
+      ) {
+        newStatus = CustomerOrderStatus.WAITING_CUSTOMER_DECISION;
+      } else if (vendorOrders.some((vo) => vo.status === VendorOrderStatus.PENDING)) {
+        newStatus = CustomerOrderStatus.PENDING_VENDOR_CONFIRMATION;
+      }
+
+      if (newStatus && newStatus !== customerOrder.status) {
+        if (newStatus === CustomerOrderStatus.READY) {
+          const affectedRows = await this.customerOrderRepo.conditionalUpdateStatusToReady(customerOrderId, conn);
+          if (affectedRows === 1) {
+            // Only emit ORDER_READY if the status was actually changed by this execution
+            await this.recordStatusChange({ customerOrderId }, newStatus, undefined, conn);
+            const eventType = this.getEventTypeForCustomerStatus(newStatus);
+            if (eventType) {
+              eventsToEmit.push({
+                id: randomUUID(),
+                type: eventType,
+                timestamp: new Date(),
+                payload: { customerOrderId, status: newStatus, customerId: customerOrder.customerId, token },
+              });
+            }
+          }
+        } else {
+          // For other status transitions, update normally and record change
+          await this.customerOrderRepo.updateStatus(customerOrderId, newStatus, conn);
+          await this.recordStatusChange({ customerOrderId }, newStatus, undefined, conn);
+          const eventType = this.getEventTypeForCustomerStatus(newStatus);
+          if (eventType) {
+            eventsToEmit.push({
+              id: randomUUID(),
+              type: eventType,
+              timestamp: new Date(),
+              payload: { customerOrderId, status: newStatus, customerId: customerOrder.customerId },
+            });
+          }
+        }
+      }
+
+      if (shouldCommitOrRollback && conn) {
+        await this.db.commit(conn);
+      }
+    } catch (error) {
+      if (shouldCommitOrRollback && conn) {
+        await this.db.rollback(conn);
+      }
+      throw error;
+    } finally {
+      // Emit events after transaction (whether it was committed locally or externally)
+      for (const event of eventsToEmit) {
+        await this.eventBus.publish(event);
+      }
+    }
+  }
+
+  private async syncVendorOrderStatus(vendorOrderId: string, externalConnection?: PoolConnection): Promise<void> {
+    let conn: PoolConnection | undefined = externalConnection;
+    let shouldCommitOrRollback = false;
+    const eventsToEmit: any[] = [];
+
+    try {
+      if (!conn) {
+        conn = await this.db.beginTransaction();
+        shouldCommitOrRollback = true;
+      }
+
+      const vendorOrder = await this.vendorOrderRepo.findById(vendorOrderId, conn);
+      if (!vendorOrder) {
+        if (shouldCommitOrRollback && conn) await this.db.rollback(conn);
+        return;
+      }
+
+      // Only sync if vendor order is in PROPOSAL_SENT status
+      if (vendorOrder.status !== VendorOrderStatus.PROPOSAL_SENT) {
+        if (shouldCommitOrRollback && conn) await this.db.commit(conn);
+        return;
+      }
+
+      // Get all proposals for this vendor order
+      const proposals = await this.proposalRepo.findByVendorOrder(vendorOrderId, conn);
+
+      if (proposals.length === 0) {
+        if (shouldCommitOrRollback && conn) await this.db.commit(conn);
+        return;
+      }
+
+      const allAccepted = proposals.every((p) => p.status === ProposalStatus.ACCEPTED);
+      const allRejected = proposals.every((p) => p.status === ProposalStatus.REJECTED);
+      const anyPending = proposals.some((p) => p.status === ProposalStatus.PENDING);
+
+      let newStatus: VendorOrderStatus | null = null;
+
+      if (allAccepted) {
+        // All proposals accepted -> vendor order is CONFIRMED
+        newStatus = VendorOrderStatus.CONFIRMED;
+      } else if (allRejected) {
+        // All proposals rejected -> vendor order is CANCELLED
+        newStatus = VendorOrderStatus.CANCELLED;
+      } else if (!anyPending) {
+        // Mixed accepted/rejected, no pending -> vendor order is CONFIRMED
+        // (some items accepted, some rejected/unavailable)
+        newStatus = VendorOrderStatus.CONFIRMED;
+      }
+      // If there are still pending proposals, don't change status
+
+      if (newStatus) {
+        await this.vendorOrderRepo.updateStatus(vendorOrderId, newStatus, conn);
+        await this.recordStatusChange(
+          { vendorOrderId },
+          newStatus,
+          `All proposals ${allAccepted ? "accepted" : allRejected ? "rejected" : "processed"}`,
+          conn
+        );
+
+        const eventType = this.getEventTypeForVendorStatus(newStatus);
+        if (eventType) {
+          eventsToEmit.push({
+            id: randomUUID(),
+            type: eventType,
+            timestamp: new Date(),
+            payload: {
+              vendorOrderId,
+              customerOrderId: vendorOrder.customerOrderId,
+              vendorId: vendorOrder.vendorId,
+              status: newStatus,
+            },
+          });
+        }
+      }
+
+      if (shouldCommitOrRollback && conn) {
+        await this.db.commit(conn);
+      }
+    } catch (error) {
+      if (shouldCommitOrRollback && conn) {
+        await this.db.rollback(conn);
+      }
+      throw error;
+    } finally {
+      for (const event of eventsToEmit) {
+        await this.eventBus.publish(event);
+      }
     }
   }
 
@@ -807,6 +871,17 @@ export class OrderService {
       [CustomerOrderStatus.IN_DELIVERY]: EventType.ORDER_ON_THE_WAY, // Assuming IN_DELIVERY maps to ON_THE_WAY
       [CustomerOrderStatus.COMPLETED]: EventType.ORDER_DELIVERED,
       [CustomerOrderStatus.CANCELLED]: EventType.ORDER_CANCELLED,
+    };
+    return mapping[status] || null;
+  }
+
+  private getEventTypeForVendorStatus(status: VendorOrderStatus): EventType | null {
+    const mapping: Partial<Record<VendorOrderStatus, EventType>> = {
+      [VendorOrderStatus.CONFIRMED]: EventType.VENDOR_ORDER_CONFIRMED,
+      [VendorOrderStatus.PICKED_UP]: EventType.ORDER_PICKED_UP,
+      [VendorOrderStatus.ON_THE_WAY]: EventType.ORDER_ON_THE_WAY,
+      [VendorOrderStatus.DELIVERED]: EventType.ORDER_DELIVERED,
+      [VendorOrderStatus.CANCELLED]: EventType.VENDOR_ORDER_CANCELLED,
     };
     return mapping[status] || null;
   }

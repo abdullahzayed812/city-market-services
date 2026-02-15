@@ -5,7 +5,7 @@ import { DeliveryService } from "./application/services/delivery.service";
 import { CourierRepository } from "./infrastructure/repositories/courier.repository";
 import { DeliveryRepository } from "./infrastructure/repositories/delivery.repository";
 import { errorHandler, Database } from "@city-market/shared/node";
-import { eventBus, EventType } from "@city-market/shared";
+import { EventType } from "@city-market/shared";
 import { rabbitMQBus } from "@city-market/shared/node";
 import { OrderReadyConsumer } from "./application/events/order-ready.consumer";
 import { DeliveryStatusConsumer } from "./application/events/delivery-status.consumer";
@@ -45,12 +45,20 @@ export const createApp = () => {
 
   // Register Event Consumers
   const orderReadyConsumer = new OrderReadyConsumer(deliveryService);
-  rabbitMQBus.subscribe(EventType.ORDER_READY, "delivery_service_order_ready", (event) => orderReadyConsumer.handle(event));
+  rabbitMQBus.subscribe(EventType.ORDER_READY, "delivery_service_order_ready", (event) =>
+    orderReadyConsumer.handle(event)
+  );
 
   const deliveryStatusConsumer = new DeliveryStatusConsumer(orderClient);
-  rabbitMQBus.subscribe(EventType.ORDER_PICKED_UP, "delivery_service_order_picked_up", (event) => deliveryStatusConsumer.handle(event));
-  rabbitMQBus.subscribe(EventType.ORDER_ON_THE_WAY, "delivery_service_order_on_the_way", (event) => deliveryStatusConsumer.handle(event));
-  rabbitMQBus.subscribe(EventType.ORDER_DELIVERED, "delivery_service_order_delivered", (event) => deliveryStatusConsumer.handle(event));
+  rabbitMQBus.subscribe(EventType.ORDER_PICKED_UP, "delivery_service_order_picked_up", (event) =>
+    deliveryStatusConsumer.handle(event)
+  );
+  rabbitMQBus.subscribe(EventType.ORDER_ON_THE_WAY, "delivery_service_order_on_the_way", (event) =>
+    deliveryStatusConsumer.handle(event)
+  );
+  rabbitMQBus.subscribe(EventType.ORDER_DELIVERED, "delivery_service_order_delivered", (event) =>
+    deliveryStatusConsumer.handle(event)
+  );
 
   app.use("/", createDeliveryRoutes(deliveryController));
 

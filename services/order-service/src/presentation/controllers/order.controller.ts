@@ -1,6 +1,6 @@
 import { Response, NextFunction } from "express";
 import { OrderService } from "../../application/services/order.service";
-import { ApiResponse } from "@city-market/shared";
+import { ApiResponse, ProposeChangesDto } from "@city-market/shared";
 import { Logger } from "@city-market/shared/node";
 import { AuthRequest } from "@city-market/shared/node";
 
@@ -19,15 +19,15 @@ export class OrderController {
     }
   };
 
-  getById = async (req: AuthRequest, res: Response, next: NextFunction) => {
-    try {
-      const token = req.headers.authorization?.split(" ")[1];
-      const order = await this.orderService.getOrderById(req.params.id, token);
-      res.json(ApiResponse.success(order));
-    } catch (error) {
-      next(error);
-    }
-  };
+  // getById = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  //   try {
+  //     const token = req.headers.authorization?.split(" ")[1];
+  //     const order = await this.orderService.getOrderById(req.params.id, token);
+  //     res.json(ApiResponse.success(order));
+  //   } catch (error) {
+  //     next(error);
+  //   }
+  // };
 
   getVendorOrderById = async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
@@ -50,7 +50,7 @@ export class OrderController {
 
   proposeChanges = async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
-      await this.orderService.proposeChanges(req.params.id, req.body);
+      await this.orderService.proposeChanges(req.params.id, req.body.proposals as ProposeChangesDto[]);
       res.json(ApiResponse.success(null, "Changes proposed"));
     } catch (error) {
       next(error);
@@ -90,6 +90,16 @@ export class OrderController {
       const limit = parseInt(req.query.limit as string) || 20;
       const orders = await this.orderService.getCustomerOrders(req.user!.userId, page, limit);
       res.json(ApiResponse.success(orders));
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  getCustomerOrderById = async (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+      const token = req.headers.authorization?.split(" ")[1];
+      const order = await this.orderService.getCustomerOrderById(req.params.id, token);
+      res.json(ApiResponse.success(order));
     } catch (error) {
       next(error);
     }
