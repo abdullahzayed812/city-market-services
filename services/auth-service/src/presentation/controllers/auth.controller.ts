@@ -88,4 +88,19 @@ export class AuthController {
       next(error);
     }
   };
+
+  issueServiceToken = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { grant_type, client_id, client_secret } = req.body;
+
+      if (grant_type !== "client_credentials") {
+        return res.status(400).json(ApiResponse.error("invalid_grant: Unsupported grant_type"));
+      }
+
+      const serviceTokenResponse = await this.authService.issueServiceToken(client_id, client_secret);
+      res.json(serviceTokenResponse); // Should contain access_token, expires_in, token_type
+    } catch (error) {
+      next(error);
+    }
+  };
 }

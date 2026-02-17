@@ -4,7 +4,7 @@ import { UserController } from "./presentation/controllers/user.controller";
 import { UserService } from "./application/services/user.service";
 import { CustomerRepository } from "./infrastructure/repositories/customer.repository";
 import { AddressRepository } from "./infrastructure/repositories/address.repository";
-import { errorHandler, Database, Logger } from "@city-market/shared/node";
+import { errorHandler, Database, authenticate } from "@city-market/shared/node";
 import { config } from "./config/env";
 
 export const createApp = () => {
@@ -27,11 +27,7 @@ export const createApp = () => {
 
   const userController = new UserController(userService);
 
-  // Request logging
-  app.use((req, res, next) => {
-    Logger.info(`${req.method} ${req.path}`, { ip: req.ip });
-    next();
-  });
+  app.use(authenticate);
 
   app.use("/", createUserRoutes(userController));
 

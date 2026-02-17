@@ -10,7 +10,7 @@ import { OrderStatusHistoryRepository } from "./infrastructure/repositories/orde
 import { CatalogHttpClient } from "./infrastructure/http/catalog-http-client";
 import { VendorHttpClient } from "./infrastructure/http/vendor-http-client";
 import { EventType } from "@city-market/shared";
-import { errorHandler, Database, rabbitMQBus } from "@city-market/shared/node";
+import { errorHandler, Database, rabbitMQBus, authenticate } from "@city-market/shared/node";
 import { DeliveryUpdatedConsumer } from "./application/events/delivery-updated.consumer";
 import { config } from "./config/env";
 
@@ -50,9 +50,17 @@ export const createApp = () => {
   const orderController = new OrderController(orderService);
 
   const deliveryUpdatedConsumer = new DeliveryUpdatedConsumer(orderService);
-  rabbitMQBus.subscribe(EventType.ORDER_PICKED_UP, "order_service_pickup", (event) => deliveryUpdatedConsumer.handle(event));
-  rabbitMQBus.subscribe(EventType.ORDER_ON_THE_WAY, "order_service_ontheway", (event) => deliveryUpdatedConsumer.handle(event));
-  rabbitMQBus.subscribe(EventType.ORDER_DELIVERED, "order_service_delivered", (event) => deliveryUpdatedConsumer.handle(event));
+  rabbitMQBus.subscribe(EventType.ORDER_PICKED_UP, "order_service_pickup", (event) =>
+    deliveryUpdatedConsumer.handle(event)
+  );
+  rabbitMQBus.subscribe(EventType.ORDER_ON_THE_WAY, "order_service_ontheway", (event) =>
+    deliveryUpdatedConsumer.handle(event)
+  );
+  rabbitMQBus.subscribe(EventType.ORDER_DELIVERED, "order_service_delivered", (event) =>
+    deliveryUpdatedConsumer.handle(event)
+  );
+
+  app.use(authenticate);
 
   app.use("/", createOrderRoutes(orderController));
 

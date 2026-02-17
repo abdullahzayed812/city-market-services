@@ -8,7 +8,7 @@ import { ProductService } from "./application/services/product.service";
 import { CategoryService } from "./application/services/category.service";
 import { ProductRepository } from "./infrastructure/repositories/product.repository";
 import { CategoryRepository } from "./infrastructure/repositories/category.repository";
-import { errorHandler, Database, Logger } from "@city-market/shared/node";
+import { errorHandler, Database, authenticate } from "@city-market/shared/node";
 import { config } from "./config/env";
 
 export const createApp = () => {
@@ -34,11 +34,7 @@ export const createApp = () => {
   const productController = new ProductController(productService);
   const categoryController = new CategoryController(categoryService);
 
-  // Request logging
-  app.use((req, res, next) => {
-    Logger.info(`${req.method} ${req.path}`, { ip: req.ip });
-    next();
-  });
+  app.use(authenticate);
 
   app.use("/", createProductRoutes(productController));
   app.use("/", createCategoryRoutes(categoryController));

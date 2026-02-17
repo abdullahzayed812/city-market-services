@@ -111,6 +111,57 @@ export class AuthService {
     await this.userRepo.updateActivity(id, isActive);
   }
 
+  // New method to issue service-to-service tokens
+  async issueServiceToken(clientId: string, clientSecret: string): Promise<{ access_token: string, token_type: string, expires_in: number }> {
+    const serviceClient = config.registeredServiceClients.find(
+      client => client.clientId === clientId && client.clientSecret === clientSecret
+    );
+
+    if (!serviceClient) {
+      throw new UnauthorizedError("Invalid client credentials");
+    }
+
+    const payload = {
+      sub: serviceClient.clientId, // Subject is the client ID
+      scope: serviceClient.scope,  // Scope of the service client
+      iss: "auth-service",         // Issuer
+    };
+
+    const accessToken = jwt.sign(
+      payload,
+      config.jwtServiceAccessSecret as any, // Use service-specific secret
+      {
+        expiresIn: config.jwtServiceAccessExpiry,
+        audience: "city-market-services", // Audience could be specific services or a general identifier
+        jwtid: randomUUID(), // Unique JWT ID
+      } as any
+    );
+
+    // Parse expiry string (e.g., "15m") to seconds
+    let expiresInSeconds = 0;
+    const expiryMatch = (config.jwtServiceAccessExpiry as string).match(/^(\d+)([smhd])$/);
+    if (expiryMatch) {
+        const value = parseInt(expiryMatch[1]);
+        const unit = expiryMatch[2];
+        switch (unit) {
+            case 's': expiresInSeconds = value; break;
+            case 'm': expiresInSeconds = value * 60; break;
+            case 'h': expiresInSeconds = value * 3600; break;
+            case 'd': expiresInSeconds = value * 86400; break;
+        }
+    } else {
+        // Fallback or throw error if expiry format is unexpected
+        expiresInSeconds = 15 * 60; // Default to 15 minutes if parsing fails
+    }
+
+
+    return {
+      access_token: accessToken,
+      token_type: "Bearer",
+      expires_in: expiresInSeconds, // Return expiry in seconds
+    };
+  }
+
   private async generateTokenPair(user: User): Promise<TokenPair> {
     const payload: TokenPayload = {
       userId: user.id,

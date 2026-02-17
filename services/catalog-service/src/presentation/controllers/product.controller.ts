@@ -2,12 +2,12 @@ import { Response, NextFunction } from "express";
 import { ProductService } from "../../application/services/product.service";
 import { ApiResponse, ValidationError } from "@city-market/shared";
 import { Logger } from "@city-market/shared/node";
-import { AuthRequest } from "@city-market/shared/node";
+import { AuthenticatedRequest } from "@city-market/shared/node";
 
 export class ProductController {
   constructor(private productService: ProductService) {}
 
-  create = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  create = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
       const product = await this.productService.createProduct(req.body);
       Logger.info("Product created", { productId: product.id });
@@ -17,7 +17,7 @@ export class ProductController {
     }
   };
 
-  getById = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  getById = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
       const product = await this.productService.getProductById(req.params.id);
       res.json(ApiResponse.success(product));
@@ -26,7 +26,7 @@ export class ProductController {
     }
   };
 
-  getByVendor = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  getByVendor = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
       const page = parseInt(req.query.page as string) || 1;
       const limit = parseInt(req.query.limit as string) || 20;
@@ -37,7 +37,7 @@ export class ProductController {
     }
   };
 
-  getByCategory = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  getByCategory = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
       const page = parseInt(req.query.page as string) || 1;
       const limit = parseInt(req.query.limit as string) || 20;
@@ -48,7 +48,7 @@ export class ProductController {
     }
   };
 
-  search = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  search = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
       const page = parseInt(req.query.page as string) || 1;
       const limit = parseInt(req.query.limit as string) || 20;
@@ -67,7 +67,7 @@ export class ProductController {
     }
   };
 
-  update = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  update = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
       await this.productService.updateProduct(req.params.id, req.body);
       res.json(ApiResponse.success(null, "Product updated"));
@@ -76,7 +76,7 @@ export class ProductController {
     }
   };
 
-  updateStock = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  updateStock = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
       await this.productService.updateStock(req.params.id, req.body.stock);
       res.json(ApiResponse.success(null, "Stock updated"));
@@ -85,7 +85,7 @@ export class ProductController {
     }
   };
 
-  delete = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  delete = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
       await this.productService.deleteProduct(req.params.id);
       res.json(ApiResponse.success(null, "Product deleted"));
@@ -94,7 +94,7 @@ export class ProductController {
     }
   };
 
-  uploadImage = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  uploadImage = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
       if (!req.file) {
         throw new ValidationError("No image file provided");

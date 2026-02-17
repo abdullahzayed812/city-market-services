@@ -12,14 +12,14 @@ export interface DashboardStats {
 export class AdminService {
   constructor(private serviceClient: ServiceClient) {}
 
-  async getDashboardStats(token?: string): Promise<DashboardStats> {
+  async getDashboardStats(userId?: string): Promise<DashboardStats> { // Changed to userId
     Logger.info("Fetching dashboard statistics");
 
     const [ordersData, vendorsData, couriersData, usersData] = await Promise.all([
-      this.serviceClient.getAllOrders(1, 100, token),
-      this.serviceClient.getAllVendors(1, 100, token),
-      this.serviceClient.getAllCouriers(1, 100, token),
-      this.serviceClient.getAllUsers(1, 100, token),
+      this.serviceClient.getAllOrders(1, 100, userId), // Passed userId
+      this.serviceClient.getAllVendors(1, 100, userId), // Passed userId
+      this.serviceClient.getAllCouriers(1, 100, userId), // Passed userId
+      this.serviceClient.getAllUsers(1, 100, userId), // Passed userId
     ]);
 
     const stats: DashboardStats = {
@@ -35,72 +35,72 @@ export class AdminService {
     return stats;
   }
 
-  async getAllOrders(page: number = 1, limit: number = 50, token?: string) {
-    return this.serviceClient.getAllOrders(page, limit, token);
+  async getAllOrders(page: number = 1, limit: number = 50, userId?: string) { // Changed to userId
+    return this.serviceClient.getAllOrders(page, limit, userId); // Passed userId
   }
 
-  async getAllVendors(page: number = 1, limit: number = 50, token?: string) {
-    return this.serviceClient.getAllVendors(page, limit, token);
+  async getAllVendors(page: number = 1, limit: number = 50, userId?: string) { // Changed to userId
+    return this.serviceClient.getAllVendors(page, limit, userId); // Passed userId
   }
 
-  async updateVendorCommission(vendorId: string, rate: number, token?: string) {
+  async updateVendorCommission(vendorId: string, rate: number, userId?: string) { // Changed to userId
     if (rate < 0 || rate > 100) {
       throw new Error("Commission rate must be between 0 and 100");
     }
-    return this.serviceClient.updateVendorCommission(vendorId, rate, token);
+    return this.serviceClient.updateVendorCommission(vendorId, rate, userId); // Passed userId
   }
 
-  async suspendVendor(vendorId: string, token?: string) {
+  async suspendVendor(vendorId: string, userId?: string) { // Changed to userId
     Logger.warn(`Suspending vendor ${vendorId}`);
-    return this.serviceClient.suspendVendor(vendorId, token);
+    return this.serviceClient.suspendVendor(vendorId, userId); // Passed userId
   }
 
-  async getAllCouriers(page: number = 1, limit: number = 50, token?: string) {
-    return this.serviceClient.getAllCouriers(page, limit, token);
+  async getAllCouriers(page: number = 1, limit: number = 50, userId?: string) { // Changed to userId
+    return this.serviceClient.getAllCouriers(page, limit, userId); // Passed userId
   }
 
-  async deactivateCourier(courierId: string, token?: string) {
+  async deactivateCourier(courierId: string, userId?: string) { // Changed to userId
     Logger.warn(`Deactivating courier ${courierId}`);
-    return this.serviceClient.deactivateCourier(courierId, token);
+    return this.serviceClient.deactivateCourier(courierId, userId); // Passed userId
   }
 
-  async getAllUsers(page: number = 1, limit: number = 50, token?: string) {
-    return this.serviceClient.getAllUsers(page, limit, token);
+  async getAllUsers(page: number = 1, limit: number = 50, userId?: string) { // Changed to userId
+    return this.serviceClient.getAllUsers(page, limit, userId); // Passed userId
   }
 
-  async getUserById(id: string, token?: string) {
-    return this.serviceClient.getUserById(id, token);
+  async getUserById(id: string, userId?: string) { // Changed to userId
+    return this.serviceClient.getUserById(id, userId); // Passed userId
   }
 
-  async updateUserStatus(id: string, status: string, token?: string) {
-    return this.serviceClient.updateUserStatus(id, status, token);
+  async updateUserStatus(id: string, status: string, userId?: string) { // Changed to userId
+    return this.serviceClient.updateUserStatus(id, status, userId); // Passed userId
   }
 
-  async getVendorById(id: string, token?: string) {
-    return this.serviceClient.getVendorById(id, token);
+  async getVendorById(id: string, userId?: string) { // Changed to userId
+    return this.serviceClient.getVendorById(id, userId); // Passed userId
   }
 
-  async updateVendorStatus(id: string, status: string, token?: string) {
-    return this.serviceClient.updateVendorStatus(id, status, token);
+  async updateVendorStatus(id: string, status: string, userId?: string) { // Changed to userId
+    return this.serviceClient.updateVendorStatus(id, status, userId); // Passed userId
   }
 
-  async getOrderById(id: string, token?: string) {
-    return this.serviceClient.getOrderById(id, token);
+  async getOrderById(id: string, userId?: string) { // Changed to userId
+    return this.serviceClient.getOrderById(id, userId); // Passed userId
   }
 
-  async updateOrderStatus(id: string, status: string, token?: string) {
-    return this.serviceClient.updateOrderStatus(id, status, token);
+  async updateOrderStatus(id: string, status: string, userId?: string) { // Changed to userId
+    return this.serviceClient.updateOrderStatus(id, status, userId); // Passed userId
   }
 
-  async getDeliveries(token?: string) {
-    return this.serviceClient.getDeliveries(token);
+  async getDeliveries(userId?: string) { // Changed to userId
+    return this.serviceClient.getDeliveries(userId); // Passed userId
   }
 
-  async getAvailableCouriers(token?: string) {
-    return this.serviceClient.getAvailableCouriers(token);
+  async getAvailableCouriers(userId?: string) { // Changed to userId
+    return this.serviceClient.getAvailableCouriers(userId); // Passed userId
   }
 
-  async getRevenue(token?: string) {
+  async getRevenue(userId?: string) { // Changed to userId
     // In a real application, this would involve more complex logic
     return Promise.resolve({
       totalRevenue: 25000,
@@ -113,7 +113,7 @@ export class AdminService {
     });
   }
 
-  async getPayouts(token?: string) {
+  async getPayouts(userId?: string) { // Changed to userId
     // In a real application, this would involve more complex logic
     return Promise.resolve({ payouts: 5000, date: new Date() });
   }

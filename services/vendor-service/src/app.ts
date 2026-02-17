@@ -5,7 +5,7 @@ import { VendorController } from "./presentation/controllers/vendor.controller";
 import { VendorService } from "./application/services/vendor.service";
 import { VendorRepository } from "./infrastructure/repositories/vendor.repository";
 import { WorkingHoursRepository } from "./infrastructure/repositories/working-hours.repository";
-import { errorHandler, Database } from "@city-market/shared/node";
+import { errorHandler, Database, authenticate } from "@city-market/shared/node";
 import { eventBus } from "@city-market/shared";
 import { config } from "./config/env";
 
@@ -29,6 +29,8 @@ export const createApp = () => {
   const vendorService = new VendorService(vendorRepo, workingHoursRepo, eventBus);
 
   const vendorController = new VendorController(vendorService);
+
+  app.use(authenticate);
 
   app.use("/", createVendorRoutes(vendorController));
 

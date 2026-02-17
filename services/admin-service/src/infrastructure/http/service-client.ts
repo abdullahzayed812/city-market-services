@@ -1,130 +1,141 @@
-import axios from "axios";
+import axios, { AxiosInstance } from "axios";
+import { adminServiceAuthenticator } from "../../config/env"; // Import the authenticator
 
 export class ServiceClient {
+  private axiosInstance: AxiosInstance;
+
   constructor(
     private orderServiceUrl: string,
     private vendorServiceUrl: string,
     private deliveryServiceUrl: string,
     private userServiceUrl: string,
     private authServiceUrl: string
-  ) { }
+  ) {
+    this.axiosInstance = axios.create(); // Create base instance; headers will be dynamically added
+  }
 
-  async getAllOrders(page: number = 1, limit: number = 50, token?: string) {
-    const response = await axios.get(`${this.orderServiceUrl}/`, {
+  private async getRequestConfig(userId?: string) {
+    const serviceToken = await adminServiceAuthenticator.getServiceToken();
+    const headers: Record<string, string> = {
+      Authorization: `Bearer ${serviceToken}`,
+    };
+    if (userId) {
+      headers["X-User-Id"] = userId; // Propagate user ID from validated context
+    }
+    return { headers };
+  }
+
+  async getAllOrders(page: number = 1, limit: number = 50, userId?: string) {
+    const config = await this.getRequestConfig(userId);
+    const response = await this.axiosInstance.get(`${this.orderServiceUrl}/`, {
       params: { page, limit },
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      ...config,
     });
     return response.data;
   }
 
-  async getAllUsers(page: number = 1, limit: number = 50, token?: string) {
-    const response = await axios.get(`${this.authServiceUrl}/users`, {
+  async getAllUsers(page: number = 1, limit: number = 50, userId?: string) {
+    const config = await this.getRequestConfig(userId);
+    const response = await this.axiosInstance.get(`${this.userServiceUrl}/users`, {
       params: { page, limit },
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      ...config,
     });
     return response.data;
   }
 
-  async getAllVendors(page: number = 1, limit: number = 50, token?: string) {
-    const response = await axios.get(`${this.vendorServiceUrl}/`, {
+  async getAllVendors(page: number = 1, limit: number = 50, userId?: string) {
+    const config = await this.getRequestConfig(userId);
+    const response = await this.axiosInstance.get(`${this.vendorServiceUrl}/`, {
       params: { page, limit },
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      ...config,
     });
     return response.data;
   }
 
-  async updateVendorCommission(vendorId: string, rate: number, token?: string) {
-    const response = await axios.patch(
+  async updateVendorCommission(vendorId: string, rate: number, userId?: string) {
+    const config = await this.getRequestConfig(userId);
+    const response = await this.axiosInstance.patch(
       `${this.vendorServiceUrl}/${vendorId}/commission`,
       { rate },
-      { headers: token ? { Authorization: `Bearer ${token}` } : {} }
+      config
     );
     return response.data;
   }
 
-  async suspendVendor(vendorId: string, token?: string) {
-    const response = await axios.patch(
+  async suspendVendor(vendorId: string, userId?: string) {
+    const config = await this.getRequestConfig(userId);
+    const response = await this.axiosInstance.patch(
       `${this.vendorServiceUrl}/${vendorId}/status`,
       { status: "SUSPENDED" },
-      { headers: token ? { Authorization: `Bearer ${token}` } : {} }
+      config
     );
     return response.data;
   }
 
-  async getAllCouriers(page: number = 1, limit: number = 50, token?: string) {
-    const response = await axios.get(`${this.deliveryServiceUrl}/couriers`, {
+  async getAllCouriers(page: number = 1, limit: number = 50, userId?: string) {
+    const config = await this.getRequestConfig(userId);
+    const response = await this.axiosInstance.get(`${this.deliveryServiceUrl}/couriers`, {
       params: { page, limit },
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      ...config,
     });
     return response.data;
   }
 
-  async deactivateCourier(courierId: string, token?: string) {
-    const response = await axios.patch(`${this.deliveryServiceUrl}/couriers/${courierId}/deactivate`, null, {
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-    });
-    return response.data;
-  }
-
-  async getUserById(id: string, token?: string) {
-    const response = await axios.get(`${this.authServiceUrl}/users/${id}`, {
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-    });
-    return response.data;
-  }
-
-  async updateUserStatus(id: string, status: string, token?: string) {
-    const response = await axios.patch(
-      `${this.authServiceUrl}/users/${id}/status`,
-      { status },
-      { headers: token ? { Authorization: `Bearer ${token}` } : {} }
+  async deactivateCourier(courierId: string, userId?: string) {
+    const config = await this.getRequestConfig(userId);
+    const response = await this.axiosInstance.patch(
+      `${this.deliveryServiceUrl}/couriers/${courierId}/deactivate`,
+      null,
+      config
     );
     return response.data;
   }
 
-  async getVendorById(id: string, token?: string) {
-    const response = await axios.get(`${this.vendorServiceUrl}/${id}`, {
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-    });
+  async getUserById(id: string, userId?: string) {
+    const config = await this.getRequestConfig(userId);
+    const response = await this.axiosInstance.get(`${this.userServiceUrl}/users/${id}`, config);
     return response.data;
   }
 
-  async updateVendorStatus(id: string, status: string, token?: string) {
-    const response = await axios.patch(
-      `${this.vendorServiceUrl}/${id}/status`,
-      { status },
-      { headers: token ? { Authorization: `Bearer ${token}` } : {} }
-    );
+  async updateUserStatus(id: string, status: string, userId?: string) {
+    const config = await this.getRequestConfig(userId);
+    const response = await this.axiosInstance.patch(`${this.userServiceUrl}/users/${id}/status`, { status }, config);
     return response.data;
   }
 
-  async getOrderById(id: string, token?: string) {
-    const response = await axios.get(`${this.orderServiceUrl}/${id}`, {
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-    });
+  async getVendorById(id: string, userId?: string) {
+    const config = await this.getRequestConfig(userId);
+    const response = await this.axiosInstance.get(`${this.vendorServiceUrl}/${id}`, config);
     return response.data;
   }
 
-  async updateOrderStatus(id: string, status: string, token?: string) {
-    const response = await axios.patch(
-      `${this.orderServiceUrl}/${id}/status`,
-      { status },
-      { headers: token ? { Authorization: `Bearer ${token}` } : {} }
-    );
+  async updateVendorStatus(id: string, status: string, userId?: string) {
+    const config = await this.getRequestConfig(userId);
+    const response = await this.axiosInstance.patch(`${this.vendorServiceUrl}/${id}/status`, { status }, config);
     return response.data;
   }
 
-  async getDeliveries(token?: string) {
-    const response = await axios.get(`${this.deliveryServiceUrl}/deliveries`, {
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-    });
+  async getOrderById(id: string, userId?: string) {
+    const config = await this.getRequestConfig(userId);
+    const response = await this.axiosInstance.get(`${this.orderServiceUrl}/${id}`, config);
     return response.data;
   }
 
-  async getAvailableCouriers(token?: string) {
-    const response = await axios.get(`${this.deliveryServiceUrl}/couriers/available`, {
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-    });
+  async updateOrderStatus(id: string, status: string, userId?: string) {
+    const config = await this.getRequestConfig(userId);
+    const response = await this.axiosInstance.patch(`${this.orderServiceUrl}/${id}/status`, { status }, config);
+    return response.data;
+  }
+
+  async getDeliveries(userId?: string) {
+    const config = await this.getRequestConfig(userId);
+    const response = await this.axiosInstance.get(`${this.deliveryServiceUrl}/deliveries`, config);
+    return response.data;
+  }
+
+  async getAvailableCouriers(userId?: string) {
+    const config = await this.getRequestConfig(userId);
+    const response = await this.axiosInstance.get(`${this.deliveryServiceUrl}/couriers/available`, config);
     return response.data;
   }
 }

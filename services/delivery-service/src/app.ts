@@ -4,7 +4,7 @@ import { DeliveryController } from "./presentation/controllers/delivery.controll
 import { DeliveryService } from "./application/services/delivery.service";
 import { CourierRepository } from "./infrastructure/repositories/courier.repository";
 import { DeliveryRepository } from "./infrastructure/repositories/delivery.repository";
-import { errorHandler, Database } from "@city-market/shared/node";
+import { errorHandler, Database, authenticate } from "@city-market/shared/node";
 import { EventType } from "@city-market/shared";
 import { rabbitMQBus } from "@city-market/shared/node";
 import { OrderReadyConsumer } from "./application/events/order-ready.consumer";
@@ -59,6 +59,8 @@ export const createApp = () => {
   rabbitMQBus.subscribe(EventType.ORDER_DELIVERED, "delivery_service_order_delivered", (event) =>
     deliveryStatusConsumer.handle(event)
   );
+
+  app.use(authenticate);
 
   app.use("/", createDeliveryRoutes(deliveryController));
 

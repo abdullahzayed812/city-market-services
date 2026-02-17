@@ -5,3 +5,4 @@ export * from "./messaging/index.js";
 export * from "./database/index.js";
 export * from "./middlewares/index.js";
 export * from "./utils/index.js";
+export * from "./service-auth.js";

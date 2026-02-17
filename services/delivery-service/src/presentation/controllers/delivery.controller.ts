@@ -2,13 +2,13 @@ import { Response, NextFunction } from "express";
 import { DeliveryService } from "../../application/services/delivery.service";
 import { ApiResponse } from "@city-market/shared";
 import { Logger } from "@city-market/shared/node";
-import { AuthRequest } from "@city-market/shared/node";
+import { AuthenticatedRequest } from "@city-market/shared/node";
 
 export class DeliveryController {
   constructor(private deliveryService: DeliveryService) {}
 
   // Courier management
-  registerCourier = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  registerCourier = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
       const dto = { ...req.body, userId: req.user!.userId };
       const courier = await this.deliveryService.registerCourier(dto);
@@ -19,7 +19,7 @@ export class DeliveryController {
     }
   };
 
-  getAllCouriers = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  getAllCouriers = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
       const page = parseInt(req.query.page as string) || 1;
       const limit = parseInt(req.query.limit as string) || 20;
@@ -30,7 +30,7 @@ export class DeliveryController {
     }
   };
 
-  getMyCourier = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  getMyCourier = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
       const courier = await this.deliveryService.getCourierByUserId(req.user!.userId);
       res.json(ApiResponse.success(courier));
@@ -39,7 +39,7 @@ export class DeliveryController {
     }
   };
 
-  getAvailableCouriers = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  getAvailableCouriers = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
       const couriers = await this.deliveryService.getAvailableCouriers();
       res.json(ApiResponse.success(couriers));
@@ -48,7 +48,7 @@ export class DeliveryController {
     }
   };
 
-  updateCourier = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  updateCourier = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
       await this.deliveryService.updateCourier(req.params.id, req.body);
       res.json(ApiResponse.success(null, "Courier updated"));
@@ -57,7 +57,7 @@ export class DeliveryController {
     }
   };
 
-  updateAvailability = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  updateAvailability = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
       await this.deliveryService.updateCourierAvailability(req.params.id, req.body.isAvailable);
       res.json(ApiResponse.success(null, "Availability updated"));
@@ -67,7 +67,7 @@ export class DeliveryController {
   };
 
   // Delivery management
-  createDelivery = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  createDelivery = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
       const delivery = await this.deliveryService.createDelivery(req.body);
       res.status(201).json(ApiResponse.success(delivery, "Delivery created"));
@@ -76,7 +76,7 @@ export class DeliveryController {
     }
   };
 
-  getDeliveryById = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  getDeliveryById = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
       const delivery = await this.deliveryService.getDeliveryById(req.params.id);
       res.json(ApiResponse.success(delivery));
@@ -85,7 +85,7 @@ export class DeliveryController {
     }
   };
 
-  getPendingDeliveries = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  getPendingDeliveries = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
       const deliveries = await this.deliveryService.getPendingDeliveries();
       res.json(ApiResponse.success(deliveries));
@@ -94,7 +94,7 @@ export class DeliveryController {
     }
   };
 
-  getMyCourierDeliveries = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  getMyCourierDeliveries = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
       const courier = await this.deliveryService.getCourierByUserId(req.user!.userId);
       const page = parseInt(req.query.page as string) || 1;
@@ -106,7 +106,7 @@ export class DeliveryController {
     }
   };
 
-  assignCourier = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  assignCourier = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
       await this.deliveryService.assignCourier(req.params.id, req.body);
       res.json(ApiResponse.success(null, "Courier assigned"));
@@ -115,7 +115,7 @@ export class DeliveryController {
     }
   };
 
-  updateDeliveryStatus = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  updateDeliveryStatus = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
       const { vendorOrderId, ...updateDto } = req.body;
       await this.deliveryService.updateDeliveryStatus(req.params.id, vendorOrderId, updateDto);
@@ -125,7 +125,7 @@ export class DeliveryController {
     }
   };
 
-  getAllDeliveries = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  getAllDeliveries = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
       const page = parseInt(req.query.page as string) || 1;
       const limit = parseInt(req.query.limit as string) || 20;

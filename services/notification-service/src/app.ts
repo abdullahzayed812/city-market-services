@@ -11,8 +11,6 @@ export const createApp = () => {
   // Initialize notification service (subscribes to events)
   new NotificationService(eventBus);
 
-
-
   app.get("/health", (req, res) => {
     res.json({ status: "healthy", service: "notification-service" });
   });

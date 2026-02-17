@@ -2,12 +2,12 @@ import { Response, NextFunction } from "express";
 import { UserService } from "../../application/services/user.service";
 import { ApiResponse } from "@city-market/shared";
 import { Logger } from "@city-market/shared/node";
-import { AuthRequest } from "@city-market/shared/node";
+import { AuthenticatedRequest } from "@city-market/shared/node";
 
 export class UserController {
   constructor(private userService: UserService) {}
 
-  createCustomer = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  createCustomer = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
       const dto = { ...req.body, userId: req.user!.userId };
       const customer = await this.userService.createCustomer(dto);
@@ -18,7 +18,7 @@ export class UserController {
     }
   };
 
-  getMyProfile = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  getMyProfile = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
       const customer = await this.userService.getCustomerByUserId(req.user!.userId);
       res.json(ApiResponse.success(customer));
@@ -27,7 +27,7 @@ export class UserController {
     }
   };
 
-  updateProfile = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  updateProfile = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
       const customer = await this.userService.getCustomerByUserId(req.user!.userId);
       await this.userService.updateCustomer(customer.id, req.body);
@@ -37,7 +37,7 @@ export class UserController {
     }
   };
 
-  addAddress = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  addAddress = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
       const customer = await this.userService.getCustomerByUserId(req.user!.userId);
       const address = await this.userService.addAddress(customer.id, req.body);
@@ -47,7 +47,7 @@ export class UserController {
     }
   };
 
-  getMyAddresses = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  getMyAddresses = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
       console.log(req.user!.userId);
       const customer = await this.userService.getCustomerByUserId(req.user!.userId);
@@ -58,7 +58,7 @@ export class UserController {
     }
   };
 
-  deleteAddress = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  deleteAddress = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
       await this.userService.deleteAddress(req.params.addressId);
       res.json(ApiResponse.success(null, "Address deleted"));

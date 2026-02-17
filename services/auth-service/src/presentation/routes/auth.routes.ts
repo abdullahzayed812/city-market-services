@@ -12,6 +12,7 @@ export const createAuthRoutes = (controller: AuthController): Router => {
   router.get("/users", controller.getUsers);
   router.get("/users/:id", controller.getUserById);
   router.patch("/users/:id/status", controller.updateUserStatus);
+  router.post("/oauth/token", controller.issueServiceToken); // New route for service tokens
 
   return router;
 };

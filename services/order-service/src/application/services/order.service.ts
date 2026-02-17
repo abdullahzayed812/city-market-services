@@ -39,7 +39,7 @@ export class OrderService {
     private db: Database
   ) {}
 
-  async createOrder(dto: CreateOrderDto, token?: string): Promise<OrderWithItems> {
+  async createOrder(dto: CreateOrderDto, userId?: string): Promise<OrderWithItems> { // Changed to userId
     let connection: PoolConnection | undefined;
     const eventsToPublish: any[] = [];
     let createdCustomerOrder: CustomerOrder | undefined;
@@ -54,7 +54,7 @@ export class OrderService {
 
       // Fetch product information (external call, not part of DB transaction)
       const productInfos = await Promise.all(
-        dto.items.map((item) => this.catalogClient.getProduct(item.productId, token))
+        dto.items.map((item) => this.catalogClient.getProduct(item.productId, userId)) // Passed userId
       );
 
       // Validate products and group by vendor
@@ -185,7 +185,7 @@ export class OrderService {
       // Decrement stock in Catalog Service (external call, if fails, transaction rolls back)
       for (const item of dto.items) {
         // This method was modified to throw an error if stock decrement fails
-        await this.catalogClient.checkAndDecrementStock(item.productId, item.quantity);
+        await this.catalogClient.checkAndDecrementStock(item.productId, item.quantity, userId); // Passed userId
       }
 
       // Collect ORDER_CREATED event
@@ -216,7 +216,7 @@ export class OrderService {
     return { order: createdCustomerOrder, vendorOrders: createdVendorOrders };
   }
 
-  async getCustomerOrderById(id: string, token?: string): Promise<OrderWithItems> {
+  async getCustomerOrderById(id: string, userId?: string): Promise<OrderWithItems> { // Changed to userId
     const customerOrder = await this.customerOrderRepo.findById(id);
     if (!customerOrder) {
       throw new NotFoundError("Order not found");
@@ -226,7 +226,7 @@ export class OrderService {
     const vendorOrdersWithItems = await Promise.all(
       vendorOrders.map(async (vo) => {
         const items = await this.vendorOrderItemRepo.findByVendorOrder(vo.id);
-        const vendor = await this.vendorClient.getVendor(vo.vendorId, token);
+        const vendor = await this.vendorClient.getVendor(vo.vendorId, userId); // Passed userId
         const proposals = await this.proposalRepo.findByVendorOrder(vo.id);
         return {
           ...vo,
@@ -257,14 +257,14 @@ export class OrderService {
 
   async getVendorOrderById(
     id: string,
-    token?: string
+    userId?: string // Changed to userId
   ): Promise<VendorOrder & { items: VendorOrderItem[]; vendorName: string; proposals: OrderItemProposal[] }> {
     const vo = await this.vendorOrderRepo.findById(id);
     if (!vo) {
       throw new NotFoundError("Vendor order not found");
     }
     const items = await this.vendorOrderItemRepo.findByVendorOrder(vo.id);
-    const vendor = await this.vendorClient.getVendor(vo.vendorId, token);
+    const vendor = await this.vendorClient.getVendor(vo.vendorId, userId); // Passed userId
     const proposals = await this.proposalRepo.findByVendorOrder(vo.id);
     return {
       ...vo,
@@ -634,11 +634,7 @@ export class OrderService {
     }
   }
 
-  private async syncCustomerOrderStatus(
-    customerOrderId: string,
-    externalConnection?: PoolConnection,
-    token?: string
-  ): Promise<void> {
+  private async syncCustomerOrderStatus(customerOrderId: string, externalConnection?: PoolConnection): Promise<void> {
     let conn: PoolConnection | undefined = externalConnection;
     let shouldCommitOrRollback = false;
     const eventsToEmit: any[] = []; // Collect events to emit after commit
@@ -689,7 +685,7 @@ export class OrderService {
                 id: randomUUID(),
                 type: eventType,
                 timestamp: new Date(),
-                payload: { customerOrderId, status: newStatus, customerId: customerOrder.customerId, token },
+                payload: { customerOrderId, status: newStatus, customerId: customerOrder.customerId },
               });
             }
           }

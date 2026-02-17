@@ -1,4 +1,5 @@
-import axios from "axios";
+import axios, { AxiosInstance } from "axios";
+import { orderServiceAuthenticator } from "../../config/env"; // Import the authenticator
 
 export interface ProductInfo {
   id: string;
@@ -10,13 +11,28 @@ export interface ProductInfo {
 }
 
 export class CatalogHttpClient {
-  constructor(private baseUrl: string) {}
+  private axiosInstance: AxiosInstance;
 
-  async getProduct(productId: string, token?: string): Promise<ProductInfo | null> {
+  constructor(private baseUrl: string) {
+    this.axiosInstance = axios.create(); // Create base instance; headers will be dynamically added
+  }
+
+  private async getRequestConfig(userId?: string) {
+    const serviceToken = await orderServiceAuthenticator.getServiceToken();
+    const headers: Record<string, string> = {
+      Authorization: `Bearer ${serviceToken}`,
+    };
+    if (userId) {
+      headers["X-User-Id"] = userId; // Propagate user ID from validated context
+    }
+    return { headers };
+  }
+
+  async getProduct(productId: string, userId?: string): Promise<ProductInfo | null> {
+    // Changed to userId
     try {
-      const response = await axios.get(`${this.baseUrl}/products/${productId}`, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      });
+      const config = await this.getRequestConfig(userId);
+      const response = await this.axiosInstance.get(`${this.baseUrl}/products/${productId}`, config);
       if (response.data.success && response.data.data) {
         return response.data.data;
       }
@@ -26,27 +42,21 @@ export class CatalogHttpClient {
     }
   }
 
-  async checkAndDecrementStock(productId: string, quantity: number, token?: string): Promise<void> {
+  async checkAndDecrementStock(productId: string, quantity: number, userId?: string): Promise<void> {
+    // Changed to userId
     try {
-      // Assuming the catalog service's endpoint for decrement-stock performs the safe update pattern:
-      // UPDATE products SET stock = stock - ? WHERE id = ? AND stock >= ?
-      // And returns success only if affectedRows === 1.
-      const response = await axios.patch(
+      const config = await this.getRequestConfig(userId);
+      const response = await this.axiosInstance.patch(
         `${this.baseUrl}/products/${productId}/stock`,
         { stock: quantity },
-        {
-          headers: token ? { Authorization: `Bearer ${token}` } : {},
-        }
+        config
       );
       if (!response.data?.success) {
-        // If the catalog service indicates failure (e.g., insufficient stock), throw an error
         throw new Error(
           `Failed to decrement stock for product ${productId}: ${response.data.message || "Unknown reason"}`
         );
       }
-      // If success is true, no need to return anything, just complete
     } catch (error: any) {
-      // Re-throw any error so the calling service can catch and rollback
       throw new Error(`Catalog service stock decrement failed for product ${productId}: ${error.message}`);
     }
   }

@@ -17,7 +17,7 @@ export class OrderReadyConsumer implements EventSubscriber {
       // Assuming the event payload might contain a token or we need a system token.
       // For now, passing undefined as the event structure doesn't seem to carry user token.
       // If the services require auth, we need a mechanism to get a token here.
-      await this.deliveryService.createDeliveryFromOrder(customerOrderId, (event as any).payload.token);
+      await this.deliveryService.createDeliveryFromOrder(customerOrderId);
     } catch (error) {
       Logger.error(`Failed to process ORDER_READY event for order ${event.payload.customerOrderId}`, error);
     }

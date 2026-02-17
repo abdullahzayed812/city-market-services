@@ -104,7 +104,7 @@ export class DeliveryService {
     return this.deliveryRepo.create(delivery, connection);
   }
 
-  async createDeliveryFromOrder(customerOrderId: string, token?: string): Promise<Delivery[]> {
+  async createDeliveryFromOrder(customerOrderId: string, userId?: string): Promise<Delivery[]> {
     let connection: PoolConnection | undefined;
     const eventsToPublish: any[] = [];
     const createdDeliveries: Delivery[] = [];
@@ -117,7 +117,7 @@ export class DeliveryService {
       // If a grouped delivery is intended, we check for any existing delivery for the customerOrderId.
       // If separate deliveries are intended, we check for each customerOrderId-vendorOrderId pair.
 
-      const orderData = await this.orderClient.getOrder(customerOrderId, token);
+      const orderData = await this.orderClient.getOrder(customerOrderId, userId);
       if (!orderData || !orderData.order) {
         throw new NotFoundError(`Customer Order ${customerOrderId} not found`);
       }
@@ -128,7 +128,7 @@ export class DeliveryService {
       // Fetch all vendor details
       const vendors = await Promise.all(
         vendorOrders.map(async (vo: any) => {
-          const vendor = await this.vendorClient.getVendor(vo.vendorId, token);
+          const vendor = await this.vendorClient.getVendor(vo.vendorId, userId);
           return { ...vo, vendorInfo: vendor };
         })
       );

@@ -3,15 +3,38 @@ import jwt from "jsonwebtoken";
 import { UnauthorizedError } from "../../utils/errors.js";
 import { UserRole } from "../../enums/roles.js";
 
-export interface AuthRequest extends Request {
+export interface AuthenticatedRequest extends Request {
   user?: {
     userId: string;
-    email: string;
     role: UserRole;
+    email?: string;
   };
+  service?: {
+    clientId: string;
+    scope: string;
+  };
+  authType?: "user" | "service";
 }
 
-export const authenticate = (req: AuthRequest, res: Response, next: NextFunction) => {
+export interface UserTokenPayload {
+  userId: string;
+  email: string;
+  role: UserRole;
+  iat?: number;
+  exp?: number;
+}
+
+export interface ServiceTokenPayload {
+  sub: string; // clientId
+  scope: string;
+  iss: string;
+  aud?: string;
+  jti?: string;
+  iat?: number;
+  exp?: number;
+}
+
+export const authenticate = (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
     const token = req.headers.authorization?.replace("Bearer ", "");
 
@@ -19,22 +42,56 @@ export const authenticate = (req: AuthRequest, res: Response, next: NextFunction
       throw new UnauthorizedError("No token provided");
     }
 
-    const secret = process.env.JWT_SECRET || "access_secret_key";
-    const decoded = jwt?.verify(token, secret) as any;
-    req.user = {
-      userId: decoded.userId,
-      email: decoded.email,
-      role: decoded.role,
-    };
+    // First, try to decode without verification to check the token structure
+    const decoded = jwt.decode(token) as any;
+
+    if (!decoded) {
+      throw new UnauthorizedError("Invalid token format");
+    }
+
+    // Determine token type based on payload structure
+    const isServiceToken = decoded.sub && decoded.scope && decoded.iss === "auth-service";
+    const isUserToken = decoded.userId && decoded.role;
+
+    if (isServiceToken) {
+      // Verify service token
+      const serviceSecret = process.env.JWT_SERVICE_ACCESS_SECRET || "service_secret_key";
+      const servicePayload = jwt.verify(token, serviceSecret) as ServiceTokenPayload;
+
+      req.service = {
+        clientId: servicePayload.sub,
+        scope: servicePayload.scope,
+      };
+      req.authType = "service";
+    } else if (isUserToken) {
+      // Verify user token
+      const userSecret = process.env.JWT_SECRET || "access_secret_key";
+      const userPayload = jwt.verify(token, userSecret) as UserTokenPayload;
+
+      req.user = {
+        userId: userPayload.userId,
+        role: userPayload.role,
+        email: userPayload.email,
+      };
+      req.authType = "user";
+    } else {
+      throw new UnauthorizedError("Unknown token type");
+    }
 
     next();
   } catch (error) {
-    next(new UnauthorizedError("Invalid token"));
+    if (error instanceof jwt.JsonWebTokenError) {
+      next(new UnauthorizedError("Invalid token"));
+    } else if (error instanceof jwt.TokenExpiredError) {
+      next(new UnauthorizedError("Token expired"));
+    } else {
+      next(error);
+    }
   }
 };
 
 export const authorize = (...allowedRoles: UserRole[]) => {
-  return (req: AuthRequest, res: Response, next: NextFunction) => {
+  return (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     if (!req.user) {
       return next(new UnauthorizedError("Not authenticated"));
     }

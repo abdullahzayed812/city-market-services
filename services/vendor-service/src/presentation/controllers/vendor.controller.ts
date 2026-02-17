@@ -2,12 +2,12 @@ import { Response, NextFunction } from "express";
 import { VendorService } from "../../application/services/vendor.service";
 import { ApiResponse, ValidationError } from "@city-market/shared";
 import { Logger } from "@city-market/shared/node";
-import { AuthRequest } from "@city-market/shared/node";
+import { AuthenticatedRequest } from "@city-market/shared/node";
 
 export class VendorController {
   constructor(private vendorService: VendorService) { }
 
-  create = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  create = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
       const dto = { ...req.body, userId: req.user!.userId };
       const vendor = await this.vendorService.createVendor(dto);
@@ -18,7 +18,7 @@ export class VendorController {
     }
   };
 
-  getById = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  getById = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
       const vendor = await this.vendorService.getVendorById(req.params.id);
       res.json(ApiResponse.success(vendor));
@@ -27,7 +27,7 @@ export class VendorController {
     }
   };
 
-  getMyVendor = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  getMyVendor = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
       const vendor = await this.vendorService.getVendorByUserId(req.user!.userId);
       res.json(ApiResponse.success(vendor));
@@ -36,7 +36,7 @@ export class VendorController {
     }
   };
 
-  getAll = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  getAll = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
       const page = parseInt(req.query.page as string) || 1;
       const limit = parseInt(req.query.limit as string) || 20;
@@ -47,7 +47,7 @@ export class VendorController {
     }
   };
 
-  getOpen = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  getOpen = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
       const vendors = await this.vendorService.getOpenVendors();
       res.json(ApiResponse.success(vendors));
@@ -56,7 +56,7 @@ export class VendorController {
     }
   };
 
-  update = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  update = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
       await this.vendorService.updateVendor(req.params.id, req.body);
       res.json(ApiResponse.success(null, "Vendor updated"));
@@ -65,7 +65,7 @@ export class VendorController {
     }
   };
 
-  updateStatus = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  updateStatus = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
       await this.vendorService.updateVendorStatus(req.params.id, req.body.status);
       res.json(ApiResponse.success(null, "Status updated"));
@@ -74,7 +74,7 @@ export class VendorController {
     }
   };
 
-  setWorkingHours = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  setWorkingHours = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
       await this.vendorService.setWorkingHours(req.params.id, req.body);
       res.json(ApiResponse.success(null, "Working hours set"));
@@ -83,7 +83,7 @@ export class VendorController {
     }
   };
 
-  getWorkingHours = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  getWorkingHours = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
       const hours = await this.vendorService.getWorkingHours(req.params.id);
       res.json(ApiResponse.success(hours));
@@ -92,7 +92,7 @@ export class VendorController {
     }
   };
 
-  uploadImage = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  uploadImage = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
       if (!req.file) {
         throw new ValidationError("No image file provided");

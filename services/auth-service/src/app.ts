@@ -11,6 +11,7 @@ export const createApp = () => {
   const app = express();
 
   app.use(express.json());
+  app.use(express.urlencoded({ extended: true })); // Add this line for form-urlencoded bodies
 
   const db = new Database({
     host: config.dbHost,
@@ -29,12 +30,6 @@ export const createApp = () => {
 
   // Controllers
   const authController = new AuthController(authService);
-
-  // Request logging
-  app.use((req, res, next) => {
-    Logger.info(`${req.method} ${req.path}`, { ip: req.ip });
-    next();
-  });
 
   // Routes
   app.use("/", createAuthRoutes(authController));

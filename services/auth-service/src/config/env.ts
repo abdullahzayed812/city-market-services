@@ -9,4 +9,27 @@ export const config = {
   jwtRefreshSecret: process.env.JWT_REFRESH_SECRET || "refresh_secret_key",
   jwtAccessExpiry: "7d",
   jwtRefreshExpiry: "7d",
+  jwtServiceAccessSecret: process.env.JWT_SERVICE_ACCESS_SECRET || "service_access_secret_key", // New secret for service tokens
+  jwtServiceAccessExpiry: "15m", // New: Short expiry for service tokens
+
+  // --- Service Client Configuration ---
+  registeredServiceClients: [
+    {
+      clientId: process.env.ADMIN_SERVICE_CLIENT_ID || "admin-service-id",
+      clientSecret: process.env.ADMIN_SERVICE_CLIENT_SECRET || "admin-service-secret",
+      scope: "admin", // Define what this service can access/do
+    },
+    {
+      clientId: process.env.ORDER_SERVICE_CLIENT_ID || "order-service-id",
+      clientSecret: process.env.ORDER_SERVICE_CLIENT_SECRET || "order-service-secret",
+      scope: "order", // Example scope
+    },
+    {
+      clientId: process.env.DELIVERY_SERVICE_CLIENT_ID || "delivery-service-id",
+      clientSecret: process.env.DELIVERY_SERVICE_CLIENT_SECRET || "delivery-service-secret",
+      scope: "delivery", // Example scope
+    },
+    // Add other services as they are configured
+  ],
+  // --- End Service Client Configuration ---
 };

@@ -1,21 +1,31 @@
-import axios from "axios";
+import axios, { AxiosInstance } from "axios";
 import { CustomerOrderStatus, VendorOrderStatus } from "@city-market/shared";
+import { deliveryServiceAuthenticator } from "../../config/env"; // Import the authenticator
 
 export class OrderHttpClient {
   private readonly baseUrl: string;
+  private axiosInstance: AxiosInstance;
 
   constructor(baseUrl: string) {
     this.baseUrl = baseUrl;
+    this.axiosInstance = axios.create(); // Create base instance; headers will be dynamically added
   }
 
-  async getOrder(orderId: string, token?: string): Promise<any> {
-    // Assuming 'any' for now, can be refined later with a DTO
+  private async getRequestConfig(userId?: string) {
+    const serviceToken = await deliveryServiceAuthenticator.getServiceToken();
+    const headers: Record<string, string> = {
+      Authorization: `Bearer ${serviceToken}`,
+    };
+    if (userId) {
+      headers['X-User-Id'] = userId; // Propagate user ID from validated context
+    }
+    return { headers };
+  }
+
+  async getOrder(orderId: string, userId?: string): Promise<any> { // Changed to userId
     try {
-      const response = await axios.get(`${this.baseUrl}/customer-orders/${orderId}`, {
-        headers: {
-          Authorization: token ? `Bearer ${token}` : "",
-        },
-      });
+      const config = await this.getRequestConfig(userId);
+      const response = await this.axiosInstance.get(`${this.baseUrl}/customer-orders/${orderId}`, config);
       return response?.data?.data;
     } catch (error: any) {
       console.error(`Failed to fetch customer order ${orderId}:`, error.message);
@@ -23,16 +33,13 @@ export class OrderHttpClient {
     }
   }
 
-  async updateCustomerOrderStatus(orderId: string, status: CustomerOrderStatus, token?: string): Promise<void> {
+  async updateCustomerOrderStatus(orderId: string, status: CustomerOrderStatus, userId?: string): Promise<void> { // Changed to userId
     try {
-      await axios.patch(
+      const config = await this.getRequestConfig(userId);
+      await this.axiosInstance.patch(
         `${this.baseUrl}/customer-orders/${orderId}/status`,
         { status },
-        {
-          headers: {
-            Authorization: token ? `Bearer ${token}` : "",
-          },
-        }
+        config
       );
     } catch (error: any) {
       console.error(`Failed to update customer order status for ${orderId}:`, error.message);
@@ -40,16 +47,13 @@ export class OrderHttpClient {
     }
   }
 
-  async updateVendorOrderStatus(vendorOrderId: string, status: VendorOrderStatus, token?: string): Promise<void> {
+  async updateVendorOrderStatus(vendorOrderId: string, status: VendorOrderStatus, userId?: string): Promise<void> { // Changed to userId
     try {
-      await axios.patch(
+      const config = await this.getRequestConfig(userId);
+      await this.axiosInstance.patch(
         `${this.baseUrl}/vendor-orders/${vendorOrderId}/status`,
         { status },
-        {
-          headers: {
-            Authorization: token ? `Bearer ${token}` : "",
-          },
-        }
+        config
       );
     } catch (error: any) {
       console.error(`Failed to update vendor order status for ${vendorOrderId}:`, error.message);

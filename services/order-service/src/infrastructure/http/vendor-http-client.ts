@@ -1,5 +1,6 @@
-import axios from "axios";
+import axios, { AxiosInstance } from "axios";
 import { Logger } from "@city-market/shared/node";
+import { orderServiceAuthenticator } from "../../config/env"; // Import the authenticator
 
 export interface VendorInfo {
   id: string;
@@ -12,13 +13,28 @@ export interface VendorInfo {
 }
 
 export class VendorHttpClient {
-  constructor(private baseUrl: string) {}
+  private axiosInstance: AxiosInstance;
 
-  async getVendor(vendorId: string, token?: string): Promise<VendorInfo | null> {
+  constructor(private baseUrl: string) {
+    this.axiosInstance = axios.create(); // Create base instance; headers will be dynamically added
+  }
+
+  private async getRequestConfig(userId?: string) {
+    const serviceToken = await orderServiceAuthenticator.getServiceToken();
+    const headers: Record<string, string> = {
+      Authorization: `Bearer ${serviceToken}`,
+    };
+    if (userId) {
+      headers["X-User-Id"] = userId; // Propagate user ID from validated context
+    }
+    return { headers };
+  }
+
+  async getVendor(vendorId: string, userId?: string): Promise<VendorInfo | null> {
+    // Changed to userId
     try {
-      const response = await axios.get(`${this.baseUrl}/${vendorId}`, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      });
+      const config = await this.getRequestConfig(userId);
+      const response = await this.axiosInstance.get(`${this.baseUrl}/${vendorId}`, config); // Passed config
       if (response.data.success && response.data.data) {
         return response.data.data;
       }

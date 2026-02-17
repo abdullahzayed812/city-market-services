@@ -1,1 +1,1 @@
-import { AuthRequest, authenticate, authorize } from "@city-market/shared/node";
+import { authenticate, authorize } from "@city-market/shared/node";
