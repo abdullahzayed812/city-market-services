@@ -11,7 +11,20 @@
         "search": "Search...",
         "language": "Language",
         "arabic": "Arabic",
-        "english": "English"
+        "english": "English",
+        "all": "All",
+        "customers": "Customers",
+        "active": "Active",
+        "inactive": "Inactive",
+        "name": "Name",
+        "email": "Email",
+        "role": "Role",
+        "status": "Status",
+        "actions": "Actions",
+        "activate": "Activate",
+        "deactivate": "Deactivate",
+        "loading": "Loading...",
+        "admin_title": "CityMarket Admin"
     },
     "dashboard": {
         "overview": "Overview",

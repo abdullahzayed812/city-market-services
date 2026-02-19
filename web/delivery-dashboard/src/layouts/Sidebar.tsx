@@ -21,8 +21,8 @@ const Sidebar = () => {
     return (
         <div className="flex flex-col h-full w-64 bg-card border-e">
             <div className="p-6 border-b">
-                <h1 className="text-2xl font-bold text-primary">CityMarket</h1>
-                <p className="text-xs text-muted-foreground mt-1 text-blue-600 font-semibold">Delivery Office</p>
+                <h1 className="text-2xl font-bold text-primary">{t("common.citymarket")}</h1>
+                <p className="text-xs text-muted-foreground mt-1 text-blue-600 font-semibold">{t("common.delivery_office")}</p>
             </div>
             <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
                 {navItems.map((item) => (

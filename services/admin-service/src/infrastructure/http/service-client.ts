@@ -36,7 +36,7 @@ export class ServiceClient {
 
   async getAllUsers(page: number = 1, limit: number = 50, userId?: string) {
     const config = await this.getRequestConfig(userId);
-    const response = await this.axiosInstance.get(`${this.userServiceUrl}/users`, {
+    const response = await this.axiosInstance.get(`${this.authServiceUrl}/users`, {
       params: { page, limit },
       ...config,
     });
@@ -49,6 +49,7 @@ export class ServiceClient {
       params: { page, limit },
       ...config,
     });
+
     return response.data;
   }
 

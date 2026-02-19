@@ -58,7 +58,7 @@ const UsersManagement: React.FC = () => {
     },
   });
 
-  if (isLoading) return <div>Loading...</div>;
+  if (isLoading) return <div>{t("common.loading")}</div>;
 
   return (
     <div className="space-y-6">
@@ -66,16 +66,16 @@ const UsersManagement: React.FC = () => {
         <h2 className="text-2xl font-bold text-gray-800">{t("common.users")}</h2>
         <div className="flex space-x-2 rtl:space-x-reverse">
           <Button variant={roleFilter === undefined ? "default" : "outline"} onClick={() => setRoleFilter(undefined)}>
-            All
+            {t("common.all")}
           </Button>
           <Button variant={roleFilter === "customer" ? "default" : "outline"} onClick={() => setRoleFilter("customer")}>
-            Customers
+            {t("common.customers")}
           </Button>
           <Button variant={roleFilter === "vendor" ? "default" : "outline"} onClick={() => setRoleFilter("vendor")}>
-            Vendors
+            {t("common.vendors")}
           </Button>
           <Button variant={roleFilter === "courier" ? "default" : "outline"} onClick={() => setRoleFilter("courier")}>
-            Couriers
+            {t("common.couriers")}
           </Button>
         </div>
       </div>
@@ -84,11 +84,11 @@ const UsersManagement: React.FC = () => {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead>Email</TableHead>
-              <TableHead>Role</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
+              <TableHead>{t("common.name")}</TableHead>
+              <TableHead>{t("common.email")}</TableHead>
+              <TableHead>{t("common.role")}</TableHead>
+              <TableHead>{t("common.status")}</TableHead>
+              <TableHead className="text-right">{t("common.actions")}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -103,7 +103,7 @@ const UsersManagement: React.FC = () => {
                 </TableCell>
                 <TableCell>
                   <Badge variant={user.isActive ? "default" : "destructive"}>
-                    {user.isActive ? "Active" : "Inactive"}
+                    {user.isActive ? t("common.active") : t("common.inactive")}
                   </Badge>
                 </TableCell>
                 <TableCell className="text-right">
@@ -119,7 +119,7 @@ const UsersManagement: React.FC = () => {
                         disabled={user.status === UserStatusEnum.ACTIVE}
                       >
                         <UserCheck className="me-2 h-4 w-4" />
-                        Activate
+                        {t("common.activate")}
                       </DropdownMenuItem>
                       <DropdownMenuItem
                         onClick={() => updateStatusMutation.mutate({ id: user.id, status: UserStatusEnum.INACTIVE })}
@@ -127,7 +127,7 @@ const UsersManagement: React.FC = () => {
                         className="text-destructive"
                       >
                         <UserX className="me-2 h-4 w-4" />
-                        Deactivate
+                        {t("common.deactivate")}
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>

@@ -10,7 +10,7 @@ export interface DashboardStats {
 }
 
 export class AdminService {
-  constructor(private serviceClient: ServiceClient) {}
+  constructor(private serviceClient: ServiceClient) { }
 
   async getDashboardStats(userId?: string): Promise<DashboardStats> { // Changed to userId
     Logger.info("Fetching dashboard statistics");
@@ -29,7 +29,7 @@ export class AdminService {
       totalUsers: usersData?.data?.length || 0,
       revenueToday: (ordersData.data ?? [])
         .filter((order: any) => order.status === "DELIVERED")
-        .reduce((sum: any, order: any) => sum + order.commissionAmount, 0),
+        .reduce((sum: any, order: any) => sum + (order.commissionAmount || 0), 0),
     };
 
     return stats;

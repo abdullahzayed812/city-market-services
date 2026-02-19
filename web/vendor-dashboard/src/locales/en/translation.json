@@ -12,12 +12,19 @@
         "notifications": "Notifications",
         "language": "Language",
         "arabic": "Arabic",
-        "english": "English"
+        "english": "English",
+        "loading": "Loading...",
+        "welcome_back": "Welcome back to your store dashboard.",
+        "order_id": "Order ID",
+        "customer": "Customer",
+        "amount": "Amount",
+        "no_orders_found": "No recent orders found."
     },
     "dashboard": {
         "today_orders": "Today's Orders",
         "revenue": "Total Revenue",
         "active_products": "Active Products",
-        "order_summary": "Order Summary"
+        "order_summary": "Order Summary",
+        "pending_orders_desc": "Pending orders"
     }
 }

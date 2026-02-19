@@ -11,7 +11,7 @@ const Dashboard = () => {
   const { summary, recentOrders, isLoading } = useDashboardData();
 
   if (isLoading) {
-    return <div className="flex items-center justify-center h-full">Loading...</div>;
+    return <div className="flex items-center justify-center h-full">{t("common.loading")}</div>;
   }
 
   const getStatusColor = (status: string) => {
@@ -73,7 +73,7 @@ const Dashboard = () => {
       icon: Activity,
       color: "text-orange-600",
       bg: "bg-orange-100",
-      description: "Pending orders",
+      description: t("dashboard.pending_orders_desc"),
     },
   ];
 
@@ -81,7 +81,7 @@ const Dashboard = () => {
     <div className="space-y-8">
       <div>
         <h1 className="text-3xl font-bold tracking-tight">{t("common.dashboard")}</h1>
-        <p className="text-muted-foreground">Welcome back to your store dashboard.</p>
+        <p className="text-muted-foreground">{t("common.welcome_back")}</p>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -109,17 +109,17 @@ const Dashboard = () => {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Order ID</TableHead>
-                <TableHead>Customer</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Amount</TableHead>
+                <TableHead>{t("common.order_id")}</TableHead>
+                <TableHead>{t("common.customer")}</TableHead>
+                <TableHead>{t("common.status")}</TableHead>
+                <TableHead className="text-right">{t("common.amount")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {recentOrders.map((order: any) => (
                 <TableRow key={order.id}>
                   <TableCell className="font-medium">#{order.id.slice(0, 8)}</TableCell>
-                  <TableCell>{order.customerName || "Customer"}</TableCell>
+                  <TableCell>{order.customerName || t("common.customer")}</TableCell>
                   <TableCell>
                     <Badge className={getStatusColor(order.status)}>{formatStatus(order.status)}</Badge>
                   </TableCell>
@@ -129,7 +129,7 @@ const Dashboard = () => {
               {recentOrders.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={4} className="text-center py-4 text-muted-foreground">
-                    No recent orders found.
+                    {t("common.no_orders_found")}
                   </TableCell>
                 </TableRow>
               )}

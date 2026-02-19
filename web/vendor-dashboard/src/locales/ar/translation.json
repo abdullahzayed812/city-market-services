@@ -12,12 +12,19 @@
         "notifications": "التنبيهات",
         "language": "اللغة",
         "arabic": "العربية",
-        "english": "الإنجليزية"
+        "english": "الإنجليزية",
+        "loading": "جاري التحميل...",
+        "welcome_back": "مرحباً بك مرة أخرى في لوحة تحكم متجرك.",
+        "order_id": "رقم الطلب",
+        "customer": "العميل",
+        "amount": "المبلغ",
+        "no_orders_found": "لم يتم العثور على طلبات مؤخراً."
     },
     "dashboard": {
         "today_orders": "طلبات اليوم",
         "revenue": "إجمالي الإيرادات",
         "active_products": "المنتجات النشطة",
-        "order_summary": "ملخص الطلبات"
+        "order_summary": "ملخص الطلبات",
+        "pending_orders_desc": "طلبات قيد الانتظار"
     }
 }

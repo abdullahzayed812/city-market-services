@@ -5,12 +5,12 @@ import { Logger } from "@city-market/shared/node";
 import { AuthenticatedRequest } from "@city-market/shared/node";
 
 export class OrderController {
-  constructor(private orderService: OrderService) {}
+  constructor(private orderService: OrderService) { }
 
   create = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
-      const dto = { ...req.body, customerId: req.user!.userId };
-      const order = await this.orderService.createOrder(dto, req.user!.userId);
+      const dto = { ...req.body, customerId: req.user?.userId };
+      const order = await this.orderService.createOrder(dto, req.user?.userId);
       Logger.info("Customer order created", { customerOrderId: order.order.id });
       res.status(201).json(ApiResponse.success(order, "Order created"));
     } catch (error) {
@@ -20,7 +20,7 @@ export class OrderController {
 
   getVendorOrderById = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
-      const order = await this.orderService.getVendorOrderById(req.params.id, req.user!.userId);
+      const order = await this.orderService.getVendorOrderById(req.params.id, req.user?.userId);
       res.json(ApiResponse.success(order));
     } catch (error) {
       next(error);
@@ -76,7 +76,7 @@ export class OrderController {
     try {
       const page = parseInt(req.query.page as string) || 1;
       const limit = parseInt(req.query.limit as string) || 20;
-      const orders = await this.orderService.getCustomerOrders(req.user!.userId, page, limit);
+      const orders = await this.orderService.getCustomerOrders(req.user?.userId || "", page, limit);
       res.json(ApiResponse.success(orders));
     } catch (error) {
       next(error);
@@ -85,7 +85,7 @@ export class OrderController {
 
   getCustomerOrderById = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
-      const order = await this.orderService.getCustomerOrderById(req.params.id, req.user!.userId);
+      const order = await this.orderService.getCustomerOrderById(req.params.id, req.user?.userId);
       res.json(ApiResponse.success(order));
     } catch (error) {
       next(error);

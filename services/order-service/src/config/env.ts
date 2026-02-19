@@ -22,14 +22,3 @@ export const orderServiceAuthenticator = new ServiceAuthenticator(
   config.authServiceTokenUrl,
   "OrderService"
 );
-
-// Initialize the authenticator (e.g., fetch token on startup)
-orderServiceAuthenticator
-  .getServiceToken()
-  .then(() => {
-    Logger.info("OrderService authenticator initialized successfully.");
-  })
-  .catch((error) => {
-    Logger.error("Failed to initialize OrderService authenticator:", error);
-    process.exit(1); // Exit if authentication fails on startup
-  });

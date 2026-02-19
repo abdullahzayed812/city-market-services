@@ -19,14 +19,3 @@ export const adminServiceAuthenticator = new ServiceAuthenticator(
   config.authServiceTokenUrl,
   "AdminService"
 );
-
-// Initialize the authenticator (e.g., fetch token on startup)
-adminServiceAuthenticator
-  .getServiceToken()
-  .then(() => {
-    Logger.info("AdminService authenticator initialized successfully.");
-  })
-  .catch((error) => {
-    Logger.error("Failed to initialize AdminService authenticator:", error);
-    process.exit(1); // Exit if authentication fails on startup
-  });

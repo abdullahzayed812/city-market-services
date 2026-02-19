@@ -12,9 +12,15 @@
     "status": "الحالة",
     "online": "متصل",
     "offline": "غير متصل",
-    "couriers": "المندوبين"
+    "couriers": "المندوبين",
+    "delivery_office": "مكتب التوصيل",
+    "citymarket": "سيتي ماركت",
+    "admin": "المدير"
   },
   "dashboard": {
+    "active_couriers": "المناديب النشطين",
+    "pending_deliveries": "طلبات قيد الانتظار",
+    "total_deliveries_today": "إجمالي طلبات اليوم",
     "active_deliveries": "الطلبات النشطة",
     "completed_deliveries": "الطلبات المكتملة",
     "today_earnings": "أرباح اليوم",

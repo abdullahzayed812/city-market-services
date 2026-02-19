@@ -2,15 +2,19 @@ import { Server } from "socket.io";
 import { EventType, UserRole } from "@city-market/shared";
 import { rabbitMQBus } from "@city-market/shared/node";
 import axios from "axios";
-
-const ORDER_SERVICE_URL = process.env.ORDER_SERVICE_URL || "http://localhost:3005";
+import { config, websocketGatewayAuthenticator } from "./config/env";
 
 // Helper function to fetch full order details if needed
 // Using 'any' for now to avoid cross-service type dependencies
 const getFullOrderDetails = async (orderId: string): Promise<any | null> => {
   try {
-    const response = await axios.get(`${ORDER_SERVICE_URL}/orders/${orderId}`); // Endpoint is /orders/:id
-    return response.data; // Expects { order: CustomerOrder, vendorOrders: VendorOrder[] }
+    const serviceToken = await websocketGatewayAuthenticator.getServiceToken();
+    const response = await axios.get(`${config.orderServiceUrl}/customer-orders/${orderId}`, {
+      headers: {
+        Authorization: `Bearer ${serviceToken}`,
+      },
+    }); // Endpoint is /orders/:id
+    return response?.data?.data; // Expects { order: CustomerOrder, vendorOrders: VendorOrder[] }
   } catch (error: any) {
     console.warn(`Failed to fetch full order details for ${orderId}:`, error.message);
     return null;
@@ -48,17 +52,22 @@ export const setupEventConsumer = async (io: Server) => {
     // 3. Broadcast to Vendors (Vendors get events related to their specific vendor orders)
     // This is the critical part to fix.
     // Events might be CustomerOrder-level or VendorOrder-level.
-    if (payload.vendorId) { // This indicates a VendorOrder-specific event (e.g., VENDOR_ORDER_CREATED, VENDOR_ORDER_CONFIRMED)
-        // Ensure vendor-specific payload doesn't leak customer order's other vendor details
-        const vendorSpecificPayload = { ...payload }; // Shallow copy
-        if (vendorSpecificPayload.customerOrder && vendorSpecificPayload.vendorOrders) {
-            // Filter to include only the relevant vendorOrder if it's a customer-order level payload with vendorId
-            const specificVendorOrder = vendorSpecificPayload.vendorOrders.find((vo: any) => vo.id === vendorSpecificPayload.vendorOrderId);
-            vendorSpecificPayload.vendorOrders = specificVendorOrder ? [specificVendorOrder] : [];
-        }
+    if (payload.vendorId) {
+      // This indicates a VendorOrder-specific event (e.g., VENDOR_ORDER_CREATED, VENDOR_ORDER_CONFIRMED)
+      // Ensure vendor-specific payload doesn't leak customer order's other vendor details
+      const vendorSpecificPayload = { ...payload }; // Shallow copy
+      if (vendorSpecificPayload.customerOrder && vendorSpecificPayload.vendorOrders) {
+        // Filter to include only the relevant vendorOrder if it's a customer-order level payload with vendorId
+        const specificVendorOrder = vendorSpecificPayload.vendorOrders.find(
+          (vo: any) => vo.id === vendorSpecificPayload.vendorOrderId
+        );
+        vendorSpecificPayload.vendorOrders = specificVendorOrder ? [specificVendorOrder] : [];
+      }
       io.to(`vendor:${payload.vendorId}`).emit(type, vendorSpecificPayload);
-    } else if (payload.vendorOrders && Array.isArray(payload.vendorOrders)) { // This indicates a CustomerOrder-level event affecting multiple vendors
-      payload.vendorOrders.forEach((vendorOrder: any) => { // Using any for vendorOrder
+    } else if (payload.vendorOrders && Array.isArray(payload.vendorOrders)) {
+      // This indicates a CustomerOrder-level event affecting multiple vendors
+      payload.vendorOrders.forEach((vendorOrder: any) => {
+        // Using any for vendorOrder
         const vendorSpecificPayload = {
           ...payload, // Copy common fields
           vendorOrder: vendorOrder, // Include the specific vendor order
@@ -80,7 +89,8 @@ export const setupEventConsumer = async (io: Server) => {
   // Subscribe to all event types
   for (const type of Object.values(EventType)) {
     await rabbitMQBus.subscribe(type as EventType, channelName, async (event) => {
-      if (event.type === type) { // Redundant check, but harmless
+      if (event.type === type) {
+        // Redundant check, but harmless
         await handleEvent(event);
       }
     });

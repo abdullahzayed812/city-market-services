@@ -11,13 +11,14 @@ export class ServiceAuthenticator {
   private token: string | null = null;
   private expiryTime: number = 0;
   private refreshTimeout: NodeJS.Timeout | null = null;
+  private fetchingPromise: Promise<string> | null = null;
 
   constructor(
     private clientId: string,
     private clientSecret: string,
     private authServiceTokenUrl: string,
     private serviceName: string // For logging purposes
-  ) {}
+  ) { }
 
   private async fetchToken(): Promise<string> {
     try {
@@ -36,7 +37,7 @@ export class ServiceAuthenticator {
         }
       );
 
-      this.token = response.data.access_token;
+      this.token = response.data.access_token.trim();
 
       // Set expiry time a bit before actual expiry for proactive refresh
       this.expiryTime = Date.now() + response.data.expires_in * 1000 - 60 * 1000; // 1 minute before expiry
@@ -60,9 +61,23 @@ export class ServiceAuthenticator {
   }
 
   public async getServiceToken(): Promise<string> {
-    if (!this.token || Date.now() >= this.expiryTime) {
-      return this.fetchToken();
+    const now = Date.now();
+
+    if (this.token && now < this.expiryTime) {
+      Logger.info(`[${this.serviceName}] Using cached service token. Expires in ${Math.round((this.expiryTime - now) / 1000)}s`);
+      return this.token;
     }
-    return this.token;
+
+    if (this.fetchingPromise) {
+      Logger.info(`[${this.serviceName}] Token fetch already in progress, waiting for it...`);
+      return this.fetchingPromise;
+    }
+
+    Logger.info(`[${this.serviceName}] No valid token found or expired. Reason: ${!this.token ? 'No token' : 'Expired'}. Fetching new one...`);
+    this.fetchingPromise = this.fetchToken().finally(() => {
+      this.fetchingPromise = null;
+    });
+
+    return this.fetchingPromise;
   }
 }

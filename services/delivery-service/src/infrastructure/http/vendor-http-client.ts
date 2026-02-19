@@ -1,14 +1,31 @@
-import axios from "axios";
+import axios, { AxiosInstance } from "axios";
 import { Logger } from "@city-market/shared/node";
+import { deliveryServiceAuthenticator } from "../../config/env";
 
 export class VendorHttpClient {
-  constructor(private baseUrl: string) {}
+  private readonly baseUrl: string;
+  private axiosInstance: AxiosInstance;
 
-  async getVendor(vendorId: string, token?: string): Promise<any | null> {
+  constructor(baseUrl: string) {
+    this.baseUrl = baseUrl;
+    this.axiosInstance = axios.create();
+  }
+
+  private async getRequestConfig(userId?: string) {
+    const serviceToken = await deliveryServiceAuthenticator.getServiceToken();
+    const headers: Record<string, string> = {
+      Authorization: `Bearer ${serviceToken}`,
+    };
+    if (userId) {
+      headers["X-User-Id"] = userId; // Propagate user ID from validated context
+    }
+    return { headers };
+  }
+
+  async getVendor(vendorId: string, userId?: string): Promise<any | null> {
     try {
-      const response = await axios.get(`${this.baseUrl}/${vendorId}`, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      });
+      const config = await this.getRequestConfig(userId);
+      const response = await this.axiosInstance.get(`${this.baseUrl}/${vendorId}`, config);
       if (response.data.success && response.data.data) {
         return response.data.data;
       }

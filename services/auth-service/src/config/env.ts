@@ -29,6 +29,11 @@ export const config = {
       clientSecret: process.env.DELIVERY_SERVICE_CLIENT_SECRET || "delivery-service-secret",
       scope: "delivery", // Example scope
     },
+    {
+      clientId: process.env.WEBSOCKET_GATEWAY_CLIENT_ID || "websocket-gateway-id",
+      clientSecret: process.env.WEBSOCKET_GATEWAY_CLIENT_SECRET || "websocket-gateway-secret",
+      scope: "websocket", // Example scope
+    },
     // Add other services as they are configured
   ],
   // --- End Service Client Configuration ---

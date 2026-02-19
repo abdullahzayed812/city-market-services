@@ -1,10 +1,20 @@
 import { createApp } from "./app";
-import { config } from "./config/env";
+import { config, orderServiceAuthenticator } from "./config/env";
 import { Logger, rabbitMQBus } from "@city-market/shared/node";
 
 const app = createApp();
 
 app.listen(config.port, async () => {
-  await rabbitMQBus.connect();
-  Logger.info(`Order Service running on port ${config.port}`);
+  try {
+    await rabbitMQBus.connect();
+
+    // Initialize the authenticator
+    await orderServiceAuthenticator.getServiceToken();
+    Logger.info("OrderService authenticator initialized successfully.");
+
+    Logger.info(`Order Service running on port ${config.port}`);
+  } catch (error) {
+    Logger.error("Failed to start Order Service:", error);
+    process.exit(1);
+  }
 });

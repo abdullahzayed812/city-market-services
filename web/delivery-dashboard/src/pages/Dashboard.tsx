@@ -36,7 +36,7 @@ const Dashboard = () => {
             <Truck className="w-6 h-6 text-primary" />
           </div>
           <div>
-            <p className="text-sm text-muted-foreground">Active Couriers</p>
+            <p className="text-sm text-muted-foreground">{t("dashboard.active_couriers")}</p>
             <p className="text-2xl font-bold mt-1">
               {activeCouriers} / {couriers.length}
             </p>
@@ -47,7 +47,7 @@ const Dashboard = () => {
             <Clock className="w-6 h-6 text-yellow-600" />
           </div>
           <div>
-            <p className="text-sm text-muted-foreground">Pending Deliveries</p>
+            <p className="text-sm text-muted-foreground">{t("dashboard.pending_deliveries")}</p>
             <p className="text-2xl font-bold mt-1">{pendingDeliveries.length}</p>
           </div>
         </div>
@@ -56,7 +56,7 @@ const Dashboard = () => {
             <Package className="w-6 h-6 text-green-600" />
           </div>
           <div>
-            <p className="text-sm text-muted-foreground">Total Deliveries Today</p>
+            <p className="text-sm text-muted-foreground">{t("dashboard.total_deliveries_today")}</p>
             <p className="text-2xl font-bold mt-1">{totalDeliveriesToday}</p>
           </div>
         </div>

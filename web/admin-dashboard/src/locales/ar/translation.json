@@ -11,7 +11,20 @@
         "search": "بحث...",
         "language": "اللغة",
         "arabic": "العربية",
-        "english": "الإنجليزية"
+        "english": "الإنجليزية",
+        "all": "الكل",
+        "customers": "العملاء",
+        "active": "نشط",
+        "inactive": "غير نشط",
+        "name": "الاسم",
+        "email": "البريد الإلكتروني",
+        "role": "الدور",
+        "status": "الحالة",
+        "actions": "الإجراءات",
+        "activate": "تفعيل",
+        "deactivate": "تعطيل",
+        "loading": "جاري التحميل...",
+        "admin_title": "سيتي ماركت - الإدارة"
     },
     "dashboard": {
         "overview": "نظرة عامة",

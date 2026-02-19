@@ -16,7 +16,7 @@ const Navbar = () => {
     return (
         <header className="h-16 border-b bg-card flex items-center justify-between px-6 sticky top-0 z-10">
             <div className="flex items-center gap-4">
-                <h2 className="text-lg font-semibold text-muted-foreground">Delivery Office</h2>
+                <h2 className="text-lg font-semibold text-muted-foreground">{t("common.delivery_office")}</h2>
             </div>
 
             <div className="flex items-center gap-2">
@@ -46,7 +46,7 @@ const Navbar = () => {
                     <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
                         <User className="w-5 h-5 text-primary" />
                     </div>
-                    <span className="font-medium hidden sm:inline-block">Admin</span>
+                    <span className="font-medium hidden sm:inline-block">{t("common.admin")}</span>
                 </Button>
             </div>
         </header>

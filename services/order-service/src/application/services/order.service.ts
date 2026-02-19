@@ -39,7 +39,8 @@ export class OrderService {
     private db: Database
   ) {}
 
-  async createOrder(dto: CreateOrderDto, userId?: string): Promise<OrderWithItems> { // Changed to userId
+  async createOrder(dto: CreateOrderDto, userId?: string): Promise<OrderWithItems> {
+    // Changed to userId
     let connection: PoolConnection | undefined;
     const eventsToPublish: any[] = [];
     let createdCustomerOrder: CustomerOrder | undefined;
@@ -216,7 +217,8 @@ export class OrderService {
     return { order: createdCustomerOrder, vendorOrders: createdVendorOrders };
   }
 
-  async getCustomerOrderById(id: string, userId?: string): Promise<OrderWithItems> { // Changed to userId
+  async getCustomerOrderById(id: string, userId?: string): Promise<OrderWithItems> {
+    // Changed to userId
     const customerOrder = await this.customerOrderRepo.findById(id);
     if (!customerOrder) {
       throw new NotFoundError("Order not found");
@@ -300,9 +302,6 @@ export class OrderService {
 
       // Update vendor order status to reflect proposal ( PROPOSAL_SENT )
       await this.vendorOrderRepo.updateStatus(vendorOrderId, VendorOrderStatus.PROPOSAL_SENT, connection);
-
-      // TODO: Update customer order status to reflect proposal ( WAITING_CUSTOMER_DECISION )
-
       await this.recordStatusChange(
         { vendorOrderId },
         VendorOrderStatus.PROPOSAL_SENT,
@@ -316,6 +315,15 @@ export class OrderService {
         timestamp: new Date(),
         payload: { vendorOrderId, customerOrderId: vo.customerOrderId, vendorId: vo.vendorId }, // Added customerOrderId, vendorId
       });
+
+      // Update customer order status to reflect proposal ( WAITING_CUSTOMER_DECISION )
+      await this.customerOrderRepo.updateStatus(vo.customerOrderId, CustomerOrderStatus.WAITING_CUSTOMER_DECISION);
+      await this.recordStatusChange(
+        { customerOrderId: vo.customerOrderId },
+        CustomerOrderStatus.WAITING_CUSTOMER_DECISION,
+        `Wating customer decision for vendor order #${vendorOrderId} and customer order #${vo.customerOrderId}`,
+        connection
+      );
 
       await this.db.commit(connection);
 
@@ -546,7 +554,27 @@ export class OrderService {
       // 4) Update proposal.status -> ACCEPTED
       await this.proposalRepo.updateStatus(proposalId, ProposalStatus.ACCEPTED, connection);
 
+      const eventsToPublish = [
+        {
+          id: randomUUID(),
+          type: EventType.PROPOSAL_ACCEPTED,
+          timestamp: new Date(),
+          payload: {
+            proposalId,
+            vendorOrderId: vo.id,
+            customerOrderId: co.id,
+            vendorId: vo.vendorId,
+            customerId: co.customerId,
+          },
+        },
+      ];
+
       await this.db.commit(connection);
+
+      // Publish events after successful commit
+      for (const event of eventsToPublish) {
+        await this.eventBus.publish(event);
+      }
 
       // 5) Sync vendor order status after commit
       await this.syncVendorOrderStatus(vo.id);

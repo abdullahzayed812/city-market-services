@@ -3,7 +3,7 @@ import { useEffect } from "react";
 import { orderService } from "@/services/api/order.service";
 import { useAuth } from "@/components/AuthProvider";
 import { useSocket } from "@/contexts/SocketContext";
-import { VendorOrderStatus, type ProposeChangesDto } from "@city-market/shared"; // Import VendorOrderStatus
+import { VendorOrderStatus, type ProposeChangesDto, EventType } from "@city-market/shared"; // Import VendorOrderStatus
 
 export const useOrders = () => {
   const { vendor } = useAuth();
@@ -26,15 +26,18 @@ export const useOrders = () => {
     };
 
     const events = [
-      "VENDOR_ORDER_CREATED",
-      "VENDOR_ORDER_UPDATED", // Added
-      "PROPOSAL_STATUS_UPDATED", // Added
-      "ORDER_CONFIRMED",
-      "ORDER_CANCELLED",
-      "ORDER_READY",
-      "ORDER_PICKED_UP",
-      "ORDER_ON_THE_WAY",
-      "ORDER_DELIVERED",
+      EventType.VENDOR_ORDER_CREATED,
+      EventType.VENDOR_ORDER_CONFIRMED,
+      EventType.VENDOR_ORDER_PROPOSED,
+      EventType.VENDOR_ORDER_CANCELLED,
+      EventType.PROPOSAL_ACCEPTED,
+      EventType.PROPOSAL_REJECTED,
+      EventType.ORDER_CONFIRMED,
+      EventType.ORDER_CANCELLED,
+      EventType.ORDER_READY,
+      EventType.ORDER_PICKED_UP,
+      EventType.ORDER_ON_THE_WAY,
+      EventType.ORDER_DELIVERED,
     ];
 
     events.forEach((event) => socket.on(event, handleUpdate));

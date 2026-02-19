@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { MapPin, Package, Clock, User } from "lucide-react";
-import { DeliveryStatus } from "@city-market/shared";
+import { DeliveryStatus, EventType } from "@city-market/shared";
 import type { Delivery, Courier } from "@city-market/shared"; // Import shared types
 
 const Deliveries = () => {
@@ -38,12 +38,12 @@ const Deliveries = () => {
     };
 
     const events = [
-      "ORDER_READY",
-      "DELIVERY_CREATED",
-      "COURIER_ASSIGNED",
-      "ORDER_PICKED_UP",
-      "ORDER_ON_THE_WAY",
-      "ORDER_DELIVERED",
+      EventType.ORDER_READY,
+      EventType.DELIVERY_CREATED,
+      EventType.COURIER_ASSIGNED,
+      EventType.ORDER_PICKED_UP,
+      EventType.ORDER_ON_THE_WAY,
+      EventType.ORDER_DELIVERED,
     ];
 
     events.forEach(event => socket.on(event, handleUpdate));

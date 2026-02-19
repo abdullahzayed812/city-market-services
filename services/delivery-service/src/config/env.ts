@@ -22,14 +22,3 @@ export const deliveryServiceAuthenticator = new ServiceAuthenticator(
   config.authServiceTokenUrl,
   "DeliveryService"
 );
-
-// Initialize the authenticator (e.g., fetch token on startup)
-deliveryServiceAuthenticator
-  .getServiceToken()
-  .then(() => {
-    Logger.info("DeliveryService authenticator initialized successfully.");
-  })
-  .catch((error) => {
-    Logger.error("Failed to initialize DeliveryService authenticator:", error);
-    process.exit(1); // Exit if authentication fails on startup
-  });

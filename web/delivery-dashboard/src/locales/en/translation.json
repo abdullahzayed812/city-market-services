@@ -12,9 +12,15 @@
     "status": "Status",
     "online": "Online",
     "offline": "Offline",
-    "couriers": "Couriers"
+    "couriers": "Couriers",
+    "delivery_office": "Delivery Office",
+    "citymarket": "CityMarket",
+    "admin": "Admin"
   },
   "dashboard": {
+    "active_couriers": "Active Couriers",
+    "pending_deliveries": "Pending Deliveries",
+    "total_deliveries_today": "Total Deliveries Today",
     "active_deliveries": "Active Deliveries",
     "completed_deliveries": "Completed Deliveries",
     "today_earnings": "Today's Earnings",

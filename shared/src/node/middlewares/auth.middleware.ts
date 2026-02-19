@@ -36,36 +36,33 @@ export interface ServiceTokenPayload {
 
 export const authenticate = (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
-    const token = req.headers.authorization?.replace("Bearer ", "");
-
+    const authHeader = req.headers.authorization;
+    const token = authHeader?.replace("Bearer ", "").trim();
     if (!token) {
       throw new UnauthorizedError("No token provided");
     }
 
-    // First, try to decode without verification to check the token structure
     const decoded = jwt.decode(token) as any;
-
     if (!decoded) {
       throw new UnauthorizedError("Invalid token format");
     }
 
-    // Determine token type based on payload structure
     const isServiceToken = decoded.sub && decoded.scope && decoded.iss === "auth-service";
     const isUserToken = decoded.userId && decoded.role;
 
     if (isServiceToken) {
-      // Verify service token
-      const serviceSecret = process.env.JWT_SERVICE_ACCESS_SECRET || "service_secret_key";
+      const serviceSecret = process.env.JWT_SERVICE_ACCESS_SECRET || "service_access_secret_key";
       const servicePayload = jwt.verify(token, serviceSecret) as ServiceTokenPayload;
 
       req.service = {
         clientId: servicePayload.sub,
         scope: servicePayload.scope,
       };
+
       req.authType = "service";
     } else if (isUserToken) {
-      // Verify user token
       const userSecret = process.env.JWT_SECRET || "access_secret_key";
+
       const userPayload = jwt.verify(token, userSecret) as UserTokenPayload;
 
       req.user = {
@@ -73,17 +70,18 @@ export const authenticate = (req: AuthenticatedRequest, res: Response, next: Nex
         role: userPayload.role,
         email: userPayload.email,
       };
+
       req.authType = "user";
     } else {
       throw new UnauthorizedError("Unknown token type");
     }
 
     next();
-  } catch (error) {
-    if (error instanceof jwt.JsonWebTokenError) {
-      next(new UnauthorizedError("Invalid token"));
-    } else if (error instanceof jwt.TokenExpiredError) {
+  } catch (error: any) {
+    if (error instanceof jwt.TokenExpiredError) {
       next(new UnauthorizedError("Token expired"));
+    } else if (error instanceof jwt.JsonWebTokenError) {
+      next(new UnauthorizedError("Invalid token"));
     } else {
       next(error);
     }
@@ -92,6 +90,11 @@ export const authenticate = (req: AuthenticatedRequest, res: Response, next: Nex
 
 export const authorize = (...allowedRoles: UserRole[]) => {
   return (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    // If it's a service token, we allow it (could be refined with scope checks)
+    if (req.authType === "service" && req.service) {
+      return next();
+    }
+
     if (!req.user) {
       return next(new UnauthorizedError("Not authenticated"));
     }

@@ -15,7 +15,8 @@ interface DecodedToken {
 
 export const setupSocketServer = (io: Server) => {
   io.use(async (socket: Socket, next: (err?: any) => void) => {
-    const token = socket.handshake.auth.token || socket.handshake.query.token;
+    let token = socket.handshake.auth.token || socket.handshake.query.token;
+    if (token) token = (token as string).trim();
 
     if (!token) {
       return next(new Error("Authentication error: No token provided"));

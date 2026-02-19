@@ -45,7 +45,7 @@ const Dashboard: React.FC = () => {
     },
   });
 
-  if (isLoading) return <div>Loading...</div>;
+  if (isLoading) return <div>{t("common.loading")}</div>;
 
   return (
     <div className="space-y-6">

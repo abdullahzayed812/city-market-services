@@ -19,6 +19,7 @@ import {
   CustomerOrderStatus,
   type OrderWithItems,
   VendorOrderStatus,
+  EventType,
 } from "@city-market/shared"; // Import shared types
 
 // Removed local Order and VendorOrder interfaces
@@ -40,13 +41,21 @@ const OrdersManagement: React.FC = () => {
       }
     };
     const events = [
-      "ORDER_CREATED",
-      "ORDER_CONFIRMED",
-      "ORDER_CANCELLED",
-      "ORDER_READY",
-      "ORDER_PICKED_UP",
-      "ORDER_ON_THE_WAY",
-      "ORDER_DELIVERED",
+      EventType.ORDER_CREATED,
+      EventType.ORDER_CONFIRMED,
+      EventType.ORDER_CANCELLED,
+      EventType.ORDER_READY,
+      EventType.ORDER_PICKED_UP,
+      EventType.ORDER_ON_THE_WAY,
+      EventType.ORDER_DELIVERED,
+      EventType.VENDOR_ORDER_CREATED,
+      EventType.VENDOR_ORDER_CONFIRMED,
+      EventType.VENDOR_ORDER_PROPOSED,
+      EventType.VENDOR_ORDER_CANCELLED,
+      EventType.PROPOSAL_ACCEPTED,
+      EventType.PROPOSAL_REJECTED,
+      EventType.DELIVERY_CREATED,
+      EventType.COURIER_ASSIGNED,
     ];
     events.forEach((event) => socket.on(event, handleOrderUpdate));
     return () => events.forEach((event) => socket.off(event, handleOrderUpdate));
@@ -236,31 +245,31 @@ const OrdersManagement: React.FC = () => {
               <div className="space-y-4">
                 <h3 className="font-bold border-b pb-2">Vendor Sub-Orders</h3>
                 {orderDetails.vendorOrders.map((vo) => (
-                    <div key={vo.id} className="border rounded-lg p-4 space-y-3">
-                      <div className="flex justify-between items-center">
-                        <div>
-                          <span className="font-semibold text-primary">{vo.vendorName}</span>
-                          <span className="text-xs text-muted-foreground ml-2">#{vo.id.substring(0, 8)}</span>
-                        </div>
-                        <Badge className={getStatusColor(vo.status)}>{formatStatus(vo.status)}</Badge>
+                  <div key={vo.id} className="border rounded-lg p-4 space-y-3">
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <span className="font-semibold text-primary">{vo.vendorName}</span>
+                        <span className="text-xs text-muted-foreground ml-2">#{vo.id.substring(0, 8)}</span>
                       </div>
-                      <div className="text-sm space-y-1">
-                        {vo.items.map((item) => (
-                            <div key={item.id} className="flex justify-between">
-                              <span>
-                                {item.productName} x {item.quantity}
-                              </span>
-                              <span>${item.totalPrice?.toFixed(2)}</span>
-                            </div>
-                          )
-                        )}
-                      </div>
-                      <div className="flex justify-between pt-2 border-t font-semibold">
-                        <span>Sub-order Total</span>
-                        <span>${vo.totalAmount?.toFixed(2)}</span>
-                      </div>
+                      <Badge className={getStatusColor(vo.status)}>{formatStatus(vo.status)}</Badge>
                     </div>
-                  )
+                    <div className="text-sm space-y-1">
+                      {vo.items.map((item) => (
+                        <div key={item.id} className="flex justify-between">
+                          <span>
+                            {item.productName} x {item.quantity}
+                          </span>
+                          <span>${item.totalPrice?.toFixed(2)}</span>
+                        </div>
+                      )
+                      )}
+                    </div>
+                    <div className="flex justify-between pt-2 border-t font-semibold">
+                      <span>Sub-order Total</span>
+                      <span>${vo.totalAmount?.toFixed(2)}</span>
+                    </div>
+                  </div>
+                )
                 )}
               </div>
 
