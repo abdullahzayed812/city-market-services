@@ -128,9 +128,9 @@ const Orders = () => {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem className="gap-2">
+                          {/* <DropdownMenuItem className="gap-2">
                             <Eye className="h-4 w-4" /> View Details
-                          </DropdownMenuItem>
+                          </DropdownMenuItem> */}
 
                           {order.status === VendorOrderStatus.PENDING && (
                             <>
@@ -160,7 +160,7 @@ const Orders = () => {
                             </>
                           )}
 
-                          {order.status === VendorOrderStatus.CONFIRMED && (
+                          {/* {order.status === VendorOrderStatus.CONFIRMED && (
                             <>
                               <DropdownMenuItem
                                 className="gap-2 text-blue-600"
@@ -180,9 +180,9 @@ const Orders = () => {
                                 <XCircle className="h-4 w-4" /> Cancel Order
                               </DropdownMenuItem>
                             </>
-                          )}
+                          )} */}
 
-                          {order.status === VendorOrderStatus.PICKED_UP && (
+                          {/* {order.status === VendorOrderStatus.PICKED_UP && (
                             <>
                               <DropdownMenuItem
                                 className="gap-2 text-green-600"
@@ -202,9 +202,9 @@ const Orders = () => {
                                 <XCircle className="h-4 w-4" /> Cancel Order
                               </DropdownMenuItem>
                             </>
-                          )}
+                          )} */}
 
-                          {order.status === VendorOrderStatus.ON_THE_WAY && (
+                          {/* {order.status === VendorOrderStatus.ON_THE_WAY && (
                             <>
                               <DropdownMenuItem
                                 className="gap-2 text-green-600"
@@ -224,7 +224,7 @@ const Orders = () => {
                                 <XCircle className="h-4 w-4" /> Cancel Order
                               </DropdownMenuItem>
                             </>
-                          )}
+                          )} */}
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </TableCell>

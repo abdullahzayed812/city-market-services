@@ -9,7 +9,8 @@ export class ServiceClient {
     private vendorServiceUrl: string,
     private deliveryServiceUrl: string,
     private userServiceUrl: string,
-    private authServiceUrl: string
+    private authServiceUrl: string,
+    private catalogServiceUrl: string
   ) {
     this.axiosInstance = axios.create(); // Create base instance; headers will be dynamically added
   }
@@ -137,6 +138,49 @@ export class ServiceClient {
   async getAvailableCouriers(userId?: string) {
     const config = await this.getRequestConfig(userId);
     const response = await this.axiosInstance.get(`${this.deliveryServiceUrl}/couriers/available`, config);
+    return response.data;
+  }
+
+  // Category Management
+  async getAllCategories(userId?: string) {
+    const config = await this.getRequestConfig(userId);
+    const response = await this.axiosInstance.get(`${this.catalogServiceUrl}/categories`, config);
+    return response.data;
+  }
+
+  async getCategoryById(id: string, userId?: string) {
+    const config = await this.getRequestConfig(userId);
+    const response = await this.axiosInstance.get(`${this.catalogServiceUrl}/categories/${id}`, config);
+    return response.data;
+  }
+
+  async createCategory(data: any, userId?: string) {
+    const config = await this.getRequestConfig(userId);
+    const response = await this.axiosInstance.post(`${this.catalogServiceUrl}/categories`, data, config);
+    return response.data;
+  }
+
+  async updateCategory(id: string, data: any, userId?: string) {
+    const config = await this.getRequestConfig(userId);
+    const response = await this.axiosInstance.patch(`${this.catalogServiceUrl}/categories/${id}`, data, config);
+    return response.data;
+  }
+
+  async deleteCategory(id: string, userId?: string) {
+    const config = await this.getRequestConfig(userId);
+    const response = await this.axiosInstance.delete(`${this.catalogServiceUrl}/categories/${id}`, config);
+    return response.data;
+  }
+
+  async uploadCategoryIcon(id: string, formData: any, userId?: string) {
+    const config = await this.getRequestConfig(userId);
+    const response = await this.axiosInstance.post(`${this.catalogServiceUrl}/categories/${id}/icon`, formData, {
+      ...config,
+      headers: {
+        ...config.headers,
+        ...formData.getHeaders?.() || {}, // Handle form-data headers if it's from form-data package or standard
+      },
+    });
     return response.data;
   }
 }

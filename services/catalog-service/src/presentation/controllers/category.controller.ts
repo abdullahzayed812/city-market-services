@@ -49,4 +49,17 @@ export class CategoryController {
       next(error);
     }
   };
+
+  uploadIcon = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      if (!req.file) {
+        throw new Error("No SVG file provided");
+      }
+      const iconUrl = `/catalog/uploads/categories/icons/${req.file.filename}`;
+      await this.categoryService.updateCategoryIcon(req.params.id, iconUrl);
+      res.json(ApiResponse.success({ iconUrl }, "Category icon uploaded"));
+    } catch (error) {
+      next(error);
+    }
+  };
 }

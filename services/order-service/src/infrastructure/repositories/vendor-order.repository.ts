@@ -2,7 +2,7 @@ import { Pool, RowDataPacket, PoolConnection } from "mysql2/promise";
 import { VendorOrder } from "../../core/entities/vendor-order.entity";
 import { IVendorOrderRepository } from "../../core/interfaces/vendor-order.repository";
 import { Database } from "@city-market/shared/node";
-import { VendorOrderWithItemsDto, VendorOrderItem } from "@city-market/shared";
+import { VendorOrderWithItemsDto } from "@city-market/shared";
 
 export class VendorOrderRepository implements IVendorOrderRepository {
   private pool: Pool;
@@ -59,8 +59,13 @@ export class VendorOrderRepository implements IVendorOrderRepository {
     const [rows] = await conn.query<RowDataPacket[]>(query, [vendorId, limit, offset]);
     return rows.map((row) => this.mapToEntity(row));
   }
-  
-  async findByVendorWithItems(vendorId: string, limit: number, offset: number, connection?: PoolConnection): Promise<VendorOrderWithItemsDto[]> {
+
+  async findByVendorWithItems(
+    vendorId: string,
+    limit: number,
+    offset: number,
+    connection?: PoolConnection
+  ): Promise<VendorOrderWithItemsDto[]> {
     const conn = connection || this.pool;
     const query = `
       SELECT
@@ -85,7 +90,7 @@ export class VendorOrderRepository implements IVendorOrderRepository {
       ORDER BY vo.created_at DESC, voi.id;
     `;
     const [rows] = await conn.query<RowDataPacket[]>(query, [vendorId, limit, offset]);
-    
+
     const ordersMap = new Map<string, VendorOrderWithItemsDto>();
 
     for (const row of rows) {

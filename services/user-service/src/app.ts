@@ -1,4 +1,5 @@
-import express = require("express");
+import express from "express";
+import cors from "cors";
 import { createUserRoutes } from "./presentation/routes/user.routes";
 import { UserController } from "./presentation/controllers/user.controller";
 import { UserService } from "./application/services/user.service";
@@ -10,6 +11,7 @@ import { config } from "./config/env";
 export const createApp = () => {
   const app = express();
 
+  app.use(cors());
   app.use(express.json());
 
   const db = new Database({

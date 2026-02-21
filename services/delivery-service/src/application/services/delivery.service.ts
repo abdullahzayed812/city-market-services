@@ -24,7 +24,7 @@ export class DeliveryService {
     private orderClient: OrderHttpClient,
     private vendorClient: VendorHttpClient,
     private db: Database // Added
-  ) { }
+  ) {}
 
   // Courier management
   async registerCourier(dto: RegisterCourierDto): Promise<Courier> {
@@ -147,7 +147,13 @@ export class DeliveryService {
           return existingDeliveries; // Return existing deliveries to maintain idempotency
         }
 
-        const delivery = await this.createIndividualDelivery(customerOrder, vendors, customerOrderId, undefined, connection); // Pass connection
+        const delivery = await this.createIndividualDelivery(
+          customerOrder,
+          vendors,
+          customerOrderId,
+          undefined,
+          connection
+        ); // Pass connection
         createdDeliveries.push(delivery);
 
         // Link all vendor orders to this delivery
@@ -156,16 +162,28 @@ export class DeliveryService {
             id: randomUUID(),
             type: EventType.DELIVERY_CREATED,
             timestamp: new Date(),
-            payload: { deliveryId: delivery.id, vendorOrderId: vo.id, customerOrderId, customerId: customerOrder.customerId, vendorId: vo.vendorId }, // Add customerId and vendorId for routing
+            payload: {
+              deliveryId: delivery.id,
+              vendorOrderId: vo.id,
+              customerOrderId,
+              customerId: customerOrder.customerId,
+              vendorId: vo.vendorId,
+            }, // Add customerId and vendorId for routing
           });
         }
       } else {
         // Separate Delivery per VendorOrder
         for (const v of vendors) {
           // Check for existing delivery for this specific vendor order
-          const existingDelivery = await this.deliveryRepo.findByCustomerOrderAndVendorOrder(customerOrderId, v.id, connection); // Pass connection
+          const existingDelivery = await this.deliveryRepo.findByCustomerOrderAndVendorOrder(
+            customerOrderId,
+            v.id,
+            connection
+          ); // Pass connection
           if (existingDelivery) {
-            Logger.info(`Delivery already exists for Customer Order ${customerOrderId} and Vendor Order ${v.id}. Skipping creation.`);
+            Logger.info(
+              `Delivery already exists for Customer Order ${customerOrderId} and Vendor Order ${v.id}. Skipping creation.`
+            );
             createdDeliveries.push(existingDelivery); // Add existing delivery to the list
             continue; // Skip creating new delivery
           }
@@ -177,13 +195,18 @@ export class DeliveryService {
             id: randomUUID(),
             type: EventType.DELIVERY_CREATED,
             timestamp: new Date(),
-            payload: { deliveryId: delivery.id, vendorOrderId: v.id, customerOrderId, customerId: customerOrder.customerId, vendorId: v.vendorId }, // Add customerId and vendorId for routing
+            payload: {
+              deliveryId: delivery.id,
+              vendorOrderId: v.id,
+              customerOrderId,
+              customerId: customerOrder.customerId,
+              vendorId: v.vendorId,
+            }, // Add customerId and vendorId for routing
           });
         }
       }
 
       await this.db.commit(connection);
-
     } catch (error) {
       if (connection) {
         await this.db.rollback(connection);
@@ -198,19 +221,28 @@ export class DeliveryService {
     return createdDeliveries;
   }
 
-  private async createIndividualDelivery(customerOrder: any, vendors: any[], customerOrderId: string, vendorOrder?: any, connection?: PoolConnection): Promise<Delivery> { // Add connection
+  private async createIndividualDelivery(
+    customerOrder: any,
+    vendors: any[],
+    customerOrderId: string,
+    vendorOrder?: any,
+    connection?: PoolConnection
+  ): Promise<Delivery> {
+    // Add connection
     const primaryVendor = vendors[0]; // Assuming vendors here means the group of vendors for this delivery.
 
     const dto: CreateDeliveryDto = {
       customerOrderId: customerOrderId,
-      vendorOrderId: vendorOrder ? vendorOrder.id : undefined, // Pass the specific vendor order ID or undefined for grouped
-      pickupLocations: [{ // Create a list of PickupLocation
-        id: randomUUID(), // ID for the pickup location itself (not delivery ID)
-        vendorOrderId: vendorOrder ? vendorOrder.id : "", // Link to specific vendor order
-        address: primaryVendor.vendorInfo.address || primaryVendor.vendorInfo.businessAddress,
-        latitude: primaryVendor.vendorInfo.latitude,
-        longitude: primaryVendor.vendorInfo.longitude,
-      }],
+      pickupLocations: [
+        {
+          // Create a list of PickupLocation
+          id: randomUUID(), // ID for the pickup location itself (not delivery ID)
+          // vendorOrderId: vendorOrder ? vendorOrder.id : "", // Link to specific vendor order
+          address: primaryVendor.vendorInfo.address || primaryVendor.vendorInfo.businessAddress,
+          latitude: primaryVendor.vendorInfo.latitude,
+          longitude: primaryVendor.vendorInfo.longitude,
+        },
+      ],
       deliveryAddress: customerOrder.deliveryAddress,
       deliveryLatitude: customerOrder.deliveryLatitude,
       deliveryLongitude: customerOrder.deliveryLongitude,
@@ -242,10 +274,7 @@ export class DeliveryService {
     const dLon = (lon2 - lon1) * (Math.PI / 180);
     const a =
       Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-      Math.cos(lat1 * (Math.PI / 180)) *
-      Math.cos(lat2 * (Math.PI / 180)) *
-      Math.sin(dLon / 2) *
-      Math.sin(dLon / 2);
+      Math.cos(lat1 * (Math.PI / 180)) * Math.cos(lat2 * (Math.PI / 180)) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     return R * c;
   }

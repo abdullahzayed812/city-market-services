@@ -29,7 +29,7 @@ export const createDeliveryRoutes = (controller: DeliveryController): Router => 
     authorize(UserRole.ADMIN, UserRole.DELIVERY_MANAGER, UserRole.COURIER),
     controller.getPendingDeliveries
   );
-  router.get("/deliveries/my", authorize(UserRole.COURIER), controller.getMyCourierDeliveries);
+  router.get("/deliveries/my-deliveries", authorize(UserRole.COURIER), controller.getMyCourierDeliveries);
   router.get(
     "/deliveries/:id",
     authorize(UserRole.ADMIN, UserRole.DELIVERY_MANAGER, UserRole.COURIER),

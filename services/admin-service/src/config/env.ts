@@ -7,6 +7,7 @@ export const config = {
   deliveryServiceUrl: process.env.DELIVERY_SERVICE_URL || "http://localhost:3006",
   userServiceUrl: process.env.USER_SERVICE_URL || "http://localhost:3002",
   authServiceUrl: process.env.AUTH_SERVICE_URL || "http://localhost:3001",
+  catalogServiceUrl: process.env.CATALOG_SERVICE_URL || "http://localhost:3004",
   adminServiceClientId: process.env.ADMIN_SERVICE_CLIENT_ID || "admin-service-id",
   adminServiceClientSecret: process.env.ADMIN_SERVICE_CLIENT_SECRET || "admin-service-secret",
   authServiceTokenUrl:

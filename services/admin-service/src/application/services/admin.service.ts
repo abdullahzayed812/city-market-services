@@ -117,4 +117,29 @@ export class AdminService {
     // In a real application, this would involve more complex logic
     return Promise.resolve({ payouts: 5000, date: new Date() });
   }
+
+  // Category Management
+  async getAllCategories(userId?: string) {
+    return this.serviceClient.getAllCategories(userId);
+  }
+
+  async getCategoryById(id: string, userId?: string) {
+    return this.serviceClient.getCategoryById(id, userId);
+  }
+
+  async createCategory(data: any, userId?: string) {
+    return this.serviceClient.createCategory(data, userId);
+  }
+
+  async updateCategory(id: string, data: any, userId?: string) {
+    return this.serviceClient.updateCategory(id, data, userId);
+  }
+
+  async deleteCategory(id: string, userId?: string) {
+    return this.serviceClient.deleteCategory(id, userId);
+  }
+
+  async uploadCategoryIcon(id: string, formData: any, userId?: string) {
+    return this.serviceClient.uploadCategoryIcon(id, formData, userId);
+  }
 }

@@ -8,10 +8,15 @@ export class DeliveryStatusConsumer implements EventSubscriber {
   async handle(event: BaseEvent): Promise<void> {
     // These events are typically emitted by the delivery service itself or a courier service.
     // Assuming the payload contains the necessary IDs.
-    const { customerOrderId, vendorOrderId } = event.payload; 
+    const { customerOrderId, vendorOrderId } = event.payload;
 
-    if (!customerOrderId && !vendorOrderId) { // At least one ID is required
-      Logger.warn(`Delivery status event ${event.type} received without customerOrderId or vendorOrderId. Payload: ${JSON.stringify(event.payload)}`);
+    if (!customerOrderId && !vendorOrderId) {
+      // At least one ID is required
+      Logger.warn(
+        `Delivery status event ${
+          event.type
+        } received without customerOrderId or vendorOrderId. Payload: ${JSON.stringify(event.payload)}`
+      );
       return;
     }
 
@@ -22,7 +27,7 @@ export class DeliveryStatusConsumer implements EventSubscriber {
       case EventType.ORDER_PICKED_UP:
         newVendorOrderStatus = VendorOrderStatus.PICKED_UP;
         // When any vendor order is picked up, the customer order moves to IN_DELIVERY
-        newCustomerOrderStatus = CustomerOrderStatus.IN_DELIVERY; 
+        newCustomerOrderStatus = CustomerOrderStatus.PICKED_UP;
         break;
       case EventType.ORDER_ON_THE_WAY:
         newVendorOrderStatus = VendorOrderStatus.ON_THE_WAY;
@@ -43,10 +48,15 @@ export class DeliveryStatusConsumer implements EventSubscriber {
       }
       if (newCustomerOrderStatus && customerOrderId) {
         await this.orderHttpClient.updateCustomerOrderStatus(customerOrderId, newCustomerOrderStatus);
-        Logger.info(`Updated customer order ${customerOrderId} to status ${newCustomerOrderStatus} from event ${event.type}`);
+        Logger.info(
+          `Updated customer order ${customerOrderId} to status ${newCustomerOrderStatus} from event ${event.type}`
+        );
       }
     } catch (error) {
-      Logger.error(`Failed to update order statuses for customer ${customerOrderId} / vendor ${vendorOrderId} from event ${event.type}`, error);
+      Logger.error(
+        `Failed to update order statuses for customer ${customerOrderId} / vendor ${vendorOrderId} from event ${event.type}`,
+        error
+      );
     }
   }
 }

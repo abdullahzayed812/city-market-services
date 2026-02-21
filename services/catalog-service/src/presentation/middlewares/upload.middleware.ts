@@ -36,3 +36,36 @@ export const uploadProductImage = multer({
         fileSize: 5 * 1024 * 1024, // 5MB limit
     },
 });
+
+const categoryIconDir = path.join(process.cwd(), "uploads", "categories", "icons");
+
+if (!fs.existsSync(categoryIconDir)) {
+    fs.mkdirSync(categoryIconDir, { recursive: true });
+}
+
+const categoryIconStorage = multer.diskStorage({
+    destination: (req, file, cb) => {
+        cb(null, categoryIconDir);
+    },
+    filename: (req, file, cb) => {
+        const uniqueSuffix = randomUUID();
+        cb(null, `${uniqueSuffix}${path.extname(file.originalname)}`);
+    },
+});
+
+const categoryIconFileFilter = (req: any, file: any, cb: any) => {
+    const allowedTypes = ["image/svg+xml", "image/png", "image/jpeg", "image/jpg"];
+    if (allowedTypes.includes(file.mimetype)) {
+        cb(null, true);
+    } else {
+        cb(new Error("Invalid file type. SVG, PNG and JPEG are allowed."), false);
+    }
+};
+
+export const uploadCategoryIcon = multer({
+    storage: categoryIconStorage,
+    fileFilter: categoryIconFileFilter,
+    limits: {
+        fileSize: 2 * 1024 * 1024, // 2MB limit
+    },
+});

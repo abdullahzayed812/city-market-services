@@ -68,7 +68,7 @@
     "db:seed:delivery": "cd services/delivery-service && npm run db:seed",
     "db:seed:notification": "cd services/notification-service && npm run db:seed",
     "db:seed:payment": "cd services/payment-service && npm run db:seed",
-    "db:reset": "npm run db:reset:auth && npm run db:reset:user && npm run db:reset:vendor && npm run db:reset:catalog && npm run db:reset:delivery",
+    "db:reset": "npm run db:reset:auth && npm run db:reset:user && npm run db:reset:vendor && npm run db:reset:catalog && npm run db:reset:delivery && npm run db:reset:order",
     "db:reset:auth": "cd services/auth-service && npm run db:reset",
     "db:reset:user": "cd services/user-service && npm run db:reset",
     "db:reset:vendor": "cd services/vendor-service && npm run db:reset",

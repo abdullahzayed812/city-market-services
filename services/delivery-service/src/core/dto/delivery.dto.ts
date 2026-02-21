@@ -3,7 +3,6 @@ import { PickupLocation } from "../entities/pickup-location.entity"; // Import P
 
 export interface CreateDeliveryDto {
   customerOrderId: string;
-  vendorOrderId?: string; // Keep this for now, though it might become less relevant.
   pickupLocations: PickupLocation[]; // New: List of pickup locations
   deliveryAddress: string;
   pickupLatitude?: number;

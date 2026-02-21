@@ -1,4 +1,5 @@
 import express from "express";
+import cors from "cors";
 import { createAuthRoutes } from "./presentation/routes/auth.routes";
 import { AuthController } from "./presentation/controllers/auth.controller";
 import { AuthService } from "./application/services/auth.service";
@@ -10,6 +11,7 @@ import { config } from "./config/env";
 export const createApp = () => {
   const app = express();
 
+  app.use(cors());
   app.use(express.json());
   app.use(express.urlencoded({ extended: true })); // Add this line for form-urlencoded bodies
 

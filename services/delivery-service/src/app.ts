@@ -1,4 +1,5 @@
 import express from "express";
+import cors from "cors";
 import { createDeliveryRoutes } from "./presentation/routes/delivery.routes";
 import { DeliveryController } from "./presentation/controllers/delivery.controller";
 import { DeliveryService } from "./application/services/delivery.service";
@@ -16,6 +17,7 @@ import { config } from "./config/env";
 export const createApp = () => {
   const app = express();
 
+  app.use(cors());
   app.use(express.json());
 
   const db = new Database({

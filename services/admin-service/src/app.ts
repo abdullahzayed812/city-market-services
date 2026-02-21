@@ -1,4 +1,5 @@
 import express from "express";
+import cors from "cors";
 import { createAdminRoutes } from "./presentation/routes/admin.routes";
 import { AdminController } from "./presentation/controllers/admin.controller";
 import { AdminService } from "./application/services/admin.service";
@@ -10,6 +11,7 @@ import { config } from "./config/env";
 export const createApp = () => {
   const app = express();
 
+  app.use(cors());
   app.use(express.json());
 
   const serviceClient = new ServiceClient(
@@ -17,7 +19,8 @@ export const createApp = () => {
     config.vendorServiceUrl,
     config.deliveryServiceUrl,
     config.userServiceUrl,
-    config.authServiceUrl
+    config.authServiceUrl,
+    config.catalogServiceUrl
   );
 
   const adminService = new AdminService(serviceClient);

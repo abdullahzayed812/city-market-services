@@ -29,5 +29,20 @@ export const createAdminRoutes = (controller: AdminController): Router => {
   router.get("/revenue", authorize(UserRole.ADMIN), controller.getRevenue);
   router.get("/payouts", authorize(UserRole.ADMIN), controller.getPayouts);
 
+  // Category Management
+  const multer = require("multer");
+  const upload = multer({ storage: multer.memoryStorage() });
+
+  router.get("/categories", authorize(UserRole.ADMIN), controller.getAllCategories);
+  router.post("/categories", authorize(UserRole.ADMIN), controller.createCategory);
+  router.patch("/categories/:id", authorize(UserRole.ADMIN), controller.updateCategory);
+  router.delete("/categories/:id", authorize(UserRole.ADMIN), controller.deleteCategory);
+  router.post(
+    "/categories/:id/icon",
+    authorize(UserRole.ADMIN),
+    upload.single("icon"),
+    controller.uploadCategoryIcon
+  );
+
   return router;
 };

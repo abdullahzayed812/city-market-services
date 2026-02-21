@@ -13,6 +13,8 @@ import {
   type UpdateUserStatusRequest,
   type RevenueReport,
   type PayoutsReport,
+  type Category,
+  type CreateCategoryDto,
 } from "@city-market/shared";
 
 export const adminApi = {
@@ -48,4 +50,17 @@ export const adminApi = {
   // Financial Overview
   getRevenue: () => axiosInstance.get<ApiResponse<RevenueReport>>("/admin/revenue"),
   getPayouts: () => axiosInstance.get<ApiResponse<PayoutsReport>>("/admin/payouts"),
+
+  // Categories Management
+  getCategories: () => axiosInstance.get<ApiResponse<Category[]>>("/admin/categories"),
+  createCategory: (body: CreateCategoryDto) => axiosInstance.post<ApiResponse<Category>>("/admin/categories", body),
+  updateCategory: (id: string, body: Partial<Category>) => axiosInstance.patch<ApiResponse<null>>(`/admin/categories/${id}`, body),
+  deleteCategory: (id: string) => axiosInstance.delete<ApiResponse<null>>(`/admin/categories/${id}`),
+  uploadCategoryIcon: (id: string, file: File) => {
+    const formData = new FormData();
+    formData.append("icon", file);
+    return axiosInstance.post<ApiResponse<{ iconUrl: string }>>(`/admin/categories/${id}/icon`, formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+  },
 };

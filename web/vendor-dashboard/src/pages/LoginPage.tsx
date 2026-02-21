@@ -8,7 +8,7 @@ import { Label } from "../components/ui/label";
 import { Lock, Mail, Loader2, Store } from "lucide-react";
 
 const LoginPage: React.FC = () => {
-  const [email, setEmail] = useState("vendor@citymarket.com");
+  const [email, setEmail] = useState("vendor1@citymarket.com");
   const [password, setPassword] = useState("password123");
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);

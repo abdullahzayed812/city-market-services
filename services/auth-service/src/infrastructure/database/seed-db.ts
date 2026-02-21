@@ -32,8 +32,15 @@ const seedDb = async () => {
         is_active: true,
       },
       {
-        id: SEED_DATA.USERS.VENDOR,
-        email: "vendor@citymarket.com",
+        id: SEED_DATA.USERS.VENDOR1,
+        email: "vendor1@citymarket.com",
+        password_hash: passwordHash,
+        role: "VENDOR",
+        is_active: true,
+      },
+      {
+        id: SEED_DATA.USERS.VENDOR2,
+        email: "vendor2@citymarket.com",
         password_hash: passwordHash,
         role: "VENDOR",
         is_active: true,
