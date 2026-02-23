@@ -5,7 +5,7 @@ export interface Delivery {
   id: string;
   customerOrderId: string;
   vendorOrderId?: string; // This will become less relevant if we have multiple pickup locations
-                          // But keep it for now as it's part of the unique constraint
+  // But keep it for now as it's part of the unique constraint
   courierId?: string;
   status: DeliveryStatus;
   pickupLocations: PickupLocation[]; // New: List of pickup locations

@@ -1,0 +1,23 @@
+config:
+  target: "http://localhost:3000"
+  phases:
+    - duration: 60
+      arrivalRate: 50
+      rampTo: 100
+      name: "Sustained peak load"
+  environments:
+    production:
+      target: "https://api.production.citymarket.com"
+
+scenarios:
+  - name: "Vendor Dashboard high read traffic"
+    flow:
+      - get:
+          url: "/orders/vendor/{{ $processEnvironment.VENDOR_ID }}"
+          headers:
+            Authorization: "Bearer {{ $processEnvironment.VENDOR_TOKEN }}"
+      - think: 1
+      - get:
+          url: "/orders/{{ $processEnvironment.ORDER_ID }}"
+          headers:
+            Authorization: "Bearer {{ $processEnvironment.CUSTOMER_TOKEN }}"

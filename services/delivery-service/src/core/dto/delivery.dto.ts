@@ -3,6 +3,7 @@ import { PickupLocation } from "../entities/pickup-location.entity"; // Import P
 
 export interface CreateDeliveryDto {
   customerOrderId: string;
+  vendorOrderId?: string;
   pickupLocations: PickupLocation[]; // New: List of pickup locations
   deliveryAddress: string;
   pickupLatitude?: number;
@@ -17,6 +18,5 @@ export interface AssignCourierDto {
 
 export interface UpdateDeliveryStatusDto {
   status: DeliveryStatus;
-  vendorOrderId: string;
   notes?: string;
 }

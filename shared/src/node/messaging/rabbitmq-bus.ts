@@ -74,9 +74,23 @@ export class RabbitMQBus {
     }
 
     const exchange = "citymarket_events";
-    await this.channel.assertExchange(exchange, "topic", { durable: true });
+    const dlx = "citymarket_events_dlx"; // Dead Letter Exchange
+    const dlq = `${queueName}_dlq`; // Dead Letter Queue
 
-    await this.channel.assertQueue(queueName, { durable: true });
+    await this.channel.assertExchange(exchange, "topic", { durable: true });
+    await this.channel.assertExchange(dlx, "topic", { durable: true });
+
+    // Assert DLQ and bind to DLX
+    await this.channel.assertQueue(dlq, { durable: true });
+    await this.channel.bindQueue(dlq, dlx, eventType);
+
+    // Assert main queue with DLX configuration
+    await this.channel.assertQueue(queueName, {
+      durable: true,
+      arguments: {
+        "x-dead-letter-exchange": dlx,
+      }
+    });
     await this.channel.bindQueue(queueName, exchange, eventType);
 
     if (!this.handlers.has(queueName)) {
@@ -91,10 +105,20 @@ export class RabbitMQBus {
               await h(content);
             }
             this.channel?.ack(msg);
-          } catch (error) {
+          } catch (error: any) {
             Logger.error(`Error processing message from ${queueName}`, error);
-            // Decide whether to nack or just log. Acking for now to avoid loops if persistent error.
-            this.channel?.ack(msg);
+
+            // Check if it's a validation error (terminal, don't retry)
+            // or if it has already been redelivered
+            if (error.name === "ValidationError" || msg.fields.redelivered) {
+              Logger.warn(`Message from ${queueName} sending to DLQ due to terminal failure or max retries.`);
+              // Reject without requeue, will go to DLX -> DLQ
+              this.channel?.nack(msg, false, false);
+            } else {
+              Logger.warn(`Message from ${queueName} requeuing for retry.`);
+              // Requeue for retry
+              this.channel?.nack(msg, false, true);
+            }
           }
         }
       });

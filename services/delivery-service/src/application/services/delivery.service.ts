@@ -6,7 +6,7 @@ import { Courier } from "../../core/entities/courier.entity";
 import { Delivery } from "../../core/entities/delivery.entity";
 import { RegisterCourierDto, UpdateCourierDto } from "../../core/dto/courier.dto";
 import { CreateDeliveryDto, AssignCourierDto, UpdateDeliveryStatusDto } from "../../core/dto/delivery.dto";
-import { DeliveryStatus } from "@city-market/shared";
+import { DeliveryStatus, PickupLocation } from "@city-market/shared";
 import { ValidationError, NotFoundError } from "@city-market/shared";
 import { Database } from "@city-market/shared/node";
 import { EventType } from "@city-market/shared";
@@ -24,7 +24,7 @@ export class DeliveryService {
     private orderClient: OrderHttpClient,
     private vendorClient: VendorHttpClient,
     private db: Database // Added
-  ) {}
+  ) { }
 
   // Courier management
   async registerCourier(dto: RegisterCourierDto): Promise<Courier> {
@@ -91,7 +91,8 @@ export class DeliveryService {
     const delivery: Delivery = {
       id: randomUUID(),
       customerOrderId: dto.customerOrderId,
-      vendorOrderId: dto.vendorOrderId,
+      // vendorOrderId: dto.vendorOrderId || "GROUPED",
+      vendorOrderId: dto.vendorOrderId || "GROUPED",
       status: DeliveryStatus.PENDING,
       pickupLocations: dto.pickupLocations, // Use new field
       deliveryAddress: dto.deliveryAddress,
@@ -125,13 +126,17 @@ export class DeliveryService {
       const customerOrder = orderData.order;
       const vendorOrders = orderData.vendorOrders;
 
-      // Fetch all vendor details
-      const vendors = await Promise.all(
-        vendorOrders.map(async (vo: any) => {
-          const vendor = await this.vendorClient.getVendor(vo.vendorId, userId);
-          return { ...vo, vendorInfo: vendor };
-        })
+      // Concurrent batch fetch of unique vendors to prevent N+1 HTTP calls
+      const uniqueVendorIds = Array.from(new Set(vendorOrders.map((vo: any) => vo.vendorId)));
+      const vendorDetailsArray = await Promise.all(
+        uniqueVendorIds.map(id => this.vendorClient.getVendor(id as string, userId))
       );
+      const vendorMap = new Map(uniqueVendorIds.map((id, index) => [id, vendorDetailsArray[index]]));
+
+      const vendors = vendorOrders.map((vo: any) => ({
+        ...vo,
+        vendorInfo: vendorMap.get(vo.vendorId)
+      }));
 
       // Calculate pairwise distances between vendors
       const allFarApart = this.checkDistances(vendors);
@@ -157,21 +162,22 @@ export class DeliveryService {
         createdDeliveries.push(delivery);
 
         // Link all vendor orders to this delivery
-        for (const vo of vendorOrders) {
-          eventsToPublish.push({
-            id: randomUUID(),
-            type: EventType.DELIVERY_CREATED,
-            timestamp: new Date(),
-            payload: {
-              deliveryId: delivery.id,
-              vendorOrderId: vo.id,
-              customerOrderId,
-              customerId: customerOrder.customerId,
-              vendorId: vo.vendorId,
-            }, // Add customerId and vendorId for routing
-          });
-        }
+        // for (const vo of vendorOrders) {
+        eventsToPublish.push({
+          id: randomUUID(),
+          type: EventType.DELIVERY_CREATED,
+          timestamp: new Date(),
+          payload: {
+            deliveryId: delivery.id,
+            // vendorOrderId: vo.id,
+            // customerOrderId,
+            // customerId: customerOrder.customerId,
+            // vendorId: vo.vendorId,
+          }, // Add customerId and vendorId for routing
+        });
+        // }
       } else {
+        let delivery;
         // Separate Delivery per VendorOrder
         for (const v of vendors) {
           // Check for existing delivery for this specific vendor order
@@ -188,29 +194,36 @@ export class DeliveryService {
             continue; // Skip creating new delivery
           }
 
-          const delivery = await this.createIndividualDelivery(customerOrder, [v], customerOrderId, v, connection); // Pass connection
+          delivery = await this.createIndividualDelivery(customerOrder, [v], customerOrderId, v, connection); // Pass connection
           createdDeliveries.push(delivery);
-
-          eventsToPublish.push({
-            id: randomUUID(),
-            type: EventType.DELIVERY_CREATED,
-            timestamp: new Date(),
-            payload: {
-              deliveryId: delivery.id,
-              vendorOrderId: v.id,
-              customerOrderId,
-              customerId: customerOrder.customerId,
-              vendorId: v.vendorId,
-            }, // Add customerId and vendorId for routing
-          });
         }
+        eventsToPublish.push({
+          id: randomUUID(),
+          type: EventType.DELIVERY_CREATED,
+          timestamp: new Date(),
+          payload: {
+            deliveryId: delivery?.id,
+            // vendorOrderId: v.id,
+            // customerOrderId,
+            // customerId: customerOrder.customerId,
+            // vendorId: v.vendorId,
+          }, // Add customerId and vendorId for routing
+        });
       }
 
       await this.db.commit(connection);
-    } catch (error) {
+    } catch (error: any) {
       if (connection) {
         await this.db.rollback(connection);
       }
+
+      // Check if the error is a MySQL unique constraint violation
+      if (error.code === 'ER_DUP_ENTRY') {
+        Logger.warn(`Duplicate delivery insertion attempt for Order ${customerOrderId} blocked. Resuming gracefully.`);
+        // Fetch and return the deliveries that were successfully created by the concurrent request
+        return this.deliveryRepo.findByCustomerOrderId(customerOrderId);
+      }
+
       throw error;
     } finally {
       // Publish all collected events after transaction
@@ -233,16 +246,15 @@ export class DeliveryService {
 
     const dto: CreateDeliveryDto = {
       customerOrderId: customerOrderId,
-      pickupLocations: [
-        {
-          // Create a list of PickupLocation
-          id: randomUUID(), // ID for the pickup location itself (not delivery ID)
-          // vendorOrderId: vendorOrder ? vendorOrder.id : "", // Link to specific vendor order
-          address: primaryVendor.vendorInfo.address || primaryVendor.vendorInfo.businessAddress,
-          latitude: primaryVendor.vendorInfo.latitude,
-          longitude: primaryVendor.vendorInfo.longitude,
-        },
-      ],
+      // vendorOrderId: vendorOrder ? vendorOrder.id : undefined,
+      vendorOrderId: vendorOrder ? vendorOrder.id : undefined,
+      pickupLocations: vendors.map((v) => ({
+        id: randomUUID(),
+        vendorOrderId: v.id,
+        address: v.vendorInfo.address || v.vendorInfo.businessAddress,
+        latitude: v.vendorInfo.latitude,
+        longitude: v.vendorInfo.longitude,
+      })),
       deliveryAddress: customerOrder.deliveryAddress,
       deliveryLatitude: customerOrder.deliveryLatitude,
       deliveryLongitude: customerOrder.deliveryLongitude,
@@ -301,8 +313,9 @@ export class DeliveryService {
     return this.deliveryRepo.findAll(limit, offset);
   }
 
-  async updateDeliveryStatus(deliveryId: string, vendorOrderId: string, dto: UpdateDeliveryStatusDto): Promise<void> {
+  async updateDeliveryStatus(deliveryId: string, dto: UpdateDeliveryStatusDto): Promise<void> {
     const delivery = await this.getDeliveryById(deliveryId);
+    const vendorOrdersIds = delivery?.pickupLocations?.map((location: PickupLocation) => location?.vendorOrderId);
 
     if (!this.isValidStatusTransition(delivery.status, dto.status)) {
       throw new ValidationError(`Cannot transition from ${delivery.status} to ${dto.status}`);
@@ -322,20 +335,16 @@ export class DeliveryService {
         id: randomUUID(),
         type: EventType.ORDER_PICKED_UP,
         timestamp: new Date(),
-        payload: { deliveryId, customerOrderId: delivery.customerOrderId, vendorOrderId },
+        payload: { deliveryId, customerOrderId: delivery.customerOrderId, vendorOrdersIds },
       });
-    }
-
-    if (dto.status === DeliveryStatus.ON_THE_WAY) {
+    } else if (dto.status === DeliveryStatus.ON_THE_WAY) {
       eventsToPublish.push({
         id: randomUUID(),
         type: EventType.ORDER_ON_THE_WAY,
         timestamp: new Date(),
-        payload: { deliveryId, customerOrderId: delivery.customerOrderId, vendorOrderId },
+        payload: { deliveryId, customerOrderId: delivery.customerOrderId, vendorOrdersIds },
       });
-    }
-
-    if (dto.status === DeliveryStatus.DELIVERED) {
+    } else if (dto.status === DeliveryStatus.DELIVERED) {
       updates.deliveredAt = new Date();
       if (delivery.courierId) {
         // These are DB updates, should be part of a transaction if updateDeliveryStatus were transactional
@@ -347,7 +356,7 @@ export class DeliveryService {
         id: randomUUID(),
         type: EventType.ORDER_DELIVERED,
         timestamp: new Date(),
-        payload: { deliveryId, customerOrderId: delivery.customerOrderId, vendorOrderId },
+        payload: { deliveryId, customerOrderId: delivery.customerOrderId, vendorOrdersIds },
       });
     }
 

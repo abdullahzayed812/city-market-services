@@ -44,6 +44,12 @@ export class CustomerOrderRepository implements ICustomerOrderRepository {
         return rows.length > 0 ? this.mapToEntity(rows[0]) : null;
     }
 
+    async findByIdWithLock(id: string, connection: PoolConnection): Promise<CustomerOrder | null> {
+        const query = "SELECT * FROM customer_orders WHERE id = ? FOR UPDATE";
+        const [rows] = await connection.execute<RowDataPacket[]>(query, [id]);
+        return rows.length > 0 ? this.mapToEntity(rows[0]) : null;
+    }
+
     async findByCustomer(customerId: string, limit: number, offset: number, connection?: PoolConnection): Promise<CustomerOrder[]> {
         const conn = connection || this.pool;
         const query = `
@@ -91,20 +97,20 @@ export class CustomerOrderRepository implements ICustomerOrderRepository {
         }
         // Add other updatable fields here if necessary, e.g., total amounts
         if (data.subtotal !== undefined) {
-          fields.push("subtotal = ?");
-          values.push(data.subtotal);
+            fields.push("subtotal = ?");
+            values.push(data.subtotal);
         }
         if (data.deliveryFee !== undefined) {
-          fields.push("delivery_fee = ?");
-          values.push(data.deliveryFee);
+            fields.push("delivery_fee = ?");
+            values.push(data.deliveryFee);
         }
         if (data.commissionAmount !== undefined) {
-          fields.push("commission_amount = ?");
-          values.push(data.commissionAmount);
+            fields.push("commission_amount = ?");
+            values.push(data.commissionAmount);
         }
         if (data.totalAmount !== undefined) {
-          fields.push("total_amount = ?");
-          values.push(data.totalAmount);
+            fields.push("total_amount = ?");
+            values.push(data.totalAmount);
         }
 
 

@@ -7,8 +7,18 @@ export class DeliveryUpdatedConsumer implements EventSubscriber {
 
   async handle(event: BaseEvent): Promise<void> {
     try {
-      const { customerOrderId, vendorOrderId } = event.payload;
-      Logger.info(`Processing delivery update event ${event.type} for order ${customerOrderId || vendorOrderId}`);
+      const { customerOrderId, vendorOrdersIds } = event.payload;
+      Logger.info(`Processing delivery update event ${event.type} for order ${customerOrderId}`);
+
+      if (!customerOrderId && !vendorOrdersIds.length) {
+        Logger.warn(`Delivery event ${event.type} received without customerOrderId or vendorOrderId.`);
+      }
+
+      const vendorStatusMap: Partial<Record<EventType, VendorOrderStatus>> = {
+        [EventType.ORDER_PICKED_UP]: VendorOrderStatus.PICKED_UP,
+        [EventType.ORDER_ON_THE_WAY]: VendorOrderStatus.ON_THE_WAY,
+        [EventType.ORDER_DELIVERED]: VendorOrderStatus.DELIVERED,
+      };
 
       const customerStatusMap: Partial<Record<EventType, CustomerOrderStatus>> = {
         [EventType.ORDER_PICKED_UP]: CustomerOrderStatus.PICKED_UP,
@@ -16,11 +26,12 @@ export class DeliveryUpdatedConsumer implements EventSubscriber {
         [EventType.ORDER_DELIVERED]: CustomerOrderStatus.COMPLETED,
       };
 
-      const vendorStatusMap: Partial<Record<EventType, VendorOrderStatus>> = {
-        [EventType.ORDER_PICKED_UP]: VendorOrderStatus.PICKED_UP,
-        [EventType.ORDER_ON_THE_WAY]: VendorOrderStatus.ON_THE_WAY,
-        [EventType.ORDER_DELIVERED]: VendorOrderStatus.DELIVERED,
-      };
+      // Handle Vendor Order Status
+      const vendorStatus = vendorStatusMap[event.type as keyof typeof vendorStatusMap];
+      if (vendorOrdersIds?.length && vendorStatus) {
+        for (const id of vendorOrdersIds)
+          await this.orderService.updateVendorOrderStatus(id, vendorStatus, `Delivery update: ${event.type}`, true);
+      }
 
       // Handle Customer Order Status
       const customerStatus = customerStatusMap[event.type as keyof typeof customerStatusMap];
@@ -30,16 +41,6 @@ export class DeliveryUpdatedConsumer implements EventSubscriber {
           customerStatus,
           `Delivery update: ${event.type}`
         );
-      }
-
-      // Handle Vendor Order Status
-      const vendorStatus = vendorStatusMap[event.type as keyof typeof vendorStatusMap];
-      if (vendorOrderId && vendorStatus) {
-        await this.orderService.updateVendorOrderStatus(vendorOrderId, vendorStatus, `Delivery update: ${event.type}`);
-      }
-
-      if (!customerOrderId && !vendorOrderId) {
-        Logger.warn(`Delivery event ${event.type} received without customerOrderId or vendorOrderId.`);
       }
     } catch (error) {
       Logger.error(`Failed to process event ${event.type} for order ${event.payload?.customerOrderId}`, error);

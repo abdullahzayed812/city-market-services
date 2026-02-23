@@ -30,7 +30,7 @@ export class Database implements IDatabase {
       password: config.password,
       database: config.database,
       waitForConnections: true,
-      connectionLimit: config.connectionLimit || 10,
+      connectionLimit: config.connectionLimit || parseInt(process.env.DB_CONNECTION_LIMIT || "50", 10),
       queueLimit: 0,
     });
   }

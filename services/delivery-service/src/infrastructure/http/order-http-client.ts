@@ -17,12 +17,13 @@ export class OrderHttpClient {
       Authorization: `Bearer ${serviceToken}`,
     };
     if (userId) {
-      headers['X-User-Id'] = userId; // Propagate user ID from validated context
+      headers["X-User-Id"] = userId; // Propagate user ID from validated context
     }
     return { headers };
   }
 
-  async getOrder(orderId: string, userId?: string): Promise<any> { // Changed to userId
+  async getOrder(orderId: string, userId?: string): Promise<any> {
+    // Changed to userId
     try {
       const config = await this.getRequestConfig(userId);
       const response = await this.axiosInstance.get(`${this.baseUrl}/customer-orders/${orderId}`, config);
@@ -33,31 +34,31 @@ export class OrderHttpClient {
     }
   }
 
-  async updateCustomerOrderStatus(orderId: string, status: CustomerOrderStatus, userId?: string): Promise<void> { // Changed to userId
-    try {
-      const config = await this.getRequestConfig(userId);
-      await this.axiosInstance.patch(
-        `${this.baseUrl}/customer-orders/${orderId}/status`,
-        { status },
-        config
-      );
-    } catch (error: any) {
-      console.error(`Failed to update customer order status for ${orderId}:`, error.message);
-      throw error;
-    }
-  }
+  // async updateCustomerOrderStatus(orderId: string, status: CustomerOrderStatus, userId?: string): Promise<void> { // Changed to userId
+  //   try {
+  //     const config = await this.getRequestConfig(userId);
+  //     await this.axiosInstance.patch(
+  //       `${this.baseUrl}/customer-orders/${orderId}/status`,
+  //       { status },
+  //       config
+  //     );
+  //   } catch (error: any) {
+  //     console.error(`Failed to update customer order status for ${orderId}:`, error.message);
+  //     throw error;
+  //   }
+  // }
 
-  async updateVendorOrderStatus(vendorOrderId: string, status: VendorOrderStatus, userId?: string): Promise<void> { // Changed to userId
-    try {
-      const config = await this.getRequestConfig(userId);
-      await this.axiosInstance.patch(
-        `${this.baseUrl}/vendor-orders/${vendorOrderId}/status`,
-        { status },
-        config
-      );
-    } catch (error: any) {
-      console.error(`Failed to update vendor order status for ${vendorOrderId}:`, error.message);
-      throw error;
-    }
-  }
+  // async updateVendorOrderStatus(vendorOrderId: string, status: VendorOrderStatus, userId?: string): Promise<void> { // Changed to userId
+  //   try {
+  //     const config = await this.getRequestConfig(userId);
+  //     await this.axiosInstance.patch(
+  //       `${this.baseUrl}/vendor-orders/${vendorOrderId}/status`,
+  //       { status },
+  //       config
+  //     );
+  //   } catch (error: any) {
+  //     console.error(`Failed to update vendor order status for ${vendorOrderId}:`, error.message);
+  //     throw error;
+  //   }
+  // }
 }

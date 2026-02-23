@@ -37,7 +37,7 @@ export class OrderService {
     private vendorClient: VendorHttpClient,
     private eventBus: RabbitMQBus,
     private db: Database
-  ) {}
+  ) { }
 
   async createOrder(dto: CreateOrderDto, userId?: string): Promise<OrderWithItems> {
     // Changed to userId
@@ -167,12 +167,24 @@ export class OrderService {
           connection
         );
 
+        const mergedItems = new Map<string, any>();
         for (const item of voData.items) {
-          item.vendorOrderId = vendorOrder.id;
+          const existing = mergedItems.get(item.productId);
+          if (existing) {
+            existing.quantity += item.quantity;
+            existing.totalPrice = Number(existing.totalPrice) + Number(item.totalPrice);
+          } else {
+            item.vendorOrderId = vendorOrder.id;
+            mergedItems.set(item.productId, { ...item }); // Clone to avoid mutating original shared references
+          }
+        }
+
+        const uniqueItems = Array.from(mergedItems.values());
+        for (const item of uniqueItems) {
           await this.vendorOrderItemRepo.create(item, connection);
         }
 
-        createdVendorOrders.push({ ...vendorOrder, items: voData.items });
+        createdVendorOrders.push({ ...vendorOrder, items: uniqueItems });
 
         // Collect VENDOR_ORDER_CREATED event
         eventsToPublish.push({
@@ -225,10 +237,18 @@ export class OrderService {
     }
 
     const vendorOrders = await this.vendorOrderRepo.findByCustomerOrder(id);
+
+    // Optimize N+1 HTTP Calls by batch-fetching unique vendors
+    const uniqueVendorIds = Array.from(new Set(vendorOrders.map(vo => vo.vendorId)));
+    const vendorDetailsArray = await Promise.all(
+      uniqueVendorIds.map(vid => this.vendorClient.getVendor(vid, userId))
+    );
+    const vendorMap = new Map(uniqueVendorIds.map((vid, i) => [vid, vendorDetailsArray[i]]));
+
     const vendorOrdersWithItems = await Promise.all(
       vendorOrders.map(async (vo) => {
         const items = await this.vendorOrderItemRepo.findByVendorOrder(vo.id);
-        const vendor = await this.vendorClient.getVendor(vo.vendorId, userId); // Passed userId
+        const vendor = vendorMap.get(vo.vendorId); // Passed userId - mapped
         const proposals = await this.proposalRepo.findByVendorOrder(vo.id);
         return {
           ...vo,
@@ -283,10 +303,15 @@ export class OrderService {
     try {
       connection = await this.db.beginTransaction();
 
-      const vo = await this.vendorOrderRepo.findById(vendorOrderId, connection);
+      const vo = await this.vendorOrderRepo.findByIdWithLock(vendorOrderId, connection);
       if (!vo) throw new NotFoundError("Vendor order not found");
 
       for (let item of dto) {
+        // Prevent multiple pending proposals for the same item
+        const existingProposals = await this.proposalRepo.findByVendorOrderItem(item.itemId, connection);
+        if (existingProposals.some(p => p.status === ProposalStatus.PENDING)) {
+          throw new ValidationError(`Vendor order item ${item.itemId} already has a pending proposal.`);
+        }
         const proposal = {
           id: randomUUID(),
           vendorOrderItemId: item.itemId,
@@ -346,7 +371,7 @@ export class OrderService {
     try {
       connection = await this.db.beginTransaction();
 
-      const vo = await this.vendorOrderRepo.findById(vendorOrderId, connection);
+      const vo = await this.vendorOrderRepo.findByIdWithLock(vendorOrderId, connection);
       if (!vo) throw new NotFoundError("Vendor order not found");
 
       if (vo.status !== VendorOrderStatus.PENDING) {
@@ -379,14 +404,19 @@ export class OrderService {
     }
   }
 
-  async updateVendorOrderStatus(vendorOrderId: string, status: VendorOrderStatus, notes?: string): Promise<void> {
+  async updateVendorOrderStatus(
+    vendorOrderId: string,
+    status: VendorOrderStatus,
+    notes?: string,
+    skipCustomerSync: boolean = false
+  ): Promise<void> {
     let connection: PoolConnection | undefined;
-    const eventsToPublish: any[] = [];
+    // const eventsToPublish: any[] = [];
 
     try {
       connection = await this.db.beginTransaction();
 
-      const vo = await this.vendorOrderRepo.findById(vendorOrderId, connection);
+      const vo = await this.vendorOrderRepo.findByIdWithLock(vendorOrderId, connection);
       if (!vo) throw new NotFoundError("Vendor order not found");
 
       if (!this.isValidVendorStatusTransition(vo.status, status)) {
@@ -396,40 +426,12 @@ export class OrderService {
       await this.vendorOrderRepo.updateStatus(vendorOrderId, status, connection);
       await this.recordStatusChange({ vendorOrderId }, status, notes, connection);
 
-      // Emit corresponding VENDOR_ORDER_* event
-      let eventType: EventType | null = null;
-      switch (status) {
-        case VendorOrderStatus.PICKED_UP:
-          eventType = EventType.ORDER_PICKED_UP; // Reusing existing EventType, might need new VENDOR_ORDER_PICKED_UP
-          break;
-        case VendorOrderStatus.ON_THE_WAY:
-          eventType = EventType.ORDER_ON_THE_WAY; // Reusing existing EventType
-          break;
-        case VendorOrderStatus.DELIVERED:
-          eventType = EventType.ORDER_DELIVERED; // Reusing existing EventType
-          break;
-        // For other vendor statuses, no specific VENDOR_ORDER_* event defined yet
-        default:
-          break;
-      }
-
-      if (eventType) {
-        eventsToPublish.push({
-          id: randomUUID(),
-          type: eventType,
-          timestamp: new Date(),
-          payload: { vendorOrderId, customerOrderId: vo.customerOrderId, vendorId: vo.vendorId, status: status },
-        });
-      }
-
       await this.db.commit(connection);
 
-      // Emit events after successful commit
-      for (const event of eventsToPublish) {
-        await this.eventBus.publish(event);
+      if (!skipCustomerSync) {
+        // ← guard the sync call
+        await this.syncCustomerOrderStatus(vo.customerOrderId);
       }
-
-      await this.syncCustomerOrderStatus(vo.customerOrderId);
     } catch (error) {
       if (connection) {
         await this.db.rollback(connection);
@@ -445,7 +447,7 @@ export class OrderService {
     try {
       connection = await this.db.beginTransaction();
 
-      const co = await this.customerOrderRepo.findById(customerOrderId, connection);
+      const co = await this.customerOrderRepo.findByIdWithLock(customerOrderId, connection);
       if (!co) throw new NotFoundError("Customer order not found");
 
       if (!this.isValidCustomerStatusTransition(co.status, status)) {
@@ -454,23 +456,23 @@ export class OrderService {
       await this.customerOrderRepo.updateStatus(customerOrderId, status, connection);
       await this.recordStatusChange({ customerOrderId }, status, notes, connection);
 
-      // Collect Customer Order status change event
-      const eventType = this.getEventTypeForCustomerStatus(status);
-      if (eventType) {
-        eventsToPublish.push({
-          id: randomUUID(),
-          type: eventType,
-          timestamp: new Date(),
-          payload: { customerOrderId, status, customerId: co.customerId },
-        });
-      }
-
       await this.db.commit(connection);
 
-      // Emit events after successful commit
-      for (const event of eventsToPublish) {
-        await this.eventBus.publish(event);
-      }
+      // // Collect Customer Order status change event
+      // const eventType = this.getEventTypeForCustomerStatus(status);
+      // if (eventType) {
+      //   eventsToPublish.push({
+      //     id: randomUUID(),
+      //     type: eventType,
+      //     timestamp: new Date(),
+      //     payload: { customerOrderId, status, customerId: co.customerId },
+      //   });
+      // }
+
+      // // Emit events after successful commit
+      // for (const event of eventsToPublish) {
+      //   await this.eventBus.publish(event);
+      // }
     } catch (error) {
       if (connection) {
         await this.db.rollback(connection);
@@ -484,16 +486,16 @@ export class OrderService {
     try {
       connection = await this.db.beginTransaction();
 
-      const proposal = await this.proposalRepo.findById(proposalId, connection);
+      const proposal = await this.proposalRepo.findByIdWithLock(proposalId, connection);
       if (!proposal) throw new NotFoundError("Proposal not found");
       if (proposal.status !== ProposalStatus.PENDING) {
         throw new ValidationError("Proposal is not pending or has already been processed.");
       }
 
-      const item = await this.vendorOrderItemRepo.findById(proposal.vendorOrderItemId, connection);
+      const item = await this.vendorOrderItemRepo.findByIdWithLock(proposal.vendorOrderItemId, connection);
       if (!item) throw new NotFoundError("Vendor order item not found");
 
-      const vo = await this.vendorOrderRepo.findById(item.vendorOrderId, connection);
+      const vo = await this.vendorOrderRepo.findByIdWithLock(item.vendorOrderId, connection);
       if (!vo) throw new NotFoundError("Vendor order not found");
       if (vo.status === VendorOrderStatus.CONFIRMED) {
         throw new ValidationError("Vendor order has already been confirmed.");
@@ -502,7 +504,7 @@ export class OrderService {
         throw new ValidationError("Cannot accept proposal for a cancelled vendor order.");
       }
 
-      const co = await this.customerOrderRepo.findById(vo.customerOrderId, connection);
+      const co = await this.customerOrderRepo.findByIdWithLock(vo.customerOrderId, connection);
       if (!co) throw new NotFoundError("Customer order not found");
 
       // 1) Update vendor_order_items based on proposal
@@ -596,19 +598,19 @@ export class OrderService {
     try {
       connection = await this.db.beginTransaction();
 
-      const proposal = await this.proposalRepo.findById(proposalId, connection);
+      const proposal = await this.proposalRepo.findByIdWithLock(proposalId, connection);
       if (!proposal) throw new NotFoundError("Proposal not found");
       if (proposal.status !== ProposalStatus.PENDING) {
         throw new ValidationError("Proposal is not pending or has already been processed.");
       }
 
-      const item = await this.vendorOrderItemRepo.findById(proposal.vendorOrderItemId, connection);
+      const item = await this.vendorOrderItemRepo.findByIdWithLock(proposal.vendorOrderItemId, connection);
       if (!item) throw new NotFoundError("Vendor order item not found");
 
-      const vo = await this.vendorOrderRepo.findById(item.vendorOrderId, connection);
+      const vo = await this.vendorOrderRepo.findByIdWithLock(item.vendorOrderId, connection);
       if (!vo) throw new NotFoundError("Vendor order not found");
 
-      const co = await this.customerOrderRepo.findById(vo.customerOrderId, connection);
+      const co = await this.customerOrderRepo.findByIdWithLock(vo.customerOrderId, connection);
       if (!co) throw new NotFoundError("Customer order not found");
 
       // Update proposal status
@@ -673,7 +675,7 @@ export class OrderService {
         shouldCommitOrRollback = true;
       }
 
-      const customerOrder = await this.customerOrderRepo.findById(customerOrderId, conn);
+      const customerOrder = await this.customerOrderRepo.findByIdWithLock(customerOrderId, conn);
       if (!customerOrder) {
         if (shouldCommitOrRollback && conn) await this.db.rollback(conn);
         return;
@@ -681,9 +683,16 @@ export class OrderService {
 
       const vendorOrders = await this.vendorOrderRepo.findByCustomerOrder(customerOrderId, conn);
 
+      const deliveryStatuses = [VendorOrderStatus.PICKED_UP, VendorOrderStatus.ON_THE_WAY, VendorOrderStatus.DELIVERED];
+      // If all non-cancelled vendors are in a delivery phase, don't override
+      const allInDelivery = vendorOrders
+        .filter((vo) => vo.status !== VendorOrderStatus.CANCELLED)
+        .every((vo) => deliveryStatuses.includes(vo.status));
+      if (allInDelivery) return; // Customer order is handled by delivery events directly
+
       const allConfirmed = vendorOrders.every((vo) => vo.status === VendorOrderStatus.CONFIRMED);
-      const anyCancelled = vendorOrders.some((vo) => vo.status === VendorOrderStatus.CANCELLED);
       const allCancelled = vendorOrders.every((vo) => vo.status === VendorOrderStatus.CANCELLED);
+      // const anyCancelled = vendorOrders.some((vo) => vo.status === VendorOrderStatus.CANCELLED);
 
       let newStatus: CustomerOrderStatus | null = null;
 
@@ -760,7 +769,7 @@ export class OrderService {
         shouldCommitOrRollback = true;
       }
 
-      const vendorOrder = await this.vendorOrderRepo.findById(vendorOrderId, conn);
+      const vendorOrder = await this.vendorOrderRepo.findByIdWithLock(vendorOrderId, conn);
       if (!vendorOrder) {
         if (shouldCommitOrRollback && conn) await this.db.rollback(conn);
         return;

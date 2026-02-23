@@ -117,8 +117,7 @@ export class DeliveryController {
 
   updateDeliveryStatus = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
-      const { vendorOrderId, ...updateDto } = req.body;
-      await this.deliveryService.updateDeliveryStatus(req.params.id, vendorOrderId, updateDto);
+      await this.deliveryService.updateDeliveryStatus(req.params.id, req.body);
       res.json(ApiResponse.success(null, "Delivery status updated"));
     } catch (error) {
       next(error);

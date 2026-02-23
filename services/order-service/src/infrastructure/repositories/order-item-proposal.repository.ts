@@ -34,6 +34,12 @@ export class OrderItemProposalRepository implements IOrderItemProposalRepository
         return rows.length > 0 ? this.mapToEntity(rows[0]) : null;
     }
 
+    async findByIdWithLock(id: string, connection: PoolConnection): Promise<OrderItemProposal | null> {
+        const query = "SELECT * FROM order_item_proposals WHERE id = ? FOR UPDATE";
+        const [rows] = await connection.execute<RowDataPacket[]>(query, [id]);
+        return rows.length > 0 ? this.mapToEntity(rows[0]) : null;
+    }
+
     async findByVendorOrderItem(vendorOrderItemId: string, connection?: PoolConnection): Promise<OrderItemProposal[]> {
         const conn = connection || this.pool;
         const query = "SELECT * FROM order_item_proposals WHERE vendor_order_item_id = ?";

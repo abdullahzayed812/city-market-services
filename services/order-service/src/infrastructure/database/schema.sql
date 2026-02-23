@@ -46,6 +46,7 @@ CREATE TABLE vendor_order_items (
   total_price DECIMAL(10, 2) NOT NULL,
   INDEX idx_vendor_order_id (vendor_order_id),
   INDEX idx_product_id (product_id),
+  UNIQUE INDEX unique_vendor_order_product (vendor_order_id, product_id),
   FOREIGN KEY (vendor_order_id) REFERENCES vendor_orders(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
@@ -69,5 +70,7 @@ CREATE TABLE order_status_history (
   notes TEXT,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   INDEX idx_customer_order_id (customer_order_id),
-  INDEX idx_vendor_order_id (vendor_order_id)
+  INDEX idx_vendor_order_id (vendor_order_id),
+  FOREIGN KEY (customer_order_id) REFERENCES customer_orders(id) ON DELETE CASCADE,
+  FOREIGN KEY (vendor_order_id) REFERENCES vendor_orders(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

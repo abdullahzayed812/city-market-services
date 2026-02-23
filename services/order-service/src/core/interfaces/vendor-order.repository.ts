@@ -4,6 +4,7 @@ import { VendorOrderWithItemsDto } from "@city-market/shared";
 export interface IVendorOrderRepository {
     create(order: VendorOrder, connection?: any): Promise<VendorOrder>;
     findById(id: string, connection?: any): Promise<VendorOrder | null>;
+    findByIdWithLock(id: string, connection: any): Promise<VendorOrder | null>;
     findByCustomerOrder(customerOrderId: string, connection?: any): Promise<VendorOrder[]>;
     findByVendor(vendorId: string, limit: number, offset: number, connection?: any): Promise<VendorOrder[]>;
     findByVendorWithItems(vendorId: string, limit: number, offset: number, connection?: any): Promise<VendorOrderWithItemsDto[]>;

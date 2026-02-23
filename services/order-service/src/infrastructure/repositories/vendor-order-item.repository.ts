@@ -44,6 +44,12 @@ export class VendorOrderItemRepository implements IVendorOrderItemRepository {
         return rows.length > 0 ? this.mapToEntity(rows[0]) : null;
     }
 
+    async findByIdWithLock(id: string, connection: PoolConnection): Promise<VendorOrderItem | null> {
+        const query = "SELECT * FROM vendor_order_items WHERE id = ? FOR UPDATE";
+        const [rows] = await connection.execute<RowDataPacket[]>(query, [id]);
+        return rows.length > 0 ? this.mapToEntity(rows[0]) : null;
+    }
+
     async update(id: string, data: Partial<VendorOrderItem>, connection?: PoolConnection): Promise<void> {
         const conn = connection || this.pool;
         const fields: string[] = [];
