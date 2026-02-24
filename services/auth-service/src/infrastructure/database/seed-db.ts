@@ -31,20 +31,43 @@ const seedDb = async () => {
         role: "CUSTOMER",
         is_active: true,
       },
+
+      // SuperMarket 1
       {
         id: SEED_DATA.USERS.VENDOR1,
-        email: "vendor1@citymarket.com",
+        email: "supermarket1@citymarket.com",
         password_hash: passwordHash,
         role: "VENDOR",
         is_active: true,
       },
+
+      // SuperMarket 2
       {
         id: SEED_DATA.USERS.VENDOR2,
-        email: "vendor2@citymarket.com",
+        email: "supermarket2@citymarket.com",
         password_hash: passwordHash,
         role: "VENDOR",
         is_active: true,
       },
+
+      // Pharmacy
+      {
+        id: SEED_DATA.USERS.VENDOR3,
+        email: "pharmacy@citymarket.com",
+        password_hash: passwordHash,
+        role: "VENDOR",
+        is_active: true,
+      },
+
+      // Bakery
+      {
+        id: SEED_DATA.USERS.VENDOR4,
+        email: "bakery@citymarket.com",
+        password_hash: passwordHash,
+        role: "VENDOR",
+        is_active: true,
+      },
+
       {
         id: SEED_DATA.USERS.COURIER,
         email: "courier@citymarket.com",

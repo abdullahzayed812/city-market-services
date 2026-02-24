@@ -16,27 +16,46 @@ const seedDb = async () => {
   try {
     const vendors = [
       {
-        id: SEED_DATA.VENDORS.BEST_BURGER,
+        id: SEED_DATA.VENDORS.SUPER_MARKET_1,
         user_id: SEED_DATA.USERS.VENDOR1,
-        shop_name: "Best Burger",
-        shop_description: "Delicious burgers and fries",
-        phone: "+201000000001",
-        address: "456 Food St, Borg El Arab",
+        shop_name: "El Borg Supermarket",
+        shop_description: "Medium size supermarket covering all household essentials",
+        phone: "+201111111111",
+        address: "District 1, Borg El Arab",
+        status: ShopStatus.OPEN,
+        commission_rate: 8.0,
+      },
+      {
+        id: SEED_DATA.VENDORS.SUPER_MARKET_2,
+        user_id: SEED_DATA.USERS.VENDOR2,
+        shop_name: "Family Market",
+        shop_description: "Local grocery market for daily needs",
+        phone: "+201111111112",
+        address: "District 2, Borg El Arab",
+        status: ShopStatus.OPEN,
+        commission_rate: 8.0,
+      },
+      {
+        id: SEED_DATA.VENDORS.PHARMACY,
+        user_id: SEED_DATA.USERS.VENDOR3,
+        shop_name: "El Borg Pharmacy",
+        shop_description: "OTC medicine and personal care products",
+        phone: "+201111111113",
+        address: "Main Street, Borg El Arab",
         status: ShopStatus.OPEN,
         commission_rate: 10.0,
       },
       {
-        id: SEED_DATA.VENDORS.PIZZA_PALACE,
-        user_id: SEED_DATA.USERS.VENDOR2,
-        shop_name: "Pizza Palace",
-        shop_description: "Authentic Italian pizzas",
-        phone: "+201000000002",
-        address: "789 Pizza Ave, Alexandria",
+        id: SEED_DATA.VENDORS.BAKERY,
+        user_id: SEED_DATA.USERS.VENDOR4,
+        shop_name: "El Borg Bakery",
+        shop_description: "Fresh bread and baked goods daily",
+        phone: "+201111111114",
+        address: "Near City Center, Borg El Arab",
         status: ShopStatus.OPEN,
-        commission_rate: 12.0,
+        commission_rate: 7.0,
       },
     ];
-
     for (const vendor of vendors) {
       await connection.execute(
         "INSERT IGNORE INTO vendors (id, user_id, shop_name, shop_description, phone, address, status, commission_rate) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
@@ -52,11 +71,25 @@ const seedDb = async () => {
         ]
       );
 
-      // Working hours (Mon-Sun: 9AM - 10PM)
       for (let day = 0; day < 7; day++) {
+        let openTime = "09:00:00";
+        let closeTime = "22:00:00";
+
+        // Pharmacy opens earlier
+        if (vendor.id === SEED_DATA.VENDORS.PHARMACY) {
+          openTime = "08:00:00";
+          closeTime = "23:00:00";
+        }
+
+        // Bakery opens very early
+        if (vendor.id === SEED_DATA.VENDORS.BAKERY) {
+          openTime = "06:00:00";
+          closeTime = "18:00:00";
+        }
+
         await connection.execute(
           "INSERT IGNORE INTO working_hours (id, vendor_id, day_of_week, open_time, close_time, is_open) VALUES (?, ?, ?, ?, ?, ?)",
-          [randomUUID(), vendor.id, day, "09:00:00", "22:00:00", true]
+          [randomUUID(), vendor.id, day, openTime, closeTime, true]
         );
       }
     }

@@ -642,6 +642,26 @@ export class OrderService {
           timestamp: new Date(),
           payload: { customerOrderId: co.id, customerId: co.customerId },
         });
+
+        // Fetch all vendor orders for this customer order and cancel them
+        const relatedVendorOrders = await this.vendorOrderRepo.findByCustomerOrder(co.id, connection);
+        for (const rvo of relatedVendorOrders) {
+          if (rvo.status !== VendorOrderStatus.CANCELLED) {
+            await this.vendorOrderRepo.updateStatus(rvo.id, VendorOrderStatus.CANCELLED, connection);
+            await this.recordStatusChange(
+              { vendorOrderId: rvo.id },
+              VendorOrderStatus.CANCELLED,
+              "Customer order cancelled due to rejected proposal",
+              connection
+            );
+            eventsToPublish.push({
+              id: randomUUID(),
+              type: EventType.VENDOR_ORDER_CANCELLED,
+              timestamp: new Date(),
+              payload: { vendorOrderId: rvo.id, customerOrderId: co.id, vendorId: rvo.vendorId },
+            });
+          }
+        }
       }
 
       await this.db.commit(connection);
