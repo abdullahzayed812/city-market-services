@@ -5,7 +5,7 @@ import { AuthenticatedRequest } from "@city-market/shared/node";
 import FormData from "form-data";
 
 export class AdminController {
-  constructor(private adminService: AdminService) { }
+  constructor(private adminService: AdminService) {}
 
   getDashboard = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
@@ -85,7 +85,8 @@ export class AdminController {
     try {
       const page = parseInt(req.query.page as string) || 1;
       const limit = parseInt(req.query.limit as string) || 50;
-      const users = await this.adminService.getAllUsers(page, limit, req.user!.userId);
+      const role = req.query.role as string;
+      const users = await this.adminService.getAllUsers(page, limit, req.user!.userId, role);
       res.json(users);
     } catch (error) {
       next(error);
@@ -128,6 +129,25 @@ export class AdminController {
       const { id } = req.params;
       const { status } = req.body;
       const result = await this.adminService.updateVendorStatus(id, status, req.user!.userId);
+      res.json(result);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  uploadVendorImage = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      if (!req.file) {
+        throw new Error("No file uploaded");
+      }
+
+      const formData = new FormData();
+      formData.append("image", req.file.buffer, {
+        filename: req.file.originalname,
+        contentType: req.file.mimetype,
+      });
+
+      const result = await this.adminService.uploadVendorImage(req.params.id, formData, req.user!.userId);
       res.json(result);
     } catch (error) {
       next(error);
@@ -243,6 +263,65 @@ export class AdminController {
       });
 
       const result = await this.adminService.uploadCategoryIcon(req.params.id, formData, req.user!.userId);
+      res.json(result);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  // Product Management
+  getAllProducts = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 20;
+      const categoryId = req.query.categoryId as string;
+      const result = await this.adminService.getAllProducts(page, limit, req.user!.userId, categoryId);
+      res.json(result);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  createProduct = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      const result = await this.adminService.createProduct(req.body, req.user!.userId);
+      res.json(result);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  updateProduct = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      const result = await this.adminService.updateProduct(req.params.id, req.body, req.user!.userId);
+      res.json(result);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  deleteProduct = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      const result = await this.adminService.deleteProduct(req.params.id, req.user!.userId);
+      res.json(result);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  uploadProductImage = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      if (!req.file) {
+        throw new Error("No file uploaded");
+      }
+
+      const formData = new FormData();
+      formData.append("image", req.file.buffer, {
+        filename: req.file.originalname,
+        contentType: req.file.mimetype,
+      });
+
+      const result = await this.adminService.uploadProductImage(req.params.id, formData, req.user!.userId);
       res.json(result);
     } catch (error) {
       next(error);

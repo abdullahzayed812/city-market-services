@@ -1,5 +1,6 @@
 import { ServiceClient } from "../../infrastructure/http/service-client";
 import { Logger } from "@city-market/shared/node";
+import FormData from "form-data";
 
 export interface DashboardStats {
   totalOrders: number;
@@ -64,8 +65,8 @@ export class AdminService {
     return this.serviceClient.deactivateCourier(courierId, userId); // Passed userId
   }
 
-  async getAllUsers(page: number = 1, limit: number = 50, userId?: string) { // Changed to userId
-    return this.serviceClient.getAllUsers(page, limit, userId); // Passed userId
+  async getAllUsers(page: number = 1, limit: number = 50, userId?: string, role?: string) { // Changed to userId
+    return this.serviceClient.getAllUsers(page, limit, userId, role); // Passed userId
   }
 
   async getUserById(id: string, userId?: string) { // Changed to userId
@@ -82,6 +83,11 @@ export class AdminService {
 
   async updateVendorStatus(id: string, status: string, userId?: string) { // Changed to userId
     return this.serviceClient.updateVendorStatus(id, status, userId); // Passed userId
+  }
+
+  async uploadVendorImage(id: string, formData: FormData, userId?: string) {
+    Logger.info(`Uploading image for vendor ${id}`);
+    return this.serviceClient.uploadVendorImage(id, formData, userId);
   }
 
   async getOrderById(id: string, userId?: string) { // Changed to userId
@@ -141,5 +147,27 @@ export class AdminService {
 
   async uploadCategoryIcon(id: string, formData: any, userId?: string) {
     return this.serviceClient.uploadCategoryIcon(id, formData, userId);
+  }
+
+  // Product Management
+  async getAllProducts(page: number = 1, limit: number = 20, userId?: string, categoryId?: string) {
+    return this.serviceClient.getAllProducts(page, limit, userId, categoryId);
+  }
+
+  async createProduct(data: any, userId?: string) {
+    return this.serviceClient.createProduct(data, userId);
+  }
+
+  async updateProduct(id: string, data: any, userId?: string) {
+    return this.serviceClient.updateProduct(id, data, userId);
+  }
+
+  async deleteProduct(id: string, userId?: string) {
+    return this.serviceClient.deleteProduct(id, userId);
+  }
+
+  async uploadProductImage(id: string, formData: FormData, userId?: string) {
+    Logger.info(`Uploading image for product ${id}`);
+    return this.serviceClient.uploadProductImage(id, formData, userId);
   }
 }

@@ -98,8 +98,11 @@ export class AuthService {
     await this.refreshTokenRepo.deleteByUserId(userId);
   }
 
-  async getUsers(): Promise<User[]> {
-    return this.userRepo.findAll();
+  async getUsers(page: number = 1, limit: number = 50, role?: string): Promise<{ data: User[], total: number }> {
+    const offset = (page - 1) * limit;
+    const users = await this.userRepo.findAll(limit, offset, role);
+    const total = await this.userRepo.countAll(role);
+    return { data: users, total };
   }
 
   async getUserById(id: string): Promise<User | null> {

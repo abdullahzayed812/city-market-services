@@ -3,5 +3,6 @@ export interface Category {
   name: string;
   description?: string;
   iconUrl?: string;
+  color?: string;
   createdAt: Date;
 }

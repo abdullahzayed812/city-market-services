@@ -11,12 +11,13 @@ export class CategoryRepository implements ICategoryRepository {
   }
 
   async create(category: Category): Promise<Category> {
-    const query = "INSERT INTO categories (id, name, description, icon_url) VALUES (?, ?, ?, ?)";
+    const query = "INSERT INTO categories (id, name, description, icon_url, color) VALUES (?, ?, ?, ?, ?)";
     await this.pool.execute(query, [
       category.id,
       category.name,
       category.description || null,
       category.iconUrl || null,
+      category.color || null,
     ]);
     return category;
   }
@@ -32,7 +33,6 @@ export class CategoryRepository implements ICategoryRepository {
     const [rows] = await this.pool.execute<RowDataPacket[]>(query);
     return rows.map((row) => this.mapToEntity(row));
   }
-
   async update(id: string, data: Partial<Category>): Promise<void> {
     const fields: string[] = [];
     const values: any[] = [];
@@ -48,6 +48,10 @@ export class CategoryRepository implements ICategoryRepository {
     if (data.iconUrl !== undefined) {
       fields.push("icon_url = ?");
       values.push(data.iconUrl);
+    }
+    if (data.color !== undefined) {
+      fields.push("color = ?");
+      values.push(data.color);
     }
 
     if (fields.length === 0) return;
@@ -68,6 +72,7 @@ export class CategoryRepository implements ICategoryRepository {
       name: row.name,
       description: row.description,
       iconUrl: row.icon_url,
+      color: row.color,
       createdAt: row.created_at,
     };
   }

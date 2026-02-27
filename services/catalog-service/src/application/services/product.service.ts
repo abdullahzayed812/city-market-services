@@ -10,6 +10,19 @@ import { Logger } from "@city-market/shared/node";
 export class ProductService {
   constructor(private productRepo: IProductRepository) { }
 
+  async getAllProducts(page: number = 1, limit: number = 20, categoryId?: string): Promise<{ products: Product[]; total: number }> {
+    const offset = (page - 1) * limit;
+    if (categoryId) {
+      const filter: ProductFilter = { categoryId };
+      const products = await this.productRepo.findByFilter(filter, limit, offset);
+      const total = await this.productRepo.countByFilter(filter);
+      return { products, total };
+    }
+    const products = await this.productRepo.findAll(limit, offset);
+    const total = await this.productRepo.countAll();
+    return { products, total };
+  }
+
   async createProduct(dto: CreateProductDto): Promise<Product> {
     if (dto.price <= 0) {
       throw new ValidationError("Price must be greater than 0");

@@ -10,6 +10,7 @@ export interface CreateCategoryDto {
   name: string;
   description?: string;
   iconUrl?: string;
+  color?: string;
 }
 
 export class CategoryService {
@@ -21,6 +22,7 @@ export class CategoryService {
       name: dto.name,
       description: dto.description,
       iconUrl: dto.iconUrl,
+      color: dto.color,
       createdAt: new Date(),
     };
 
@@ -47,7 +49,6 @@ export class CategoryService {
   async updateCategoryIcon(id: string, iconUrl: string): Promise<void> {
     const category = await this.getCategoryById(id);
 
-    // Delete old icon if it exists
     if (category.iconUrl) {
       try {
         const oldIconPath = path.join(process.cwd(), category.iconUrl.replace("/catalog", ""));

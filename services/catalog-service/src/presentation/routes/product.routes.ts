@@ -6,6 +6,7 @@ export const createProductRoutes = (controller: ProductController): Router => {
   const router = Router();
 
   router.post("/products", controller.create);
+  router.get("/products", controller.getAll);
   router.get("/products/search", controller.search);
   router.get("/products/vendor/:vendorId", controller.getByVendor);
   router.get("/products/category/:categoryId", controller.getByCategory);

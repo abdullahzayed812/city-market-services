@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { adminApi } from "@/services/api/admin-api";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Plus, Pencil, Trash2, Upload } from "lucide-react";
 import { type Category } from "@city-market/shared";
+import { useAdminProducts } from "@/hooks/useAdminProducts";
 
 const CategoriesManagement: React.FC = () => {
   const { t } = useTranslation();
@@ -18,13 +19,7 @@ const CategoriesManagement: React.FC = () => {
   const [formData, setFormData] = useState({ name: "", description: "" });
   const [uploadingId, setUploadingId] = useState<string | null>(null);
 
-  const { data: categories, isLoading } = useQuery({
-    queryKey: ["categories"],
-    queryFn: async () => {
-      const response = await adminApi.getCategories();
-      return response.data.data;
-    },
-  });
+  const { categories, isLoadingCategories } = useAdminProducts();
 
   const createMutation = useMutation({
     mutationFn: adminApi.createCategory,
@@ -83,7 +78,7 @@ const CategoriesManagement: React.FC = () => {
     }
   };
 
-  if (isLoading) return <div>{t("common.loading")}</div>;
+  if (isLoadingCategories) return <div>{t("common.loading")}</div>;
 
   return (
     <div className="space-y-6">
@@ -154,7 +149,10 @@ const CategoriesManagement: React.FC = () => {
                   <div className="flex items-center space-x-2">
                     {category.iconUrl ? (
                       <img
-                        src={`${import.meta.env.VITE_API_URL || `${window.location.protocol}//${window.location.hostname}:3000/api/v1`}${category.iconUrl}`}
+                        src={`${
+                          import.meta.env.VITE_API_URL ||
+                          `${window.location.protocol}//${window.location.hostname}:3000/api/v1`
+                        }${category.iconUrl}`}
                         alt={category.name}
                         className="h-10 w-10 object-contain rounded border p-1"
                         onError={(e) => {

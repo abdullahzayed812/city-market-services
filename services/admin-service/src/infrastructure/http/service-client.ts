@@ -10,7 +10,7 @@ export class ServiceClient {
     private deliveryServiceUrl: string,
     private userServiceUrl: string,
     private authServiceUrl: string,
-    private catalogServiceUrl: string
+    private catalogServiceUrl: string,
   ) {
     this.axiosInstance = axios.create(); // Create base instance; headers will be dynamically added
   }
@@ -35,10 +35,10 @@ export class ServiceClient {
     return response.data;
   }
 
-  async getAllUsers(page: number = 1, limit: number = 50, userId?: string) {
+  async getAllUsers(page: number = 1, limit: number = 50, userId?: string, role?: string) {
     const config = await this.getRequestConfig(userId);
     const response = await this.axiosInstance.get(`${this.authServiceUrl}/users`, {
-      params: { page, limit },
+      params: { page, limit, role },
       ...config,
     });
     return response.data;
@@ -59,7 +59,7 @@ export class ServiceClient {
     const response = await this.axiosInstance.patch(
       `${this.vendorServiceUrl}/${vendorId}/commission`,
       { rate },
-      config
+      config,
     );
     return response.data;
   }
@@ -69,7 +69,7 @@ export class ServiceClient {
     const response = await this.axiosInstance.patch(
       `${this.vendorServiceUrl}/${vendorId}/status`,
       { status: "SUSPENDED" },
-      config
+      config,
     );
     return response.data;
   }
@@ -88,7 +88,7 @@ export class ServiceClient {
     const response = await this.axiosInstance.patch(
       `${this.deliveryServiceUrl}/couriers/${courierId}/deactivate`,
       null,
-      config
+      config,
     );
     return response.data;
   }
@@ -114,6 +114,18 @@ export class ServiceClient {
   async updateVendorStatus(id: string, status: string, userId?: string) {
     const config = await this.getRequestConfig(userId);
     const response = await this.axiosInstance.patch(`${this.vendorServiceUrl}/${id}/status`, { status }, config);
+    return response.data;
+  }
+
+  async uploadVendorImage(id: string, formData: any, userId?: string) {
+    const config = await this.getRequestConfig(userId);
+    const response = await this.axiosInstance.post(`${this.vendorServiceUrl}/${id}/image`, formData, {
+      ...config,
+      headers: {
+        ...config.headers,
+        ...(formData.getHeaders?.() || {}),
+      },
+    });
     return response.data;
   }
 
@@ -178,7 +190,47 @@ export class ServiceClient {
       ...config,
       headers: {
         ...config.headers,
-        ...formData.getHeaders?.() || {}, // Handle form-data headers if it's from form-data package or standard
+        ...(formData.getHeaders?.() || {}), // Handle form-data headers if it's from form-data package or standard
+      },
+    });
+    return response.data;
+  }
+
+  // Product Management
+  async getAllProducts(page: number = 1, limit: number = 20, userId?: string, categoryId?: string) {
+    const config = await this.getRequestConfig(userId);
+    const response = await this.axiosInstance.get(`${this.catalogServiceUrl}/products`, {
+      params: { page, limit, categoryId },
+      ...config,
+    });
+    return response.data;
+  }
+
+  async createProduct(data: any, userId?: string) {
+    const config = await this.getRequestConfig(userId);
+    const response = await this.axiosInstance.post(`${this.catalogServiceUrl}/products`, data, config);
+    return response.data;
+  }
+
+  async updateProduct(id: string, data: any, userId?: string) {
+    const config = await this.getRequestConfig(userId);
+    const response = await this.axiosInstance.put(`${this.catalogServiceUrl}/products/${id}`, data, config);
+    return response.data;
+  }
+
+  async deleteProduct(id: string, userId?: string) {
+    const config = await this.getRequestConfig(userId);
+    const response = await this.axiosInstance.delete(`${this.catalogServiceUrl}/products/${id}`, config);
+    return response.data;
+  }
+
+  async uploadProductImage(id: string, formData: any, userId?: string) {
+    const config = await this.getRequestConfig(userId);
+    const response = await this.axiosInstance.post(`${this.catalogServiceUrl}/products/${id}/image`, formData, {
+      ...config,
+      headers: {
+        ...config.headers,
+        ...(formData.getHeaders?.() || {}),
       },
     });
     return response.data;

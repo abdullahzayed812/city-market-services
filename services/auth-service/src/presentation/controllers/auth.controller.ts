@@ -59,10 +59,13 @@ export class AuthController {
     }
   };
 
-  getUsers = async (_req: Request, res: Response, next: NextFunction) => {
+  getUsers = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const users = await this.authService.getUsers();
-      res.json(ApiResponse.success(users, "Users retrieved successfully"));
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 50;
+      const role = req.query.role as string;
+      const result = await this.authService.getUsers(page, limit, role);
+      res.json(ApiResponse.success(result, "Users retrieved successfully"));
     } catch (error) {
       next(error);
     }

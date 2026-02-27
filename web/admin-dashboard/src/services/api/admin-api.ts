@@ -15,6 +15,8 @@ import {
   type PayoutsReport,
   type Category,
   type CreateCategoryDto,
+  type Product,
+  type CreateProductDto,
 } from "@city-market/shared";
 
 export const adminApi = {
@@ -34,6 +36,13 @@ export const adminApi = {
     id: string,
     body: { status: ShopStatus } // Use inline type for update status
   ) => axiosInstance.patch<ApiResponse<null>>(`/admin/vendors/${id}/status`, body),
+  uploadVendorImage: (id: string, file: File) => {
+    const formData = new FormData();
+    formData.append("image", file); // Use "image" as the field name
+    return axiosInstance.post<ApiResponse<{ imageUrl: string }>>(`/admin/vendors/${id}/image`, formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+  },
 
   // Orders Management
   getOrders: () => axiosInstance.get<ApiResponse<CustomerOrder[]>>("/admin/orders"),
@@ -60,6 +69,26 @@ export const adminApi = {
     const formData = new FormData();
     formData.append("icon", file);
     return axiosInstance.post<ApiResponse<{ iconUrl: string }>>(`/admin/categories/${id}/icon`, formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+  },
+
+  // Products Management
+  getProducts: async (page: number, limit: number, categoryId?: string): Promise<{ data: Product[]; hasMore: boolean }> => {
+    const response = await axiosInstance.get<ApiResponse<{ data: Product[]; total: number; page: number; limit: number }>>("/admin/products", {
+      params: { page, limit, categoryId },
+    });
+    const { data, total } = response.data.data;
+    const hasMore = (page * limit) < total;
+    return { data, hasMore };
+  },
+  createProduct: (body: CreateProductDto) => axiosInstance.post<ApiResponse<Product>>("/admin/products", body),
+  updateProduct: (id: string, body: Partial<Product>) => axiosInstance.put<ApiResponse<null>>(`/admin/products/${id}`, body),
+  deleteProduct: (id: string) => axiosInstance.delete<ApiResponse<null>>(`/admin/products/${id}`),
+  uploadProductImage: (id: string, file: File) => {
+    const formData = new FormData();
+    formData.append("image", file); // Use "image" as the field name as per vendor-service upload
+    return axiosInstance.post<ApiResponse<{ imageUrl: string }>>(`/admin/products/${id}/image`, formData, {
       headers: { "Content-Type": "multipart/form-data" },
     });
   },

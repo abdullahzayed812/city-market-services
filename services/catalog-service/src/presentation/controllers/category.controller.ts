@@ -3,7 +3,7 @@ import { CategoryService } from "../../application/services/category.service";
 import { ApiResponse } from "@city-market/shared";
 
 export class CategoryController {
-  constructor(private categoryService: CategoryService) { }
+  constructor(private categoryService: CategoryService) {}
 
   create = async (req: Request, res: Response, next: NextFunction) => {
     try {

@@ -3,6 +3,9 @@ import { ProductFilter } from "../dto/product.dto";
 
 export interface IProductRepository {
   create(product: Product): Promise<Product>;
+  findAll(limit: number, offset: number): Promise<Product[]>;
+  countAll(): Promise<number>;
+  countByFilter(filter: ProductFilter): Promise<number>;
   findById(id: string): Promise<Product | null>;
   findByVendor(vendorId: string, limit: number, offset: number): Promise<Product[]>;
   findByCategory(categoryId: string, limit: number, offset: number): Promise<Product[]>;

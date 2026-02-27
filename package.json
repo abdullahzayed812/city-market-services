@@ -7,8 +7,7 @@
     "shared",
     "api-gateway",
     "services/*",
-    "web/*",
-    "mobile/*"
+    "web/*"
   ],
   "scripts": {
     "install:all": "npm install && npm run install:shared && npm run install:services",

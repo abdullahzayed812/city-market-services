@@ -18,6 +18,8 @@ export interface Delivery {
   pickedUpAt?: Date;
   deliveredAt?: Date;
   notes?: string;
+  courierName?: string;
+  courierPhone?: string;
   createdAt: Date;
   updatedAt: Date;
 }

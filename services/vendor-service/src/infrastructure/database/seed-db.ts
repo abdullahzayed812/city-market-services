@@ -18,8 +18,8 @@ const seedDb = async () => {
       {
         id: SEED_DATA.VENDORS.SUPER_MARKET_1,
         user_id: SEED_DATA.USERS.VENDOR1,
-        shop_name: "El Borg Supermarket",
-        shop_description: "Medium size supermarket covering all household essentials",
+        shop_name: "سوبر ماركت البرج",
+        shop_description: "سوبر ماركت متوسط الحجم يغطي جميع المستلزمات المنزلية",
         phone: "+201111111111",
         address: "District 1, Borg El Arab",
         status: ShopStatus.OPEN,
@@ -28,8 +28,8 @@ const seedDb = async () => {
       {
         id: SEED_DATA.VENDORS.SUPER_MARKET_2,
         user_id: SEED_DATA.USERS.VENDOR2,
-        shop_name: "Family Market",
-        shop_description: "Local grocery market for daily needs",
+        shop_name: "سوق العائلة",
+        shop_description: "سوق بقالة محلي للاحتياجات اليومية",
         phone: "+201111111112",
         address: "District 2, Borg El Arab",
         status: ShopStatus.OPEN,
@@ -38,8 +38,8 @@ const seedDb = async () => {
       {
         id: SEED_DATA.VENDORS.PHARMACY,
         user_id: SEED_DATA.USERS.VENDOR3,
-        shop_name: "El Borg Pharmacy",
-        shop_description: "OTC medicine and personal care products",
+        shop_name: "صيدلية البرج",
+        shop_description: "أدوية بدون وصفة ومنتجات العناية الشخصية",
         phone: "+201111111113",
         address: "Main Street, Borg El Arab",
         status: ShopStatus.OPEN,
@@ -48,8 +48,8 @@ const seedDb = async () => {
       {
         id: SEED_DATA.VENDORS.BAKERY,
         user_id: SEED_DATA.USERS.VENDOR4,
-        shop_name: "El Borg Bakery",
-        shop_description: "Fresh bread and baked goods daily",
+        shop_name: "مخبز البرج",
+        shop_description: "خبز طازج ومخبوزات يومية",
         phone: "+201111111114",
         address: "Near City Center, Borg El Arab",
         status: ShopStatus.OPEN,

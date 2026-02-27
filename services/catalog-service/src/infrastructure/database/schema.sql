@@ -3,6 +3,7 @@ CREATE TABLE categories (
   name VARCHAR(100) NOT NULL,
   description TEXT,
   icon_url VARCHAR(500),
+  color VARCHAR(16),
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   INDEX idx_name (name)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

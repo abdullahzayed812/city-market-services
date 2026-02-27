@@ -6,10 +6,13 @@ import OrdersManagement from "./pages/OrdersManagement.tsx";
 import CouriersManagement from "./pages/CouriersManagement.tsx";
 import FinancialOverview from "./pages/FinancialOverview.tsx";
 import CategoriesManagement from "./pages/CategoriesManagement.tsx";
+import VendorsManagement from "./pages/VendorsManagement.tsx";
+import ProductsManagement from "./pages/ProductsManagement.tsx";
 import LoginPage from "./pages/LoginPage.tsx";
 import ProtectedRoute from "./components/ProtectedRoute.tsx";
 import { AuthProvider } from "./components/AuthProvider.tsx";
 import { SocketProvider } from "./contexts/SocketContext.tsx";
+import { Toaster } from "@/components/ui/toaster"; // Import Toaster
 
 function App() {
   return (
@@ -28,6 +31,8 @@ function App() {
             >
               <Route index element={<Dashboard />} />
               <Route path="users" element={<UsersManagement />} />
+              <Route path="vendors" element={<VendorsManagement />} />
+              <Route path="products" element={<ProductsManagement />} />
               <Route path="orders" element={<OrdersManagement />} />
               <Route path="couriers" element={<CouriersManagement />} />
               <Route path="revenue" element={<FinancialOverview />} />
@@ -37,6 +42,7 @@ function App() {
           </Routes>
         </Router>
       </SocketProvider>
+      <Toaster /> {/* Render Toaster here */}
     </AuthProvider>
   );
 }

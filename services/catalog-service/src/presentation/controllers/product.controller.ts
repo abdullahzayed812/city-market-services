@@ -7,6 +7,25 @@ import { AuthenticatedRequest } from "@city-market/shared/node";
 export class ProductController {
   constructor(private productService: ProductService) {}
 
+  getAll = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 20;
+      const categoryId = req.query.categoryId as string;
+      const { products, total } = await this.productService.getAllProducts(page, limit, categoryId);
+      res.json(
+        ApiResponse.success({
+          data: products,
+          total,
+          page,
+          limit,
+        }),
+      );
+    } catch (error) {
+      next(error);
+    }
+  };
+
   create = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
       const product = await this.productService.createProduct(req.body);

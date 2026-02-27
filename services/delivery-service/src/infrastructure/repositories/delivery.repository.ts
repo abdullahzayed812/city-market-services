@@ -52,7 +52,12 @@ export class DeliveryRepository implements IDeliveryRepository {
 
   async findById(id: string, connection?: PoolConnection): Promise<Delivery | null> {
     const conn = connection || this.pool;
-    const query = "SELECT * FROM deliveries WHERE id = ?";
+    const query = `
+      SELECT d.*, c.full_name as courier_name, c.phone as courier_phone 
+      FROM deliveries d
+      LEFT JOIN couriers c ON d.courier_id = c.id
+      WHERE d.id = ?
+    `;
     const [rows] = await conn.execute<RowDataPacket[]>(query, [id]);
     if (rows.length === 0) return null;
 
@@ -63,7 +68,12 @@ export class DeliveryRepository implements IDeliveryRepository {
 
   async findByCustomerOrderId(customerOrderId: string, connection?: PoolConnection): Promise<Delivery[]> {
     const conn = connection || this.pool;
-    const query = "SELECT * FROM deliveries WHERE customer_order_id = ?";
+    const query = `
+      SELECT d.*, c.full_name as courier_name, c.phone as courier_phone 
+      FROM deliveries d
+      LEFT JOIN couriers c ON d.courier_id = c.id
+      WHERE d.customer_order_id = ?
+    `;
     const [rows] = await conn.execute<RowDataPacket[]>(query, [customerOrderId]);
     
     return this.mapRowsToDeliveries(rows, conn); // Pass connection to helper
@@ -71,7 +81,12 @@ export class DeliveryRepository implements IDeliveryRepository {
 
   async findByCustomerOrderAndVendorOrder(customerOrderId: string, vendorOrderId: string, connection?: PoolConnection): Promise<Delivery | null> {
     const conn = connection || this.pool;
-    const query = "SELECT * FROM deliveries WHERE customer_order_id = ? AND vendor_order_id = ?";
+    const query = `
+      SELECT d.*, c.full_name as courier_name, c.phone as courier_phone 
+      FROM deliveries d
+      LEFT JOIN couriers c ON d.courier_id = c.id
+      WHERE d.customer_order_id = ? AND d.vendor_order_id = ?
+    `;
     const [rows] = await conn.execute<RowDataPacket[]>(query, [customerOrderId, vendorOrderId]);
     if (rows.length === 0) return null;
 
@@ -83,9 +98,11 @@ export class DeliveryRepository implements IDeliveryRepository {
   async findByCourier(courierId: string, limit: number, offset: number, connection?: PoolConnection): Promise<Delivery[]> {
     const conn = connection || this.pool;
     const query = `
-      SELECT * FROM deliveries 
-      WHERE courier_id = ? 
-      ORDER BY created_at DESC 
+      SELECT d.*, c.full_name as courier_name, c.phone as courier_phone 
+      FROM deliveries d
+      LEFT JOIN couriers c ON d.courier_id = c.id
+      WHERE d.courier_id = ? 
+      ORDER BY d.created_at DESC 
       LIMIT ? OFFSET ?
     `;
     const [rows] = await conn.query<RowDataPacket[]>(query, [courierId, limit, offset]);
@@ -94,21 +111,39 @@ export class DeliveryRepository implements IDeliveryRepository {
 
   async findPending(connection?: PoolConnection): Promise<Delivery[]> {
     const conn = connection || this.pool;
-    const query = `SELECT * FROM deliveries WHERE status = "${DeliveryStatus.PENDING}" ORDER BY created_at`;
+    const query = `
+      SELECT d.*, c.full_name as courier_name, c.phone as courier_phone 
+      FROM deliveries d
+      LEFT JOIN couriers c ON d.courier_id = c.id
+      WHERE d.status = "${DeliveryStatus.PENDING}" 
+      ORDER BY d.created_at
+    `;
     const [rows] = await conn.execute<RowDataPacket[]>(query);
     return this.mapRowsToDeliveries(rows, conn); // Pass connection to helper
   }
 
   async findByStatus(status: string, connection?: PoolConnection): Promise<Delivery[]> {
     const conn = connection || this.pool;
-    const query = "SELECT * FROM deliveries WHERE status = ? ORDER BY created_at DESC";
+    const query = `
+      SELECT d.*, c.full_name as courier_name, c.phone as courier_phone 
+      FROM deliveries d
+      LEFT JOIN couriers c ON d.courier_id = c.id
+      WHERE d.status = ? 
+      ORDER BY d.created_at DESC
+    `;
     const [rows] = await conn.execute<RowDataPacket[]>(query, [status]);
     return this.mapRowsToDeliveries(rows, conn); // Pass connection to helper
   }
 
   async findAll(limit: number, offset: number, connection?: PoolConnection): Promise<Delivery[]> {
     const conn = connection || this.pool;
-    const query = "SELECT * FROM deliveries ORDER BY created_at DESC LIMIT ? OFFSET ?";
+    const query = `
+      SELECT d.*, c.full_name as courier_name, c.phone as courier_phone 
+      FROM deliveries d
+      LEFT JOIN couriers c ON d.courier_id = c.id
+      ORDER BY d.created_at DESC 
+      LIMIT ? OFFSET ?
+    `;
     const [rows] = await conn.query<RowDataPacket[]>(query, [limit, offset]);
     return this.mapRowsToDeliveries(rows, conn); // Pass connection to helper
   }
@@ -190,6 +225,8 @@ export class DeliveryRepository implements IDeliveryRepository {
       pickedUpAt: row.picked_up_at,
       deliveredAt: row.delivered_at,
       notes: row.notes,
+      courierName: row.courier_name,
+      courierPhone: row.courier_phone,
       createdAt: row.created_at,
       updatedAt: row.updated_at,
     };

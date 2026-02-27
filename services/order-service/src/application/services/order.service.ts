@@ -36,8 +36,8 @@ export class OrderService {
     private catalogClient: CatalogHttpClient,
     private vendorClient: VendorHttpClient,
     private eventBus: RabbitMQBus,
-    private db: Database
-  ) { }
+    private db: Database,
+  ) {}
 
   async createOrder(dto: CreateOrderDto, userId?: string): Promise<OrderWithItems> {
     // Changed to userId
@@ -55,7 +55,7 @@ export class OrderService {
 
       // Fetch product information (external call, not part of DB transaction)
       const productInfos = await Promise.all(
-        dto.items.map((item) => this.catalogClient.getProduct(item.productId, userId)) // Passed userId
+        dto.items.map((item) => this.catalogClient.getProduct(item.productId, userId)), // Passed userId
       );
 
       // Validate products and group by vendor
@@ -142,7 +142,7 @@ export class OrderService {
         { customerOrderId: customerOrder.id },
         CustomerOrderStatus.PENDING_VENDOR_CONFIRMATION,
         undefined,
-        connection
+        connection,
       );
 
       // Create vendor orders and items
@@ -164,7 +164,7 @@ export class OrderService {
           { vendorOrderId: vendorOrder.id },
           VendorOrderStatus.PENDING,
           undefined,
-          connection
+          connection,
         );
 
         const mergedItems = new Map<string, any>();
@@ -195,11 +195,11 @@ export class OrderService {
         });
       }
 
-      // Decrement stock in Catalog Service (external call, if fails, transaction rolls back)
-      for (const item of dto.items) {
-        // This method was modified to throw an error if stock decrement fails
-        await this.catalogClient.checkAndDecrementStock(item.productId, item.quantity, userId); // Passed userId
-      }
+      // // Decrement stock in Catalog Service (external call, if fails, transaction rolls back)
+      // for (const item of dto.items) {
+      //   // This method was modified to throw an error if stock decrement fails
+      //   await this.catalogClient.checkAndDecrementStock(item.productId, item.quantity, userId); // Passed userId
+      // }
 
       // Collect ORDER_CREATED event
       eventsToPublish.push({
@@ -239,9 +239,9 @@ export class OrderService {
     const vendorOrders = await this.vendorOrderRepo.findByCustomerOrder(id);
 
     // Optimize N+1 HTTP Calls by batch-fetching unique vendors
-    const uniqueVendorIds = Array.from(new Set(vendorOrders.map(vo => vo.vendorId)));
+    const uniqueVendorIds = Array.from(new Set(vendorOrders.map((vo) => vo.vendorId)));
     const vendorDetailsArray = await Promise.all(
-      uniqueVendorIds.map(vid => this.vendorClient.getVendor(vid, userId))
+      uniqueVendorIds.map((vid) => this.vendorClient.getVendor(vid, userId)),
     );
     const vendorMap = new Map(uniqueVendorIds.map((vid, i) => [vid, vendorDetailsArray[i]]));
 
@@ -256,7 +256,7 @@ export class OrderService {
           items,
           proposals: proposals.filter((p) => p.status === ProposalStatus.PENDING),
         };
-      })
+      }),
     );
 
     return { order: customerOrder, vendorOrders: vendorOrdersWithItems };
@@ -279,7 +279,7 @@ export class OrderService {
 
   async getVendorOrderById(
     id: string,
-    userId?: string // Changed to userId
+    userId?: string, // Changed to userId
   ): Promise<VendorOrder & { items: VendorOrderItem[]; vendorName: string; proposals: OrderItemProposal[] }> {
     const vo = await this.vendorOrderRepo.findById(id);
     if (!vo) {
@@ -309,7 +309,7 @@ export class OrderService {
       for (let item of dto) {
         // Prevent multiple pending proposals for the same item
         const existingProposals = await this.proposalRepo.findByVendorOrderItem(item.itemId, connection);
-        if (existingProposals.some(p => p.status === ProposalStatus.PENDING)) {
+        if (existingProposals.some((p) => p.status === ProposalStatus.PENDING)) {
           throw new ValidationError(`Vendor order item ${item.itemId} already has a pending proposal.`);
         }
         const proposal = {
@@ -331,7 +331,7 @@ export class OrderService {
         { vendorOrderId },
         VendorOrderStatus.PROPOSAL_SENT,
         `Proposals for vendor order #${vendorOrderId} sent.`,
-        connection
+        connection,
       );
 
       eventsToPublish.push({
@@ -347,7 +347,7 @@ export class OrderService {
         { customerOrderId: vo.customerOrderId },
         CustomerOrderStatus.WAITING_CUSTOMER_DECISION,
         `Wating customer decision for vendor order #${vendorOrderId} and customer order #${vo.customerOrderId}`,
-        connection
+        connection,
       );
 
       await this.db.commit(connection);
@@ -408,7 +408,7 @@ export class OrderService {
     vendorOrderId: string,
     status: VendorOrderStatus,
     notes?: string,
-    skipCustomerSync: boolean = false
+    skipCustomerSync: boolean = false,
   ): Promise<void> {
     let connection: PoolConnection | undefined;
     // const eventsToPublish: any[] = [];
@@ -458,21 +458,7 @@ export class OrderService {
 
       await this.db.commit(connection);
 
-      // // Collect Customer Order status change event
-      // const eventType = this.getEventTypeForCustomerStatus(status);
-      // if (eventType) {
-      //   eventsToPublish.push({
-      //     id: randomUUID(),
-      //     type: eventType,
-      //     timestamp: new Date(),
-      //     payload: { customerOrderId, status, customerId: co.customerId },
-      //   });
-      // }
-
-      // // Emit events after successful commit
-      // for (const event of eventsToPublish) {
-      //   await this.eventBus.publish(event);
-      // }
+      // TODO: Check and decrement the related products stock if the order status been COMPLETED
     } catch (error) {
       if (connection) {
         await this.db.rollback(connection);
@@ -532,7 +518,7 @@ export class OrderService {
           totalAmount: newVendorTotalAmount,
           // Remove status update from here - let syncVendorOrderStatus handle it
         },
-        connection
+        connection,
       );
 
       // 3) Recalculate customer total
@@ -550,7 +536,7 @@ export class OrderService {
           commissionAmount: newCustomerCommissionAmount,
           totalAmount: newCustomerTotalAmount,
         },
-        connection
+        connection,
       );
 
       // 4) Update proposal.status -> ACCEPTED
@@ -634,7 +620,7 @@ export class OrderService {
           { customerOrderId: co.id },
           CustomerOrderStatus.CANCELLED,
           "Proposal rejected & order cancelled",
-          connection
+          connection,
         );
         eventsToPublish.push({
           id: randomUUID(),
@@ -652,7 +638,7 @@ export class OrderService {
               { vendorOrderId: rvo.id },
               VendorOrderStatus.CANCELLED,
               "Customer order cancelled due to rejected proposal",
-              connection
+              connection,
             );
             eventsToPublish.push({
               id: randomUUID(),
@@ -722,7 +708,7 @@ export class OrderService {
         newStatus = CustomerOrderStatus.READY;
       } else if (
         vendorOrders.some(
-          (vo) => vo.status === VendorOrderStatus.CONFIRMED || vo.status === VendorOrderStatus.PROPOSAL_SENT
+          (vo) => vo.status === VendorOrderStatus.CONFIRMED || vo.status === VendorOrderStatus.PROPOSAL_SENT,
         )
       ) {
         newStatus = CustomerOrderStatus.WAITING_CUSTOMER_DECISION;
@@ -834,7 +820,7 @@ export class OrderService {
           { vendorOrderId },
           newStatus,
           `All proposals ${allAccepted ? "accepted" : allRejected ? "rejected" : "processed"}`,
-          conn
+          conn,
         );
 
         const eventType = this.getEventTypeForVendorStatus(newStatus);
@@ -872,7 +858,7 @@ export class OrderService {
     ids: { customerOrderId?: string; vendorOrderId?: string },
     status: CustomerOrderStatus | VendorOrderStatus,
     notes?: string,
-    connection?: PoolConnection
+    connection?: PoolConnection,
   ): Promise<void> {
     const history: OrderStatusHistory = {
       id: randomUUID(),

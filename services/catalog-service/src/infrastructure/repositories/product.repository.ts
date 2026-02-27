@@ -38,6 +38,60 @@ export class ProductRepository implements IProductRepository {
     return rows.length > 0 ? this.mapToEntity(rows[0]) : null;
   }
 
+  async findAll(limit: number, offset: number): Promise<Product[]> {
+    const query = `
+      SELECT 
+        p.*,
+        c.name AS category_name
+      FROM products p
+      LEFT JOIN categories c ON c.id = p.category_id
+      ORDER BY p.created_at DESC, p.id DESC
+      LIMIT ? OFFSET ?
+    `;
+    const [rows] = await this.pool.query<RowDataPacket[]>(query, [limit, offset]);
+    return rows.map((row) => this.mapToEntity(row));
+  }
+
+  async countAll(): Promise<number> {
+    const query = "SELECT COUNT(*) as count FROM products";
+    const [rows] = await this.pool.query<RowDataPacket[]>(query);
+    return rows[0].count;
+  }
+
+  async countByFilter(filter: ProductFilter): Promise<number> {
+    let query = "SELECT COUNT(*) as count FROM products WHERE 1=1";
+    const params: any[] = [];
+
+    if (filter.vendorId) {
+      query += " AND vendor_id = ?";
+      params.push(filter.vendorId);
+    }
+    if (filter.categoryId) {
+      query += " AND category_id = ?";
+      params.push(filter.categoryId);
+    }
+    if (filter.search) {
+      query += " AND (name LIKE ? OR description LIKE ?)";
+      const searchTerm = `%${filter.search}%`;
+      params.push(searchTerm, searchTerm);
+    }
+    if (filter.minPrice !== undefined) {
+      query += " AND price >= ?";
+      params.push(filter.minPrice);
+    }
+    if (filter.maxPrice !== undefined) {
+      query += " AND price <= ?";
+      params.push(filter.maxPrice);
+    }
+    if (filter.available !== undefined) {
+      query += " AND is_available = ?";
+      params.push(filter.available);
+    }
+
+    const [rows] = await this.pool.query<RowDataPacket[]>(query, params);
+    return rows[0].count;
+  }
+
   async findByVendor(vendorId: string, limit: number, offset: number): Promise<Product[]> {
     const query = `
       SELECT 
@@ -46,7 +100,7 @@ export class ProductRepository implements IProductRepository {
       FROM products p
       LEFT JOIN categories c ON c.id = p.category_id
       WHERE p.vendor_id = ?
-      ORDER BY p.created_at DESC
+      ORDER BY p.created_at DESC, p.id DESC
       LIMIT ? OFFSET ?
     `;
     const [rows] = await this.pool.query<RowDataPacket[]>(query, [vendorId, limit, offset]);
@@ -55,9 +109,13 @@ export class ProductRepository implements IProductRepository {
 
   async findByCategory(categoryId: string, limit: number, offset: number): Promise<Product[]> {
     const query = `
-      SELECT * FROM products 
-      WHERE category_id = ? AND is_available = TRUE
-      ORDER BY created_at DESC 
+      SELECT 
+        p.*,
+        c.name AS category_name
+      FROM products p
+      LEFT JOIN categories c ON c.id = p.category_id
+      WHERE p.category_id = ? AND p.is_available = TRUE
+      ORDER BY p.created_at DESC, p.id DESC 
       LIMIT ? OFFSET ?
     `;
     const [rows] = await this.pool.execute<RowDataPacket[]>(query, [categoryId, limit, offset]);
@@ -65,41 +123,48 @@ export class ProductRepository implements IProductRepository {
   }
 
   async findByFilter(filter: ProductFilter, limit: number, offset: number): Promise<Product[]> {
-    let query = "SELECT * FROM products WHERE 1=1";
+    let query = `
+      SELECT 
+        p.*,
+        c.name AS category_name
+      FROM products p
+      LEFT JOIN categories c ON c.id = p.category_id
+      WHERE 1=1
+    `;
     const params: any[] = [];
 
     if (filter.vendorId) {
-      query += " AND vendor_id = ?";
+      query += " AND p.vendor_id = ?";
       params.push(filter.vendorId);
     }
 
     if (filter.categoryId) {
-      query += " AND category_id = ?";
+      query += " AND p.category_id = ?";
       params.push(filter.categoryId);
     }
 
     if (filter.search) {
-      query += " AND (name LIKE ? OR description LIKE ?)";
+      query += " AND (p.name LIKE ? OR p.description LIKE ?)";
       const searchTerm = `%${filter.search}%`;
       params.push(searchTerm, searchTerm);
     }
 
     if (filter.minPrice !== undefined) {
-      query += " AND price >= ?";
+      query += " AND p.price >= ?";
       params.push(filter.minPrice);
     }
 
     if (filter.maxPrice !== undefined) {
-      query += " AND price <= ?";
+      query += " AND p.price <= ?";
       params.push(filter.maxPrice);
     }
 
     if (filter.available !== undefined) {
-      query += " AND is_available = ?";
+      query += " AND p.is_available = ?";
       params.push(filter.available);
     }
 
-    query += " ORDER BY created_at DESC LIMIT ? OFFSET ?";
+    query += " ORDER BY p.created_at DESC, p.id DESC LIMIT ? OFFSET ?";
     params.push(limit, offset);
 
     const [rows] = await this.pool.query<RowDataPacket[]>(query, params);

@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { type UserStatus } from "@city-market/shared";
 import { UserStatus as UserStatusEnum } from "@city-market/shared";
 import { MoreHorizontal, UserCheck, UserX } from "lucide-react";
@@ -25,7 +26,7 @@ const UsersManagement: React.FC = () => {
     queryFn: async () => {
       try {
         const response = await adminApi.getUsers(roleFilter);
-        return response?.data?.data;
+        return response?.data?.data?.data;
       } catch (error) {
         // Mock data
         return [
@@ -37,7 +38,14 @@ const UsersManagement: React.FC = () => {
             role: "customer",
             status: UserStatusEnum.ACTIVE,
           },
-          { id: "2", firstName: "Jane", lastName: "Smith", email: "jane@vendor.com", role: "vendor", status: UserStatusEnum.ACTIVE },
+          {
+            id: "2",
+            firstName: "Jane",
+            lastName: "Smith",
+            email: "jane@vendor.com",
+            role: "vendor",
+            status: UserStatusEnum.ACTIVE,
+          },
           {
             id: "3",
             firstName: "Bob",
@@ -64,19 +72,19 @@ const UsersManagement: React.FC = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold text-gray-800">{t("common.users")}</h2>
-        <div className="flex space-x-2 rtl:space-x-reverse">
-          <Button variant={roleFilter === undefined ? "default" : "outline"} onClick={() => setRoleFilter(undefined)}>
-            {t("common.all")}
-          </Button>
-          <Button variant={roleFilter === "customer" ? "default" : "outline"} onClick={() => setRoleFilter("customer")}>
-            {t("common.customers")}
-          </Button>
-          <Button variant={roleFilter === "vendor" ? "default" : "outline"} onClick={() => setRoleFilter("vendor")}>
-            {t("common.vendors")}
-          </Button>
-          <Button variant={roleFilter === "courier" ? "default" : "outline"} onClick={() => setRoleFilter("courier")}>
-            {t("common.couriers")}
-          </Button>
+        <div className="w-[200px]">
+          <Select value={roleFilter || "all"} onValueChange={(val) => setRoleFilter(val === "all" ? undefined : val)}>
+            <SelectTrigger>
+              <SelectValue placeholder={t("common.filter_by_role", "Filter by Role")} />
+            </SelectTrigger>
+            <SelectContent className="max-h-[300px] overflow-y-auto">
+              <SelectItem value="all">{t("common.all_roles", "All Roles")}</SelectItem>
+              <SelectItem value="customer">{t("common.customers")}</SelectItem>
+              <SelectItem value="vendor">{t("common.vendors")}</SelectItem>
+              <SelectItem value="courier">{t("common.couriers")}</SelectItem>
+              <SelectItem value="admin">{t("common.admins", "Admins")}</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
       </div>
 
@@ -84,7 +92,6 @@ const UsersManagement: React.FC = () => {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>{t("common.name")}</TableHead>
               <TableHead>{t("common.email")}</TableHead>
               <TableHead>{t("common.role")}</TableHead>
               <TableHead>{t("common.status")}</TableHead>
@@ -94,8 +101,7 @@ const UsersManagement: React.FC = () => {
           <TableBody>
             {users?.map((user: any) => (
               <TableRow key={user.id}>
-                <TableCell className="font-medium">{`${user.firstName} ${user.lastName}`}</TableCell>
-                <TableCell>{user.email}</TableCell>
+                <TableCell className="font-medium">{user.email}</TableCell>
                 <TableCell>
                   <Badge variant="outline" className="capitalize">
                     {user.role}

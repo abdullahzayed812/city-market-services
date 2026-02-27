@@ -37,10 +37,33 @@ export class UserRepository implements IUserRepository {
     return this.mapToEntity(rows[0]);
   }
 
-  async findAll(): Promise<User[]> {
-    const query = "SELECT * FROM users";
-    const [rows] = await this.pool.execute<RowDataPacket[]>(query);
+  async findAll(limit: number, offset: number, role?: string): Promise<User[]> {
+    let query = "SELECT * FROM users";
+    const params: any[] = [];
+
+    if (role) {
+      query += " WHERE role = ?";
+      params.push(role);
+    }
+
+    query += " ORDER BY created_at DESC, id DESC LIMIT ? OFFSET ?";
+    params.push(limit, offset);
+
+    const [rows] = await this.pool.query<RowDataPacket[]>(query, params);
     return rows.map(this.mapToEntity);
+  }
+
+  async countAll(role?: string): Promise<number> {
+    let query = "SELECT COUNT(*) as count FROM users";
+    const params: any[] = [];
+
+    if (role) {
+      query += " WHERE role = ?";
+      params.push(role);
+    }
+
+    const [rows] = await this.pool.query<RowDataPacket[]>(query, params);
+    return rows[0].count;
   }
 
   async updateActivity(userId: string, isActive: boolean): Promise<void> {
