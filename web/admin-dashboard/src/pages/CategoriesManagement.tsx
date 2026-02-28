@@ -1,72 +1,67 @@
-import React, { useState } from "react";
+import React, { useState, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { adminApi } from "@/services/api/admin-api";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
+import { Badge } from "@/components/ui/badge";
 import { Plus, Pencil, Trash2, Upload } from "lucide-react";
-import { type Category } from "@city-market/shared";
+import { type Category, CategoryType } from "@city-market/shared";
 import { useAdminProducts } from "@/hooks/useAdminProducts";
+import CategoryFormDialog from "../features/categories/components/CategoryFormDialog";
 
 const CategoriesManagement: React.FC = () => {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
-  const [formData, setFormData] = useState({ name: "", description: "" });
   const [uploadingId, setUploadingId] = useState<string | null>(null);
 
-  const { categories, isLoadingCategories } = useAdminProducts();
+  const { categories, vendors, isLoadingCategories, isLoadingVendors } = useAdminProducts();
 
   const createMutation = useMutation({
     mutationFn: adminApi.createCategory,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["categories"] });
+      queryClient.invalidateQueries({ queryKey: ["adminCategories"] });
       setIsDialogOpen(false);
-      setFormData({ name: "", description: "" });
     },
   });
 
   const updateMutation = useMutation({
     mutationFn: ({ id, data }: { id: string; data: Partial<Category> }) => adminApi.updateCategory(id, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["categories"] });
+      queryClient.invalidateQueries({ queryKey: ["adminCategories"] });
       setIsDialogOpen(false);
       setEditingCategory(null);
-      setFormData({ name: "", description: "" });
     },
   });
 
   const deleteMutation = useMutation({
     mutationFn: adminApi.deleteCategory,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["categories"] });
+      queryClient.invalidateQueries({ queryKey: ["adminCategories"] });
     },
   });
 
   const uploadIconMutation = useMutation({
     mutationFn: ({ id, file }: { id: string; file: File }) => adminApi.uploadCategoryIcon(id, file),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["categories"] });
+      queryClient.invalidateQueries({ queryKey: ["adminCategories"] });
       setUploadingId(null);
     },
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleFormSubmit = (data: any) => {
     if (editingCategory) {
-      updateMutation.mutate({ id: editingCategory.id, data: formData });
+      updateMutation.mutate({ id: editingCategory.id, data });
     } else {
-      createMutation.mutate(formData);
+      createMutation.mutate(data);
     }
   };
 
   const handleEdit = (category: Category) => {
     setEditingCategory(category);
-    setFormData({ name: category.name, description: category.description || "" });
     setIsDialogOpen(true);
   };
 
@@ -78,68 +73,51 @@ const CategoriesManagement: React.FC = () => {
     }
   };
 
-  if (isLoadingCategories) return <div>{t("common.loading")}</div>;
+  const getVendorName = useCallback((vendorId?: string | null) => {
+    if (!vendorId) return "-";
+    const vendor = vendors?.find(v => v.id === vendorId);
+    return vendor ? vendor.shopName : vendorId;
+  }, [vendors]);
+
+  if (isLoadingCategories || isLoadingVendors) return <div className="p-8 text-center">{t("common.loading")}</div>;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 p-6">
       <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold text-gray-800">{t("common.categories")}</h2>
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button
-              onClick={() => {
-                setEditingCategory(null);
-                setFormData({ name: "", description: "" });
-              }}
-            >
-              <Plus className="me-2 h-4 w-4" />
-              {t("common.create_category", "Create Category")}
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>
-                {editingCategory
-                  ? t("common.edit_category", "Edit Category")
-                  : t("common.create_category", "Create Category")}
-              </DialogTitle>
-            </DialogHeader>
-            <form onSubmit={handleSubmit} className="space-y-4 py-4">
-              <div className="space-y-2">
-                <Label htmlFor="name">{t("common.name")}</Label>
-                <Input
-                  id="name"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="description">{t("common.description", "Description")}</Label>
-                <Input
-                  id="description"
-                  value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                />
-              </div>
-              <DialogFooter>
-                <Button type="submit" disabled={createMutation.isPending || updateMutation.isPending}>
-                  {editingCategory ? t("common.update", "Update") : t("common.create", "Create")}
-                </Button>
-              </DialogFooter>
-            </form>
-          </DialogContent>
-        </Dialog>
+        <div>
+          <h2 className="text-2xl font-bold text-gray-800">{t("common.categories")}</h2>
+          <p className="text-gray-500 text-sm">Manage global and vendor-specific categories.</p>
+        </div>
+        <Button
+          onClick={() => {
+            setEditingCategory(null);
+            setIsDialogOpen(true);
+          }}
+        >
+          <Plus className="me-2 h-4 w-4" />
+          {t("common.create_category", "Create Category")}
+        </Button>
       </div>
+
+      <CategoryFormDialog
+        open={isDialogOpen}
+        onOpenChange={setIsDialogOpen}
+        category={editingCategory}
+        vendors={vendors || []}
+        onSubmit={handleFormSubmit}
+        isPending={createMutation.isPending || updateMutation.isPending}
+      />
 
       <div className="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden">
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-[100px]">{t("common.icon", "Icon")}</TableHead>
+              <TableHead className="w-[80px]">{t("common.icon", "Icon")}</TableHead>
               <TableHead>{t("common.name")}</TableHead>
+              <TableHead>{t("common.type", "Type")}</TableHead>
+              <TableHead>{t("common.vendor", "Vendor")}</TableHead>
               <TableHead>{t("common.description", "Description")}</TableHead>
-              <TableHead className="text-right">{t("common.actions")}</TableHead>
+              <TableHead className="text-end">{t("common.actions")}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -147,41 +125,48 @@ const CategoriesManagement: React.FC = () => {
               <TableRow key={category.id}>
                 <TableCell>
                   <div className="flex items-center space-x-2">
-                    {category.iconUrl ? (
-                      <img
-                        src={`${
-                          import.meta.env.VITE_API_URL ||
-                          `${window.location.protocol}//${window.location.hostname}:3000/api/v1`
-                        }${category.iconUrl}`}
-                        alt={category.name}
-                        className="h-10 w-10 object-contain rounded border p-1"
-                        onError={(e) => {
-                          // Fallback or just empty
-                          e.currentTarget.style.display = "none";
-                        }}
-                      />
-                    ) : (
-                      <div className="h-10 w-10 bg-gray-100 rounded flex items-center justify-center text-gray-400">
-                        <Upload size={16} />
-                      </div>
-                    )}
-                    <label className="cursor-pointer">
-                      <Input
-                        type="file"
-                        accept=".svg,.png,.jpg,.jpeg"
-                        className="hidden"
-                        onChange={(e) => handleFileChange(category.id, e)}
-                        disabled={uploadingId === category.id}
-                      />
-                      <div className="p-1 hover:bg-gray-100 rounded text-gray-500">
-                        <Upload className={uploadingId === category.id ? "animate-pulse" : "h-4 w-4"} />
-                      </div>
-                    </label>
+                    <div className="relative group">
+                      {category.iconUrl ? (
+                        <img
+                          src={`${
+                            import.meta.env.VITE_API_URL ||
+                            `${window.location.protocol}//${window.location.hostname}:3000/api/v1`
+                          }${category.iconUrl}`}
+                          alt={category.name}
+                          className="h-10 w-10 object-contain rounded border p-1"
+                          onError={(e) => {
+                            e.currentTarget.style.display = "none";
+                          }}
+                        />
+                      ) : (
+                        <div className="h-10 w-10 bg-gray-100 rounded flex items-center justify-center text-gray-400 border">
+                          <Upload size={16} />
+                        </div>
+                      )}
+                      <label className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer rounded">
+                        <Input
+                          type="file"
+                          accept=".svg,.png,.jpg,.jpeg"
+                          className="hidden"
+                          onChange={(e) => handleFileChange(category.id, e)}
+                          disabled={uploadingId === category.id}
+                        />
+                        <Upload size={14} className="text-white" />
+                      </label>
+                    </div>
                   </div>
                 </TableCell>
                 <TableCell className="font-medium">{category.name}</TableCell>
-                <TableCell className="text-gray-500">{category.description}</TableCell>
-                <TableCell className="text-right space-x-2">
+                <TableCell>
+                  <Badge variant={category.type === CategoryType.GLOBAL ? "default" : "secondary"}>
+                    {category.type || CategoryType.GLOBAL}
+                  </Badge>
+                </TableCell>
+                <TableCell className="text-sm text-gray-600">
+                  {getVendorName(category.vendorId)}
+                </TableCell>
+                <TableCell className="text-gray-500 max-w-[200px] truncate">{category.description}</TableCell>
+                <TableCell className="text-end space-x-1">
                   <Button variant="ghost" size="icon" onClick={() => handleEdit(category)}>
                     <Pencil className="h-4 w-4" />
                   </Button>
@@ -200,6 +185,13 @@ const CategoriesManagement: React.FC = () => {
                 </TableCell>
               </TableRow>
             ))}
+            {(!categories || categories.length === 0) && (
+              <TableRow>
+                <TableCell colSpan={6} className="text-center py-8 text-gray-500">
+                  No categories found.
+                </TableCell>
+              </TableRow>
+            )}
           </TableBody>
         </Table>
       </div>

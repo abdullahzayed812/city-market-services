@@ -97,7 +97,7 @@ const Orders = () => {
               <TableHead>Date</TableHead>
               <TableHead>Customer</TableHead>
               <TableHead>Status</TableHead>
-              <TableHead className="text-right">Amount</TableHead>
+              <TableHead className="text-end">Amount</TableHead>
               <TableHead className="w-[100px]"></TableHead>
             </TableRow>
           </TableHeader>
@@ -119,7 +119,7 @@ const Orders = () => {
                     <TableCell>
                       <Badge className={getStatusColor(order.status)}>{formatStatus(order.status)}</Badge>
                     </TableCell>
-                    <TableCell className="text-right">${order.totalAmount}</TableCell>
+                    <TableCell className="text-end">${order.totalAmount}</TableCell>
                     <TableCell>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
@@ -240,7 +240,7 @@ const Orders = () => {
                                 <TableHead>Product Name</TableHead>
                                 <TableHead>Quantity</TableHead>
                                 <TableHead>Price</TableHead>
-                                <TableHead className="text-right">Total</TableHead>
+                                <TableHead className="text-end">Total</TableHead>
                               </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -249,7 +249,7 @@ const Orders = () => {
                                   <TableCell>{item.productName}</TableCell>
                                   <TableCell>{item.quantity}</TableCell>
                                   <TableCell>${item.unitPrice}</TableCell>
-                                  <TableCell className="text-right">${item.totalPrice}</TableCell>
+                                  <TableCell className="text-end">${item.totalPrice}</TableCell>
                                 </TableRow>
                               ))}
                               {order.items.length === 0 && (

@@ -7,6 +7,7 @@
     "couriers": "المناديب",
     "revenue": "الإيرادات",
     "categories": "الفئات",
+    "products": "المنتجات",
     "settings": "الإعدادات",
     "logout": "تسجيل الخروج",
     "search": "بحث...",
@@ -26,7 +27,6 @@
     "deactivate": "تعطيل",
     "loading": "جاري التحميل...",
     "admin_title": "سيتي ماركت - الإدارة",
-    "products": "المنتجات",
     "image": "الصورة",
     "product": "المنتج",
     "description": "الوصف",
@@ -38,7 +38,26 @@
     "load_more": "تحميل المزيد",
     "category": "الفئة",
     "price": "السعر",
-    "stock": "الكمية"
+    "stock": "الكمية",
+    "update": "تحديث",
+    "create": "إنشاء",
+    "confirm": "تأكيد",
+    "confirm_delete": "هل أنت متأكد أنك تريد الحذف؟",
+    "yes": "نعم",
+    "no": "لا",
+    "icon": "الأيقونة",
+    "type": "النوع",
+    "vendor": "المورد",
+    "global_category": "الفئة العامة",
+    "vendor_category": "فئة المتجر",
+    "none": "لا يوجد"
+  },
+  "auth": {
+    "sign_in": "تسجيل الدخول",
+    "credentials_hint": "أدخل بيانات الاعتماد الخاصة بك للوصول إلى لوحة الإدارة",
+    "password": "كلمة المرور",
+    "protected_by": "محمي بواسطة CityMarket Security",
+    "login_button": "تسجيل الدخول"
   },
   "dashboard": {
     "overview": "نظرة عامة",
@@ -46,22 +65,68 @@
     "total_users": "إجمالي المستخدمين",
     "total_vendors": "إجمالي الموردين",
     "total_couriers": "إجمالي المناديب",
-    "revenue_summary": "ملخص الإيرادات"
+    "revenue_summary": "ملخص الإيرادات",
+    "revenue_chart_placeholder": "مكان مخطط الإيرادات",
+    "recent_activity_placeholder": "مكان النشاط الأخير"
   },
   "products": {
-    "manage_catalog": "إدارة المنتجات في الكتالوج.",
+    "manage_catalog": "إدارة منتجات متجرك.",
     "add_new": "إضافة منتج",
     "add_new_product": "إضافة منتج جديد",
     "select_category": "اختر فئة",
+    "select_global_category": "اختر الفئة العامة",
+    "select_store_category": "اختر فئة المتجر",
+    "select_vendor": "اختر المورد",
+    "select_vendor_first": "اختر المورد أولاً",
     "create_product": "إنشاء منتج",
     "edit_product": "تعديل المنتج",
     "update_product": "تحديث المنتج",
     "view_image": "عرض الصورة",
     "upload_image": "تحميل الصورة",
-    "in_stock": "{{count}} متوفر في المخزون",
-    "out_of_stock": "غير متوفر في المخزون",
     "deactivate": "تعطيل",
     "activate": "تفعيل",
-    "no_products_found": "لم يتم العثور على منتجات."
+    "no_products_found": "لم يتم العثور على منتجات.",
+    "filter_by_category": "تصفية حسب الفئة"
+  },
+  "categories": {
+    "manage": "إدارة الفئات العامة والفئات الخاصة بالموردين.",
+    "create_category": "إنشاء فئة",
+    "edit_category": "تعديل الفئة",
+    "global": "عامة",
+    "vendor": "مورد"
+  },
+  "financial": {
+    "total_revenue": "إجمالي الإيرادات",
+    "platform_commission": "عمولة المنصة",
+    "pending_payouts": "المدفوعات المعلقة",
+    "recent_payouts": "المدفوعات الأخيرة",
+    "payout_id": "رقم الدفعة",
+    "from_last_month": "{{percent}}% من الشهر الماضي",
+    "awaiting_payment": "{{count}} موردين في انتظار الدفع",
+    "amount": "المبلغ",
+    "date": "التاريخ"
+  },
+  "orders": {
+    "order_id": "رقم الطلب",
+    "customer_id": "رقم العميل",
+    "total": "الإجمالي",
+    "details": "تفاصيل الطلب",
+    "info": "معلومات مفصلة لطلب متعدد الموردين",
+    "loading_details": "جاري تحميل التفاصيل...",
+    "vendor_sub_orders": "طلبات الموردين الفرعية",
+    "sub_order_total": "إجمالي الطلب الفرعي",
+    "delivery_address": "عنوان التوصيل",
+    "failed_load": "فشل تحميل تفاصيل الطلب.",
+    "created_at": "تاريخ الإنشاء"
+  },
+  "couriers": {
+    "vehicle": "المركبة",
+    "phone": "الهاتف",
+    "available_couriers": "المناديب المتاحين"
+  },
+  "vendors": {
+    "shop_name": "اسم المتجر",
+    "shop_description": "وصف المتجر",
+    "address": "العنوان"
   }
 }

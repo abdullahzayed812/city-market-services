@@ -14,12 +14,21 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Image as ImageIcon, MoreHorizontal, Plus, Pencil, Trash2, Power, PowerOff, Eye, Upload } from "lucide-react";
+import { Image as ImageIcon, MoreHorizontal, Plus, Pencil, Trash2, Upload } from "lucide-react";
 import ProductImageModal from "@/components/ProductImageModal";
 
 const Products = () => {
   const { t } = useTranslation();
-  const { products, categories, isLoading, createProduct, updateProduct, deleteProduct, uploadImage } = useProducts();
+  const {
+    products,
+    globalCategories,
+    vendorCategories,
+    isLoading,
+    createProduct,
+    updateProduct,
+    deleteProduct,
+    uploadImage,
+  } = useProducts();
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isImageModalOpen, setIsImageModalOpen] = useState(false);
@@ -29,7 +38,8 @@ const Products = () => {
     description: "",
     price: 0,
     stockQuantity: 0,
-    categoryId: "",
+    globalCategoryId: "",
+    vendorCategoryId: "",
   });
   const [editingProduct, setEditingProduct] = useState<any>(null);
 
@@ -41,7 +51,14 @@ const Products = () => {
     createProduct(newProduct, {
       onSuccess: () => {
         setIsAddDialogOpen(false);
-        setNewProduct({ name: "", description: "", price: 0, stockQuantity: 0, categoryId: "" });
+        setNewProduct({
+          name: "",
+          description: "",
+          price: 0,
+          stockQuantity: 0,
+          globalCategoryId: "",
+          vendorCategoryId: "",
+        });
       },
     });
   };
@@ -53,7 +70,8 @@ const Products = () => {
       description: product.description || "",
       price: product.price,
       stockQuantity: product.stockQuantity,
-      categoryId: product.categoryId,
+      globalCategoryId: product.globalCategoryId,
+      vendorCategoryId: product.vendorCategoryId,
     });
     setIsEditDialogOpen(true);
   };
@@ -68,7 +86,8 @@ const Products = () => {
             description: editingProduct.description,
             price: editingProduct.price,
             stockQuantity: editingProduct.stockQuantity,
-            categoryId: editingProduct.categoryId,
+            globalCategoryId: editingProduct.globalCategoryId,
+            vendorCategoryId: editingProduct.vendorCategoryId,
           },
         },
         {
@@ -76,7 +95,7 @@ const Products = () => {
             setIsEditDialogOpen(false);
             setEditingProduct(null);
           },
-        }
+        },
       );
     }
   };
@@ -105,7 +124,7 @@ const Products = () => {
             <DialogHeader>
               <DialogTitle>Add New Product</DialogTitle>
             </DialogHeader>
-            <div className="space-y-4 py-4">
+            <div className="space-y-4 py-4 max-h-[80vh] overflow-y-auto">
               <div className="space-y-2">
                 <Label htmlFor="name">Product Name</Label>
                 <Input
@@ -114,24 +133,46 @@ const Products = () => {
                   onChange={(e) => setNewProduct({ ...newProduct, name: e.target.value })}
                 />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="category">Category</Label>
-                <Select
-                  value={newProduct.categoryId}
-                  onValueChange={(val) => setNewProduct({ ...newProduct, categoryId: val })}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a category" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {categories.map((cat: any) => (
-                      <SelectItem key={cat.id} value={cat.id}>
-                        {cat.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="global-category">Global Category</Label>
+                  <Select
+                    value={newProduct.globalCategoryId}
+                    onValueChange={(val) => setNewProduct({ ...newProduct, globalCategoryId: val })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select global category" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {globalCategories.map((cat: any) => (
+                        <SelectItem key={cat.id} value={cat.id}>
+                          {cat.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="vendor-category">Store Category</Label>
+                  <Select
+                    value={newProduct.vendorCategoryId}
+                    onValueChange={(val) => setNewProduct({ ...newProduct, vendorCategoryId: val })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select store category" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {vendorCategories.map((cat: any) => (
+                        <SelectItem key={cat.id} value={cat.id}>
+                          {cat.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
+
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="price">Price ($)</Label>
@@ -173,7 +214,7 @@ const Products = () => {
               <DialogTitle>Edit Product</DialogTitle>
             </DialogHeader>
             {editingProduct && (
-              <div className="space-y-4 py-4">
+              <div className="space-y-4 py-4 max-h-[80vh] overflow-y-auto">
                 <div className="space-y-2">
                   <Label htmlFor="edit-name">Product Name</Label>
                   <Input
@@ -182,24 +223,46 @@ const Products = () => {
                     onChange={(e) => setEditingProduct({ ...editingProduct, name: e.target.value })}
                   />
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="edit-category">Category</Label>
-                  <Select
-                    value={editingProduct.categoryId}
-                    onValueChange={(val) => setEditingProduct({ ...editingProduct, categoryId: val })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select a category" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {categories.map((cat: any) => (
-                        <SelectItem key={cat.id} value={cat.id}>
-                          {cat.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-global-category">Global Category</Label>
+                    <Select
+                      value={editingProduct.globalCategoryId}
+                      onValueChange={(val) => setEditingProduct({ ...editingProduct, globalCategoryId: val })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select global category" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {globalCategories.map((cat: any) => (
+                          <SelectItem key={cat.id} value={cat.id}>
+                            {cat.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-vendor-category">Store Category</Label>
+                    <Select
+                      value={editingProduct.vendorCategoryId}
+                      onValueChange={(val) => setEditingProduct({ ...editingProduct, vendorCategoryId: val })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select store category" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {vendorCategories.map((cat: any) => (
+                          <SelectItem key={cat.id} value={cat.id}>
+                            {cat.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
+
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="edit-price">Price ($)</Label>
@@ -245,7 +308,8 @@ const Products = () => {
             <TableRow>
               <TableHead className="w-[80px]">Image</TableHead>
               <TableHead>Product</TableHead>
-              <TableHead>Category</TableHead>
+              <TableHead>Global Category</TableHead>
+              <TableHead>Store Category</TableHead>
               <TableHead>Price</TableHead>
               <TableHead>Stock</TableHead>
               <TableHead>Status</TableHead>
@@ -253,7 +317,7 @@ const Products = () => {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {products.map((product: any) => (
+            {products?.map((product: any) => (
               <TableRow key={product.id}>
                 <TableCell>
                   <div className="flex items-center gap-2">
@@ -275,20 +339,6 @@ const Products = () => {
                       )}
                     </div>
                     <div className="flex gap-1">
-                      {product.imageUrl && (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8"
-                          onClick={() => {
-                            setSelectedProduct(product);
-                            setIsImageModalOpen(true);
-                          }}
-                          title="View image"
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                      )}
                       <Label htmlFor={`img-${product.id}`} className="cursor-pointer">
                         <Button
                           variant="ghost"
@@ -314,7 +364,8 @@ const Products = () => {
                   </div>
                 </TableCell>
                 <TableCell className="font-medium">{product.name}</TableCell>
-                <TableCell>{product.categoryName || "Uncategorized"}</TableCell>
+                <TableCell>{product.globalCategoryName || "None"}</TableCell>
+                <TableCell>{product.vendorCategoryName || "None"}</TableCell>
                 <TableCell>${product.price}</TableCell>
                 <TableCell>
                   <span className={product.stockQuantity < 10 ? "text-destructive font-bold" : ""}>
@@ -337,25 +388,6 @@ const Products = () => {
                       <DropdownMenuItem className="gap-2" onClick={() => handleEditProduct(product)}>
                         <Pencil className="h-4 w-4" /> Edit Product
                       </DropdownMenuItem>
-                      <DropdownMenuItem
-                        className="gap-2"
-                        onClick={() =>
-                          updateProduct({
-                            id: product.id,
-                            data: { status: product.status === "active" ? "inactive" : "active" },
-                          })
-                        }
-                      >
-                        {product.status === "active" ? (
-                          <>
-                            <PowerOff className="h-4 w-4" /> Deactivate
-                          </>
-                        ) : (
-                          <>
-                            <Power className="h-4 w-4" /> Activate
-                          </>
-                        )}
-                      </DropdownMenuItem>
                       <DropdownMenuItem className="gap-2 text-destructive" onClick={() => deleteProduct(product.id)}>
                         <Trash2 className="h-4 w-4" /> Delete Product
                       </DropdownMenuItem>
@@ -366,7 +398,7 @@ const Products = () => {
             ))}
             {products.length === 0 && (
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
                   No products found.
                 </TableCell>
               </TableRow>

@@ -150,8 +150,30 @@ export class AdminService {
   }
 
   // Product Management
-  async getAllProducts(page: number = 1, limit: number = 20, userId?: string, categoryId?: string) {
-    return this.serviceClient.getAllProducts(page, limit, userId, categoryId);
+  async getAllProducts(
+    page: number = 1, 
+    limit: number = 20, 
+    userId?: string, 
+    globalCategoryId?: string, 
+    vendorCategoryId?: string
+  ) {
+    const productsData = await this.serviceClient.getAllProducts(page, limit, userId, globalCategoryId, vendorCategoryId);
+    
+    if (productsData.data?.data && productsData.data.data.length > 0) {
+      const vendorIds = [...new Set(productsData.data.data.map((p: any) => p.vendorId))];
+      const vendorsResponse = await this.serviceClient.getVendorsByIds(vendorIds as string[], userId);
+      const vendorsMap = (vendorsResponse.data || []).reduce((acc: any, v: any) => {
+        acc[v.id] = v.shopName;
+        return acc;
+      }, {});
+
+      productsData.data.data = productsData.data.data.map((p: any) => ({
+        ...p,
+        vendorShopName: vendorsMap[p.vendorId] || "Unknown"
+      }));
+    }
+
+    return productsData;
   }
 
   async createProduct(data: any, userId?: string) {

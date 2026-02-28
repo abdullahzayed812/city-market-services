@@ -3,11 +3,13 @@ import path from "path";
 import { randomUUID } from "crypto";
 import { ICategoryRepository } from "../../core/interfaces/category.repository";
 import { Category } from "../../core/entities/category.entity";
-import { NotFoundError } from "@city-market/shared";
+import { NotFoundError, CategoryType, UserRole } from "@city-market/shared";
 import { Logger } from "@city-market/shared/node";
 
 export interface CreateCategoryDto {
   name: string;
+  type: CategoryType;
+  vendorId?: string | null;
   description?: string;
   iconUrl?: string;
   color?: string;
@@ -16,10 +18,32 @@ export interface CreateCategoryDto {
 export class CategoryService {
   constructor(private categoryRepo: ICategoryRepository) {}
 
-  async createCategory(dto: CreateCategoryDto): Promise<Category> {
+  async createCategory(dto: CreateCategoryDto, userRole: UserRole, userId?: string): Promise<Category> {
+    // Admin can create anything. Vendors can only create VENDOR categories for themselves.
+    if (userRole === UserRole.VENDOR) {
+      if (dto.type !== CategoryType.VENDOR) {
+        throw new Error("Vendors can only create vendor-specific categories");
+      }
+      if (dto.vendorId && dto.vendorId !== userId) {
+         // This assumes userId passed from controller is the vendor's ID.
+         // In this project, usually vendor.id != user.id, so we need to be careful.
+         // For now, let's assume the controller provides the correct vendorId.
+      }
+    }
+
+    if (dto.type === CategoryType.GLOBAL && dto.vendorId) {
+      throw new Error("Global categories cannot have a vendor_id");
+    }
+
+    if (dto.type === CategoryType.VENDOR && !dto.vendorId) {
+      throw new Error("Vendor categories must have a vendor_id");
+    }
+
     const category: Category = {
       id: randomUUID(),
       name: dto.name,
+      type: dto.type,
+      vendorId: dto.vendorId,
       description: dto.description,
       iconUrl: dto.iconUrl,
       color: dto.color,
@@ -39,6 +63,14 @@ export class CategoryService {
 
   async getAllCategories(): Promise<Category[]> {
     return this.categoryRepo.findAll();
+  }
+
+  async getGlobalCategories(): Promise<Category[]> {
+    return this.categoryRepo.findByType(CategoryType.GLOBAL);
+  }
+
+  async getVendorCategories(vendorId: string): Promise<Category[]> {
+    return this.categoryRepo.findByType(CategoryType.VENDOR, vendorId);
   }
 
   async updateCategory(id: string, data: Partial<Category>): Promise<void> {

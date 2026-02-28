@@ -1,8 +1,12 @@
+import { CategoryType } from "../enums/category-type.enum.js";
+
 export interface Product {
   id: string;
   vendorId: string;
-  categoryId?: string;
-  categoryName?: string | null;
+  globalCategoryId: string;
+  vendorCategoryId: string;
+  globalCategoryName?: string | null;
+  vendorCategoryName?: string | null;
   name: string;
   description?: string;
   price: number;
@@ -16,14 +20,18 @@ export interface Product {
 export interface Category {
   id: string;
   name: string;
+  type: CategoryType;
+  vendorId?: string | null;
   description?: string;
   iconUrl?: string;
+  color?: string;
   createdAt: Date;
 }
 
 export interface CreateProductDto {
   vendorId: string;
-  categoryId?: string;
+  globalCategoryId: string;
+  vendorCategoryId: string;
   name: string;
   description?: string;
   price: number;
@@ -32,6 +40,8 @@ export interface CreateProductDto {
 }
 
 export interface UpdateProductDto {
+  globalCategoryId?: string;
+  vendorCategoryId?: string;
   name?: string;
   description?: string;
   price?: number;
@@ -42,7 +52,8 @@ export interface UpdateProductDto {
 
 export interface ProductFilter {
   vendorId?: string;
-  categoryId?: string;
+  globalCategoryId?: string;
+  vendorCategoryId?: string;
   search?: string;
   minPrice?: number;
   maxPrice?: number;
@@ -51,6 +62,9 @@ export interface ProductFilter {
 
 export interface CreateCategoryDto {
   name: string;
+  type: CategoryType;
+  vendorId?: string | null;
   description?: string;
   iconUrl?: string;
+  color?: string;
 }

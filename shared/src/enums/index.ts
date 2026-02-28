@@ -7,3 +7,4 @@ export * from "./customer-order-status.js";
 export * from "./vendor-order-status.js";
 export * from "./proposal-enums.js";
 export * from "./user-status.js";
+export * from "./category-type.enum.js";

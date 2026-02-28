@@ -1,41 +1,35 @@
+import { randomUUID } from "crypto";
 import fs from "fs/promises";
 import path from "path";
-import { randomUUID } from "crypto";
 import { IProductRepository } from "../../core/interfaces/product.repository";
+import { ICategoryRepository } from "../../core/interfaces/category.repository";
 import { Product } from "../../core/entities/product.entity";
 import { CreateProductDto, UpdateProductDto, ProductFilter } from "../../core/dto/product.dto";
-import { ValidationError, NotFoundError } from "@city-market/shared";
+import { NotFoundError, CategoryType } from "@city-market/shared";
 import { Logger } from "@city-market/shared/node";
 
 export class ProductService {
-  constructor(private productRepo: IProductRepository) { }
-
-  async getAllProducts(page: number = 1, limit: number = 20, categoryId?: string): Promise<{ products: Product[]; total: number }> {
-    const offset = (page - 1) * limit;
-    if (categoryId) {
-      const filter: ProductFilter = { categoryId };
-      const products = await this.productRepo.findByFilter(filter, limit, offset);
-      const total = await this.productRepo.countByFilter(filter);
-      return { products, total };
-    }
-    const products = await this.productRepo.findAll(limit, offset);
-    const total = await this.productRepo.countAll();
-    return { products, total };
-  }
+  constructor(
+    private productRepo: IProductRepository,
+    private categoryRepo: ICategoryRepository
+  ) {}
 
   async createProduct(dto: CreateProductDto): Promise<Product> {
-    if (dto.price <= 0) {
-      throw new ValidationError("Price must be greater than 0");
+    const globalCat = await this.categoryRepo.findById(dto.globalCategoryId);
+    if (!globalCat || globalCat.type !== CategoryType.GLOBAL) {
+      throw new Error("Invalid global category");
     }
 
-    if (dto.stockQuantity < 0) {
-      throw new ValidationError("Stock quantity cannot be negative");
+    const vendorCat = await this.categoryRepo.findById(dto.vendorCategoryId);
+    if (!vendorCat || vendorCat.type !== CategoryType.VENDOR || vendorCat.vendorId !== dto.vendorId) {
+      throw new Error("Invalid vendor-specific category for this vendor");
     }
 
     const product: Product = {
       id: randomUUID(),
       vendorId: dto.vendorId,
-      categoryId: dto.categoryId,
+      globalCategoryId: dto.globalCategoryId,
+      vendorCategoryId: dto.vendorCategoryId,
       name: dto.name,
       description: dto.description,
       price: dto.price,
@@ -57,79 +51,77 @@ export class ProductService {
     return product;
   }
 
-  async getProductsByVendor(vendorId: string, page: number = 1, limit: number = 20): Promise<Product[]> {
+  async getAllProducts(
+    page: number, 
+    limit: number, 
+    globalCategoryId?: string, 
+    vendorCategoryId?: string
+  ): Promise<{ products: Product[]; total: number }> {
     const offset = (page - 1) * limit;
-    return this.productRepo.findByVendor(vendorId, limit, offset);
+    const filters: ProductFilter = { globalCategoryId, vendorCategoryId };
+    const [products, total] = await Promise.all([
+      this.productRepo.findByFilter(filters, limit, offset),
+      this.productRepo.countByFilter(filters)
+    ]);
+    return { products, total };
   }
 
-  async getProductsByCategory(categoryId: string, page: number = 1, limit: number = 20): Promise<Product[]> {
+  async getProductsByVendor(vendorId: string, page: number, limit: number): Promise<{ products: Product[]; total: number }> {
     const offset = (page - 1) * limit;
-    return this.productRepo.findByCategory(categoryId, limit, offset);
+    const [products, total] = await Promise.all([
+      this.productRepo.findByVendor(vendorId, limit, offset),
+      this.productRepo.countByFilter({ vendorId })
+    ]);
+    return { products, total };
   }
 
-  async searchProducts(filter: ProductFilter, page: number = 1, limit: number = 20): Promise<Product[]> {
+  async getProductsByCategory(categoryId: string, page: number, limit: number): Promise<{ products: Product[]; total: number }> {
     const offset = (page - 1) * limit;
-    return this.productRepo.findByFilter(filter, limit, offset);
+    const [products, total] = await Promise.all([
+      this.productRepo.findByCategory(categoryId, limit, offset),
+      this.productRepo.countByFilter({ globalCategoryId: categoryId }) 
+    ]);
+    return { products, total };
   }
 
-  async updateProduct(id: string, dto: UpdateProductDto): Promise<void> {
+  async searchProducts(filter: ProductFilter, page: number, limit: number): Promise<{ products: Product[]; total: number }> {
+    const offset = (page - 1) * limit;
+    const [products, total] = await Promise.all([
+      this.productRepo.findByFilter(filter, limit, offset),
+      this.productRepo.countByFilter(filter)
+    ]);
+    return { products, total };
+  }
+
+  async updateProduct(id: string, data: UpdateProductDto): Promise<void> {
     const product = await this.getProductById(id);
 
-    if (dto.price !== undefined && dto.price <= 0) {
-      throw new ValidationError("Price must be greater than 0");
+    if (data.globalCategoryId) {
+       const globalCat = await this.categoryRepo.findById(data.globalCategoryId);
+       if (!globalCat || globalCat.type !== CategoryType.GLOBAL) {
+         throw new Error("Invalid global category");
+       }
     }
 
-    if (dto.stockQuantity !== undefined && dto.stockQuantity < 0) {
-      throw new ValidationError("Stock quantity cannot be negative");
+    if (data.vendorCategoryId) {
+       const vendorCat = await this.categoryRepo.findById(data.vendorCategoryId);
+       if (!vendorCat || vendorCat.type !== CategoryType.VENDOR || vendorCat.vendorId !== product.vendorId) {
+         throw new Error("Invalid vendor category for this vendor");
+       }
     }
 
-    await this.productRepo.update(id, dto);
+    await this.productRepo.update(id, data as any);
   }
 
-  async updateStock(id: string, quantity: number): Promise<void> {
-    if (quantity < 0) {
-      throw new ValidationError("Stock quantity cannot be negative");
-    }
-    await this.productRepo.updateStock(id, quantity);
-  }
-
-  async deleteProduct(id: string): Promise<void> {
-    const product = await this.getProductById(id);
-
-    // Delete image if it exists
-    if (product.imageUrl) {
-      try {
-        const imagePath = path.join(process.cwd(), product.imageUrl.replace("/catalog", ""));
-        await fs.unlink(imagePath);
-        Logger.info("Product image deleted on record deletion", { path: imagePath });
-      } catch (error) {
-        Logger.error("Failed to delete product image during deletion", { error });
-      }
-    }
-
-    await this.productRepo.delete(id);
-  }
-
-  async checkAndDecrementStock(productId: string, quantity: number): Promise<boolean> {
-    const product = await this.getProductById(productId);
-
-    if (!product.isAvailable) {
-      return false;
-    }
-
-    if (product.stockQuantity < quantity) {
-      return false;
-    }
-
-    await this.productRepo.decrementStock(productId, quantity);
-    return true;
+  async updateStock(id: string, stock: number): Promise<void> {
+    await this.getProductById(id);
+    await this.productRepo.updateStock(id, stock);
   }
 
   async updateProductImage(id: string, imageUrl: string): Promise<void> {
     const product = await this.getProductById(id);
-
-    // Delete old image if it exists
-    if (product.imageUrl) {
+    
+    if (product.imageUrl && product.imageUrl.startsWith("/catalog/uploads/products/")) {
       try {
         const oldImagePath = path.join(process.cwd(), product.imageUrl.replace("/catalog", ""));
         await fs.unlink(oldImagePath);
@@ -139,6 +131,11 @@ export class ProductService {
       }
     }
 
-    await this.productRepo.update(id, { imageUrl });
+    await this.productRepo.update(id, { imageUrl } as any);
+  }
+
+  async deleteProduct(id: string): Promise<void> {
+    await this.getProductById(id);
+    await this.productRepo.delete(id);
   }
 }

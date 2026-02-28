@@ -2,6 +2,7 @@ import { Pool, RowDataPacket } from "mysql2/promise";
 import { Category } from "../../core/entities/category.entity";
 import { ICategoryRepository } from "../../core/interfaces/category.repository";
 import { Database } from "@city-market/shared/node";
+import { CategoryType } from "@city-market/shared";
 
 export class CategoryRepository implements ICategoryRepository {
   private pool: Pool;
@@ -11,10 +12,12 @@ export class CategoryRepository implements ICategoryRepository {
   }
 
   async create(category: Category): Promise<Category> {
-    const query = "INSERT INTO categories (id, name, description, icon_url, color) VALUES (?, ?, ?, ?, ?)";
+    const query = "INSERT INTO categories (id, name, type, vendor_id, description, icon_url, color) VALUES (?, ?, ?, ?, ?, ?, ?)";
     await this.pool.execute(query, [
       category.id,
       category.name,
+      category.type,
+      category.vendorId || null,
       category.description || null,
       category.iconUrl || null,
       category.color || null,
@@ -29,10 +32,25 @@ export class CategoryRepository implements ICategoryRepository {
   }
 
   async findAll(): Promise<Category[]> {
-    const query = "SELECT * FROM categories ORDER BY name";
+    const query = "SELECT * FROM categories ORDER BY type, name";
     const [rows] = await this.pool.execute<RowDataPacket[]>(query);
     return rows.map((row) => this.mapToEntity(row));
   }
+
+  async findByType(type: CategoryType, vendorId?: string): Promise<Category[]> {
+    let query = "SELECT * FROM categories WHERE type = ?";
+    const params: any[] = [type];
+
+    if (type === CategoryType.VENDOR && vendorId) {
+      query += " AND vendor_id = ?";
+      params.push(vendorId);
+    }
+
+    query += " ORDER BY name";
+    const [rows] = await this.pool.execute<RowDataPacket[]>(query, params);
+    return rows.map((row) => this.mapToEntity(row));
+  }
+
   async update(id: string, data: Partial<Category>): Promise<void> {
     const fields: string[] = [];
     const values: any[] = [];
@@ -70,6 +88,8 @@ export class CategoryRepository implements ICategoryRepository {
     return {
       id: row.id,
       name: row.name,
+      type: row.type as CategoryType,
+      vendorId: row.vendor_id,
       description: row.description,
       iconUrl: row.icon_url,
       color: row.color,

@@ -7,17 +7,22 @@ import { uploadCategoryIcon } from "../middlewares/upload.middleware";
 export const createCategoryRoutes = (controller: CategoryController): Router => {
   const router = Router();
 
+  // Create/Manage (Admin & Vendor)
   router.post("/categories", authorize(UserRole.VENDOR, UserRole.ADMIN), controller.create);
-  router.get("/categories", authorize(UserRole.VENDOR, UserRole.CUSTOMER, UserRole.ADMIN), controller.getAll);
-  router.get("/categories/:id", authorize(UserRole.VENDOR, UserRole.CUSTOMER, UserRole.ADMIN), controller.getById);
   router.patch("/categories/:id", authorize(UserRole.VENDOR, UserRole.ADMIN), controller.update);
+  router.delete("/categories/:id", authorize(UserRole.VENDOR, UserRole.ADMIN), controller.delete);
   router.post(
     "/categories/:id/icon",
     authorize(UserRole.VENDOR, UserRole.ADMIN),
     uploadCategoryIcon.single("icon"),
     controller.uploadIcon,
   );
-  router.delete("/categories/:id", authorize(UserRole.VENDOR, UserRole.ADMIN), controller.delete);
+
+  // Queries
+  router.get("/categories/global", controller.getGlobal);
+  router.get("/categories/vendor/:vendorId", controller.getVendor);
+  router.get("/categories", controller.getAll);
+  router.get("/categories/:id", controller.getById);
 
   return router;
 };

@@ -6,19 +6,24 @@ import { useToast } from "@/hooks/use-toast";
 
 interface UseAdminProductsOptions {
   initialLimit?: number;
-  categoryId?: string;
+  globalCategoryId?: string;
+  vendorCategoryId?: string;
 }
 
-export const useAdminProducts = ({ initialLimit = 20, categoryId }: UseAdminProductsOptions = {}) => {
+export const useAdminProducts = ({
+  initialLimit = 20,
+  globalCategoryId,
+  vendorCategoryId,
+}: UseAdminProductsOptions = {}) => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [limit] = useState(initialLimit);
 
   // --- Fetching Products ---
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading, isError, error } = useInfiniteQuery({
-    queryKey: ["adminProducts", { categoryId }],
+    queryKey: ["adminProducts", { globalCategoryId, vendorCategoryId }],
     queryFn: async ({ pageParam = 1 }) => {
-      const response = await adminApi.getProducts(pageParam, limit, categoryId);
+      const response = await adminApi.getProducts(pageParam, limit, { globalCategoryId, vendorCategoryId });
       return {
         products: response.data,
         currentPage: pageParam,
@@ -118,7 +123,7 @@ export const useAdminProducts = ({ initialLimit = 20, categoryId }: UseAdminProd
 
   // --- Upload Product Image ---
   const uploadProductImageMutation = useMutation({
-    mutationFn: ({ id, file }: { id: string; file: File }) => adminApi.uploadProductImage(id, file), // This API method needs to be created
+    mutationFn: ({ id, file }: { id: string; file: File }) => adminApi.uploadProductImage(id, file),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["adminProducts"] });
       toast({ title: "Success", description: "Product image uploaded successfully." });

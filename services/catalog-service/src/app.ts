@@ -30,7 +30,7 @@ export const createApp = () => {
   const productRepo = new ProductRepository(db);
   const categoryRepo = new CategoryRepository(db);
 
-  const productService = new ProductService(productRepo);
+  const productService = new ProductService(productRepo, categoryRepo);
   const categoryService = new CategoryService(categoryRepo);
 
   const productController = new ProductController(productService);

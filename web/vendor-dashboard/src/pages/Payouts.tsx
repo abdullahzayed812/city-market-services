@@ -72,7 +72,7 @@ const Payouts = () => {
                                 <TableHead>Period</TableHead>
                                 <TableHead>Orders</TableHead>
                                 <TableHead>Revenue</TableHead>
-                                <TableHead className="text-right">Net Earnings</TableHead>
+                                <TableHead className="text-end">Net Earnings</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -80,7 +80,7 @@ const Payouts = () => {
                                 <TableCell className="font-medium">Current Month</TableCell>
                                 <TableCell>{summary.todayOrdersCount}+</TableCell>
                                 <TableCell>${summary.totalRevenue}</TableCell>
-                                <TableCell className="text-right font-bold">${netEarnings}</TableCell>
+                                <TableCell className="text-end font-bold">${netEarnings}</TableCell>
                             </TableRow>
                         </TableBody>
                     </Table>

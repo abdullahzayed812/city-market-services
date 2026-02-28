@@ -111,6 +111,12 @@ export class ServiceClient {
     return response.data;
   }
 
+  async getVendorsByIds(ids: string[], userId?: string) {
+    const config = await this.getRequestConfig(userId);
+    const response = await this.axiosInstance.post(`${this.vendorServiceUrl}/bulk`, { ids }, config);
+    return response.data;
+  }
+
   async updateVendorStatus(id: string, status: string, userId?: string) {
     const config = await this.getRequestConfig(userId);
     const response = await this.axiosInstance.patch(`${this.vendorServiceUrl}/${id}/status`, { status }, config);
@@ -197,10 +203,16 @@ export class ServiceClient {
   }
 
   // Product Management
-  async getAllProducts(page: number = 1, limit: number = 20, userId?: string, categoryId?: string) {
+  async getAllProducts(
+    page: number = 1, 
+    limit: number = 20, 
+    userId?: string, 
+    globalCategoryId?: string, 
+    vendorCategoryId?: string
+  ) {
     const config = await this.getRequestConfig(userId);
     const response = await this.axiosInstance.get(`${this.catalogServiceUrl}/products`, {
-      params: { page, limit, categoryId },
+      params: { page, limit, globalCategoryId, vendorCategoryId },
       ...config,
     });
     return response.data;

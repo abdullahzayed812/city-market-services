@@ -1,14 +1,40 @@
 import { Request, Response, NextFunction } from "express";
 import { CategoryService } from "../../application/services/category.service";
-import { ApiResponse } from "@city-market/shared";
+import { ApiResponse, UserRole } from "@city-market/shared";
 
 export class CategoryController {
   constructor(private categoryService: CategoryService) {}
 
   create = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const category = await this.categoryService.createCategory(req.body);
+      // In a real app, role and userId/vendorId would be in req.user
+      const userRole = (req as any).user?.role || UserRole.ADMIN;
+      const vendorId = (req as any).user?.vendorId; // Assuming vendorId is extracted from token
+
+      const category = await this.categoryService.createCategory(
+        { ...req.body, vendorId: req.body.vendorId || vendorId },
+        userRole
+      );
       res.status(201).json(ApiResponse.success(category, "Category created"));
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  getGlobal = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const categories = await this.categoryService.getGlobalCategories();
+      res.json(ApiResponse.success(categories));
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  getVendor = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const vendorId = req.params.vendorId;
+      const categories = await this.categoryService.getVendorCategories(vendorId);
+      res.json(ApiResponse.success(categories));
     } catch (error) {
       next(error);
     }

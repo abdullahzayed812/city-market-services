@@ -1,8 +1,10 @@
 export interface Product {
   id: string;
   vendorId: string;
-  categoryId?: string;
-  categoryName?: string | null;
+  globalCategoryId: string;
+  vendorCategoryId: string;
+  globalCategoryName?: string | null;
+  vendorCategoryName?: string | null;
   name: string;
   description?: string;
   price: number;

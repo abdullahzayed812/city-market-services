@@ -75,6 +75,10 @@ export class VendorService {
     return this.vendorRepo.findAll(limit, offset);
   }
 
+  async getVendorsByIds(ids: string[]): Promise<Vendor[]> {
+    return this.vendorRepo.findByIds(ids);
+  }
+
   async getOpenVendors(): Promise<Vendor[]> {
     return this.vendorRepo.findByStatus(ShopStatus.OPEN);
   }

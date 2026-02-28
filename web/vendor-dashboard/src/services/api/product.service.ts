@@ -4,7 +4,7 @@ import type { Product, CreateProductDto, UpdateProductDto, Category } from "@cit
 
 export const productService = {
   getVendorProducts: async (vendorId: string) => {
-    const response = await apiClient.get<ApiResponse<Product[]>>(`/catalog/products/vendor/${vendorId}`);
+    const response = await apiClient.get<ApiResponse<{ products: Product[] }>>(`/catalog/products/vendor/${vendorId}`);
     return response.data?.data;
   },
   createProduct: async (data: CreateProductDto) => {
@@ -23,18 +23,26 @@ export const productService = {
     const response = await apiClient.delete<ApiResponse<null>>(`/catalog/products/${id}`);
     return response.data?.data;
   },
-  getCategories: async () => {
-    const response = await apiClient.get<ApiResponse<Category[]>>("/catalog/categories");
+  getGlobalCategories: async () => {
+    const response = await apiClient.get<ApiResponse<Category[]>>("/catalog/categories/global");
+    return response.data?.data;
+  },
+  getVendorCategories: async (vendorId: string) => {
+    const response = await apiClient.get<ApiResponse<Category[]>>(`/catalog/categories/vendor/${vendorId}`);
     return response.data?.data;
   },
   uploadImage: async (id: string, file: File) => {
     const formData = new FormData();
     formData.append("image", file);
-    const response = await apiClient.post<ApiResponse<{ imageUrl: string }>>(`/catalog/products/${id}/image`, formData, {
-      headers: {
-        "Content-Type": "multipart/form-data",
+    const response = await apiClient.post<ApiResponse<{ imageUrl: string }>>(
+      `/catalog/products/${id}/image`,
+      formData,
+      {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
       },
-    });
+    );
     return response.data?.data;
   },
 };

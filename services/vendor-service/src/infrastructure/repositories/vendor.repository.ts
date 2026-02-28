@@ -40,6 +40,13 @@ export class VendorRepository implements IVendorRepository {
     return rows.length > 0 ? this.mapToEntity(rows[0]) : null;
   }
 
+  async findByIds(ids: string[]): Promise<Vendor[]> {
+    if (!ids || ids.length === 0) return [];
+    const query = `SELECT * FROM vendors WHERE id IN (?)`;
+    const [rows] = await this.pool.query<RowDataPacket[]>(query, [ids]);
+    return rows.map((row) => this.mapToEntity(row));
+  }
+
   async findByUserId(userId: string): Promise<Vendor | null> {
     const query = "SELECT * FROM vendors WHERE user_id = ?";
     const [rows] = await this.pool.execute<RowDataPacket[]>(query, [userId]);

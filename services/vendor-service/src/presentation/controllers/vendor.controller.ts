@@ -47,6 +47,19 @@ export class VendorController {
     }
   };
 
+  getByIds = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      const { ids } = req.body;
+      if (!Array.isArray(ids)) {
+        throw new ValidationError("IDs must be an array");
+      }
+      const vendors = await this.vendorService.getVendorsByIds(ids);
+      res.json(ApiResponse.success(vendors));
+    } catch (error) {
+      next(error);
+    }
+  };
+
   getOpen = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
       const vendors = await this.vendorService.getOpenVendors();

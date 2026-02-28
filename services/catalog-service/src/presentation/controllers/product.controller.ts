@@ -11,8 +11,15 @@ export class ProductController {
     try {
       const page = parseInt(req.query.page as string) || 1;
       const limit = parseInt(req.query.limit as string) || 20;
-      const categoryId = req.query.categoryId as string;
-      const { products, total } = await this.productService.getAllProducts(page, limit, categoryId);
+      const globalCategoryId = (req.query.globalCategoryId as string) || (req.query.categoryId as string);
+      const vendorCategoryId = req.query.vendorCategoryId as string;
+
+      const { products, total } = await this.productService.getAllProducts(
+        page,
+        limit,
+        globalCategoryId,
+        vendorCategoryId,
+      );
       res.json(
         ApiResponse.success({
           data: products,
@@ -49,8 +56,15 @@ export class ProductController {
     try {
       const page = parseInt(req.query.page as string) || 1;
       const limit = parseInt(req.query.limit as string) || 20;
-      const products = await this.productService.getProductsByVendor(req.params.vendorId, page, limit);
-      res.json(ApiResponse.success(products));
+      const { products, total } = await this.productService.getProductsByVendor(req.params.vendorId, page, limit);
+      res.json(
+        ApiResponse.success({
+          data: products,
+          total,
+          page,
+          limit,
+        }),
+      );
     } catch (error) {
       next(error);
     }
@@ -60,8 +74,15 @@ export class ProductController {
     try {
       const page = parseInt(req.query.page as string) || 1;
       const limit = parseInt(req.query.limit as string) || 20;
-      const products = await this.productService.getProductsByCategory(req.params.categoryId, page, limit);
-      res.json(ApiResponse.success(products));
+      const { products, total } = await this.productService.getProductsByCategory(req.params.categoryId, page, limit);
+      res.json(
+        ApiResponse.success({
+          data: products,
+          total,
+          page,
+          limit,
+        }),
+      );
     } catch (error) {
       next(error);
     }
@@ -73,14 +94,22 @@ export class ProductController {
       const limit = parseInt(req.query.limit as string) || 20;
       const filter = {
         vendorId: req.query.vendorId as string,
-        categoryId: req.query.categoryId as string,
+        globalCategoryId: (req.query.globalCategoryId as string) || (req.query.categoryId as string),
+        vendorCategoryId: req.query.vendorCategoryId as string,
         search: req.query.search as string,
         minPrice: req.query.minPrice ? parseFloat(req.query.minPrice as string) : undefined,
         maxPrice: req.query.maxPrice ? parseFloat(req.query.maxPrice as string) : undefined,
         available: req.query.available === "true" ? true : req.query.available === "false" ? false : undefined,
       };
-      const products = await this.productService.searchProducts(filter, page, limit);
-      res.json(ApiResponse.success(products));
+      const { products, total } = await this.productService.searchProducts(filter, page, limit);
+      res.json(
+        ApiResponse.success({
+          data: products,
+          total,
+          page,
+          limit,
+        }),
+      );
     } catch (error) {
       next(error);
     }

@@ -10,6 +10,7 @@ export const createVendorRoutes = (controller: VendorController): Router => {
   router.post("/", authorize(UserRole.VENDOR, UserRole.ADMIN), controller.create);
   router.get("/me", authorize(UserRole.VENDOR, UserRole.ADMIN), controller.getMyVendor);
   router.get("/open", authorize(UserRole.VENDOR, UserRole.ADMIN), controller.getOpen);
+  router.post("/bulk", authorize(UserRole.VENDOR, UserRole.ADMIN, UserRole.CUSTOMER), controller.getByIds);
   router.get("/:id", authorize(UserRole.VENDOR, UserRole.CUSTOMER, UserRole.ADMIN), controller.getById);
   router.get("/", authorize(UserRole.VENDOR, UserRole.CUSTOMER, UserRole.ADMIN), controller.getAll);
   router.patch("/:id", authorize(UserRole.VENDOR, UserRole.ADMIN), controller.update);

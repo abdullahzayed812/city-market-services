@@ -274,8 +274,10 @@ export class AdminController {
     try {
       const page = parseInt(req.query.page as string) || 1;
       const limit = parseInt(req.query.limit as string) || 20;
-      const categoryId = req.query.categoryId as string;
-      const result = await this.adminService.getAllProducts(page, limit, req.user!.userId, categoryId);
+      const globalCategoryId = req.query.globalCategoryId as string || req.query.categoryId as string;
+      const vendorCategoryId = req.query.vendorCategoryId as string;
+      
+      const result = await this.adminService.getAllProducts(page, limit, req.user!.userId, globalCategoryId, vendorCategoryId);
       res.json(result);
     } catch (error) {
       next(error);

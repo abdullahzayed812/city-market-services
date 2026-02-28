@@ -58,7 +58,9 @@ const ProductTable: React.FC<ProductTableProps> = ({
             <TableRow>
               <TableHead className="w-[80px]">{t("common.image")}</TableHead>
               <TableHead>{t("common.product")}</TableHead>
-              <TableHead>{t("common.category")}</TableHead>
+              <TableHead>{t("common.vendor", "Vendor")}</TableHead>
+              <TableHead>{t("common.global_category", "Global Category")}</TableHead>
+              <TableHead>{t("common.vendor_category", "Store Category")}</TableHead>
               <TableHead>{t("common.price")}</TableHead>
               <TableHead>{t("common.stock")}</TableHead>
               <TableHead>{t("common.status")}</TableHead>
@@ -120,7 +122,19 @@ const ProductTable: React.FC<ProductTableProps> = ({
                   </div>
                 </TableCell>
                 <TableCell className="font-medium">{product.name}</TableCell>
-                <TableCell>{product.categoryName || t("common.uncategorized")}</TableCell>
+                <TableCell>
+                  <span className="text-sm font-medium text-slate-600">{(product as any).vendorShopName || t("common.none")}</span>
+                </TableCell>
+                <TableCell>
+                  <Badge variant="outline" className="font-normal">
+                    {product.globalCategoryName || t("common.none", "None")}
+                  </Badge>
+                </TableCell>
+                <TableCell>
+                  <Badge variant="outline" className="font-normal border-orange-200 text-orange-700 bg-orange-50">
+                    {product.vendorCategoryName || t("common.none", "None")}
+                  </Badge>
+                </TableCell>
                 <TableCell>${product.price.toFixed(2)}</TableCell>
                 <TableCell>
                   <span className={product.stockQuantity < 10 ? "text-destructive font-bold" : ""}>
@@ -164,7 +178,7 @@ const ProductTable: React.FC<ProductTableProps> = ({
             ))}
             {products.length === 0 && (
               <TableRow>
-                <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
                   {t("products.no_products_found")}
                 </TableCell>
               </TableRow>

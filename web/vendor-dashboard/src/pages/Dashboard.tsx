@@ -112,7 +112,7 @@ const Dashboard = () => {
                 <TableHead>{t("common.order_id")}</TableHead>
                 <TableHead>{t("common.customer")}</TableHead>
                 <TableHead>{t("common.status")}</TableHead>
-                <TableHead className="text-right">{t("common.amount")}</TableHead>
+                <TableHead className="text-end">{t("common.amount")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -123,7 +123,7 @@ const Dashboard = () => {
                   <TableCell>
                     <Badge className={getStatusColor(order.status)}>{formatStatus(order.status)}</Badge>
                   </TableCell>
-                  <TableCell className="text-right">${order.totalAmount}</TableCell>
+                  <TableCell className="text-end">${order.totalAmount}</TableCell>
                 </TableRow>
               ))}
               {recentOrders.length === 0 && (

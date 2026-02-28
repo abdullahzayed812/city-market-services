@@ -1,142 +1,92 @@
-import React, { useState } from "react";
+import React from "react";
 import { useTranslation } from "react-i18next";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { adminApi } from "@/services/api/admin-api";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { type UserStatus } from "@city-market/shared";
-import { UserStatus as UserStatusEnum } from "@city-market/shared";
-import { MoreHorizontal, UserCheck, UserX } from "lucide-react";
+import { User, Mail, Shield, UserCheck, UserMinus } from "lucide-react";
+import { UserStatus } from "@city-market/shared";
 
 const UsersManagement: React.FC = () => {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
-  const [roleFilter, setRoleFilter] = useState<string | undefined>(undefined);
 
   const { data: users, isLoading } = useQuery({
-    queryKey: ["users", roleFilter],
+    queryKey: ["adminUsers"],
     queryFn: async () => {
-      try {
-        const response = await adminApi.getUsers(roleFilter);
-        return response?.data?.data?.data;
-      } catch (error) {
-        // Mock data
-        return [
-          {
-            id: "1",
-            firstName: "John",
-            lastName: "Doe",
-            email: "john@example.com",
-            role: "customer",
-            status: UserStatusEnum.ACTIVE,
-          },
-          {
-            id: "2",
-            firstName: "Jane",
-            lastName: "Smith",
-            email: "jane@vendor.com",
-            role: "vendor",
-            status: UserStatusEnum.ACTIVE,
-          },
-          {
-            id: "3",
-            firstName: "Bob",
-            lastName: "Wilson",
-            email: "bob@courier.com",
-            role: "courier",
-            status: UserStatusEnum.INACTIVE,
-          },
-        ];
-      }
+      const response = await adminApi.getUsers();
+      return response.data.data;
     },
   });
 
   const updateStatusMutation = useMutation({
-    mutationFn: ({ id, status }: { id: string; status: UserStatus }) => adminApi.updateUserStatus(id, { status }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["users"] });
-    },
+    mutationFn: ({ id, status }: { id: string; status: UserStatus }) => 
+      adminApi.updateUserStatus(id, { status }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["adminUsers"] }),
   });
 
-  if (isLoading) return <div>{t("common.loading")}</div>;
+  if (isLoading) return <div className="p-8 text-center">{t("common.loading")}</div>;
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold text-gray-800">{t("common.users")}</h2>
-        <div className="w-[200px]">
-          <Select value={roleFilter || "all"} onValueChange={(val) => setRoleFilter(val === "all" ? undefined : val)}>
-            <SelectTrigger>
-              <SelectValue placeholder={t("common.filter_by_role", "Filter by Role")} />
-            </SelectTrigger>
-            <SelectContent className="max-h-[300px] overflow-y-auto">
-              <SelectItem value="all">{t("common.all_roles", "All Roles")}</SelectItem>
-              <SelectItem value="customer">{t("common.customers")}</SelectItem>
-              <SelectItem value="vendor">{t("common.vendors")}</SelectItem>
-              <SelectItem value="courier">{t("common.couriers")}</SelectItem>
-              <SelectItem value="admin">{t("common.admins", "Admins")}</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
+      <h2 className="text-2xl font-bold text-gray-800">{t("common.users")}</h2>
 
       <div className="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden">
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead>{t("common.name")}</TableHead>
               <TableHead>{t("common.email")}</TableHead>
               <TableHead>{t("common.role")}</TableHead>
               <TableHead>{t("common.status")}</TableHead>
-              <TableHead className="text-right">{t("common.actions")}</TableHead>
+              <TableHead className="text-end">{t("common.actions")}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {users?.map((user: any) => (
+            {users?.map((user) => (
               <TableRow key={user.id}>
-                <TableCell className="font-medium">{user.email}</TableCell>
                 <TableCell>
-                  <Badge variant="outline" className="capitalize">
-                    {user.role}
-                  </Badge>
+                  <div className="flex items-center">
+                    <div className="h-8 w-8 rounded-full bg-slate-100 flex items-center justify-center me-3 text-slate-500">
+                      <User size={16} />
+                    </div>
+                    <span className="font-medium">{user.name}</span>
+                  </div>
                 </TableCell>
                 <TableCell>
-                  <Badge variant={user.isActive ? "default" : "destructive"}>
-                    {user.isActive ? t("common.active") : t("common.inactive")}
+                  <div className="flex items-center text-gray-600 text-sm">
+                    <Mail size={14} className="me-2 text-slate-400" />
+                    {user.email}
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <div className="flex items-center">
+                    <Shield size={14} className="me-2 text-slate-400" />
+                    <span className="text-sm">{user.role}</span>
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <Badge variant={user.status === UserStatus.ACTIVE ? "default" : "secondary"}>
+                    {user.status}
                   </Badge>
                 </TableCell>
-                <TableCell className="text-right">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon">
-                        <MoreHorizontal className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem
-                        onClick={() => updateStatusMutation.mutate({ id: user.id, status: UserStatusEnum.ACTIVE })}
-                        disabled={user.status === UserStatusEnum.ACTIVE}
-                      >
-                        <UserCheck className="me-2 h-4 w-4" />
-                        {t("common.activate")}
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        onClick={() => updateStatusMutation.mutate({ id: user.id, status: UserStatusEnum.INACTIVE })}
-                        disabled={user.status === UserStatusEnum.INACTIVE}
-                        className="text-destructive"
-                      >
-                        <UserX className="me-2 h-4 w-4" />
-                        {t("common.deactivate")}
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                <TableCell className="text-end">
+                  <Button 
+                    variant="ghost" 
+                    size="sm"
+                    className={user.status === UserStatus.ACTIVE ? "text-destructive hover:text-destructive" : "text-emerald-600 hover:text-emerald-600"}
+                    onClick={() => updateStatusMutation.mutate({ 
+                      id: user.id, 
+                      status: user.status === UserStatus.ACTIVE ? UserStatus.INACTIVE : UserStatus.ACTIVE 
+                    })}
+                  >
+                    {user.status === UserStatus.ACTIVE ? (
+                      <><UserMinus className="h-4 w-4 me-2" />{t("common.deactivate")}</>
+                    ) : (
+                      <><UserCheck className="h-4 w-4 me-2" />{t("common.activate")}</>
+                    )}
+                  </Button>
                 </TableCell>
               </TableRow>
             ))}

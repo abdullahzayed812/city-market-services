@@ -2,85 +2,63 @@ import React from "react";
 import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
 import { adminApi } from "@/services/api/admin-api";
-import { ShoppingBag, Users, Store, Truck, DollarSign } from "lucide-react";
-
-const StatCard: React.FC<{ title: string; value: string | number; icon: any; color: string }> = ({
-  title,
-  value,
-  icon: Icon,
-  color,
-}) => (
-  <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100 flex items-center">
-    <div className={`p-3 rounded-full ${color} text-white me-4`}>
-      <Icon className="h-6 w-6" />
-    </div>
-    <div>
-      <p className="text-sm text-gray-500 font-medium">{title}</p>
-      <h3 className="text-2xl font-bold text-gray-900">{value}</h3>
-    </div>
-  </div>
-);
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Users, ShoppingBag, Truck, Store } from "lucide-react";
 
 const Dashboard: React.FC = () => {
   const { t } = useTranslation();
-
-  // Mocking data for now since backend might not be running
   const { data: stats, isLoading } = useQuery({
-    queryKey: ["admin-stats"],
+    queryKey: ["adminStats"],
     queryFn: async () => {
-      try {
-        const response = await adminApi.getStats();
-        return response?.data?.data;
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars
-      } catch (error: any) {
-        // Return mock data if API fails
-        return {
-          totalOrders: 1250,
-          totalUsers: 5400,
-          totalVendors: 120,
-          totalCouriers: 45,
-          revenueToday: 25000,
-        };
-      }
+      const response = await adminApi.getStats();
+      return response.data.data;
     },
   });
 
-  if (isLoading) return <div>{t("common.loading")}</div>;
+  if (isLoading) return <div className="p-8 text-center">{t("common.loading")}</div>;
+
+  const statCards = [
+    { title: t("dashboard.total_users"), value: stats?.totalUsers, icon: Users, color: "text-blue-600" },
+    { title: t("dashboard.total_orders"), value: stats?.totalOrders, icon: ShoppingBag, color: "text-emerald-600" },
+    { title: t("dashboard.total_vendors"), value: stats?.totalVendors, icon: Store, color: "text-orange-600" },
+    { title: t("dashboard.total_couriers"), value: stats?.totalCouriers, icon: Truck, color: "text-purple-600" },
+  ];
 
   return (
     <div className="space-y-6">
       <h2 className="text-2xl font-bold text-gray-800">{t("dashboard.overview")}</h2>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
-        <StatCard
-          title={t("dashboard.total_orders")}
-          value={stats?.totalOrders ?? 0}
-          icon={ShoppingBag}
-          color="bg-blue-500"
-        />
-        <StatCard title={t("dashboard.total_users")} value={stats?.totalUsers ?? 0} icon={Users} color="bg-green-500" />
-        <StatCard title={t("dashboard.total_vendors")} value={stats?.totalVendors ?? 0} icon={Store} color="bg-purple-500" />
-        <StatCard
-          title={t("dashboard.total_couriers")}
-          value={stats?.totalCouriers ?? 0}
-          icon={Truck}
-          color="bg-orange-500"
-        />
-        <StatCard
-          title={t("common.revenue")}
-          value={`$${stats?.revenueToday ?? 0}`}
-          icon={DollarSign}
-          color="bg-emerald-500"
-        />
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        {statCards.map((stat, index) => (
+          <Card key={index}>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">{stat.title}</CardTitle>
+              <stat.icon className={`h-4 w-4 ${stat.color}`} />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{stat.value?.toLocaleString() || 0}</div>
+            </CardContent>
+          </Card>
+        ))}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100 h-64 flex items-center justify-center">
-          <p className="text-gray-400">Revenue Chart Placeholder</p>
-        </div>
-        <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100 h-64 flex items-center justify-center">
-          <p className="text-gray-400">Recent Activity Placeholder</p>
-        </div>
+      <div className="grid gap-4 md:grid-cols-2">
+        <Card className="col-span-1">
+          <CardHeader>
+            <CardTitle>{t("dashboard.revenue_summary")}</CardTitle>
+          </CardHeader>
+          <CardContent className="h-[300px] flex items-center justify-center border-2 border-dashed rounded-md m-4">
+            <p className="text-gray-400">{t("dashboard.revenue_chart_placeholder")}</p>
+          </CardContent>
+        </Card>
+        <Card className="col-span-1">
+          <CardHeader>
+            <CardTitle>{t("common.actions")}</CardTitle>
+          </CardHeader>
+          <CardContent className="h-[300px] flex items-center justify-center border-2 border-dashed rounded-md m-4">
+            <p className="text-gray-400">{t("dashboard.recent_activity_placeholder")}</p>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

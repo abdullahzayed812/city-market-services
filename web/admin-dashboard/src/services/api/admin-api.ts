@@ -74,9 +74,13 @@ export const adminApi = {
   },
 
   // Products Management
-  getProducts: async (page: number, limit: number, categoryId?: string): Promise<{ data: Product[]; hasMore: boolean }> => {
+  getProducts: async (
+    page: number, 
+    limit: number, 
+    filters?: { globalCategoryId?: string; vendorCategoryId?: string }
+  ): Promise<{ data: Product[]; hasMore: boolean }> => {
     const response = await axiosInstance.get<ApiResponse<{ data: Product[]; total: number; page: number; limit: number }>>("/admin/products", {
-      params: { page, limit, categoryId },
+      params: { page, limit, ...filters },
     });
     const { data, total } = response.data.data;
     const hasMore = (page * limit) < total;

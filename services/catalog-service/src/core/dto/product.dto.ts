@@ -1,6 +1,7 @@
 export interface CreateProductDto {
   vendorId: string;
-  categoryId?: string;
+  globalCategoryId: string;
+  vendorCategoryId: string;
   name: string;
   description?: string;
   price: number;
@@ -9,6 +10,8 @@ export interface CreateProductDto {
 }
 
 export interface UpdateProductDto {
+  globalCategoryId?: string;
+  vendorCategoryId?: string;
   name?: string;
   description?: string;
   price?: number;
@@ -19,7 +22,8 @@ export interface UpdateProductDto {
 
 export interface ProductFilter {
   vendorId?: string;
-  categoryId?: string;
+  globalCategoryId?: string;
+  vendorCategoryId?: string;
   search?: string;
   minPrice?: number;
   maxPrice?: number;

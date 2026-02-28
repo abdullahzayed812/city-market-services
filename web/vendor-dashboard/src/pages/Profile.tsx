@@ -115,7 +115,7 @@ const Profile = () => {
                     </div>
                   )}
                 </div>
-                <div className="space-y-3 text-center sm:text-left">
+                <div className="space-y-3 text-center sm:text-start">
                   <div>
                     <h3 className="font-medium">Store Image</h3>
                     <p className="text-sm text-muted-foreground">Upload or view your store image. Max 5MB.</p>
