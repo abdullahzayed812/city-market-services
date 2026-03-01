@@ -1,63 +1,77 @@
-import { EventBus, BaseEvent, EventType, EventSubscriber } from "@city-market/shared";
+import { INotificationRepository } from "../../core/interfaces/notification.repository";
+import { PushNotificationProvider } from "../../infrastructure/providers/push.provider";
+import { Notification, NotificationPreference } from "../../core/entities/notification.entity";
+import { randomUUID } from "crypto";
 import { Logger } from "@city-market/shared/node";
+import { AppType, PlatformType } from "@city-market/shared";
 
-export class NotificationService implements EventSubscriber {
-  constructor(private eventBus: EventBus) {
-    // Subscribe to all events
-    Object.values(EventType).forEach((eventType) => {
-      this.eventBus.subscribe(eventType as EventType, this);
-    });
-  }
+export class NotificationService {
+  constructor(
+    private repo: INotificationRepository,
+    private pushProvider: PushNotificationProvider,
+  ) {}
 
-  async handle(event: BaseEvent): Promise<void> {
-    Logger.info(`[NOTIFICATION] Event received: ${event.type}`, event.payload);
+  async sendNotification(userId: string, type: string, title: string, message: string, metadata?: any) {
+    // 1. Check Preferences
+    let prefs = await this.repo.getPreferences(userId);
+    if (!prefs) {
+      // Default preferences if not found
+      prefs = { userId, emailEnabled: true, pushEnabled: true, smsEnabled: false, updatedAt: new Date() };
+      await this.repo.upsertPreferences(prefs);
+    }
 
-    switch (event.type) {
-      case EventType.ORDER_CREATED:
-        await this.notifyOrderCreated(event.payload);
-        break;
-      case EventType.ORDER_CONFIRMED:
-        await this.notifyOrderConfirmed(event.payload);
-        break;
-      case EventType.ORDER_READY:
-        await this.notifyOrderReady(event.payload);
-        break;
-      case EventType.COURIER_ASSIGNED:
-        await this.notifyCourierAssigned(event.payload);
-        break;
-      case EventType.ORDER_DELIVERED:
-        await this.notifyOrderDelivered(event.payload);
-        break;
-      case EventType.ORDER_CANCELLED:
-        await this.notifyOrderCancelled(event.payload);
-        break;
-      default:
-        Logger.info(`[NOTIFICATION] Unhandled event type: ${event.type}`);
+    // 2. Save Notification
+    const notification: Notification = {
+      id: randomUUID(),
+      userId,
+      type,
+      title,
+      message,
+      isRead: false,
+      metadata,
+      createdAt: new Date(),
+    };
+    await this.repo.create(notification);
+
+    // 3. Dispatch Push
+    if (prefs.pushEnabled) {
+      const tokens = await this.repo.getDeviceTokens(userId);
+      if (tokens.length > 0) {
+        await this.pushProvider.sendMulticast(
+          tokens.map((t) => t.token),
+          title,
+          message,
+          { notificationId: notification.id, ...metadata },
+        );
+      }
+    }
+
+    // 4. Dispatch Email (Placeholder)
+    if (prefs.emailEnabled) {
+      Logger.info(`[EmailProvider] Should send email to user ${userId}: ${title}`);
     }
   }
 
-  private async notifyOrderCreated(payload: any): Promise<void> {
-    Logger.info(`📦 New order created! Order ID: ${payload.orderId}`);
-    Logger.info(`   Customer: ${payload.customerId}, Vendor: ${payload.vendorId}`);
+  async registerDevice(userId: string, token: string, platform: PlatformType, appType: AppType) {
+    await this.repo.addDeviceToken({ userId, token, platform, appType, lastActive: new Date() });
   }
 
-  private async notifyOrderConfirmed(payload: any): Promise<void> {
-    Logger.info(`✅ Order confirmed! Order ID: ${payload.orderId}`);
+  async getNotifications(userId: string, page: number = 1, limit: number = 20) {
+    const offset = (page - 1) * limit;
+    const [items, total, unread] = await Promise.all([
+      this.repo.findByUserId(userId, limit, offset),
+      // Ideally countAll but simpler for now
+      Promise.resolve(0),
+      this.repo.countUnread(userId),
+    ]);
+    return { items, unread };
   }
 
-  private async notifyOrderReady(payload: any): Promise<void> {
-    Logger.info(`🍽️ Order ready for pickup! Order ID: ${payload.orderId}`);
+  async markAsRead(userId: string, notificationId: string) {
+    await this.repo.markAsRead(notificationId);
   }
 
-  private async notifyCourierAssigned(payload: any): Promise<void> {
-    Logger.info(`🚗 Courier assigned! Order ID: ${payload.orderId}, Courier: ${payload.courierId}`);
-  }
-
-  private async notifyOrderDelivered(payload: any): Promise<void> {
-    Logger.info(`✨ Order delivered! Order ID: ${payload.orderId}`);
-  }
-
-  private async notifyOrderCancelled(payload: any): Promise<void> {
-    Logger.info(`❌ Order cancelled! Order ID: ${payload.orderId}, Reason: ${payload.reason}`);
+  async markAllRead(userId: string) {
+    await this.repo.markAllAsRead(userId);
   }
 }

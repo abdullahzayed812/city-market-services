@@ -8,3 +8,4 @@ export * from "./vendor-order-status.js";
 export * from "./proposal-enums.js";
 export * from "./user-status.js";
 export * from "./category-type.enum.js";
+export * from "./app-types.enum.js";

@@ -3,6 +3,7 @@ import { PickupLocation } from "./pickup-location.entity"; // Import PickupLocat
 
 export interface Delivery {
   id: string;
+  customerId: string;
   customerOrderId: string;
   vendorOrderId?: string; // This will become less relevant if we have multiple pickup locations
   // But keep it for now as it's part of the unique constraint

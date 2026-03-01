@@ -90,6 +90,7 @@ export class DeliveryService {
   async createDelivery(dto: CreateDeliveryDto, connection?: PoolConnection): Promise<Delivery> {
     const delivery: Delivery = {
       id: randomUUID(),
+      customerId: dto.customerId,
       customerOrderId: dto.customerOrderId,
       // vendorOrderId: dto.vendorOrderId || "GROUPED",
       vendorOrderId: dto.vendorOrderId || "GROUPED",
@@ -169,6 +170,8 @@ export class DeliveryService {
           timestamp: new Date(),
           payload: {
             deliveryId: delivery.id,
+            customerId: customerOrder.customerId,
+            customerOrderId,
             // vendorOrderId: vo.id,
             // customerOrderId,
             // customerId: customerOrder.customerId,
@@ -203,6 +206,8 @@ export class DeliveryService {
           timestamp: new Date(),
           payload: {
             deliveryId: delivery?.id,
+            customerId: customerOrder.customerId,
+            customerOrderId,
             // vendorOrderId: v.id,
             // customerOrderId,
             // customerId: customerOrder.customerId,
@@ -245,6 +250,7 @@ export class DeliveryService {
     const primaryVendor = vendors[0]; // Assuming vendors here means the group of vendors for this delivery.
 
     const dto: CreateDeliveryDto = {
+      customerId: customerOrder.customerId,
       customerOrderId: customerOrderId,
       // vendorOrderId: vendorOrder ? vendorOrder.id : undefined,
       vendorOrderId: vendorOrder ? vendorOrder.id : undefined,
@@ -335,14 +341,14 @@ export class DeliveryService {
         id: randomUUID(),
         type: EventType.ORDER_PICKED_UP,
         timestamp: new Date(),
-        payload: { deliveryId, customerOrderId: delivery.customerOrderId, vendorOrdersIds },
+        payload: { deliveryId, customerOrderId: delivery.customerOrderId, customerId: delivery.customerId, vendorOrdersIds },
       });
     } else if (dto.status === DeliveryStatus.ON_THE_WAY) {
       eventsToPublish.push({
         id: randomUUID(),
         type: EventType.ORDER_ON_THE_WAY,
         timestamp: new Date(),
-        payload: { deliveryId, customerOrderId: delivery.customerOrderId, vendorOrdersIds },
+        payload: { deliveryId, customerOrderId: delivery.customerOrderId, customerId: delivery.customerId, vendorOrdersIds },
       });
     } else if (dto.status === DeliveryStatus.DELIVERED) {
       updates.deliveredAt = new Date();
@@ -356,7 +362,7 @@ export class DeliveryService {
         id: randomUUID(),
         type: EventType.ORDER_DELIVERED,
         timestamp: new Date(),
-        payload: { deliveryId, customerOrderId: delivery.customerOrderId, vendorOrdersIds },
+        payload: { deliveryId, customerOrderId: delivery.customerOrderId, customerId: delivery.customerId, vendorOrdersIds },
       });
     }
 
@@ -378,6 +384,9 @@ export class DeliveryService {
       const delivery = await this.deliveryRepo.findById(deliveryId, connection); // Fetch with connection
       if (!delivery) throw new NotFoundError("Delivery not found");
 
+      const courier = await this.courierRepo.findById(dto.courierId, connection);
+      if (!courier) throw new NotFoundError("Courier not found");
+
       // Check courier availability and proximity if needed
       await this.deliveryRepo.assignCourier(deliveryId, dto.courierId, connection); // Pass connection
       await this.courierRepo.updateAvailability(dto.courierId, false, connection); // Pass connection // Courier becomes unavailable when assigned
@@ -386,7 +395,13 @@ export class DeliveryService {
         id: randomUUID(),
         type: EventType.COURIER_ASSIGNED,
         timestamp: new Date(),
-        payload: { deliveryId: delivery.id, courierId: dto.courierId, customerOrderId: delivery.customerOrderId },
+        payload: { 
+          deliveryId: delivery.id, 
+          courierId: dto.courierId, 
+          courierUserId: courier.userId,
+          customerId: delivery.customerId,
+          customerOrderId: delivery.customerOrderId 
+        },
       });
 
       await this.db.commit(connection);

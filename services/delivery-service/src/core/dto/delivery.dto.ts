@@ -2,6 +2,7 @@ import { DeliveryStatus } from "@city-market/shared";
 import { PickupLocation } from "../entities/pickup-location.entity"; // Import PickupLocation
 
 export interface CreateDeliveryDto {
+  customerId: string;
   customerOrderId: string;
   vendorOrderId?: string;
   pickupLocations: PickupLocation[]; // New: List of pickup locations

@@ -17,6 +17,7 @@ CREATE TABLE couriers (
 
 CREATE TABLE deliveries (
   id VARCHAR(36) PRIMARY KEY,
+  customer_id VARCHAR(36) NOT NULL,
   customer_order_id VARCHAR(36) NOT NULL,
   vendor_order_id VARCHAR(36) NOT NULL DEFAULT 'GROUPED',
   courier_id VARCHAR(36),

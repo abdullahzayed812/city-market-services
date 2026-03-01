@@ -191,7 +191,12 @@ export class OrderService {
           id: randomUUID(),
           type: EventType.VENDOR_ORDER_CREATED,
           timestamp: new Date(),
-          payload: { vendorOrderId: vendorOrder.id, vendorId: vendorOrder.vendorId, customerOrderId: customerOrder.id },
+          payload: { 
+            vendorOrderId: vendorOrder.id, 
+            vendorId: vendorOrder.vendorId, 
+            customerOrderId: customerOrder.id,
+            customerId: customerOrder.customerId 
+          },
         });
       }
 
@@ -334,15 +339,22 @@ export class OrderService {
         connection,
       );
 
+      const customerOrderForProposal = await this.customerOrderRepo.findByIdWithLock(vo.customerOrderId, connection);
+
       eventsToPublish.push({
         id: randomUUID(),
         type: EventType.VENDOR_ORDER_PROPOSED,
         timestamp: new Date(),
-        payload: { vendorOrderId, customerOrderId: vo.customerOrderId, vendorId: vo.vendorId }, // Added customerOrderId, vendorId
+        payload: { 
+          vendorOrderId, 
+          customerOrderId: vo.customerOrderId, 
+          vendorId: vo.vendorId,
+          customerId: customerOrderForProposal?.customerId 
+        }, // Added customerOrderId, vendorId, customerId
       });
 
       // Update customer order status to reflect proposal ( WAITING_CUSTOMER_DECISION )
-      await this.customerOrderRepo.updateStatus(vo.customerOrderId, CustomerOrderStatus.WAITING_CUSTOMER_DECISION);
+      await this.customerOrderRepo.updateStatus(vo.customerOrderId, CustomerOrderStatus.WAITING_CUSTOMER_DECISION, connection);
       await this.recordStatusChange(
         { customerOrderId: vo.customerOrderId },
         CustomerOrderStatus.WAITING_CUSTOMER_DECISION,
@@ -374,6 +386,9 @@ export class OrderService {
       const vo = await this.vendorOrderRepo.findByIdWithLock(vendorOrderId, connection);
       if (!vo) throw new NotFoundError("Vendor order not found");
 
+      const co = await this.customerOrderRepo.findByIdWithLock(vo.customerOrderId, connection);
+      if (!co) throw new NotFoundError("Customer order not found");
+
       if (vo.status !== VendorOrderStatus.PENDING) {
         throw new ValidationError("Only PENDING orders can be confirmed by vendor");
       }
@@ -385,8 +400,10 @@ export class OrderService {
         id: randomUUID(),
         type: EventType.VENDOR_ORDER_CONFIRMED,
         timestamp: new Date(),
-        payload: { vendorOrderId, customerOrderId: vo.customerOrderId, vendorId: vo.vendorId }, // Added vendorId
+        payload: { vendorOrderId, customerOrderId: vo.customerOrderId, vendorId: vo.vendorId, customerId: co.customerId },
       });
+
+      await this.syncCustomerOrderStatus(vo.customerOrderId, connection);
 
       await this.db.commit(connection);
 
@@ -394,8 +411,6 @@ export class OrderService {
       for (const event of eventsToPublish) {
         await this.eventBus.publish(event);
       }
-
-      await this.syncCustomerOrderStatus(vo.customerOrderId);
     } catch (error) {
       if (connection) {
         await this.db.rollback(connection);
@@ -426,12 +441,12 @@ export class OrderService {
       await this.vendorOrderRepo.updateStatus(vendorOrderId, status, connection);
       await this.recordStatusChange({ vendorOrderId }, status, notes, connection);
 
-      await this.db.commit(connection);
-
       if (!skipCustomerSync) {
         // ← guard the sync call
-        await this.syncCustomerOrderStatus(vo.customerOrderId);
+        await this.syncCustomerOrderStatus(vo.customerOrderId, connection);
       }
+
+      await this.db.commit(connection);
     } catch (error) {
       if (connection) {
         await this.db.rollback(connection);
@@ -557,18 +572,18 @@ export class OrderService {
         },
       ];
 
+      // 5) Sync vendor order status after commit
+      await this.syncVendorOrderStatus(vo.id, connection);
+
+      // 6) Sync customer order status
+      await this.syncCustomerOrderStatus(co.id, connection);
+
       await this.db.commit(connection);
 
       // Publish events after successful commit
       for (const event of eventsToPublish) {
         await this.eventBus.publish(event);
       }
-
-      // 5) Sync vendor order status after commit
-      await this.syncVendorOrderStatus(vo.id);
-
-      // 6) Sync customer order status
-      await this.syncCustomerOrderStatus(co.id);
     } catch (error) {
       if (connection) {
         await this.db.rollback(connection);
@@ -650,17 +665,17 @@ export class OrderService {
         }
       }
 
+      // Sync vendor order status if not cancelling entire order
+      if (!cancelEntireOrder) {
+        await this.syncVendorOrderStatus(vo.id, connection);
+        await this.syncCustomerOrderStatus(co.id, connection);
+      }
+
       await this.db.commit(connection);
 
       // Publish events after successful commit
       for (const event of eventsToPublish) {
         await this.eventBus.publish(event);
-      }
-
-      // Sync vendor order status if not cancelling entire order
-      if (!cancelEntireOrder) {
-        await this.syncVendorOrderStatus(vo.id);
-        await this.syncCustomerOrderStatus(co.id);
       }
     } catch (error) {
       if (connection) {

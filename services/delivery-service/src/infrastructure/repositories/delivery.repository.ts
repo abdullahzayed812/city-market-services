@@ -17,12 +17,13 @@ export class DeliveryRepository implements IDeliveryRepository {
     const conn = connection || this.pool;
     const query = `
       INSERT INTO deliveries (
-        id, customer_order_id, vendor_order_id, status, delivery_address,
+        id, customer_id, customer_order_id, vendor_order_id, status, delivery_address,
         delivery_latitude, delivery_longitude
-      ) VALUES (?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     `;
     await conn.execute(query, [
       delivery.id,
+      delivery.customerId,
       delivery.customerOrderId,
       delivery.vendorOrderId || null,
       delivery.status,
@@ -213,6 +214,7 @@ export class DeliveryRepository implements IDeliveryRepository {
   private mapToEntity(row: any): Delivery {
     return {
       id: row.id,
+      customerId: row.customer_id,
       customerOrderId: row.customer_order_id,
       vendorOrderId: row.vendor_order_id,
       courierId: row.courier_id,

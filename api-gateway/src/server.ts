@@ -7,12 +7,13 @@ const app = createApp();
 app.listen(config.port, () => {
   Logger.info(`API Gateway running on port ${config.port}`);
   Logger.info("Service endpoints:", {
-    auth: config.authServiceUrl,
     user: config.userServiceUrl,
+    order: config.orderServiceUrl,
+    auth: config.authServiceUrl,
+    admin: config.adminServiceUrl,
     vendor: config.vendorServiceUrl,
     catalog: config.catalogServiceUrl,
-    order: config.orderServiceUrl,
     delivery: config.deliveryServiceUrl,
-    admin: config.adminServiceUrl,
+    notifications: config.notificationsServiceUrl,
   });
 });

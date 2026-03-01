@@ -53,7 +53,7 @@ export const useProducts = () => {
   });
 
   return {
-    products: productsQuery.data?.products || [],
+    products: productsQuery.data?.data || [],
     globalCategories: globalCategoriesQuery.data || [],
     vendorCategories: vendorCategoriesQuery.data || [],
     isLoading: productsQuery.isLoading || globalCategoriesQuery.isLoading || vendorCategoriesQuery.isLoading,

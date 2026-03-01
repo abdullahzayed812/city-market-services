@@ -1,21 +1,48 @@
 import express from "express";
 import cors from "cors";
 import { NotificationService } from "./application/services/notification.service";
-import { eventBus } from "@city-market/shared";
-import { errorHandler } from "@city-market/shared/node";
+import { NotificationController } from "./presentation/controllers/notification.controller";
+import { errorHandler, authorize, authenticate } from "@city-market/shared/node";
+import { UserRole } from "@city-market/shared";
 
-export const createApp = () => {
+export const createApp = (service: NotificationService) => {
   const app = express();
+  const controller = new NotificationController(service);
 
   app.use(cors());
   app.use(express.json());
 
-  // Initialize notification service (subscribes to events)
-  new NotificationService(eventBus);
-
   app.get("/health", (req, res) => {
     res.json({ status: "healthy", service: "notification-service" });
   });
+
+  app.use(authenticate);
+
+  // Device Token Registration (All Authenticated Users)
+  app.post(
+    "/device-token",
+    authorize(UserRole.CUSTOMER, UserRole.VENDOR, UserRole.COURIER, UserRole.ADMIN, UserRole.DELIVERY_MANAGER),
+    controller.registerDevice,
+  );
+
+  // Notifications
+  app.get(
+    "/notifications",
+    authorize(UserRole.CUSTOMER, UserRole.VENDOR, UserRole.COURIER, UserRole.ADMIN, UserRole.DELIVERY_MANAGER),
+    controller.getNotifications,
+  );
+
+  app.patch(
+    "/notifications/:id/read",
+    authorize(UserRole.CUSTOMER, UserRole.VENDOR, UserRole.COURIER, UserRole.ADMIN, UserRole.DELIVERY_MANAGER),
+    controller.markAsRead,
+  );
+
+  app.patch(
+    "/notifications/read-all",
+    authorize(UserRole.CUSTOMER, UserRole.VENDOR, UserRole.COURIER, UserRole.ADMIN, UserRole.DELIVERY_MANAGER),
+    controller.markAllRead,
+  );
 
   app.use(errorHandler);
 
