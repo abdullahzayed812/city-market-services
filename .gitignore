@@ -25,6 +25,12 @@ out/
 .env.*
 !.env.example
 
+# Firebase & Secrets
+firebase-service-account.json
+google-services.json
+GoogleService-Info.plist
+*.p12
+*.pem
 
 # Database
 *.sqlite
