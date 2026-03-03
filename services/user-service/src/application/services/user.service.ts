@@ -12,7 +12,7 @@ export class UserService {
   async createCustomer(dto: CreateCustomerDto): Promise<Customer> {
     const existing = await this.customerRepo.findByUserId(dto.userId);
     if (existing) {
-      throw new ValidationError("Customer already exists");
+      throw new ValidationError("customer_already_exists");
     }
 
     const customer: Customer = {
@@ -30,7 +30,7 @@ export class UserService {
   async getCustomerById(id: string): Promise<Customer> {
     const customer = await this.customerRepo.findById(id);
     if (!customer) {
-      throw new NotFoundError("Customer not found");
+      throw new NotFoundError("customer_not_found");
     }
     return customer;
   }
@@ -38,7 +38,7 @@ export class UserService {
   async getCustomerByUserId(userId: string): Promise<Customer> {
     const customer = await this.customerRepo.findByUserId(userId);
     if (!customer) {
-      throw new NotFoundError("Customer not found");
+      throw new NotFoundError("customer_not_found");
     }
     return customer;
   }
@@ -76,7 +76,7 @@ export class UserService {
   async deleteAddress(addressId: string): Promise<void> {
     const address = await this.addressRepo.findById(addressId);
     if (!address) {
-      throw new NotFoundError("Address not found");
+      throw new NotFoundError("address_not_found");
     }
     await this.addressRepo.delete(addressId);
   }

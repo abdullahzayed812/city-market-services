@@ -12,7 +12,7 @@ export class VendorController {
       const dto = { ...req.body, userId: req.user!.userId };
       const vendor = await this.vendorService.createVendor(dto);
       Logger.info("Vendor created", { vendorId: vendor.id });
-      res.status(201).json(ApiResponse.success(vendor, "Vendor created"));
+      res.status(201).json(ApiResponse.success(vendor, "vendor_created"));
     } catch (error) {
       next(error);
     }
@@ -51,7 +51,7 @@ export class VendorController {
     try {
       const { ids } = req.body;
       if (!Array.isArray(ids)) {
-        throw new ValidationError("IDs must be an array");
+        throw new ValidationError("ids_must_be_an_array");
       }
       const vendors = await this.vendorService.getVendorsByIds(ids);
       res.json(ApiResponse.success(vendors));
@@ -72,7 +72,7 @@ export class VendorController {
   update = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
       await this.vendorService.updateVendor(req.params.id, req.body);
-      res.json(ApiResponse.success(null, "Vendor updated"));
+      res.json(ApiResponse.success(null, "vendor_updated"));
     } catch (error) {
       next(error);
     }
@@ -81,7 +81,7 @@ export class VendorController {
   updateStatus = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
       await this.vendorService.updateVendorStatus(req.params.id, req.body.status);
-      res.json(ApiResponse.success(null, "Status updated"));
+      res.json(ApiResponse.success(null, "status_updated"));
     } catch (error) {
       next(error);
     }
@@ -90,7 +90,7 @@ export class VendorController {
   setWorkingHours = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
       await this.vendorService.setWorkingHours(req.params.id, req.body);
-      res.json(ApiResponse.success(null, "Working hours set"));
+      res.json(ApiResponse.success(null, "working_hours_set"));
     } catch (error) {
       next(error);
     }
@@ -108,11 +108,11 @@ export class VendorController {
   uploadImage = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
       if (!req.file) {
-        throw new ValidationError("No image file provided");
+        throw new ValidationError("no_image_file_provided");
       }
       const imageUrl = `/vendors/uploads/vendors/${req.file.filename}`;
       await this.vendorService.updateStoreImage(req.params.id, imageUrl);
-      res.json(ApiResponse.success({ imageUrl }, "Store image uploaded"));
+      res.json(ApiResponse.success({ imageUrl }, "store_image_uploaded"));
     } catch (error) {
       next(error);
     }

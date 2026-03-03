@@ -22,7 +22,7 @@ export class VendorService {
     // Check if vendor already exists for this user
     const existing = await this.vendorRepo.findByUserId(dto.userId);
     if (existing) {
-      throw new ValidationError("Vendor already exists for this user");
+      throw new ValidationError("vendor_already_exists");
     }
 
     const vendor: Vendor = {
@@ -57,7 +57,7 @@ export class VendorService {
   async getVendorById(id: string): Promise<Vendor> {
     const vendor = await this.vendorRepo.findById(id);
     if (!vendor) {
-      throw new NotFoundError("Vendor not found");
+      throw new NotFoundError("vendor_not_found");
     }
     return vendor;
   }
@@ -65,7 +65,7 @@ export class VendorService {
   async getVendorByUserId(userId: string): Promise<Vendor> {
     const vendor = await this.vendorRepo.findByUserId(userId);
     if (!vendor) {
-      throw new NotFoundError("Vendor not found");
+      throw new NotFoundError("vendor_not_found");
     }
     return vendor;
   }

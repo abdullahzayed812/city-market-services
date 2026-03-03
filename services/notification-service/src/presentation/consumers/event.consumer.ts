@@ -1,9 +1,9 @@
 import { NotificationService } from "../../application/services/notification.service";
 import { rabbitMQBus, Logger } from "@city-market/shared/node";
-import { BaseEvent, EventType } from "@city-market/shared";
+import { BaseEvent, EventType, AppType } from "@city-market/shared";
 
 export class EventConsumer {
-  constructor(private notificationService: NotificationService) {}
+  constructor(private notificationService: NotificationService) { }
 
   async start() {
     // 1. Order Events
@@ -12,8 +12,8 @@ export class EventConsumer {
       await this.notificationService.sendNotification(
         customerId,
         "ORDER_CREATED",
-        "Order Placed",
-        `Your order #${customerOrderId} has been placed successfully.`,
+        "notification_order_created_title",
+        "notification_order_created_message",
         { orderId: customerOrderId, role: "CUSTOMER" },
       );
     });
@@ -22,14 +22,19 @@ export class EventConsumer {
       EventType.VENDOR_ORDER_CREATED,
       "notification_vendor_order_created",
       async (event: BaseEvent) => {
-        const { vendorOrderId, vendorId, customerOrderId } = event.payload;
-        await this.notificationService.sendNotification(
-          vendorId,
-          "ORDER_CREATED",
-          "New Order Received",
-          `You have a new order #${vendorOrderId} from customer order #${customerOrderId}`,
-          { orderId: vendorOrderId, customerOrderId, role: "VENDOR" },
-        );
+        const { vendorOrderId, vendorId, vendorUserId, customerOrderId } = event.payload;
+        // Fix: Send notification to the vendor's actual User ID, not their Shop ID
+        if (vendorUserId) {
+          await this.notificationService.sendNotification(
+            vendorUserId,
+            "ORDER_CREATED",
+            "notification_vendor_order_created_title",
+            "notification_vendor_order_created_message",
+            { orderId: vendorOrderId, customerOrderId, role: "VENDOR" },
+          );
+        } else {
+          Logger.warn(`[EventConsumer] No vendorUserId provided for VENDOR_ORDER_CREATED event on vendor ${vendorId}`);
+        }
       },
     );
 
@@ -41,8 +46,8 @@ export class EventConsumer {
         await this.notificationService.sendNotification(
           customerId,
           "ORDER_UPDATE",
-          "Order Item Confirmed",
-          `An item in your order #${customerOrderId} has been confirmed by the vendor.`,
+          "notification_vendor_order_confirmed_title",
+          "notification_vendor_order_confirmed_message",
           { orderId: customerOrderId, role: "CUSTOMER" },
         );
       },
@@ -56,8 +61,8 @@ export class EventConsumer {
         await this.notificationService.sendNotification(
           customerId,
           "ORDER_UPDATE",
-          "Order Changes Proposed",
-          `A vendor has proposed changes to your order #${customerOrderId}. Please review.`,
+          "notification_vendor_order_proposed_title",
+          "notification_vendor_order_proposed_message",
           { orderId: customerOrderId, type: "ORDER_CHANGES_PROPOSED", role: "CUSTOMER" },
         );
       },
@@ -65,12 +70,23 @@ export class EventConsumer {
 
     await rabbitMQBus.subscribe(EventType.ORDER_READY, "notification_order_ready", async (event: BaseEvent) => {
       const { customerOrderId, customerId } = event.payload;
+
+      // Notify the Customer
       await this.notificationService.sendNotification(
         customerId,
         "ORDER_UPDATE",
-        "Order Ready",
-        `Your order #${customerOrderId} is ready and waiting for a courier!`,
+        "notification_order_ready_title",
+        "notification_order_ready_message",
         { orderId: customerOrderId, type: "ORDER_UPDATE", role: "CUSTOMER" },
+      );
+
+      // Fix: Broadcast to all Delivery Managers that an order needs courier assignment
+      await this.notificationService.sendMulticastNotification(
+        AppType.DELIVERY_MANAGER,
+        "ORDER_READY",
+        "notification_delivery_manager_order_ready_title",
+        "notification_delivery_manager_order_ready_message",
+        { orderId: customerOrderId, type: "ORDER_READY", role: "DELIVERY_MANAGER" },
       );
     });
 
@@ -85,8 +101,8 @@ export class EventConsumer {
         await this.notificationService.sendNotification(
           customerId,
           "DELIVERY_UPDATE",
-          "Courier Assigned",
-          `A courier has been assigned to your order #${customerOrderId}.`,
+          "notification_courier_assigned_customer_title",
+          "notification_courier_assigned_customer_message",
           { orderId: customerOrderId, type: "DELIVERY_UPDATE", role: "CUSTOMER" },
         );
 
@@ -95,8 +111,8 @@ export class EventConsumer {
           await this.notificationService.sendNotification(
             courierUserId,
             "DELIVERY_ASSIGNMENT",
-            "New Delivery Assigned",
-            `You have been assigned a new delivery for order #${customerOrderId}.`,
+            "notification_courier_assigned_courier_title",
+            "notification_courier_assigned_courier_message",
             { deliveryId, orderId: customerOrderId, type: "DELIVERY_UPDATE", role: "COURIER" },
           );
         }
@@ -108,8 +124,8 @@ export class EventConsumer {
       await this.notificationService.sendNotification(
         customerId,
         "DELIVERY_UPDATE",
-        "Order Picked Up",
-        `Your order #${customerOrderId} is on the way!`,
+        "notification_order_picked_up_title",
+        "notification_order_picked_up_message",
         { orderId: customerOrderId, type: "DELIVERY_UPDATE", role: "CUSTOMER" },
       );
     });
@@ -119,8 +135,8 @@ export class EventConsumer {
       await this.notificationService.sendNotification(
         customerId,
         "DELIVERY_UPDATE",
-        "Order Delivered",
-        `Your order #${customerOrderId} has been delivered. Enjoy!`,
+        "notification_order_delivered_title",
+        "notification_order_delivered_message",
         { orderId: customerOrderId, type: "DELIVERY_UPDATE", role: "CUSTOMER" },
       );
     });
@@ -128,10 +144,13 @@ export class EventConsumer {
     // 3. User Events
     await rabbitMQBus.subscribe(EventType.USER_REGISTERED, "notification_user_registered", async (event: BaseEvent) => {
       const { userId, name } = event.payload;
-      // Initialize preferences (handled implicitly by sendNotification logic or explicit init)
-      await this.notificationService.sendNotification(userId, "SYSTEM", "Welcome!", `Welcome to CityMarket, ${name}!`, {
-        role: "CUSTOMER",
-      });
+      await this.notificationService.sendNotification(
+        userId,
+        "SYSTEM",
+        "notification_user_registered_title",
+        "notification_user_registered_message",
+        { role: "CUSTOMER", name }
+      );
     });
 
     Logger.info("Notification Service Consumers Started");

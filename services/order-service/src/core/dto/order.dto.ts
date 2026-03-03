@@ -38,3 +38,8 @@ export interface OrderWithItems {
   order: CustomerOrder;
   vendorOrders: (VendorOrder & { items: VendorOrderItem[] })[];
 }
+
+export interface VendorOrderWithItemsDto extends VendorOrder {
+  items: VendorOrderItem[];
+}
+

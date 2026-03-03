@@ -117,7 +117,9 @@
     "sub_order_total": "إجمالي الطلب الفرعي",
     "delivery_address": "عنوان التوصيل",
     "failed_load": "فشل تحميل تفاصيل الطلب.",
-    "created_at": "تاريخ الإنشاء"
+    "created_at": "تاريخ الإنشاء",
+    "subtotal": "المجموع الفرعي",
+    "delivery_fee": "رسوم التوصيل"
   },
   "couriers": {
     "vehicle": "المركبة",

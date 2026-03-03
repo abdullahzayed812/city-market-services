@@ -10,18 +10,18 @@ import { config } from "../../config/env";
 import { ValidationError, UnauthorizedError } from "@city-market/shared";
 
 export class AuthService {
-  constructor(private userRepo: IUserRepository, private refreshTokenRepo: IRefreshTokenRepository) {}
+  constructor(private userRepo: IUserRepository, private refreshTokenRepo: IRefreshTokenRepository) { }
 
   async register(dto: RegisterDto): Promise<TokenPair> {
     // Validate email
     if (!this.isValidEmail(dto.email)) {
-      throw new ValidationError("Invalid email format");
+      throw new ValidationError("invalid_email_format");
     }
 
     // Check if user exists
     const existingUser = await this.userRepo.findByEmail(dto.email);
     if (existingUser) {
-      throw new ValidationError("Email already registered");
+      throw new ValidationError("email_already_registered");
     }
 
     // Hash password
@@ -48,17 +48,17 @@ export class AuthService {
     // Find user
     const user = await this.userRepo.findByEmail(dto.email);
     if (!user) {
-      throw new UnauthorizedError("Invalid credentials");
+      throw new UnauthorizedError("invalid_credentials");
     }
 
     if (!user.isActive) {
-      throw new UnauthorizedError("Account is inactive");
+      throw new UnauthorizedError("account_inactive");
     }
 
     // Verify password
     const isValidPassword = await bcrypt.compare(dto.password, user.passwordHash);
     if (!isValidPassword) {
-      throw new UnauthorizedError("Invalid credentials");
+      throw new UnauthorizedError("invalid_credentials");
     }
 
     // Generate tokens
@@ -69,13 +69,13 @@ export class AuthService {
     // Verify refresh token
     const tokenRecord = await this.refreshTokenRepo.findByToken(refreshToken);
     if (!tokenRecord) {
-      throw new UnauthorizedError("Invalid refresh token");
+      throw new UnauthorizedError("invalid_refresh_token");
     }
 
     // Get user
     const user = await this.userRepo.findById(tokenRecord.userId);
     if (!user || !user.isActive) {
-      throw new UnauthorizedError("User not found or inactive");
+      throw new UnauthorizedError("user_not_found_or_inactive");
     }
 
     // Delete old refresh token
@@ -90,7 +90,7 @@ export class AuthService {
       const decoded = jwt.verify(token, config.jwtAccessSecret) as TokenPayload;
       return decoded;
     } catch (error) {
-      throw new UnauthorizedError("Invalid token");
+      throw new UnauthorizedError("invalid_token");
     }
   }
 
@@ -121,7 +121,7 @@ export class AuthService {
     );
 
     if (!serviceClient) {
-      throw new UnauthorizedError("Invalid client credentials");
+      throw new UnauthorizedError("invalid_client_credentials");
     }
 
     const payload = {
@@ -144,17 +144,17 @@ export class AuthService {
     let expiresInSeconds = 0;
     const expiryMatch = (config.jwtServiceAccessExpiry as string).match(/^(\d+)([smhd])$/);
     if (expiryMatch) {
-        const value = parseInt(expiryMatch[1]);
-        const unit = expiryMatch[2];
-        switch (unit) {
-            case 's': expiresInSeconds = value; break;
-            case 'm': expiresInSeconds = value * 60; break;
-            case 'h': expiresInSeconds = value * 3600; break;
-            case 'd': expiresInSeconds = value * 86400; break;
-        }
+      const value = parseInt(expiryMatch[1]);
+      const unit = expiryMatch[2];
+      switch (unit) {
+        case 's': expiresInSeconds = value; break;
+        case 'm': expiresInSeconds = value * 60; break;
+        case 'h': expiresInSeconds = value * 3600; break;
+        case 'd': expiresInSeconds = value * 86400; break;
+      }
     } else {
-        // Fallback or throw error if expiry format is unexpected
-        expiresInSeconds = 15 * 60; // Default to 15 minutes if parsing fails
+      // Fallback or throw error if expiry format is unexpected
+      expiresInSeconds = 15 * 60; // Default to 15 minutes if parsing fails
     }
 
 

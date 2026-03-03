@@ -4,13 +4,13 @@ import { ApiResponse } from "@city-market/shared";
 import { Logger } from "@city-market/shared/node";
 
 export class AuthController {
-  constructor(private authService: AuthService) {}
+  constructor(private authService: AuthService) { }
 
   register = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const tokens = await this.authService.register(req.body);
       Logger.info("User registered", { email: req.body.email });
-      res.status(201).json(ApiResponse.success(tokens, "Registration successful"));
+      res.status(201).json(ApiResponse.success(tokens, "registration_successful"));
     } catch (error) {
       next(error);
     }
@@ -20,7 +20,7 @@ export class AuthController {
     try {
       const tokens = await this.authService.login(req.body);
       Logger.info("User logged in", { email: req.body.email });
-      res.json(ApiResponse.success(tokens, "Login successful"));
+      res.status(200).json(ApiResponse.success(tokens, "login_successful"));
     } catch (error) {
       next(error);
     }
@@ -30,7 +30,7 @@ export class AuthController {
     try {
       const { refreshToken } = req.body;
       const tokens = await this.authService.refreshToken(refreshToken);
-      res.json(ApiResponse.success(tokens, "Token refreshed"));
+      res.json(ApiResponse.success(tokens, "token_refreshed"));
     } catch (error) {
       next(error);
     }
@@ -40,10 +40,10 @@ export class AuthController {
     try {
       const token = req.headers.authorization?.replace("Bearer ", "");
       if (!token) {
-        return res.status(401).json(ApiResponse.error("No token provided"));
+        return res.status(401).json(ApiResponse.error("no_token_provided"));
       }
       const payload = await this.authService.validateToken(token);
-      res.json(ApiResponse.success(payload, "Token is valid"));
+      res.json(ApiResponse.success(payload, "token_is_valid"));
     } catch (error) {
       next(error);
     }
@@ -53,7 +53,7 @@ export class AuthController {
     try {
       const userId = (req as any).user?.userId;
       await this.authService.logout(userId);
-      res.json(ApiResponse.success(null, "Logged out successfully"));
+      res.json(ApiResponse.success(null, "logged_out_successfully"));
     } catch (error) {
       next(error);
     }
@@ -65,7 +65,7 @@ export class AuthController {
       const limit = parseInt(req.query.limit as string) || 50;
       const role = req.query.role as string;
       const result = await this.authService.getUsers(page, limit, role);
-      res.json(ApiResponse.success(result, "Users retrieved successfully"));
+      res.json(ApiResponse.success(result, "users_retrieved_successfully"));
     } catch (error) {
       next(error);
     }
@@ -75,7 +75,7 @@ export class AuthController {
     try {
       const { id } = req.params;
       const user = await this.authService.getUserById(id);
-      res.json(ApiResponse.success(user, "User retrieved successfully"));
+      res.json(ApiResponse.success(user, "user_retrieved_successfully"));
     } catch (error) {
       next(error);
     }
@@ -86,7 +86,7 @@ export class AuthController {
       const { id } = req.params;
       const { status } = req.body;
       await this.authService.updateUserStatus(id, status);
-      res.json(ApiResponse.success(null, "User status updated successfully"));
+      res.json(ApiResponse.success(null, "user_status_updated_successfully"));
     } catch (error) {
       next(error);
     }

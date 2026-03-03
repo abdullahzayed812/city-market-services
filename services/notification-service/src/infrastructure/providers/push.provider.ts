@@ -47,8 +47,8 @@ export class PushNotificationProvider {
             Logger.warn(`Firebase: FIREBASE_SERVICE_ACCOUNT_JSON is not JSON and file path does not exist: ${saJson}`);
           }
         }
-      } 
-      
+      }
+
       // 2. Check for path in environment variable (dedicated path var)
       else if (config.firebase.serviceAccountPath) {
         if (fs.existsSync(config.firebase.serviceAccountPath)) {
@@ -70,8 +70,8 @@ export class PushNotificationProvider {
 
       if (credential) {
         admin.initializeApp({
-          credential: typeof credential === 'string' 
-            ? admin.credential.cert(credential) 
+          credential: typeof credential === 'string'
+            ? admin.credential.cert(credential)
             : admin.credential.cert(credential),
         });
         this.initialized = true;
@@ -121,10 +121,10 @@ export class PushNotificationProvider {
     }
   }
 
-  async sendMulticast(tokens: string[], title: string, body: string, data?: any): Promise<void> {
+  async sendMulticast(tokens: string[], title: string, body: string, data?: any): Promise<string[]> {
     if (!this.initialized) {
       Logger.info(`[Push LOG Fallback] Multicast to ${tokens.length} devices | Title: ${title}`);
-      return;
+      return [];
     }
 
     try {
@@ -152,18 +152,25 @@ export class PushNotificationProvider {
           },
         },
       });
-      
+
       Logger.info(`[Push Multicast] Sent. Success: ${response.successCount}, Failure: ${response.failureCount}`);
-      
+
+      const staleTokens: string[] = [];
       if (response.failureCount > 0) {
         response.responses.forEach((resp, idx) => {
           if (!resp.success) {
             Logger.error(`[Push Multicast Error] Token ${tokens[idx]}:`, resp.error);
+            const code = resp.error?.code;
+            if (code === 'messaging/registration-token-not-registered' || code === 'messaging/invalid-registration-token') {
+              staleTokens.push(tokens[idx]);
+            }
           }
         });
       }
+      return staleTokens;
     } catch (error) {
       Logger.error(`[Push Multicast Critical Failure]`, error);
+      return [];
     }
   }
 

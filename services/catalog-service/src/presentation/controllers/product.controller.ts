@@ -5,7 +5,7 @@ import { Logger } from "@city-market/shared/node";
 import { AuthenticatedRequest } from "@city-market/shared/node";
 
 export class ProductController {
-  constructor(private productService: ProductService) {}
+  constructor(private productService: ProductService) { }
 
   getAll = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
@@ -37,7 +37,7 @@ export class ProductController {
     try {
       const product = await this.productService.createProduct(req.body);
       Logger.info("Product created", { productId: product.id });
-      res.status(201).json(ApiResponse.success(product, "Product created"));
+      res.status(201).json(ApiResponse.success(product, "product_created"));
     } catch (error) {
       next(error);
     }
@@ -118,7 +118,7 @@ export class ProductController {
   update = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
       await this.productService.updateProduct(req.params.id, req.body);
-      res.json(ApiResponse.success(null, "Product updated"));
+      res.json(ApiResponse.success(null, "product_updated"));
     } catch (error) {
       next(error);
     }
@@ -127,7 +127,7 @@ export class ProductController {
   updateStock = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
       await this.productService.updateStock(req.params.id, req.body.stock);
-      res.json(ApiResponse.success(null, "Stock updated"));
+      res.json(ApiResponse.success(null, "stock_updated"));
     } catch (error) {
       next(error);
     }
@@ -136,7 +136,7 @@ export class ProductController {
   delete = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
       await this.productService.deleteProduct(req.params.id);
-      res.json(ApiResponse.success(null, "Product deleted"));
+      res.json(ApiResponse.success(null, "product_deleted"));
     } catch (error) {
       next(error);
     }
@@ -145,11 +145,11 @@ export class ProductController {
   uploadImage = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
       if (!req.file) {
-        throw new ValidationError("No image file provided");
+        throw new ValidationError("no_image_file_provided");
       }
       const imageUrl = `/catalog/uploads/products/${req.file.filename}`;
       await this.productService.updateProductImage(req.params.id, imageUrl);
-      res.json(ApiResponse.success({ imageUrl }, "Product image uploaded"));
+      res.json(ApiResponse.success({ imageUrl }, "product_image_uploaded"));
     } catch (error) {
       next(error);
     }

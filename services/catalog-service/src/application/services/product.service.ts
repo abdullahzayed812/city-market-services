@@ -12,17 +12,17 @@ export class ProductService {
   constructor(
     private productRepo: IProductRepository,
     private categoryRepo: ICategoryRepository
-  ) {}
+  ) { }
 
   async createProduct(dto: CreateProductDto): Promise<Product> {
     const globalCat = await this.categoryRepo.findById(dto.globalCategoryId);
     if (!globalCat || globalCat.type !== CategoryType.GLOBAL) {
-      throw new Error("Invalid global category");
+      throw new Error("invalid_global_category");
     }
 
     const vendorCat = await this.categoryRepo.findById(dto.vendorCategoryId);
     if (!vendorCat || vendorCat.type !== CategoryType.VENDOR || vendorCat.vendorId !== dto.vendorId) {
-      throw new Error("Invalid vendor-specific category for this vendor");
+      throw new Error("invalid_vendor_category");
     }
 
     const product: Product = {
@@ -46,15 +46,15 @@ export class ProductService {
   async getProductById(id: string): Promise<Product> {
     const product = await this.productRepo.findById(id);
     if (!product) {
-      throw new NotFoundError("Product not found");
+      throw new NotFoundError("product_not_found");
     }
     return product;
   }
 
   async getAllProducts(
-    page: number, 
-    limit: number, 
-    globalCategoryId?: string, 
+    page: number,
+    limit: number,
+    globalCategoryId?: string,
     vendorCategoryId?: string
   ): Promise<{ products: Product[]; total: number }> {
     const offset = (page - 1) * limit;
@@ -79,7 +79,7 @@ export class ProductService {
     const offset = (page - 1) * limit;
     const [products, total] = await Promise.all([
       this.productRepo.findByCategory(categoryId, limit, offset),
-      this.productRepo.countByFilter({ globalCategoryId: categoryId }) 
+      this.productRepo.countByFilter({ globalCategoryId: categoryId })
     ]);
     return { products, total };
   }
@@ -97,17 +97,17 @@ export class ProductService {
     const product = await this.getProductById(id);
 
     if (data.globalCategoryId) {
-       const globalCat = await this.categoryRepo.findById(data.globalCategoryId);
-       if (!globalCat || globalCat.type !== CategoryType.GLOBAL) {
-         throw new Error("Invalid global category");
-       }
+      const globalCat = await this.categoryRepo.findById(data.globalCategoryId);
+      if (!globalCat || globalCat.type !== CategoryType.GLOBAL) {
+        throw new Error("invalid_global_category");
+      }
     }
 
     if (data.vendorCategoryId) {
-       const vendorCat = await this.categoryRepo.findById(data.vendorCategoryId);
-       if (!vendorCat || vendorCat.type !== CategoryType.VENDOR || vendorCat.vendorId !== product.vendorId) {
-         throw new Error("Invalid vendor category for this vendor");
-       }
+      const vendorCat = await this.categoryRepo.findById(data.vendorCategoryId);
+      if (!vendorCat || vendorCat.type !== CategoryType.VENDOR || vendorCat.vendorId !== product.vendorId) {
+        throw new Error("invalid_vendor_category");
+      }
     }
 
     await this.productRepo.update(id, data as any);
@@ -120,7 +120,7 @@ export class ProductService {
 
   async updateProductImage(id: string, imageUrl: string): Promise<void> {
     const product = await this.getProductById(id);
-    
+
     if (product.imageUrl && product.imageUrl.startsWith("/catalog/uploads/products/")) {
       try {
         const oldImagePath = path.join(process.cwd(), product.imageUrl.replace("/catalog", ""));

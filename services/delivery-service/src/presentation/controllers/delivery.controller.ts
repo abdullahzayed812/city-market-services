@@ -5,7 +5,7 @@ import { Logger } from "@city-market/shared/node";
 import { AuthenticatedRequest } from "@city-market/shared/node";
 
 export class DeliveryController {
-  constructor(private deliveryService: DeliveryService) {}
+  constructor(private deliveryService: DeliveryService) { }
 
   // Courier management
   registerCourier = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
@@ -13,7 +13,7 @@ export class DeliveryController {
       const dto = { ...req.body, userId: req.user!.userId };
       const courier = await this.deliveryService.registerCourier(dto);
       Logger.info("Courier registered", { courierId: courier.id });
-      res.status(201).json(ApiResponse.success(courier, "Courier registered"));
+      res.status(201).json(ApiResponse.success(courier, "courier_registered"));
     } catch (error) {
       next(error);
     }
@@ -51,7 +51,7 @@ export class DeliveryController {
   updateCourier = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
       await this.deliveryService.updateCourier(req.params.id, req.body);
-      res.json(ApiResponse.success(null, "Courier updated"));
+      res.json(ApiResponse.success(null, "courier_updated"));
     } catch (error) {
       next(error);
     }
@@ -60,7 +60,7 @@ export class DeliveryController {
   updateAvailability = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
       await this.deliveryService.updateCourierAvailability(req.params.id, req.body.isAvailable);
-      res.json(ApiResponse.success(null, "Availability updated"));
+      res.json(ApiResponse.success(null, "availability_updated"));
     } catch (error) {
       next(error);
     }
@@ -70,7 +70,7 @@ export class DeliveryController {
   createDelivery = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
       const delivery = await this.deliveryService.createDelivery(req.body);
-      res.status(201).json(ApiResponse.success(delivery, "Delivery created"));
+      res.status(201).json(ApiResponse.success(delivery, "delivery_created"));
     } catch (error) {
       next(error);
     }
@@ -109,7 +109,7 @@ export class DeliveryController {
   assignCourier = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
       await this.deliveryService.assignCourier(req.params.id, req.body);
-      res.json(ApiResponse.success(null, "Courier assigned"));
+      res.json(ApiResponse.success(null, "courier_assigned"));
     } catch (error) {
       next(error);
     }
@@ -118,7 +118,7 @@ export class DeliveryController {
   updateDeliveryStatus = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
       await this.deliveryService.updateDeliveryStatus(req.params.id, req.body);
-      res.json(ApiResponse.success(null, "Delivery status updated"));
+      res.json(ApiResponse.success(null, "delivery_status_updated"));
     } catch (error) {
       next(error);
     }

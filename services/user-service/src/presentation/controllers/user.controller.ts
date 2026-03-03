@@ -5,14 +5,14 @@ import { Logger } from "@city-market/shared/node";
 import { AuthenticatedRequest } from "@city-market/shared/node";
 
 export class UserController {
-  constructor(private userService: UserService) {}
+  constructor(private userService: UserService) { }
 
   createCustomer = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
       const dto = { ...req.body, userId: req.user!.userId };
       const customer = await this.userService.createCustomer(dto);
       Logger.info("Customer created", { customerId: customer.id });
-      res.status(201).json(ApiResponse.success(customer, "Customer created"));
+      res.status(201).json(ApiResponse.success(customer, "customer_created"));
     } catch (error) {
       next(error);
     }
@@ -31,7 +31,7 @@ export class UserController {
     try {
       const customer = await this.userService.getCustomerByUserId(req.user!.userId);
       await this.userService.updateCustomer(customer.id, req.body);
-      res.json(ApiResponse.success(null, "Profile updated"));
+      res.json(ApiResponse.success(null, "profile_updated"));
     } catch (error) {
       next(error);
     }
@@ -41,7 +41,7 @@ export class UserController {
     try {
       const customer = await this.userService.getCustomerByUserId(req.user!.userId);
       const address = await this.userService.addAddress(customer.id, req.body);
-      res.status(201).json(ApiResponse.success(address, "Address added"));
+      res.status(201).json(ApiResponse.success(address, "address_added"));
     } catch (error) {
       next(error);
     }
@@ -61,7 +61,7 @@ export class UserController {
   deleteAddress = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
       await this.userService.deleteAddress(req.params.addressId);
-      res.json(ApiResponse.success(null, "Address deleted"));
+      res.json(ApiResponse.success(null, "address_deleted"));
     } catch (error) {
       next(error);
     }

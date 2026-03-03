@@ -30,7 +30,7 @@ export class DeliveryService {
   async registerCourier(dto: RegisterCourierDto): Promise<Courier> {
     const existing = await this.courierRepo.findByUserId(dto.userId);
     if (existing) {
-      throw new ValidationError("Courier already registered for this user");
+      throw new ValidationError("courier_already_registered");
     }
 
     const courier: Courier = {
@@ -59,7 +59,7 @@ export class DeliveryService {
   async getCourierById(id: string): Promise<Courier> {
     const courier = await this.courierRepo.findById(id);
     if (!courier) {
-      throw new NotFoundError("Courier not found");
+      throw new NotFoundError("courier_not_found");
     }
     return courier;
   }
@@ -67,7 +67,7 @@ export class DeliveryService {
   async getCourierByUserId(userId: string): Promise<Courier> {
     const courier = await this.courierRepo.findByUserId(userId);
     if (!courier) {
-      throw new NotFoundError("Courier not found for this user ID");
+      throw new NotFoundError("courier_not_found_by_user");
     }
     return courier;
   }
@@ -300,7 +300,7 @@ export class DeliveryService {
   async getDeliveryById(id: string): Promise<Delivery> {
     const delivery = await this.deliveryRepo.findById(id);
     if (!delivery) {
-      throw new NotFoundError("Delivery not found");
+      throw new NotFoundError("delivery_not_found");
     }
     return delivery;
   }
@@ -382,10 +382,10 @@ export class DeliveryService {
       connection = await this.db.beginTransaction();
 
       const delivery = await this.deliveryRepo.findById(deliveryId, connection); // Fetch with connection
-      if (!delivery) throw new NotFoundError("Delivery not found");
+      if (!delivery) throw new NotFoundError("delivery_not_found");
 
       const courier = await this.courierRepo.findById(dto.courierId, connection);
-      if (!courier) throw new NotFoundError("Courier not found");
+      if (!courier) throw new NotFoundError("courier_not_found");
 
       // Check courier availability and proximity if needed
       await this.deliveryRepo.assignCourier(deliveryId, dto.courierId, connection); // Pass connection
@@ -395,12 +395,12 @@ export class DeliveryService {
         id: randomUUID(),
         type: EventType.COURIER_ASSIGNED,
         timestamp: new Date(),
-        payload: { 
-          deliveryId: delivery.id, 
-          courierId: dto.courierId, 
+        payload: {
+          deliveryId: delivery.id,
+          courierId: dto.courierId,
           courierUserId: courier.userId,
           customerId: delivery.customerId,
-          customerOrderId: delivery.customerOrderId 
+          customerOrderId: delivery.customerOrderId
         },
       });
 

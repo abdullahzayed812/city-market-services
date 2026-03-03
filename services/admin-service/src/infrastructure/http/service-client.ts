@@ -137,7 +137,7 @@ export class ServiceClient {
 
   async getOrderById(id: string, userId?: string) {
     const config = await this.getRequestConfig(userId);
-    const response = await this.axiosInstance.get(`${this.orderServiceUrl}/${id}`, config);
+    const response = await this.axiosInstance.get(`${this.orderServiceUrl}/customer-orders/${id}`, config);
     return response.data;
   }
 
@@ -204,11 +204,11 @@ export class ServiceClient {
 
   // Product Management
   async getAllProducts(
-    page: number = 1, 
-    limit: number = 20, 
-    userId?: string, 
-    globalCategoryId?: string, 
-    vendorCategoryId?: string
+    page: number = 1,
+    limit: number = 20,
+    userId?: string,
+    globalCategoryId?: string,
+    vendorCategoryId?: string,
   ) {
     const config = await this.getRequestConfig(userId);
     const response = await this.axiosInstance.get(`${this.catalogServiceUrl}/products`, {

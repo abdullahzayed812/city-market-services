@@ -24,5 +24,6 @@ export interface DeviceToken {
   token: string;
   platform: PlatformType;
   appType: AppType;
+  language?: string;
   lastActive: Date;
 }

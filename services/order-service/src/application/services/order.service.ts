@@ -37,7 +37,7 @@ export class OrderService {
     private vendorClient: VendorHttpClient,
     private eventBus: RabbitMQBus,
     private db: Database,
-  ) {}
+  ) { }
 
   async createOrder(dto: CreateOrderDto, userId?: string): Promise<OrderWithItems> {
     // Changed to userId
@@ -50,7 +50,7 @@ export class OrderService {
       connection = await this.db.beginTransaction();
 
       if (dto.items.length === 0) {
-        throw new ValidationError("Order must have at least one item");
+        throw new ValidationError("order_must_have_at_least_one_item");
       }
 
       // Fetch product information (external call, not part of DB transaction)
@@ -66,16 +66,16 @@ export class OrderService {
         const requestedItem = dto.items[i];
 
         if (!product) {
-          throw new ValidationError(`Product ${requestedItem.productId} not found`);
+          throw new ValidationError("product_not_found");
         }
 
         if (!product.isAvailable) {
-          throw new ValidationError(`Product ${product.name} is not available`);
+          throw new ValidationError("product_not_available");
         }
 
         // Initial stock check. Final check and decrement is transactional.
         if (product.stockQuantity < requestedItem.quantity) {
-          throw new ValidationError(`Insufficient stock for ${product.name}`);
+          throw new ValidationError("insufficient_stock");
         }
 
         const vendorItems = vendorItemsMap.get(product.vendorId) || [];
@@ -186,16 +186,20 @@ export class OrderService {
 
         createdVendorOrders.push({ ...vendorOrder, items: uniqueItems });
 
+        // Fetch vendor details to get their userId for notifications
+        const vendorInfo = await this.vendorClient.getVendor(vendorOrder.vendorId, userId);
+
         // Collect VENDOR_ORDER_CREATED event
         eventsToPublish.push({
           id: randomUUID(),
           type: EventType.VENDOR_ORDER_CREATED,
           timestamp: new Date(),
-          payload: { 
-            vendorOrderId: vendorOrder.id, 
-            vendorId: vendorOrder.vendorId, 
+          payload: {
+            vendorOrderId: vendorOrder.id,
+            vendorId: vendorOrder.vendorId,
+            vendorUserId: vendorInfo?.userId,
             customerOrderId: customerOrder.id,
-            customerId: customerOrder.customerId 
+            customerId: customerOrder.customerId
           },
         });
       }
@@ -229,7 +233,7 @@ export class OrderService {
 
     if (!createdCustomerOrder) {
       // Should not happen with successful commit
-      throw new Error("Customer order was not created successfully.");
+      throw new Error("customer_order_creation_failed");
     }
     return { order: createdCustomerOrder, vendorOrders: createdVendorOrders };
   }
@@ -238,7 +242,7 @@ export class OrderService {
     // Changed to userId
     const customerOrder = await this.customerOrderRepo.findById(id);
     if (!customerOrder) {
-      throw new NotFoundError("Order not found");
+      throw new NotFoundError("order_not_found");
     }
 
     const vendorOrders = await this.vendorOrderRepo.findByCustomerOrder(id);
@@ -288,7 +292,7 @@ export class OrderService {
   ): Promise<VendorOrder & { items: VendorOrderItem[]; vendorName: string; proposals: OrderItemProposal[] }> {
     const vo = await this.vendorOrderRepo.findById(id);
     if (!vo) {
-      throw new NotFoundError("Vendor order not found");
+      throw new NotFoundError("vendor_order_not_found");
     }
     const items = await this.vendorOrderItemRepo.findByVendorOrder(vo.id);
     const vendor = await this.vendorClient.getVendor(vo.vendorId, userId); // Passed userId
@@ -309,13 +313,13 @@ export class OrderService {
       connection = await this.db.beginTransaction();
 
       const vo = await this.vendorOrderRepo.findByIdWithLock(vendorOrderId, connection);
-      if (!vo) throw new NotFoundError("Vendor order not found");
+      if (!vo) throw new NotFoundError("vendor_order_not_found");
 
       for (let item of dto) {
         // Prevent multiple pending proposals for the same item
         const existingProposals = await this.proposalRepo.findByVendorOrderItem(item.itemId, connection);
         if (existingProposals.some((p) => p.status === ProposalStatus.PENDING)) {
-          throw new ValidationError(`Vendor order item ${item.itemId} already has a pending proposal.`);
+          throw new ValidationError("vendor_order_item_has_pending_proposal");
         }
         const proposal = {
           id: randomUUID(),
@@ -345,11 +349,11 @@ export class OrderService {
         id: randomUUID(),
         type: EventType.VENDOR_ORDER_PROPOSED,
         timestamp: new Date(),
-        payload: { 
-          vendorOrderId, 
-          customerOrderId: vo.customerOrderId, 
+        payload: {
+          vendorOrderId,
+          customerOrderId: vo.customerOrderId,
           vendorId: vo.vendorId,
-          customerId: customerOrderForProposal?.customerId 
+          customerId: customerOrderForProposal?.customerId
         }, // Added customerOrderId, vendorId, customerId
       });
 
@@ -384,13 +388,13 @@ export class OrderService {
       connection = await this.db.beginTransaction();
 
       const vo = await this.vendorOrderRepo.findByIdWithLock(vendorOrderId, connection);
-      if (!vo) throw new NotFoundError("Vendor order not found");
+      if (!vo) throw new NotFoundError("vendor_order_not_found");
 
       const co = await this.customerOrderRepo.findByIdWithLock(vo.customerOrderId, connection);
-      if (!co) throw new NotFoundError("Customer order not found");
+      if (!co) throw new NotFoundError("customer_order_not_found");
 
       if (vo.status !== VendorOrderStatus.PENDING) {
-        throw new ValidationError("Only PENDING orders can be confirmed by vendor");
+        throw new ValidationError("vendor_can_only_confirm_pending_orders");
       }
 
       await this.vendorOrderRepo.updateStatus(vendorOrderId, VendorOrderStatus.CONFIRMED, connection);
@@ -432,10 +436,10 @@ export class OrderService {
       connection = await this.db.beginTransaction();
 
       const vo = await this.vendorOrderRepo.findByIdWithLock(vendorOrderId, connection);
-      if (!vo) throw new NotFoundError("Vendor order not found");
+      if (!vo) throw new NotFoundError("vendor_order_not_found");
 
       if (!this.isValidVendorStatusTransition(vo.status, status)) {
-        throw new ValidationError(`Cannot transition vendor order from ${vo.status} to ${status}`);
+        throw new ValidationError("invalid_vendor_order_status_transition");
       }
 
       await this.vendorOrderRepo.updateStatus(vendorOrderId, status, connection);
@@ -463,10 +467,10 @@ export class OrderService {
       connection = await this.db.beginTransaction();
 
       const co = await this.customerOrderRepo.findByIdWithLock(customerOrderId, connection);
-      if (!co) throw new NotFoundError("Customer order not found");
+      if (!co) throw new NotFoundError("customer_order_not_found");
 
       if (!this.isValidCustomerStatusTransition(co.status, status)) {
-        throw new ValidationError(`Cannot transition customer order from ${co.status} to ${status}`);
+        throw new ValidationError("invalid_customer_order_status_transition");
       }
       await this.customerOrderRepo.updateStatus(customerOrderId, status, connection);
       await this.recordStatusChange({ customerOrderId }, status, notes, connection);
@@ -488,25 +492,25 @@ export class OrderService {
       connection = await this.db.beginTransaction();
 
       const proposal = await this.proposalRepo.findByIdWithLock(proposalId, connection);
-      if (!proposal) throw new NotFoundError("Proposal not found");
+      if (!proposal) throw new NotFoundError("proposal_not_found");
       if (proposal.status !== ProposalStatus.PENDING) {
-        throw new ValidationError("Proposal is not pending or has already been processed.");
+        throw new ValidationError("proposal_already_processed");
       }
 
       const item = await this.vendorOrderItemRepo.findByIdWithLock(proposal.vendorOrderItemId, connection);
-      if (!item) throw new NotFoundError("Vendor order item not found");
+      if (!item) throw new NotFoundError("vendor_order_item_not_found");
 
       const vo = await this.vendorOrderRepo.findByIdWithLock(item.vendorOrderId, connection);
-      if (!vo) throw new NotFoundError("Vendor order not found");
+      if (!vo) throw new NotFoundError("vendor_order_not_found");
       if (vo.status === VendorOrderStatus.CONFIRMED) {
-        throw new ValidationError("Vendor order has already been confirmed.");
+        throw new ValidationError("vendor_order_already_confirmed");
       }
       if (vo.status === VendorOrderStatus.CANCELLED) {
-        throw new ValidationError("Cannot accept proposal for a cancelled vendor order.");
+        throw new ValidationError("cannot_accept_proposal_for_cancelled_order");
       }
 
       const co = await this.customerOrderRepo.findByIdWithLock(vo.customerOrderId, connection);
-      if (!co) throw new NotFoundError("Customer order not found");
+      if (!co) throw new NotFoundError("customer_order_not_found");
 
       // 1) Update vendor_order_items based on proposal
       let newQuantity = item.quantity;
@@ -600,19 +604,19 @@ export class OrderService {
       connection = await this.db.beginTransaction();
 
       const proposal = await this.proposalRepo.findByIdWithLock(proposalId, connection);
-      if (!proposal) throw new NotFoundError("Proposal not found");
+      if (!proposal) throw new NotFoundError("proposal_not_found");
       if (proposal.status !== ProposalStatus.PENDING) {
-        throw new ValidationError("Proposal is not pending or has already been processed.");
+        throw new ValidationError("proposal_already_processed");
       }
 
       const item = await this.vendorOrderItemRepo.findByIdWithLock(proposal.vendorOrderItemId, connection);
-      if (!item) throw new NotFoundError("Vendor order item not found");
+      if (!item) throw new NotFoundError("vendor_order_item_not_found");
 
       const vo = await this.vendorOrderRepo.findByIdWithLock(item.vendorOrderId, connection);
-      if (!vo) throw new NotFoundError("Vendor order not found");
+      if (!vo) throw new NotFoundError("vendor_order_not_found");
 
       const co = await this.customerOrderRepo.findByIdWithLock(vo.customerOrderId, connection);
-      if (!co) throw new NotFoundError("Customer order not found");
+      if (!co) throw new NotFoundError("customer_order_not_found");
 
       // Update proposal status
       await this.proposalRepo.updateStatus(proposalId, ProposalStatus.REJECTED, connection);

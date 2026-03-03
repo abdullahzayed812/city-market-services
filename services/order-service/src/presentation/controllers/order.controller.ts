@@ -12,7 +12,7 @@ export class OrderController {
       const dto = { ...req.body, customerId: req.user?.userId };
       const order = await this.orderService.createOrder(dto, req.user?.userId);
       Logger.info("Customer order created", { customerOrderId: order.order.id });
-      res.status(201).json(ApiResponse.success(order, "Order created"));
+      res.status(201).json(ApiResponse.success(order, "order_created"));
     } catch (error) {
       next(error);
     }
@@ -30,7 +30,7 @@ export class OrderController {
   acceptVendorOrder = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
       await this.orderService.acceptVendorOrder(req.params.id);
-      res.json(ApiResponse.success(null, "Vendor order accepted"));
+      res.json(ApiResponse.success(null, "vendor_order_accepted"));
     } catch (error) {
       next(error);
     }
@@ -39,7 +39,7 @@ export class OrderController {
   proposeChanges = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
       await this.orderService.proposeChanges(req.params.id, req.body.proposals as ProposeChangesDto[]);
-      res.json(ApiResponse.success(null, "Changes proposed"));
+      res.json(ApiResponse.success(null, "changes_proposed"));
     } catch (error) {
       next(error);
     }
@@ -48,7 +48,7 @@ export class OrderController {
   updateVendorOrderStatus = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
       await this.orderService.updateVendorOrderStatus(req.params.id, req.body.status, req.body.notes);
-      res.json(ApiResponse.success(null, "Vendor order status updated"));
+      res.json(ApiResponse.success(null, "vendor_order_status_updated"));
     } catch (error) {
       next(error);
     }
@@ -57,7 +57,7 @@ export class OrderController {
   acceptProposal = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
       await this.orderService.acceptProposal(req.params.id);
-      res.json(ApiResponse.success(null, "Proposal accepted"));
+      res.json(ApiResponse.success(null, "proposal_accepted"));
     } catch (error) {
       next(error);
     }
@@ -66,7 +66,7 @@ export class OrderController {
   rejectProposal = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
       await this.orderService.rejectProposal(req.params.id, req.body.cancelEntireOrder);
-      res.json(ApiResponse.success(null, "Proposal rejected"));
+      res.json(ApiResponse.success(null, "proposal_rejected"));
     } catch (error) {
       next(error);
     }
@@ -118,7 +118,7 @@ export class OrderController {
     try {
       const { status, notes } = req.body;
       await this.orderService.updateCustomerOrderStatus(req.params.id, status, notes);
-      res.json(ApiResponse.success(null, "Customer order status updated"));
+      res.json(ApiResponse.success(null, "customer_order_status_updated"));
     } catch (error) {
       next(error);
     }

@@ -45,7 +45,7 @@ export const createApp = () => {
   app.use((req, res) => {
     res.status(404).json({
       success: false,
-      message: "Route not found",
+      message: "route_not_found",
     });
   });
 

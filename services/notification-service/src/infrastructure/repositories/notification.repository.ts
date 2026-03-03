@@ -84,11 +84,11 @@ export class NotificationRepository implements INotificationRepository {
 
   async addDeviceToken(token: DeviceToken): Promise<void> {
     const query = `
-      INSERT INTO device_tokens (user_id, token, platform, app_type, last_active)
-      VALUES (?, ?, ?, ?, ?)
-      ON DUPLICATE KEY UPDATE last_active = NOW()
+      INSERT INTO device_tokens (user_id, token, platform, app_type, language, last_active)
+      VALUES (?, ?, ?, ?, ?, ?)
+      ON DUPLICATE KEY UPDATE language = VALUES(language), app_type = VALUES(app_type), platform = VALUES(platform), last_active = NOW()
     `;
-    await this.pool.execute(query, [token.userId, token.token, token.platform, token.appType, new Date()]);
+    await this.pool.execute(query, [token.userId, token.token, token.platform, token.appType, token.language || 'en', new Date()]);
   }
 
   async removeDeviceToken(token: string): Promise<void> {
@@ -102,6 +102,19 @@ export class NotificationRepository implements INotificationRepository {
       token: row.token,
       platform: row.platform,
       appType: row.app_type,
+      language: row.language,
+      lastActive: row.last_active,
+    }));
+  }
+
+  async getTokensByAppType(appType: string): Promise<DeviceToken[]> {
+    const [rows] = await this.pool.query<RowDataPacket[]>("SELECT * FROM device_tokens WHERE app_type = ?", [appType]);
+    return rows.map((row) => ({
+      userId: row.user_id,
+      token: row.token,
+      platform: row.platform,
+      appType: row.app_type,
+      language: row.language,
       lastActive: row.last_active,
     }));
   }

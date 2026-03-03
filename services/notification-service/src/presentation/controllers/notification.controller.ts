@@ -1,15 +1,22 @@
 import { Request, Response, NextFunction } from "express";
 import { NotificationService } from "../../application/services/notification.service";
+import { ApiResponse } from "@city-market/shared";
 import { AuthenticatedRequest } from "@city-market/shared/node";
 
 export class NotificationController {
-  constructor(private service: NotificationService) {}
+  constructor(private service: NotificationService) { }
 
   registerDevice = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
       const { token, platform, appType } = req.body;
-      await this.service.registerDevice(req.user!.userId, token, platform, appType);
-      res.status(200).json({ message: "Device registered" });
+      let language = req.headers["accept-language"] as string;
+      if (language) {
+        language = language.includes("en") ? "en" : "ar";
+      } else {
+        language = "ar"; // default fallback
+      }
+      await this.service.registerDevice(req.user!.userId, token, platform, appType, language);
+      res.status(200).json(ApiResponse.success(null, "device_registered"));
     } catch (error) {
       next(error);
     }
@@ -29,7 +36,7 @@ export class NotificationController {
   markAsRead = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
       await this.service.markAsRead(req.user!.userId, req.params.id);
-      res.json({ message: "Marked as read" });
+      res.json(ApiResponse.success(null, "marked_as_read"));
     } catch (error) {
       next(error);
     }
@@ -38,7 +45,7 @@ export class NotificationController {
   markAllRead = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
       await this.service.markAllRead(req.user!.userId);
-      res.json({ message: "All marked as read" });
+      res.json(ApiResponse.success(null, "all_marked_as_read"));
     } catch (error) {
       next(error);
     }

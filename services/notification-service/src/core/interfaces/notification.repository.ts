@@ -16,4 +16,5 @@ export interface INotificationRepository {
   addDeviceToken(token: DeviceToken): Promise<void>;
   removeDeviceToken(token: string): Promise<void>;
   getDeviceTokens(userId: string): Promise<DeviceToken[]>;
+  getTokensByAppType(appType: string): Promise<DeviceToken[]>;
 }
