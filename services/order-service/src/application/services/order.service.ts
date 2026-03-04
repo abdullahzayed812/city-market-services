@@ -572,6 +572,7 @@ export class OrderService {
             customerOrderId: co.id,
             vendorId: vo.vendorId,
             customerId: co.customerId,
+            vendorUserId: (await this.vendorClient.getVendor(vo.vendorId))?.userId,
           },
         },
       ];
@@ -715,9 +716,9 @@ export class OrderService {
         .every((vo) => deliveryStatuses.includes(vo.status));
       if (allInDelivery) return; // Customer order is handled by delivery events directly
 
-      const allConfirmed = vendorOrders.every((vo) => vo.status === VendorOrderStatus.CONFIRMED);
-      const allCancelled = vendorOrders.every((vo) => vo.status === VendorOrderStatus.CANCELLED);
-      // const anyCancelled = vendorOrders.some((vo) => vo.status === VendorOrderStatus.CANCELLED);
+      const nonCancelledVendorOrders = vendorOrders.filter((vo) => vo.status !== VendorOrderStatus.CANCELLED);
+      const allConfirmed = nonCancelledVendorOrders.length > 0 && nonCancelledVendorOrders.every((vo) => vo.status === VendorOrderStatus.CONFIRMED);
+      const allCancelled = vendorOrders.length > 0 && vendorOrders.every((vo) => vo.status === VendorOrderStatus.CANCELLED);
 
       let newStatus: CustomerOrderStatus | null = null;
 
@@ -726,9 +727,7 @@ export class OrderService {
       } else if (allConfirmed) {
         newStatus = CustomerOrderStatus.READY;
       } else if (
-        vendorOrders.some(
-          (vo) => vo.status === VendorOrderStatus.CONFIRMED || vo.status === VendorOrderStatus.PROPOSAL_SENT,
-        )
+        vendorOrders.some((vo) => vo.status === VendorOrderStatus.PROPOSAL_SENT)
       ) {
         newStatus = CustomerOrderStatus.WAITING_CUSTOMER_DECISION;
       } else if (vendorOrders.some((vo) => vo.status === VendorOrderStatus.PENDING)) {

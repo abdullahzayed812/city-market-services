@@ -11,6 +11,8 @@ export interface CreateDeliveryDto {
   pickupLongitude?: number;
   deliveryLatitude?: number;
   deliveryLongitude?: number;
+  totalPrice?: number;
+  itemsCount?: number;
 }
 
 export interface AssignCourierDto {

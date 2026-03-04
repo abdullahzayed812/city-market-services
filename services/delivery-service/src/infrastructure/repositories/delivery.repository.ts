@@ -18,8 +18,8 @@ export class DeliveryRepository implements IDeliveryRepository {
     const query = `
       INSERT INTO deliveries (
         id, customer_id, customer_order_id, vendor_order_id, status, delivery_address,
-        delivery_latitude, delivery_longitude
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        delivery_latitude, delivery_longitude, total_price, items_count
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
     await conn.execute(query, [
       delivery.id,
@@ -30,6 +30,8 @@ export class DeliveryRepository implements IDeliveryRepository {
       delivery.deliveryAddress,
       delivery.deliveryLatitude || null,
       delivery.deliveryLongitude || null,
+      delivery.totalPrice || 0,
+      delivery.itemsCount || 0,
     ]);
 
     // Insert into delivery_pickup_locations table
@@ -76,7 +78,7 @@ export class DeliveryRepository implements IDeliveryRepository {
       WHERE d.customer_order_id = ?
     `;
     const [rows] = await conn.execute<RowDataPacket[]>(query, [customerOrderId]);
-    
+
     return this.mapRowsToDeliveries(rows, conn); // Pass connection to helper
   }
 
@@ -223,6 +225,8 @@ export class DeliveryRepository implements IDeliveryRepository {
       deliveryAddress: row.delivery_address,
       deliveryLatitude: row.delivery_latitude,
       deliveryLongitude: row.delivery_longitude,
+      totalPrice: row.total_price ? parseFloat(row.total_price) : 0,
+      itemsCount: row.items_count || 0,
       assignedAt: row.assigned_at,
       pickedUpAt: row.picked_up_at,
       deliveredAt: row.delivered_at,

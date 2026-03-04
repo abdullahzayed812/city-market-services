@@ -99,6 +99,8 @@ export class DeliveryService {
       deliveryAddress: dto.deliveryAddress,
       deliveryLatitude: dto.deliveryLatitude,
       deliveryLongitude: dto.deliveryLongitude,
+      totalPrice: dto.totalPrice || 0,
+      itemsCount: dto.itemsCount || 0,
       createdAt: new Date(),
       updatedAt: new Date(),
     };
@@ -249,6 +251,9 @@ export class DeliveryService {
     // Add connection
     const primaryVendor = vendors[0]; // Assuming vendors here means the group of vendors for this delivery.
 
+    const itemsCount = vendors.reduce((sum, v) => sum + (v.items?.length || 0), 0);
+    const totalPrice = vendors.reduce((sum, v) => sum + (v.totalAmount || 0), 0);
+
     const dto: CreateDeliveryDto = {
       customerId: customerOrder.customerId,
       customerOrderId: customerOrderId,
@@ -264,9 +269,18 @@ export class DeliveryService {
       deliveryAddress: customerOrder.deliveryAddress,
       deliveryLatitude: customerOrder.deliveryLatitude,
       deliveryLongitude: customerOrder.deliveryLongitude,
+      totalPrice,
+      itemsCount,
     };
 
-    return this.createDelivery(dto, connection); // Pass connection
+    // Enrich the delivery object with calculated fields before creation
+    const delivery = await this.createDelivery(dto, connection);
+    // We should probably update the DB here if createDelivery didn't take them,
+    // but wait, createDelivery DOES take the delivery object and saves it.
+    // However, I set them to 0 in createDelivery and then update them here in memory.
+    // I should instead include them in CreateDeliveryDto or just update the object BEFORE calling repository.create.
+
+    return delivery;
   }
 
   private checkDistances(vendors: any[]): boolean {
@@ -297,12 +311,19 @@ export class DeliveryService {
     return R * c;
   }
 
-  async getDeliveryById(id: string): Promise<Delivery> {
+  async getDeliveryById(id: string, userId?: string): Promise<Delivery & { order?: any }> {
     const delivery = await this.deliveryRepo.findById(id);
     if (!delivery) {
       throw new NotFoundError("delivery_not_found");
     }
-    return delivery;
+
+    try {
+      const orderData = await this.orderClient.getOrder(delivery.customerOrderId, userId);
+      return { ...delivery, order: orderData };
+    } catch (error: any) {
+      Logger.warn(`Failed to fetch order details for delivery ${id}:`, error.message);
+      return delivery;
+    }
   }
 
   async getPendingDeliveries(): Promise<Delivery[]> {

@@ -15,6 +15,8 @@ export interface Delivery {
   pickupLongitude?: number;
   deliveryLatitude?: number;
   deliveryLongitude?: number;
+  totalPrice: number;
+  itemsCount: number;
   assignedAt?: Date;
   pickedUpAt?: Date;
   deliveredAt?: Date;

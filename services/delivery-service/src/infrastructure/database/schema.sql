@@ -25,6 +25,8 @@ CREATE TABLE deliveries (
   delivery_address TEXT NOT NULL,
   delivery_latitude DECIMAL(10, 8),
   delivery_longitude DECIMAL(11, 8),
+  total_price DECIMAL(10, 2) DEFAULT 0.00,
+  items_count INT DEFAULT 0,
   assigned_at TIMESTAMP NULL,
   picked_up_at TIMESTAMP NULL,
   delivered_at TIMESTAMP NULL,

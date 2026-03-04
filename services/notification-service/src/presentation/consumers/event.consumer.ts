@@ -14,7 +14,7 @@ export class EventConsumer {
         "ORDER_CREATED",
         "notification_order_created_title",
         "notification_order_created_message",
-        { orderId: customerOrderId, role: "CUSTOMER" },
+        { orderId: customerOrderId, type: "ORDER_CREATED", role: "CUSTOMER" },
       );
     });
 
@@ -30,7 +30,7 @@ export class EventConsumer {
             "ORDER_CREATED",
             "notification_vendor_order_created_title",
             "notification_vendor_order_created_message",
-            { orderId: vendorOrderId, customerOrderId, role: "VENDOR" },
+            { orderId: vendorOrderId, customerOrderId, type: "ORDER_CREATED", role: "VENDOR" },
           );
         } else {
           Logger.warn(`[EventConsumer] No vendorUserId provided for VENDOR_ORDER_CREATED event on vendor ${vendorId}`);
@@ -48,7 +48,7 @@ export class EventConsumer {
           "ORDER_UPDATE",
           "notification_vendor_order_confirmed_title",
           "notification_vendor_order_confirmed_message",
-          { orderId: customerOrderId, role: "CUSTOMER" },
+          { orderId: customerOrderId, type: "ORDER_UPDATE", role: "CUSTOMER" },
         );
       },
     );
@@ -68,6 +68,53 @@ export class EventConsumer {
       },
     );
 
+    await rabbitMQBus.subscribe(
+      EventType.PROPOSAL_ACCEPTED,
+      "notification_proposal_accepted",
+      async (event: BaseEvent) => {
+        const { vendorOrderId, customerOrderId, vendorUserId } = event.payload;
+        if (vendorUserId) {
+          await this.notificationService.sendNotification(
+            vendorUserId,
+            "PROPOSAL_DECISION",
+            "notification_proposal_accepted_title",
+            "notification_proposal_accepted_message",
+            { orderId: vendorOrderId, customerOrderId, type: "ORDER_UPDATE", role: "VENDOR" },
+          );
+        }
+      },
+    );
+
+    await rabbitMQBus.subscribe(
+      EventType.PROPOSAL_REJECTED,
+      "notification_proposal_rejected",
+      async (event: BaseEvent) => {
+        const { vendorOrderId, customerOrderId, vendorUserId } = event.payload;
+        if (vendorUserId) {
+          await this.notificationService.sendNotification(
+            vendorUserId,
+            "PROPOSAL_DECISION",
+            "notification_proposal_rejected_title",
+            "notification_proposal_rejected_message",
+            { orderId: vendorOrderId, customerOrderId, type: "ORDER_UPDATE", role: "VENDOR" },
+          );
+        }
+      },
+    );
+
+    await rabbitMQBus.subscribe(EventType.DELIVERY_CREATED, "notification_delivery_created", async (event: BaseEvent) => {
+      const { deliveryId, customerOrderId } = event.payload;
+
+      // Broadcast to all Delivery Managers that an order needs courier assignment
+      await this.notificationService.sendMulticastNotification(
+        AppType.DELIVERY_MANAGER,
+        "ORDER_READY",
+        "notification_delivery_manager_order_ready_title",
+        "notification_delivery_manager_order_ready_message",
+        { deliveryId, orderId: customerOrderId, type: "ORDER_READY", role: "DELIVERY_MANAGER" },
+      );
+    });
+
     await rabbitMQBus.subscribe(EventType.ORDER_READY, "notification_order_ready", async (event: BaseEvent) => {
       const { customerOrderId, customerId } = event.payload;
 
@@ -80,14 +127,8 @@ export class EventConsumer {
         { orderId: customerOrderId, type: "ORDER_UPDATE", role: "CUSTOMER" },
       );
 
-      // Fix: Broadcast to all Delivery Managers that an order needs courier assignment
-      await this.notificationService.sendMulticastNotification(
-        AppType.DELIVERY_MANAGER,
-        "ORDER_READY",
-        "notification_delivery_manager_order_ready_title",
-        "notification_delivery_manager_order_ready_message",
-        { orderId: customerOrderId, type: "ORDER_READY", role: "DELIVERY_MANAGER" },
-      );
+      // We still keep the multicast for Delivery Manager here as a fallback or if no deliveryId yet, 
+      // but the DELIVERY_CREATED handler above will provide the deliveryId.
     });
 
     // 2. Delivery Events
@@ -113,7 +154,7 @@ export class EventConsumer {
             "DELIVERY_ASSIGNMENT",
             "notification_courier_assigned_courier_title",
             "notification_courier_assigned_courier_message",
-            { deliveryId, orderId: customerOrderId, type: "DELIVERY_UPDATE", role: "COURIER" },
+            { deliveryId, orderId: customerOrderId, type: "DELIVERY_ASSIGNMENT", role: "COURIER" },
           );
         }
       },

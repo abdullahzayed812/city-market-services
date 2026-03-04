@@ -78,7 +78,7 @@ export class DeliveryController {
 
   getDeliveryById = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
-      const delivery = await this.deliveryService.getDeliveryById(req.params.id);
+      const delivery = await this.deliveryService.getDeliveryById(req.params.id, req.user?.userId);
       res.json(ApiResponse.success(delivery));
     } catch (error) {
       next(error);
