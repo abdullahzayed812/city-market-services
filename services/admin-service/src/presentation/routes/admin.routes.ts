@@ -39,9 +39,15 @@ export const createAdminRoutes = (controller: AdminController): Router => {
   // Product Management
   router.get("/products", authorize(UserRole.ADMIN), controller.getAllProducts);
   router.post("/products", authorize(UserRole.ADMIN), controller.createProduct);
-  router.patch("/products/:id", authorize(UserRole.ADMIN), controller.updateProduct);
+  router.put("/products/:id", authorize(UserRole.ADMIN), controller.updateProduct);
   router.delete("/products/:id", authorize(UserRole.ADMIN), controller.deleteProduct);
   router.post("/products/:id/image", authorize(UserRole.ADMIN), upload.single("image"), controller.uploadProductImage);
 
+  // Global Product Management
+  router.get("/global-products", authorize(UserRole.ADMIN), controller.getGlobalProducts);
+  router.post("/global-products", authorize(UserRole.ADMIN), controller.createGlobalProduct);
+  router.patch("/global-products/:id", authorize(UserRole.ADMIN), controller.updateGlobalProduct);
+  router.delete("/global-products/:id", authorize(UserRole.ADMIN), controller.deleteGlobalProduct);
+
   return router;
-};
+}

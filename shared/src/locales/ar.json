@@ -110,6 +110,17 @@
     "notification_order_picked_up_message": "طلبك رقم #{{orderId}} في الطريق إليك!",
     "notification_order_delivered_title": "تم توصيل الطلب",
     "notification_order_delivered_message": "تم توصيل طلبك رقم #{{orderId}}. استمتع!",
-    "notification_user_registered_title": "مرحباً بك!",
-    "notification_user_registered_message": "مرحباً بك في سيتي ماركت، {{name}}!"
+    "notification_user_registered_title": "أهلاً بك!",
+    "notification_user_registered_message": "أهلاً بك في سيتي ماركت، {{name}}!",
+    "notification_vendor_review_created_title": "تم استلام تقييم جديد",
+    "notification_vendor_review_created_message": "لقد استلمت تقييماً جديداً بـ {{stars}} نجوم من {{customerName}}.",
+    "// RATING SERVICE": "",
+    "rating_created": "تم إضافة التقييم بنجاح",
+    "order_not_delivered": "لا يمكن تقييم الطلب قبل توصيله",
+    "not_your_order": "هذا الطلب لا يخصك",
+    "order_already_rated": "لقد قمت بتقييم هذا الطلب بالفعل",
+    "no_vendors_in_order": "لا يوجد بائعون في هذا الطلب",
+    "order_id_required": "معرف الطلب مطلوب",
+    "invalid_stars_value": "قيمة التقييم يجب أن تكون بين 1 و 5",
+    "invalid_comment_format": "صيغة التعليق غير صالحة"
 }

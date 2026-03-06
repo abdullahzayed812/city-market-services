@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { adminApi } from "@/services/api/admin-api";
@@ -6,7 +6,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Pencil, Trash2, Upload } from "lucide-react";
+import { Plus, Pencil, Trash2, Upload, Search } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { type Category, CategoryType } from "@city-market/shared";
 import { useAdminProducts } from "@/hooks/useAdminProducts";
 import CategoryFormDialog from "../features/categories/components/CategoryFormDialog";
@@ -17,8 +18,23 @@ const CategoriesManagement: React.FC = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [uploadingId, setUploadingId] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedVendorId, setSelectedVendorId] = useState<string>("all");
 
   const { categories, vendors, isLoadingCategories, isLoadingVendors } = useAdminProducts();
+
+  const filteredCategories = useMemo(() => {
+    if (!categories) return [];
+    return categories.filter((category) => {
+      const matchesSearch =
+        category.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        category.description?.toLowerCase().includes(searchTerm.toLowerCase());
+      
+      const matchesVendor = selectedVendorId === "all" || category.vendorId === selectedVendorId;
+      
+      return matchesSearch && matchesVendor;
+    });
+  }, [categories, searchTerm, selectedVendorId]);
 
   const createMutation = useMutation({
     mutationFn: adminApi.createCategory,
@@ -86,7 +102,7 @@ const CategoriesManagement: React.FC = () => {
       <div className="flex justify-between items-center">
         <div>
           <h2 className="text-2xl font-bold text-gray-800">{t("common.categories")}</h2>
-          <p className="text-gray-500 text-sm">Manage global and vendor-specific categories.</p>
+          <p className="text-gray-500 text-sm">{t("categories.manage")}</p>
         </div>
         <Button
           onClick={() => {
@@ -95,8 +111,39 @@ const CategoriesManagement: React.FC = () => {
           }}
         >
           <Plus className="me-2 h-4 w-4" />
-          {t("common.create_category", "Create Category")}
+          {t("categories.create_category")}
         </Button>
+      </div>
+
+      <div className="flex items-center gap-4 bg-white p-4 rounded-lg border shadow-sm">
+        <div className="relative flex-1 max-w-sm">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+          <Input
+            placeholder={t("categories.search_categories")}
+            className="pl-9"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </div>
+
+        <div className="w-full sm:w-[220px]">
+          <Select
+            value={selectedVendorId}
+            onValueChange={setSelectedVendorId}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder={t("products.select_vendor")} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">{t("common.all")}</SelectItem>
+              {vendors?.map((vendor) => (
+                <SelectItem key={vendor.id} value={vendor.id}>
+                  {vendor.shopName}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       <CategoryFormDialog
@@ -112,16 +159,16 @@ const CategoriesManagement: React.FC = () => {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-[80px]">{t("common.icon", "Icon")}</TableHead>
+              <TableHead className="w-[80px]">{t("common.icon")}</TableHead>
               <TableHead>{t("common.name")}</TableHead>
-              <TableHead>{t("common.type", "Type")}</TableHead>
-              <TableHead>{t("common.vendor", "Vendor")}</TableHead>
-              <TableHead>{t("common.description", "Description")}</TableHead>
+              <TableHead>{t("common.type")}</TableHead>
+              <TableHead>{t("common.vendor")}</TableHead>
+              <TableHead>{t("common.description")}</TableHead>
               <TableHead className="text-end">{t("common.actions")}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {categories?.map((category) => (
+            {filteredCategories.map((category) => (
               <TableRow key={category.id}>
                 <TableCell>
                   <div className="flex items-center space-x-2">
@@ -159,7 +206,7 @@ const CategoriesManagement: React.FC = () => {
                 <TableCell className="font-medium">{category.name}</TableCell>
                 <TableCell>
                   <Badge variant={category.type === CategoryType.GLOBAL ? "default" : "secondary"}>
-                    {category.type || CategoryType.GLOBAL}
+                    {category.type === CategoryType.GLOBAL ? t("categories.global") : t("categories.vendor")}
                   </Badge>
                 </TableCell>
                 <TableCell className="text-sm text-gray-600">
@@ -175,7 +222,7 @@ const CategoriesManagement: React.FC = () => {
                     size="icon"
                     className="text-destructive"
                     onClick={() => {
-                      if (confirm(t("common.confirm_delete", "Are you sure?"))) {
+                      if (confirm(t("common.confirm_delete"))) {
                         deleteMutation.mutate(category.id);
                       }
                     }}
@@ -185,10 +232,10 @@ const CategoriesManagement: React.FC = () => {
                 </TableCell>
               </TableRow>
             ))}
-            {(!categories || categories.length === 0) && (
+            {filteredCategories.length === 0 && (
               <TableRow>
                 <TableCell colSpan={6} className="text-center py-8 text-gray-500">
-                  No categories found.
+                  {t("categories.no_categories_found")}
                 </TableCell>
               </TableRow>
             )}

@@ -10,8 +10,8 @@ import { useToast } from "@/hooks/use-toast";
 
 const LoginPage: React.FC = () => {
   const { t } = useTranslation();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [email, setEmail] = useState("admin@citymarket.com");
+  const [password, setPassword] = useState("password123");
   const [isLoading, setIsLoading] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
@@ -22,7 +22,7 @@ const LoginPage: React.FC = () => {
     setIsLoading(true);
 
     try {
-      await login(email, password);
+      await login({ email, password });
       navigate("/");
     } catch (error: any) {
       toast({

@@ -11,6 +11,7 @@ import { rabbitMQBus } from "@city-market/shared/node";
 import { OrderReadyConsumer } from "./application/events/order-ready.consumer";
 import { OrderHttpClient } from "./infrastructure/http/order-http-client";
 import { VendorHttpClient } from "./infrastructure/http/vendor-http-client";
+import { DeliveryPublisher } from "./infrastructure/messaging/DeliveryPublisher";
 import { config } from "./config/env";
 
 export const createApp = () => {
@@ -32,11 +33,12 @@ export const createApp = () => {
 
   const orderClient = new OrderHttpClient(config.orderServiceUrl);
   const vendorClient = new VendorHttpClient(config.vendorServiceUrl);
+  const publisher = new DeliveryPublisher(rabbitMQBus);
 
   const deliveryService = new DeliveryService(
     courierRepo,
     deliveryRepo,
-    rabbitMQBus,
+    publisher,
     orderClient,
     vendorClient,
     db // Added

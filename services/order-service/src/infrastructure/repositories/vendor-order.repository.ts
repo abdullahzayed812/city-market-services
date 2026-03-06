@@ -125,7 +125,7 @@ export class VendorOrderRepository implements IVendorOrderRepository {
         order.items.push({
           id: row.item_id,
           vendorOrderId: row.id,
-          productId: row.item_product_id,
+          vendorProductId: row.item_product_id,
           productName: row.item_product_name,
           quantity: row.item_quantity,
           unitPrice: parseFloat(row.item_unit_price),

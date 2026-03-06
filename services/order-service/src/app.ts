@@ -10,6 +10,7 @@ import { OrderItemProposalRepository } from "./infrastructure/repositories/order
 import { OrderStatusHistoryRepository } from "./infrastructure/repositories/order-status-history.repository";
 import { CatalogHttpClient } from "./infrastructure/http/catalog-http-client";
 import { VendorHttpClient } from "./infrastructure/http/vendor-http-client";
+import { OrderPublisher } from "./infrastructure/messaging/OrderPublisher";
 import { EventType } from "@city-market/shared";
 import { errorHandler, Database, rabbitMQBus, authenticate } from "@city-market/shared/node";
 import { DeliveryUpdatedConsumer } from "./application/events/delivery-updated.consumer";
@@ -36,6 +37,7 @@ export const createApp = () => {
   const statusHistoryRepo = new OrderStatusHistoryRepository(db);
   const catalogClient = new CatalogHttpClient(config.catalogServiceUrl);
   const vendorClient = new VendorHttpClient(config.vendorServiceUrl);
+  const publisher = new OrderPublisher(rabbitMQBus);
 
   const orderService = new OrderService(
     customerOrderRepo,
@@ -45,7 +47,7 @@ export const createApp = () => {
     statusHistoryRepo,
     catalogClient,
     vendorClient,
-    rabbitMQBus,
+    publisher,
     db
   );
 

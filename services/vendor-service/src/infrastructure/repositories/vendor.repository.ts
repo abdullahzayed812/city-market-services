@@ -115,6 +115,11 @@ export class VendorRepository implements IVendorRepository {
     await this.pool.execute(query, [rate, id]);
   }
 
+  async updateRating(id: string, averageRating: number, totalRatings: number): Promise<void> {
+    const query = "UPDATE vendors SET average_rating = ?, total_ratings = ? WHERE id = ?";
+    await this.pool.execute(query, [averageRating, totalRatings, id]);
+  }
+
   private mapToEntity(row: any): Vendor {
     return {
       id: row.id,
@@ -128,6 +133,8 @@ export class VendorRepository implements IVendorRepository {
       storeImage: row.store_image,
       status: row.status,
       commissionRate: parseFloat(row.commission_rate),
+      averageRating: row.average_rating ? parseFloat(row.average_rating) : 0,
+      totalRatings: row.total_ratings || 0,
       isActive: row.is_active,
       createdAt: row.created_at,
       updatedAt: row.updated_at,

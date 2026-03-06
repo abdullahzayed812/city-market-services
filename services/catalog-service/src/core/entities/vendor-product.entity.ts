@@ -1,6 +1,7 @@
-export interface Product {
+export interface VendorProduct {
   id: string;
   vendorId: string;
+  globalProductId: string;
   globalCategoryId: string;
   vendorCategoryId: string;
   globalCategoryName?: string | null;

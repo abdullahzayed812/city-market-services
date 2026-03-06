@@ -1,8 +1,8 @@
 import { Router } from "express";
-import { ProductController } from "../controllers/product.controller";
+import { VendorProductController } from "../controllers/vendor-product.controller";
 import { uploadProductImage } from "../middlewares/upload.middleware";
 
-export const createProductRoutes = (controller: ProductController): Router => {
+export const createVendorProductRoutes = (controller: VendorProductController): Router => {
   const router = Router();
 
   router.post("/products", controller.create);

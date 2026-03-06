@@ -1,5 +1,6 @@
-export interface CreateProductDto {
+export interface CreateVendorProductDto {
   vendorId: string;
+  globalProductId: string;
   globalCategoryId: string;
   vendorCategoryId: string;
   name: string;
@@ -9,7 +10,8 @@ export interface CreateProductDto {
   imageUrl?: string;
 }
 
-export interface UpdateProductDto {
+export interface UpdateVendorProductDto {
+  globalProductId?: string;
   globalCategoryId?: string;
   vendorCategoryId?: string;
   name?: string;
@@ -20,7 +22,7 @@ export interface UpdateProductDto {
   isAvailable?: boolean;
 }
 
-export interface ProductFilter {
+export interface VendorProductFilter {
   vendorId?: string;
   globalCategoryId?: string;
   vendorCategoryId?: string;

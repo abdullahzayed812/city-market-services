@@ -8,5 +8,6 @@ export const config = {
   deliveryServiceUrl: process.env.DELIVERY_SERVICE_URL || "http://localhost:3006",
   adminServiceUrl: process.env.ADMIN_SERVICE_URL || "http://localhost:3007",
   notificationsServiceUrl: process.env.NOTIFICATIONS_SERVICE_URL || "http://localhost:3008",
+  ratingServiceUrl: process.env.RATING_SERVICE_URL || "http://localhost:3010",
   jwtSecret: process.env.JWT_SECRET || "access_secret_key",
 };

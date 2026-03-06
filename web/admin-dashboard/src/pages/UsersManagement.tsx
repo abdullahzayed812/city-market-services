@@ -16,13 +16,12 @@ const UsersManagement: React.FC = () => {
     queryKey: ["adminUsers"],
     queryFn: async () => {
       const response = await adminApi.getUsers();
-      return response.data.data;
+      return response.data.data?.data;
     },
   });
 
   const updateStatusMutation = useMutation({
-    mutationFn: ({ id, status }: { id: string; status: UserStatus }) => 
-      adminApi.updateUserStatus(id, { status }),
+    mutationFn: ({ id, status }: { id: string; status: UserStatus }) => adminApi.updateUserStatus(id, { status }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["adminUsers"] }),
   });
 
@@ -67,24 +66,36 @@ const UsersManagement: React.FC = () => {
                   </div>
                 </TableCell>
                 <TableCell>
-                  <Badge variant={user.status === UserStatus.ACTIVE ? "default" : "secondary"}>
-                    {user.status}
+                  <Badge variant={user.isActive ? "default" : "secondary"}>
+                    {user.isActive ? "Active" : "Inactive"}
                   </Badge>
                 </TableCell>
                 <TableCell className="text-end">
-                  <Button 
-                    variant="ghost" 
+                  <Button
+                    variant="ghost"
                     size="sm"
-                    className={user.status === UserStatus.ACTIVE ? "text-destructive hover:text-destructive" : "text-emerald-600 hover:text-emerald-600"}
-                    onClick={() => updateStatusMutation.mutate({ 
-                      id: user.id, 
-                      status: user.status === UserStatus.ACTIVE ? UserStatus.INACTIVE : UserStatus.ACTIVE 
-                    })}
+                    className={
+                      user.status === UserStatus.ACTIVE
+                        ? "text-destructive hover:text-destructive"
+                        : "text-emerald-600 hover:text-emerald-600"
+                    }
+                    onClick={() =>
+                      updateStatusMutation.mutate({
+                        id: user.id,
+                        status: user.status === UserStatus.ACTIVE ? UserStatus.INACTIVE : UserStatus.ACTIVE,
+                      })
+                    }
                   >
                     {user.status === UserStatus.ACTIVE ? (
-                      <><UserMinus className="h-4 w-4 me-2" />{t("common.deactivate")}</>
+                      <>
+                        <UserMinus className="h-4 w-4 me-2" />
+                        {t("common.deactivate")}
+                      </>
                     ) : (
-                      <><UserCheck className="h-4 w-4 me-2" />{t("common.activate")}</>
+                      <>
+                        <UserCheck className="h-4 w-4 me-2" />
+                        {t("common.activate")}
+                      </>
                     )}
                   </Button>
                 </TableCell>

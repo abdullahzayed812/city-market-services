@@ -5,7 +5,7 @@ import { Logger } from "@city-market/shared/node";
 import { AuthenticatedRequest } from "@city-market/shared/node";
 
 export class UserController {
-  constructor(private userService: UserService) { }
+  constructor(private userService: UserService) {}
 
   createCustomer = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
@@ -62,6 +62,25 @@ export class UserController {
     try {
       await this.userService.deleteAddress(req.params.addressId);
       res.json(ApiResponse.success(null, "address_deleted"));
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  getCustomerByUserId = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      const customer = await this.userService.getCustomerByUserId(req.params.userId);
+      res.json(ApiResponse.success(customer));
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  getCustomersByIds = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      const ids = req.query.ids ? (req.query.ids as string).split(",") : [];
+      const customers = await this.userService.getCustomersByIds(ids);
+      res.json(ApiResponse.success(customers));
     } catch (error) {
       next(error);
     }

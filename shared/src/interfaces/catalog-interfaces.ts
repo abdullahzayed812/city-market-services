@@ -1,8 +1,19 @@
 import { CategoryType } from "../enums/category-type.enum.js";
 
-export interface Product {
+export interface GlobalProduct {
+  id: string;
+  name: string;
+  description?: string;
+  imageUrl?: string;
+  globalCategoryId: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface VendorProduct {
   id: string;
   vendorId: string;
+  globalProductId: string;
   globalCategoryId: string;
   vendorCategoryId: string;
   globalCategoryName?: string | null;
@@ -28,8 +39,9 @@ export interface Category {
   createdAt: Date;
 }
 
-export interface CreateProductDto {
+export interface CreateVendorProductDto {
   vendorId: string;
+  globalProductId?: string;
   globalCategoryId: string;
   vendorCategoryId: string;
   name: string;
@@ -39,7 +51,8 @@ export interface CreateProductDto {
   imageUrl?: string;
 }
 
-export interface UpdateProductDto {
+export interface UpdateVendorProductDto {
+  globalProductId?: string;
   globalCategoryId?: string;
   vendorCategoryId?: string;
   name?: string;
@@ -50,7 +63,7 @@ export interface UpdateProductDto {
   isAvailable?: boolean;
 }
 
-export interface ProductFilter {
+export interface VendorProductFilter {
   vendorId?: string;
   globalCategoryId?: string;
   vendorCategoryId?: string;

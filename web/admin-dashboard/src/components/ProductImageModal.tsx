@@ -1,5 +1,5 @@
 import React from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 
 interface ProductImageModalProps {
   isOpen: boolean;
@@ -14,6 +14,9 @@ const ProductImageModal: React.FC<ProductImageModalProps> = ({ isOpen, onClose, 
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>Image for {productName}</DialogTitle>
+          <DialogDescription className="sr-only">
+            Visual preview of the product image.
+          </DialogDescription>
         </DialogHeader>
         <div className="flex justify-center items-center p-4">
           {imageUrl ? (

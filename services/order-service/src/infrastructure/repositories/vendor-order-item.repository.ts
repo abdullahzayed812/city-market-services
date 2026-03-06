@@ -21,7 +21,7 @@ export class VendorOrderItemRepository implements IVendorOrderItemRepository {
         await conn.query(query, [
             item.id,
             item.vendorOrderId,
-            item.productId,
+            item.vendorProductId,
             item.productName,
             item.quantity,
             item.unitPrice,
@@ -79,7 +79,7 @@ export class VendorOrderItemRepository implements IVendorOrderItemRepository {
         return {
             id: row.id,
             vendorOrderId: row.vendor_order_id,
-            productId: row.product_id,
+            vendorProductId: row.product_id,
             productName: row.product_name,
             quantity: row.quantity,
             unitPrice: parseFloat(row.unit_price),

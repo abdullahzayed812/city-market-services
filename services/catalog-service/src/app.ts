@@ -1,13 +1,16 @@
 import express from "express";
 import cors from "cors";
 import path from "path";
-import { createProductRoutes } from "./presentation/routes/product.routes";
+import { createVendorProductRoutes } from "./presentation/routes/vendor-product.routes";
 import { createCategoryRoutes } from "./presentation/routes/category.routes";
-import { ProductController } from "./presentation/controllers/product.controller";
+import { createGlobalProductRoutes } from "./presentation/routes/global-product.routes";
+import { VendorProductController } from "./presentation/controllers/vendor-product.controller";
 import { CategoryController } from "./presentation/controllers/category.controller";
-import { ProductService } from "./application/services/product.service";
+import { GlobalProductController } from "./presentation/controllers/global-product.controller";
+import { CatalogService } from "./application/services/catalog.service";
 import { CategoryService } from "./application/services/category.service";
-import { ProductRepository } from "./infrastructure/repositories/product.repository";
+import { VendorProductRepository } from "./infrastructure/repositories/vendor-product.repository";
+import { GlobalProductRepository } from "./infrastructure/repositories/global-product.repository";
 import { CategoryRepository } from "./infrastructure/repositories/category.repository";
 import { errorHandler, Database, authenticate } from "@city-market/shared/node";
 import { config } from "./config/env";
@@ -27,19 +30,22 @@ export const createApp = () => {
     database: config.dbName,
   });
 
-  const productRepo = new ProductRepository(db);
+  const vendorProductRepo = new VendorProductRepository(db);
+  const globalProductRepo = new GlobalProductRepository(db);
   const categoryRepo = new CategoryRepository(db);
 
-  const productService = new ProductService(productRepo, categoryRepo);
+  const catalogService = new CatalogService(vendorProductRepo, categoryRepo, globalProductRepo);
   const categoryService = new CategoryService(categoryRepo);
 
-  const productController = new ProductController(productService);
+  const vendorProductController = new VendorProductController(catalogService);
   const categoryController = new CategoryController(categoryService);
+  const globalProductController = new GlobalProductController(catalogService);
 
   app.use(authenticate);
 
-  app.use("/", createProductRoutes(productController));
+  app.use("/", createVendorProductRoutes(vendorProductController));
   app.use("/", createCategoryRoutes(categoryController));
+  app.use("/", createGlobalProductRoutes(globalProductController));
 
   app.get("/health", (req, res) => {
     res.json({ status: "healthy", service: "catalog-service" });

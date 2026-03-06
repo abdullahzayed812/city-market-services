@@ -5,7 +5,7 @@ import { AuthenticatedRequest } from "@city-market/shared/node";
 import FormData from "form-data";
 
 export class AdminController {
-  constructor(private adminService: AdminService) {}
+  constructor(private adminService: AdminService) { }
 
   getDashboard = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
@@ -276,8 +276,9 @@ export class AdminController {
       const limit = parseInt(req.query.limit as string) || 20;
       const globalCategoryId = req.query.globalCategoryId as string || req.query.categoryId as string;
       const vendorCategoryId = req.query.vendorCategoryId as string;
-      
-      const result = await this.adminService.getAllProducts(page, limit, req.user!.userId, globalCategoryId, vendorCategoryId);
+      const vendorId = req.query.vendorId as string;
+
+      const result = await this.adminService.getAllProducts(page, limit, req.user!.userId, globalCategoryId, vendorCategoryId, vendorId);
       res.json(result);
     } catch (error) {
       next(error);
@@ -324,6 +325,45 @@ export class AdminController {
       });
 
       const result = await this.adminService.uploadProductImage(req.params.id, formData, req.user!.userId);
+      res.json(result);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  // Global Product Management
+  getGlobalProducts = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 20;
+      const result = await this.adminService.getGlobalProducts(page, limit, req.user!.userId);
+      res.json(result);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  createGlobalProduct = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      const result = await this.adminService.createGlobalProduct(req.body, req.user!.userId);
+      res.json(result);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  updateGlobalProduct = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      const result = await this.adminService.updateGlobalProduct(req.params.id, req.body, req.user!.userId);
+      res.json(result);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  deleteGlobalProduct = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      const result = await this.adminService.deleteGlobalProduct(req.params.id, req.user!.userId);
       res.json(result);
     } catch (error) {
       next(error);

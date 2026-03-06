@@ -182,7 +182,25 @@ export class EventConsumer {
       );
     });
 
-    // 3. User Events
+    // 3. Rating Events
+    await rabbitMQBus.subscribe(
+      EventType.VENDOR_REVIEW_CREATED,
+      "notification_vendor_review_created",
+      async (event: BaseEvent) => {
+        const { vendorUserId, vendorId, customerName, stars, orderId, ratingId } = event.payload;
+        if (vendorUserId) {
+          await this.notificationService.sendNotification(
+            vendorUserId,
+            "NEW_REVIEW",
+            "notification_vendor_review_created_title",
+            "notification_vendor_review_created_message",
+            { vendorId, customerName, stars, orderId, ratingId, type: "NEW_REVIEW", role: "VENDOR" },
+          );
+        }
+      },
+    );
+
+    // 4. User Events
     await rabbitMQBus.subscribe(EventType.USER_REGISTERED, "notification_user_registered", async (event: BaseEvent) => {
       const { userId, name } = event.payload;
       await this.notificationService.sendNotification(

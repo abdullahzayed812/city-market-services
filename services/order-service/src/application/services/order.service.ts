@@ -19,9 +19,10 @@ import {
   VendorOrderWithItemsDto,
 } from "../../core/dto/order.dto";
 import { CustomerOrderStatus, VendorOrderStatus, ValidationError, NotFoundError, EventType } from "@city-market/shared";
-import { RabbitMQBus, Database } from "@city-market/shared/node";
+import { Database } from "@city-market/shared/node";
 import { CatalogHttpClient, ProductInfo } from "../../infrastructure/http/catalog-http-client";
 import { VendorHttpClient } from "../../infrastructure/http/vendor-http-client";
+import { OrderPublisher } from "../../infrastructure/messaging/OrderPublisher";
 
 const DELIVERY_FEE = 15.0; // Base delivery fee, might be split or duplicated later
 const COMMISSION_RATE = 0.1;
@@ -35,14 +36,14 @@ export class OrderService {
     private statusHistoryRepo: IOrderStatusHistoryRepository,
     private catalogClient: CatalogHttpClient,
     private vendorClient: VendorHttpClient,
-    private eventBus: RabbitMQBus,
+    private publisher: OrderPublisher,
     private db: Database,
   ) { }
 
   async createOrder(dto: CreateOrderDto, userId?: string): Promise<OrderWithItems> {
     // Changed to userId
     let connection: PoolConnection | undefined;
-    const eventsToPublish: any[] = [];
+    const eventsToPublish: (() => Promise<void>)[] = [];
     let createdCustomerOrder: CustomerOrder | undefined;
     const createdVendorOrders: (VendorOrder & { items: VendorOrderItem[] })[] = [];
 
@@ -55,7 +56,7 @@ export class OrderService {
 
       // Fetch product information (external call, not part of DB transaction)
       const productInfos = await Promise.all(
-        dto.items.map((item) => this.catalogClient.getProduct(item.productId, userId)), // Passed userId
+        dto.items.map((item) => this.catalogClient.getVendorProduct(item.vendorProductId, userId)), // Passed userId
       );
 
       // Validate products and group by vendor
@@ -98,7 +99,7 @@ export class OrderService {
           vendorItemsData.push({
             id: randomUUID(),
             vendorOrderId: "", // Will be set later
-            productId: item.product.id,
+            vendorProductId: item.product.id,
             productName: item.product.name,
             quantity: item.quantity,
             unitPrice: item.product.price,
@@ -169,13 +170,13 @@ export class OrderService {
 
         const mergedItems = new Map<string, any>();
         for (const item of voData.items) {
-          const existing = mergedItems.get(item.productId);
+          const existing = mergedItems.get(item.vendorProductId);
           if (existing) {
             existing.quantity += item.quantity;
             existing.totalPrice = Number(existing.totalPrice) + Number(item.totalPrice);
           } else {
             item.vendorOrderId = vendorOrder.id;
-            mergedItems.set(item.productId, { ...item }); // Clone to avoid mutating original shared references
+            mergedItems.set(item.vendorProductId, { ...item }); // Clone to avoid mutating original shared references
           }
         }
 
@@ -190,33 +191,23 @@ export class OrderService {
         const vendorInfo = await this.vendorClient.getVendor(vendorOrder.vendorId, userId);
 
         // Collect VENDOR_ORDER_CREATED event
-        eventsToPublish.push({
-          id: randomUUID(),
-          type: EventType.VENDOR_ORDER_CREATED,
-          timestamp: new Date(),
-          payload: {
-            vendorOrderId: vendorOrder.id,
-            vendorId: vendorOrder.vendorId,
-            vendorUserId: vendorInfo?.userId,
-            customerOrderId: customerOrder.id,
-            customerId: customerOrder.customerId
-          },
-        });
+        eventsToPublish.push(() => this.publisher.publishVendorOrderCreated({
+          vendorOrderId: vendorOrder.id,
+          vendorId: vendorOrder.vendorId,
+          vendorUserId: vendorInfo?.userId,
+          customerOrderId: customerOrder.id,
+          customerId: customerOrder.customerId
+        }));
       }
 
-      // // Decrement stock in Catalog Service (external call, if fails, transaction rolls back)
-      // for (const item of dto.items) {
-      //   // This method was modified to throw an error if stock decrement fails
-      //   await this.catalogClient.checkAndDecrementStock(item.productId, item.quantity, userId); // Passed userId
-      // }
+      // Decrement stock in Catalog Service (external call, if fails, transaction rolls back)
+      for (const item of dto.items) {
+        // This method was modified to throw an error if stock decrement fails
+        await this.catalogClient.checkAndDecrementStock(item.vendorProductId, item.quantity, userId); // Passed userId
+      }
 
       // Collect ORDER_CREATED event
-      eventsToPublish.push({
-        id: randomUUID(),
-        type: EventType.ORDER_CREATED,
-        timestamp: new Date(),
-        payload: { customerOrderId: customerOrder.id, customerId: customerOrder.customerId },
-      });
+      eventsToPublish.push(() => this.publisher.publishOrderCreated(customerOrder.id, customerOrder.customerId));
 
       await this.db.commit(connection);
     } catch (error) {
@@ -226,8 +217,8 @@ export class OrderService {
       throw error;
     } finally {
       // Emit events after successful transaction commit or if an external transaction is used
-      for (const event of eventsToPublish) {
-        await this.eventBus.publish(event);
+      for (const publishFn of eventsToPublish) {
+        await publishFn();
       }
     }
 
@@ -307,7 +298,7 @@ export class OrderService {
 
   async proposeChanges(vendorOrderId: string, dto: ProposeChangesDto[]): Promise<void> {
     let connection: PoolConnection | undefined;
-    const eventsToPublish: any[] = [];
+    const eventsToPublish: (() => Promise<void>)[] = [];
 
     try {
       connection = await this.db.beginTransaction();
@@ -345,17 +336,12 @@ export class OrderService {
 
       const customerOrderForProposal = await this.customerOrderRepo.findByIdWithLock(vo.customerOrderId, connection);
 
-      eventsToPublish.push({
-        id: randomUUID(),
-        type: EventType.VENDOR_ORDER_PROPOSED,
-        timestamp: new Date(),
-        payload: {
-          vendorOrderId,
-          customerOrderId: vo.customerOrderId,
-          vendorId: vo.vendorId,
-          customerId: customerOrderForProposal?.customerId
-        }, // Added customerOrderId, vendorId, customerId
-      });
+      eventsToPublish.push(() => this.publisher.publishVendorOrderProposed({
+        vendorOrderId,
+        customerOrderId: vo.customerOrderId,
+        vendorId: vo.vendorId,
+        customerId: customerOrderForProposal?.customerId
+      }));
 
       // Update customer order status to reflect proposal ( WAITING_CUSTOMER_DECISION )
       await this.customerOrderRepo.updateStatus(vo.customerOrderId, CustomerOrderStatus.WAITING_CUSTOMER_DECISION, connection);
@@ -369,8 +355,8 @@ export class OrderService {
       await this.db.commit(connection);
 
       // Emit events after successful commit
-      for (const event of eventsToPublish) {
-        await this.eventBus.publish(event);
+      for (const publishFn of eventsToPublish) {
+        await publishFn();
       }
     } catch (error) {
       if (connection) {
@@ -382,7 +368,7 @@ export class OrderService {
 
   async acceptVendorOrder(vendorOrderId: string): Promise<void> {
     let connection: PoolConnection | undefined;
-    const eventsToPublish: any[] = [];
+    const eventsToPublish: (() => Promise<void>)[] = [];
 
     try {
       connection = await this.db.beginTransaction();
@@ -400,20 +386,20 @@ export class OrderService {
       await this.vendorOrderRepo.updateStatus(vendorOrderId, VendorOrderStatus.CONFIRMED, connection);
       await this.recordStatusChange({ vendorOrderId }, VendorOrderStatus.CONFIRMED, undefined, connection);
 
-      eventsToPublish.push({
-        id: randomUUID(),
-        type: EventType.VENDOR_ORDER_CONFIRMED,
-        timestamp: new Date(),
-        payload: { vendorOrderId, customerOrderId: vo.customerOrderId, vendorId: vo.vendorId, customerId: co.customerId },
-      });
+      eventsToPublish.push(() => this.publisher.publishVendorOrderConfirmed({
+        vendorOrderId,
+        customerOrderId: vo.customerOrderId,
+        vendorId: vo.vendorId,
+        customerId: co.customerId
+      }));
 
       await this.syncCustomerOrderStatus(vo.customerOrderId, connection);
 
       await this.db.commit(connection);
 
       // Publish events after successful commit
-      for (const event of eventsToPublish) {
-        await this.eventBus.publish(event);
+      for (const publishFn of eventsToPublish) {
+        await publishFn();
       }
     } catch (error) {
       if (connection) {
@@ -461,7 +447,7 @@ export class OrderService {
 
   async updateCustomerOrderStatus(customerOrderId: string, status: CustomerOrderStatus, notes?: string): Promise<void> {
     let connection: PoolConnection | undefined;
-    const eventsToPublish: any[] = [];
+    const eventsToPublish: (() => Promise<void>)[] = [];
 
     try {
       connection = await this.db.beginTransaction();
@@ -488,6 +474,7 @@ export class OrderService {
 
   async acceptProposal(proposalId: string): Promise<void> {
     let connection: PoolConnection | undefined;
+    const eventsToPublish: (() => Promise<void>)[] = [];
     try {
       connection = await this.db.beginTransaction();
 
@@ -561,21 +548,15 @@ export class OrderService {
       // 4) Update proposal.status -> ACCEPTED
       await this.proposalRepo.updateStatus(proposalId, ProposalStatus.ACCEPTED, connection);
 
-      const eventsToPublish = [
-        {
-          id: randomUUID(),
-          type: EventType.PROPOSAL_ACCEPTED,
-          timestamp: new Date(),
-          payload: {
-            proposalId,
-            vendorOrderId: vo.id,
-            customerOrderId: co.id,
-            vendorId: vo.vendorId,
-            customerId: co.customerId,
-            vendorUserId: (await this.vendorClient.getVendor(vo.vendorId))?.userId,
-          },
-        },
-      ];
+      const vendor = await this.vendorClient.getVendor(vo.vendorId);
+      eventsToPublish.push(() => this.publisher.publishProposalAccepted({
+        proposalId,
+        vendorOrderId: vo.id,
+        customerOrderId: co.id,
+        vendorId: vo.vendorId,
+        customerId: co.customerId,
+        vendorUserId: vendor?.userId,
+      }));
 
       // 5) Sync vendor order status after commit
       await this.syncVendorOrderStatus(vo.id, connection);
@@ -586,8 +567,8 @@ export class OrderService {
       await this.db.commit(connection);
 
       // Publish events after successful commit
-      for (const event of eventsToPublish) {
-        await this.eventBus.publish(event);
+      for (const publishFn of eventsToPublish) {
+        await publishFn();
       }
     } catch (error) {
       if (connection) {
@@ -599,7 +580,7 @@ export class OrderService {
 
   async rejectProposal(proposalId: string, cancelEntireOrder: boolean = false): Promise<void> {
     let connection: PoolConnection | undefined;
-    const eventsToPublish: any[] = [];
+    const eventsToPublish: (() => Promise<void>)[] = [];
 
     try {
       connection = await this.db.beginTransaction();
@@ -621,18 +602,13 @@ export class OrderService {
 
       // Update proposal status
       await this.proposalRepo.updateStatus(proposalId, ProposalStatus.REJECTED, connection);
-      eventsToPublish.push({
-        id: randomUUID(),
-        type: EventType.PROPOSAL_REJECTED,
-        timestamp: new Date(),
-        payload: {
-          proposalId,
-          vendorOrderId: vo.id,
-          customerOrderId: co.id,
-          vendorId: vo.vendorId,
-          customerId: co.customerId,
-        },
-      });
+      eventsToPublish.push(() => this.publisher.publishProposalRejected({
+        proposalId,
+        vendorOrderId: vo.id,
+        customerOrderId: co.id,
+        vendorId: vo.vendorId,
+        customerId: co.customerId,
+      }));
 
       if (cancelEntireOrder) {
         await this.customerOrderRepo.updateStatus(co.id, CustomerOrderStatus.CANCELLED, connection);
@@ -642,12 +618,7 @@ export class OrderService {
           "Proposal rejected & order cancelled",
           connection,
         );
-        eventsToPublish.push({
-          id: randomUUID(),
-          type: EventType.ORDER_CANCELLED,
-          timestamp: new Date(),
-          payload: { customerOrderId: co.id, customerId: co.customerId },
-        });
+        eventsToPublish.push(() => this.publisher.publishOrderCancelled(co.id, co.customerId));
 
         // Fetch all vendor orders for this customer order and cancel them
         const relatedVendorOrders = await this.vendorOrderRepo.findByCustomerOrder(co.id, connection);
@@ -660,12 +631,11 @@ export class OrderService {
               "Customer order cancelled due to rejected proposal",
               connection,
             );
-            eventsToPublish.push({
-              id: randomUUID(),
-              type: EventType.VENDOR_ORDER_CANCELLED,
-              timestamp: new Date(),
-              payload: { vendorOrderId: rvo.id, customerOrderId: co.id, vendorId: rvo.vendorId },
-            });
+            eventsToPublish.push(() => this.publisher.publishVendorOrderCancelled({
+              vendorOrderId: rvo.id,
+              customerOrderId: co.id,
+              vendorId: rvo.vendorId
+            }));
           }
         }
       }
@@ -679,8 +649,8 @@ export class OrderService {
       await this.db.commit(connection);
 
       // Publish events after successful commit
-      for (const event of eventsToPublish) {
-        await this.eventBus.publish(event);
+      for (const publishFn of eventsToPublish) {
+        await publishFn();
       }
     } catch (error) {
       if (connection) {
@@ -693,7 +663,7 @@ export class OrderService {
   private async syncCustomerOrderStatus(customerOrderId: string, externalConnection?: PoolConnection): Promise<void> {
     let conn: PoolConnection | undefined = externalConnection;
     let shouldCommitOrRollback = false;
-    const eventsToEmit: any[] = []; // Collect events to emit after commit
+    const eventsToEmit: (() => Promise<void>)[] = []; // Collect events to emit after commit
 
     try {
       if (!conn) {
@@ -742,12 +712,11 @@ export class OrderService {
             await this.recordStatusChange({ customerOrderId }, newStatus, undefined, conn);
             const eventType = this.getEventTypeForCustomerStatus(newStatus);
             if (eventType) {
-              eventsToEmit.push({
-                id: randomUUID(),
-                type: eventType,
-                timestamp: new Date(),
-                payload: { customerOrderId, status: newStatus, customerId: customerOrder.customerId },
-              });
+              eventsToEmit.push(() => this.publisher.publishGenericEvent(eventType!, {
+                customerOrderId,
+                status: newStatus,
+                customerId: customerOrder.customerId
+              }));
             }
           }
         } else {
@@ -756,12 +725,11 @@ export class OrderService {
           await this.recordStatusChange({ customerOrderId }, newStatus, undefined, conn);
           const eventType = this.getEventTypeForCustomerStatus(newStatus);
           if (eventType) {
-            eventsToEmit.push({
-              id: randomUUID(),
-              type: eventType,
-              timestamp: new Date(),
-              payload: { customerOrderId, status: newStatus, customerId: customerOrder.customerId },
-            });
+            eventsToEmit.push(() => this.publisher.publishGenericEvent(eventType!, {
+              customerOrderId,
+              status: newStatus,
+              customerId: customerOrder.customerId
+            }));
           }
         }
       }
@@ -776,8 +744,8 @@ export class OrderService {
       throw error;
     } finally {
       // Emit events after transaction (whether it was committed locally or externally)
-      for (const event of eventsToEmit) {
-        await this.eventBus.publish(event);
+      for (const publishFn of eventsToEmit) {
+        await publishFn();
       }
     }
   }
@@ -785,7 +753,7 @@ export class OrderService {
   private async syncVendorOrderStatus(vendorOrderId: string, externalConnection?: PoolConnection): Promise<void> {
     let conn: PoolConnection | undefined = externalConnection;
     let shouldCommitOrRollback = false;
-    const eventsToEmit: any[] = [];
+    const eventsToEmit: (() => Promise<void>)[] = [];
 
     try {
       if (!conn) {
@@ -843,17 +811,12 @@ export class OrderService {
 
         const eventType = this.getEventTypeForVendorStatus(newStatus);
         if (eventType) {
-          eventsToEmit.push({
-            id: randomUUID(),
-            type: eventType,
-            timestamp: new Date(),
-            payload: {
-              vendorOrderId,
-              customerOrderId: vendorOrder.customerOrderId,
-              vendorId: vendorOrder.vendorId,
-              status: newStatus,
-            },
-          });
+          eventsToEmit.push(() => this.publisher.publishGenericEvent(eventType!, {
+            vendorOrderId,
+            customerOrderId: vendorOrder.customerOrderId,
+            vendorId: vendorOrder.vendorId,
+            status: newStatus,
+          }));
         }
       }
 
@@ -866,8 +829,8 @@ export class OrderService {
       }
       throw error;
     } finally {
-      for (const event of eventsToEmit) {
-        await this.eventBus.publish(event);
+      for (const publishFn of eventsToEmit) {
+        await publishFn();
       }
     }
   }

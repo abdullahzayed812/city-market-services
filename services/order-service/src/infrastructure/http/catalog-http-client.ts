@@ -28,11 +28,11 @@ export class CatalogHttpClient {
     return { headers };
   }
 
-  async getProduct(productId: string, userId?: string): Promise<ProductInfo | null> {
+  async getVendorProduct(vendorProductId: string, userId?: string): Promise<ProductInfo | null> {
     // Changed to userId
     try {
       const config = await this.getRequestConfig(userId);
-      const response = await this.axiosInstance.get(`${this.baseUrl}/products/${productId}`, config);
+      const response = await this.axiosInstance.get(`${this.baseUrl}/products/${vendorProductId}`, config);
       if (response.data.success && response.data.data) {
         return response.data.data;
       }
@@ -42,22 +42,22 @@ export class CatalogHttpClient {
     }
   }
 
-  async checkAndDecrementStock(productId: string, quantity: number, userId?: string): Promise<void> {
+  async checkAndDecrementStock(vendorProductId: string, quantity: number, userId?: string): Promise<void> {
     // Changed to userId
     try {
       const config = await this.getRequestConfig(userId);
       const response = await this.axiosInstance.patch(
-        `${this.baseUrl}/products/${productId}/stock`,
+        `${this.baseUrl}/products/${vendorProductId}/stock`,
         { stock: quantity },
         config
       );
       if (!response.data?.success) {
         throw new Error(
-          `Failed to decrement stock for product ${productId}: ${response.data.message || "Unknown reason"}`
+          `Failed to decrement stock for product ${vendorProductId}: ${response.data.message || "Unknown reason"}`
         );
       }
     } catch (error: any) {
-      throw new Error(`Catalog service stock decrement failed for product ${productId}: ${error.message}`);
+      throw new Error(`Catalog service stock decrement failed for product ${vendorProductId}: ${error.message}`);
     }
   }
 }

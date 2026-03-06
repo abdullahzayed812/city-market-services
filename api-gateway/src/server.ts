@@ -15,5 +15,6 @@ app.listen(config.port, () => {
     catalog: config.catalogServiceUrl,
     delivery: config.deliveryServiceUrl,
     notifications: config.notificationsServiceUrl,
+    rating: config.ratingServiceUrl,
   });
 });

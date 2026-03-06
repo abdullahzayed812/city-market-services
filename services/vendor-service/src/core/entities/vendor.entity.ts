@@ -12,6 +12,8 @@ export interface Vendor {
   storeImage?: string;
   status: ShopStatus;
   commissionRate: number;
+  averageRating: number;
+  totalRatings: number;
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;

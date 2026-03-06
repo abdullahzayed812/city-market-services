@@ -8,11 +8,11 @@ import { RegisterCourierDto, UpdateCourierDto } from "../../core/dto/courier.dto
 import { CreateDeliveryDto, AssignCourierDto, UpdateDeliveryStatusDto } from "../../core/dto/delivery.dto";
 import { DeliveryStatus, PickupLocation } from "@city-market/shared";
 import { ValidationError, NotFoundError } from "@city-market/shared";
-import { Database } from "@city-market/shared/node";
 import { EventType } from "@city-market/shared";
-import { RabbitMQBus, Logger } from "@city-market/shared/node";
+import { RabbitMQBus, Logger, Database } from "@city-market/shared/node";
 import { OrderHttpClient } from "../../infrastructure/http/order-http-client";
 import { VendorHttpClient } from "../../infrastructure/http/vendor-http-client";
+import { DeliveryPublisher } from "../../infrastructure/messaging/DeliveryPublisher";
 
 const DISTANCE_THRESHOLD_KM = 2.0;
 
@@ -20,7 +20,7 @@ export class DeliveryService {
   constructor(
     private courierRepo: ICourierRepository,
     private deliveryRepo: IDeliveryRepository,
-    private eventBus: RabbitMQBus,
+    private publisher: DeliveryPublisher,
     private orderClient: OrderHttpClient,
     private vendorClient: VendorHttpClient,
     private db: Database // Added
@@ -110,7 +110,7 @@ export class DeliveryService {
 
   async createDeliveryFromOrder(customerOrderId: string, userId?: string): Promise<Delivery[]> {
     let connection: PoolConnection | undefined;
-    const eventsToPublish: any[] = [];
+    const eventsToPublish: (() => Promise<void>)[] = [];
     const createdDeliveries: Delivery[] = [];
 
     try {
@@ -166,23 +166,14 @@ export class DeliveryService {
 
         // Link all vendor orders to this delivery
         // for (const vo of vendorOrders) {
-        eventsToPublish.push({
-          id: randomUUID(),
-          type: EventType.DELIVERY_CREATED,
-          timestamp: new Date(),
-          payload: {
-            deliveryId: delivery.id,
-            customerId: customerOrder.customerId,
-            customerOrderId,
-            // vendorOrderId: vo.id,
-            // customerOrderId,
-            // customerId: customerOrder.customerId,
-            // vendorId: vo.vendorId,
-          }, // Add customerId and vendorId for routing
-        });
+        eventsToPublish.push(() => this.publisher.publishDeliveryCreated({
+          deliveryId: delivery.id,
+          customerId: customerOrder.customerId,
+          customerOrderId,
+        }));
         // }
       } else {
-        let delivery;
+        let lastDeliveryId = "";
         // Separate Delivery per VendorOrder
         for (const v of vendors) {
           // Check for existing delivery for this specific vendor order
@@ -199,23 +190,16 @@ export class DeliveryService {
             continue; // Skip creating new delivery
           }
 
-          delivery = await this.createIndividualDelivery(customerOrder, [v], customerOrderId, v, connection); // Pass connection
+          const delivery = await this.createIndividualDelivery(customerOrder, [v], customerOrderId, v, connection); // Pass connection
           createdDeliveries.push(delivery);
-        }
-        eventsToPublish.push({
-          id: randomUUID(),
-          type: EventType.DELIVERY_CREATED,
-          timestamp: new Date(),
-          payload: {
-            deliveryId: delivery?.id,
+          lastDeliveryId = delivery.id;
+          
+          eventsToPublish.push(() => this.publisher.publishDeliveryCreated({
+            deliveryId: delivery.id,
             customerId: customerOrder.customerId,
             customerOrderId,
-            // vendorOrderId: v.id,
-            // customerOrderId,
-            // customerId: customerOrder.customerId,
-            // vendorId: v.vendorId,
-          }, // Add customerId and vendorId for routing
-        });
+          }));
+        }
       }
 
       await this.db.commit(connection);
@@ -234,8 +218,8 @@ export class DeliveryService {
       throw error;
     } finally {
       // Publish all collected events after transaction
-      for (const event of eventsToPublish) {
-        await this.eventBus.publish(event);
+      for (const publishFn of eventsToPublish) {
+        await publishFn();
       }
     }
     return createdDeliveries;
@@ -249,8 +233,6 @@ export class DeliveryService {
     connection?: PoolConnection
   ): Promise<Delivery> {
     // Add connection
-    const primaryVendor = vendors[0]; // Assuming vendors here means the group of vendors for this delivery.
-
     const itemsCount = vendors.reduce((sum, v) => sum + (v.items?.length || 0), 0);
     const totalPrice = vendors.reduce((sum, v) => sum + (v.totalAmount || 0), 0);
 
@@ -275,11 +257,6 @@ export class DeliveryService {
 
     // Enrich the delivery object with calculated fields before creation
     const delivery = await this.createDelivery(dto, connection);
-    // We should probably update the DB here if createDelivery didn't take them,
-    // but wait, createDelivery DOES take the delivery object and saves it.
-    // However, I set them to 0 in createDelivery and then update them here in memory.
-    // I should instead include them in CreateDeliveryDto or just update the object BEFORE calling repository.create.
-
     return delivery;
   }
 
@@ -354,23 +331,23 @@ export class DeliveryService {
     };
 
     // Store events to publish after DB update
-    const eventsToPublish: any[] = [];
+    const eventsToPublish: (() => Promise<void>)[] = [];
 
     if (dto.status === DeliveryStatus.PICKED_UP) {
       updates.pickedUpAt = new Date();
-      eventsToPublish.push({
-        id: randomUUID(),
-        type: EventType.ORDER_PICKED_UP,
-        timestamp: new Date(),
-        payload: { deliveryId, customerOrderId: delivery.customerOrderId, customerId: delivery.customerId, vendorOrdersIds },
-      });
+      eventsToPublish.push(() => this.publisher.publishOrderPickedUp({
+        deliveryId,
+        customerOrderId: delivery.customerOrderId,
+        customerId: delivery.customerId,
+        vendorOrdersIds
+      }));
     } else if (dto.status === DeliveryStatus.ON_THE_WAY) {
-      eventsToPublish.push({
-        id: randomUUID(),
-        type: EventType.ORDER_ON_THE_WAY,
-        timestamp: new Date(),
-        payload: { deliveryId, customerOrderId: delivery.customerOrderId, customerId: delivery.customerId, vendorOrdersIds },
-      });
+      eventsToPublish.push(() => this.publisher.publishOrderOnTheWay({
+        deliveryId,
+        customerOrderId: delivery.customerOrderId,
+        customerId: delivery.customerId,
+        vendorOrdersIds
+      }));
     } else if (dto.status === DeliveryStatus.DELIVERED) {
       updates.deliveredAt = new Date();
       if (delivery.courierId) {
@@ -379,25 +356,25 @@ export class DeliveryService {
         await this.courierRepo.updateAvailability(delivery.courierId, true);
         await this.courierRepo.incrementDeliveries(delivery.courierId);
       }
-      eventsToPublish.push({
-        id: randomUUID(),
-        type: EventType.ORDER_DELIVERED,
-        timestamp: new Date(),
-        payload: { deliveryId, customerOrderId: delivery.customerOrderId, customerId: delivery.customerId, vendorOrdersIds },
-      });
+      eventsToPublish.push(() => this.publisher.publishOrderDelivered({
+        deliveryId,
+        customerOrderId: delivery.customerOrderId,
+        customerId: delivery.customerId,
+        vendorOrdersIds
+      }));
     }
 
     await this.deliveryRepo.update(deliveryId, updates); // DB update happens here
 
     // Publish events AFTER DB update
-    for (const event of eventsToPublish) {
-      await this.eventBus.publish(event);
+    for (const publishFn of eventsToPublish) {
+      await publishFn();
     }
   }
 
   async assignCourier(deliveryId: string, dto: AssignCourierDto): Promise<void> {
     let connection: PoolConnection | undefined;
-    const eventsToPublish: any[] = [];
+    const eventsToPublish: (() => Promise<void>)[] = [];
 
     try {
       connection = await this.db.beginTransaction();
@@ -412,24 +389,19 @@ export class DeliveryService {
       await this.deliveryRepo.assignCourier(deliveryId, dto.courierId, connection); // Pass connection
       await this.courierRepo.updateAvailability(dto.courierId, false, connection); // Pass connection // Courier becomes unavailable when assigned
 
-      eventsToPublish.push({
-        id: randomUUID(),
-        type: EventType.COURIER_ASSIGNED,
-        timestamp: new Date(),
-        payload: {
-          deliveryId: delivery.id,
-          courierId: dto.courierId,
-          courierUserId: courier.userId,
-          customerId: delivery.customerId,
-          customerOrderId: delivery.customerOrderId
-        },
-      });
+      eventsToPublish.push(() => this.publisher.publishCourierAssigned({
+        deliveryId: delivery.id,
+        courierId: dto.courierId,
+        courierUserId: courier.userId,
+        customerId: delivery.customerId,
+        customerOrderId: delivery.customerOrderId
+      }));
 
       await this.db.commit(connection);
 
       // Publish events after successful commit
-      for (const event of eventsToPublish) {
-        await this.eventBus.publish(event);
+      for (const publishFn of eventsToPublish) {
+        await publishFn();
       }
     } catch (error) {
       if (connection) {

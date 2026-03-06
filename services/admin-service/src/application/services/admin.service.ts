@@ -151,14 +151,15 @@ export class AdminService {
 
   // Product Management
   async getAllProducts(
-    page: number = 1, 
-    limit: number = 20, 
-    userId?: string, 
-    globalCategoryId?: string, 
-    vendorCategoryId?: string
+    page: number = 1,
+    limit: number = 20,
+    userId?: string,
+    globalCategoryId?: string,
+    vendorCategoryId?: string,
+    vendorId?: string
   ) {
-    const productsData = await this.serviceClient.getAllProducts(page, limit, userId, globalCategoryId, vendorCategoryId);
-    
+    const productsData = await this.serviceClient.getAllProducts(page, limit, userId, globalCategoryId, vendorCategoryId, vendorId);
+
     if (productsData.data?.data && productsData.data.data.length > 0) {
       const vendorIds = [...new Set(productsData.data.data.map((p: any) => p.vendorId))];
       const vendorsResponse = await this.serviceClient.getVendorsByIds(vendorIds as string[], userId);
@@ -191,5 +192,26 @@ export class AdminService {
   async uploadProductImage(id: string, formData: FormData, userId?: string) {
     Logger.info(`Uploading image for product ${id}`);
     return this.serviceClient.uploadProductImage(id, formData, userId);
+  }
+
+  // Global Product Management
+  async getGlobalProducts(page: number = 1, limit: number = 20, userId?: string) {
+    Logger.info("Fetching global products");
+    return this.serviceClient.getGlobalProducts(page, limit, userId);
+  }
+
+  async createGlobalProduct(data: any, userId?: string) {
+    Logger.info("Creating global product");
+    return this.serviceClient.createGlobalProduct(data, userId);
+  }
+
+  async updateGlobalProduct(id: string, data: any, userId?: string) {
+    Logger.info(`Updating global product ${id}`);
+    return this.serviceClient.updateGlobalProduct(id, data, userId);
+  }
+
+  async deleteGlobalProduct(id: string, userId?: string) {
+    Logger.warn(`Deleting global product ${id}`);
+    return this.serviceClient.deleteGlobalProduct(id, userId);
   }
 }

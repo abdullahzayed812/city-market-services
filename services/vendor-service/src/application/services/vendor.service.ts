@@ -9,13 +9,14 @@ import { CreateVendorDto, UpdateVendorDto, SetWorkingHoursDto } from "../../core
 import { ShopStatus } from "@city-market/shared";
 import { ValidationError, NotFoundError } from "@city-market/shared";
 import { Logger } from "@city-market/shared/node";
-import { EventBus, BaseEvent, EventType } from "@city-market/shared";
+import { EventType } from "@city-market/shared";
+import { VendorPublisher } from "../../infrastructure/messaging/VendorPublisher";
 
 export class VendorService {
   constructor(
     private vendorRepo: IVendorRepository,
     private workingHoursRepo: IWorkingHoursRepository,
-    private eventBus: EventBus
+    private publisher: VendorPublisher
   ) { }
 
   async createVendor(dto: CreateVendorDto): Promise<Vendor> {
@@ -36,6 +37,8 @@ export class VendorService {
       longitude: dto.longitude,
       status: ShopStatus.CLOSED,
       commissionRate: 10.0,
+      averageRating: 0.0,
+      totalRatings: 0,
       isActive: true,
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -44,12 +47,7 @@ export class VendorService {
     await this.vendorRepo.create(vendor);
 
     // Emit event
-    await this.eventBus.publish({
-      id: randomUUID(),
-      type: EventType.VENDOR_REGISTERED,
-      timestamp: new Date(),
-      payload: { vendorId: vendor.id, userId: vendor.userId },
-    });
+    await this.publisher.publishVendorRegistered(vendor.id, vendor.userId);
 
     return vendor;
   }
@@ -127,5 +125,10 @@ export class VendorService {
     }
 
     await this.vendorRepo.update(id, { storeImage: imagePath });
+  }
+
+  async updateVendorRating(id: string, averageRating: number, totalRatings: number): Promise<void> {
+    await this.vendorRepo.updateRating(id, averageRating, totalRatings);
+    Logger.info(`Vendor ${id} rating updated to ${averageRating} (${totalRatings} ratings)`);
   }
 }

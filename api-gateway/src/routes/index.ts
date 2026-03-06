@@ -13,6 +13,7 @@ export const createRoutes = (): Router => {
   router.use("/vendors", setupProxy("/vendors", config.vendorServiceUrl));
   router.use("/delivery", setupProxy("/delivery", config.deliveryServiceUrl));
   router.use("/notification", setupProxy("", config.notificationsServiceUrl));
+  router.use("/ratings", setupProxy("", config.ratingServiceUrl));
 
   return router;
 };

@@ -10,12 +10,12 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Image as ImageIcon, MoreHorizontal, Plus, Pencil, Trash2, Upload } from "lucide-react";
-import ProductImageModal from "@/components/ProductImageModal";
+import VendorProductImageModal from "@/components/ProductImageModal";
 
 const Products = () => {
   const { t } = useTranslation();
@@ -23,11 +23,12 @@ const Products = () => {
     products,
     globalCategories,
     vendorCategories,
+    globalProducts,
     isLoading,
-    createProduct,
-    updateProduct,
-    deleteProduct,
-    uploadImage,
+    createVendorProduct,
+    updateVendorProduct,
+    deleteVendorProduct,
+    uploadVendorProductImage,
   } = useProducts();
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -40,15 +41,34 @@ const Products = () => {
     stockQuantity: 0,
     globalCategoryId: "",
     vendorCategoryId: "",
+    globalProductId: "",
   });
   const [editingProduct, setEditingProduct] = useState<any>(null);
 
   if (isLoading) {
-    return <div className="flex items-center justify-center h-full">Loading...</div>;
+    return <div className="flex items-center justify-center h-full">{t("common.loading")}</div>;
   }
 
+  const handleGlobalProductSelect = (id: string) => {
+    const selected = globalProducts.find((p: any) => p.id === id);
+    if (selected) {
+      setNewProduct({
+        ...newProduct,
+        globalProductId: id,
+        name: selected.name,
+        description: selected.description || "",
+        globalCategoryId: selected.globalCategoryId,
+      });
+    } else {
+      setNewProduct({
+        ...newProduct,
+        globalProductId: "",
+      });
+    }
+  };
+
   const handleAddProduct = () => {
-    createProduct(newProduct, {
+    createVendorProduct(newProduct, {
       onSuccess: () => {
         setIsAddDialogOpen(false);
         setNewProduct({
@@ -58,6 +78,7 @@ const Products = () => {
           stockQuantity: 0,
           globalCategoryId: "",
           vendorCategoryId: "",
+          globalProductId: "",
         });
       },
     });
@@ -78,7 +99,7 @@ const Products = () => {
 
   const handleUpdateProduct = () => {
     if (editingProduct) {
-      updateProduct(
+      updateVendorProduct(
         {
           id: editingProduct.id,
           data: {
@@ -103,7 +124,7 @@ const Products = () => {
   const handleImageUpload = (productId: string, e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      uploadImage({ id: productId, file });
+      uploadVendorProductImage({ id: productId, file });
     }
   };
 
@@ -111,38 +132,64 @@ const Products = () => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">{t("common.products")}</h1>
-          <p className="text-muted-foreground">Manage your store's product catalog.</p>
+          <h1 className="text-3xl font-bold tracking-tight">{t("products.title")}</h1>
+          <p className="text-muted-foreground">{t("products.subtitle")}</p>
         </div>
         <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
           <DialogTrigger asChild>
             <Button className="gap-2">
-              <Plus className="h-4 w-4" /> Add Product
+              <Plus className="h-4 w-4" /> {t("products.add_product")}
             </Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Add New Product</DialogTitle>
+              <DialogTitle>{t("products.add_new_product")}</DialogTitle>
+              <DialogDescription className="sr-only">
+                {t("products.add_product_description", "Create a new product listing for your shop.")}
+              </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4 max-h-[80vh] overflow-y-auto">
               <div className="space-y-2">
-                <Label htmlFor="name">Product Name</Label>
+                <Label htmlFor="global-product-select">{t("products.link_to_global")}</Label>
+                <Select
+                  value={newProduct.globalProductId || "none"}
+                  onValueChange={handleGlobalProductSelect}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder={t("products.select_existing")} />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-[200px] overflow-y-auto">
+                    <SelectItem value="none">{t("products.none_create_new")}</SelectItem>
+                    {globalProducts.map((p: any) => (
+                      <SelectItem key={p.id} value={p.id}>
+                        {p.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">{t("products.global_catalog_info")}</p>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="name">{t("products.product_name")}</Label>
                 <Input
                   id="name"
                   value={newProduct.name}
                   onChange={(e) => setNewProduct({ ...newProduct, name: e.target.value })}
+                  disabled={!!newProduct.globalProductId && newProduct.globalProductId !== "none"}
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="global-category">Global Category</Label>
+                  <Label htmlFor="global-category">{t("products.global_category")}</Label>
                   <Select
                     value={newProduct.globalCategoryId}
                     onValueChange={(val) => setNewProduct({ ...newProduct, globalCategoryId: val })}
+                    disabled={!!newProduct.globalProductId && newProduct.globalProductId !== "none"}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Select global category" />
+                      <SelectValue placeholder={t("products.select_global_category")} />
                     </SelectTrigger>
                     <SelectContent>
                       {globalCategories.map((cat: any) => (
@@ -154,13 +201,13 @@ const Products = () => {
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="vendor-category">Store Category</Label>
+                  <Label htmlFor="vendor-category">{t("products.store_category")}</Label>
                   <Select
                     value={newProduct.vendorCategoryId}
                     onValueChange={(val) => setNewProduct({ ...newProduct, vendorCategoryId: val })}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Select store category" />
+                      <SelectValue placeholder={t("products.select_store_category")} />
                     </SelectTrigger>
                     <SelectContent>
                       {vendorCategories.map((cat: any) => (
@@ -175,7 +222,7 @@ const Products = () => {
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="price">Price ($)</Label>
+                  <Label htmlFor="price">{t("products.price")}</Label>
                   <Input
                     id="price"
                     type="number"
@@ -184,7 +231,7 @@ const Products = () => {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="stock">Stock</Label>
+                  <Label htmlFor="stock">{t("products.stock")}</Label>
                   <Input
                     id="stock"
                     type="number"
@@ -194,7 +241,7 @@ const Products = () => {
                 </div>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="description">Description</Label>
+                <Label htmlFor="description">{t("products.description")}</Label>
                 <Input
                   id="description"
                   value={newProduct.description}
@@ -202,7 +249,7 @@ const Products = () => {
                 />
               </div>
               <Button className="w-full" onClick={handleAddProduct}>
-                Create Product
+                {t("products.create_product")}
               </Button>
             </div>
           </DialogContent>
@@ -211,28 +258,33 @@ const Products = () => {
         <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Edit Product</DialogTitle>
+              <DialogTitle>{t("products.edit_product")}</DialogTitle>
+              <DialogDescription className="sr-only">
+                {t("products.edit_product_description", "Update details for your shop product.")}
+              </DialogDescription>
             </DialogHeader>
             {editingProduct && (
               <div className="space-y-4 py-4 max-h-[80vh] overflow-y-auto">
                 <div className="space-y-2">
-                  <Label htmlFor="edit-name">Product Name</Label>
+                  <Label htmlFor="edit-name">{t("products.product_name")}</Label>
                   <Input
                     id="edit-name"
                     value={editingProduct.name}
                     onChange={(e) => setEditingProduct({ ...editingProduct, name: e.target.value })}
+                    disabled={!!editingProduct.globalProductId}
                   />
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="edit-global-category">Global Category</Label>
+                    <Label htmlFor="edit-global-category">{t("products.global_category")}</Label>
                     <Select
                       value={editingProduct.globalCategoryId}
                       onValueChange={(val) => setEditingProduct({ ...editingProduct, globalCategoryId: val })}
+                      disabled={!!editingProduct.globalProductId}
                     >
                       <SelectTrigger>
-                        <SelectValue placeholder="Select global category" />
+                        <SelectValue placeholder={t("products.select_global_category")} />
                       </SelectTrigger>
                       <SelectContent>
                         {globalCategories.map((cat: any) => (
@@ -244,13 +296,13 @@ const Products = () => {
                     </Select>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="edit-vendor-category">Store Category</Label>
+                    <Label htmlFor="edit-vendor-category">{t("products.store_category")}</Label>
                     <Select
                       value={editingProduct.vendorCategoryId}
                       onValueChange={(val) => setEditingProduct({ ...editingProduct, vendorCategoryId: val })}
                     >
                       <SelectTrigger>
-                        <SelectValue placeholder="Select store category" />
+                        <SelectValue placeholder={t("products.select_store_category")} />
                       </SelectTrigger>
                       <SelectContent>
                         {vendorCategories.map((cat: any) => (
@@ -265,7 +317,7 @@ const Products = () => {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="edit-price">Price ($)</Label>
+                    <Label htmlFor="edit-price">{t("products.price")}</Label>
                     <Input
                       id="edit-price"
                       type="number"
@@ -274,7 +326,7 @@ const Products = () => {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="edit-stock">Stock</Label>
+                    <Label htmlFor="edit-stock">{t("products.stock")}</Label>
                     <Input
                       id="edit-stock"
                       type="number"
@@ -286,7 +338,7 @@ const Products = () => {
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="edit-description">Description</Label>
+                  <Label htmlFor="edit-description">{t("products.description")}</Label>
                   <Input
                     id="edit-description"
                     value={editingProduct.description}
@@ -294,7 +346,7 @@ const Products = () => {
                   />
                 </div>
                 <Button className="w-full" onClick={handleUpdateProduct}>
-                  Update Product
+                  {t("products.update_product")}
                 </Button>
               </div>
             )}
@@ -306,13 +358,13 @@ const Products = () => {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-[80px]">Image</TableHead>
-              <TableHead>Product</TableHead>
-              <TableHead>Global Category</TableHead>
-              <TableHead>Store Category</TableHead>
-              <TableHead>Price</TableHead>
-              <TableHead>Stock</TableHead>
-              <TableHead>Status</TableHead>
+              <TableHead className="w-[80px]">{t("products.table.image")}</TableHead>
+              <TableHead>{t("products.table.product")}</TableHead>
+              <TableHead>{t("products.table.global_category")}</TableHead>
+              <TableHead>{t("products.table.store_category")}</TableHead>
+              <TableHead>{t("products.table.price")}</TableHead>
+              <TableHead>{t("products.table.stock")}</TableHead>
+              <TableHead>{t("products.table.status")}</TableHead>
               <TableHead className="w-[100px]"></TableHead>
             </TableRow>
           </TableHeader>
@@ -345,7 +397,7 @@ const Products = () => {
                           size="icon"
                           className="h-8 w-8"
                           type="button"
-                          title="Upload image"
+                          title={t("products.upload_image")}
                           asChild
                         >
                           <span>
@@ -364,8 +416,8 @@ const Products = () => {
                   </div>
                 </TableCell>
                 <TableCell className="font-medium">{product.name}</TableCell>
-                <TableCell>{product.globalCategoryName || "None"}</TableCell>
-                <TableCell>{product.vendorCategoryName || "None"}</TableCell>
+                <TableCell>{product.globalCategoryName || t("common.none")}</TableCell>
+                <TableCell>{product.vendorCategoryName || t("common.none")}</TableCell>
                 <TableCell>${product.price}</TableCell>
                 <TableCell>
                   <span className={product.stockQuantity < 10 ? "text-destructive font-bold" : ""}>
@@ -374,7 +426,7 @@ const Products = () => {
                 </TableCell>
                 <TableCell>
                   <Badge variant={product.isAvailable ? "default" : "secondary"}>
-                    {product.isAvailable ? "Available" : "Not available"}
+                    {product.isAvailable ? t("products.available") : t("products.not_available")}
                   </Badge>
                 </TableCell>
                 <TableCell>
@@ -386,10 +438,10 @@ const Products = () => {
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                       <DropdownMenuItem className="gap-2" onClick={() => handleEditProduct(product)}>
-                        <Pencil className="h-4 w-4" /> Edit Product
+                        <Pencil className="h-4 w-4" /> {t("products.edit_product")}
                       </DropdownMenuItem>
-                      <DropdownMenuItem className="gap-2 text-destructive" onClick={() => deleteProduct(product.id)}>
-                        <Trash2 className="h-4 w-4" /> Delete Product
+                      <DropdownMenuItem className="gap-2 text-destructive" onClick={() => deleteVendorProduct(product.id)}>
+                        <Trash2 className="h-4 w-4" /> {t("products.delete_product")}
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
@@ -399,7 +451,7 @@ const Products = () => {
             {products.length === 0 && (
               <TableRow>
                 <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
-                  No products found.
+                  {t("products.no_products_found")}
                 </TableCell>
               </TableRow>
             )}
@@ -407,16 +459,16 @@ const Products = () => {
         </Table>
       </div>
 
-      <ProductImageModal
+      <VendorProductImageModal
         isOpen={isImageModalOpen}
         onClose={() => {
           setIsImageModalOpen(false);
           setSelectedProduct(null);
         }}
         imageUrl={selectedProduct?.imageUrl || null}
-        productName={selectedProduct?.name || "Product"}
+        productName={selectedProduct?.name || t("products.table.product")}
       />
-    </div>
+    </div >
   );
 };
 

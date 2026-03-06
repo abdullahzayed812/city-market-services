@@ -35,7 +35,7 @@ export interface VendorOrder {
 export interface VendorOrderItem {
   id: string;
   vendorOrderId: string;
-  productId: string;
+  vendorProductId: string;
   productName: string;
   quantity: number;
   unitPrice: number;
@@ -58,12 +58,12 @@ export interface OrderWithItems {
 }
 
 export interface CreateOrderItemDto {
-  productId: string;
+  vendorProductId: string;
   quantity: number;
 }
 
 export interface CreateOrderDto {
-  customerId: string;
+  customerId?: string;
   items: CreateOrderItemDto[];
   deliveryAddress: string;
   deliveryLatitude?: number;

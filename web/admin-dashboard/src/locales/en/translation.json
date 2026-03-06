@@ -86,14 +86,27 @@
     "deactivate": "Deactivate",
     "activate": "Activate",
     "no_products_found": "No products found.",
-    "filter_by_category": "Filter by Category"
+    "filter_by_category": "Filter by Category",
+    "vendor_listing": "Vendor Listing",
+    "global_product": "Global Product",
+    "select_global_product": "Select Global Product",
+    "link_to_global": "Link to Global Product (Optional)",
+    "select_existing": "Select an existing product",
+    "none_create_new": "None (Create New)",
+    "link_hint": "If selected, core data will be fetched from the global catalog.",
+    "create_global": "Create Global Product",
+    "create_listing": "Create Vendor Listing"
   },
   "categories": {
     "manage": "Manage global and vendor-specific categories.",
     "create_category": "Create Category",
     "edit_category": "Edit Category",
     "global": "Global",
-    "vendor": "Vendor"
+    "vendor": "Vendor",
+    "no_categories_found": "No categories found.",
+    "search_categories": "Search categories...",
+    "select_type": "Select Type",
+    "select_vendor": "Select Vendor"
   },
   "financial": {
     "total_revenue": "Total Revenue",

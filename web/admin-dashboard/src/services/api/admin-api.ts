@@ -15,8 +15,9 @@ import {
   type PayoutsReport,
   type Category,
   type CreateCategoryDto,
-  type Product,
-  type CreateProductDto,
+  type VendorProduct,
+  type CreateVendorProductDto,
+  type GlobalProduct,
 } from "@city-market/shared";
 
 export const adminApi = {
@@ -73,27 +74,41 @@ export const adminApi = {
     });
   },
 
-  // Products Management
-  getProducts: async (
-    page: number, 
-    limit: number, 
-    filters?: { globalCategoryId?: string; vendorCategoryId?: string }
-  ): Promise<{ data: Product[]; hasMore: boolean }> => {
-    const response = await axiosInstance.get<ApiResponse<{ data: Product[]; total: number; page: number; limit: number }>>("/admin/products", {
+  // Vendor Products Management
+  getVendorProducts: async (
+    page: number,
+    limit: number,
+    filters?: { globalCategoryId?: string; vendorCategoryId?: string; vendorId?: string }
+  ): Promise<{ data: VendorProduct[]; hasMore: boolean }> => {
+    const response = await axiosInstance.get<ApiResponse<{ data: VendorProduct[]; total: number; page: number; limit: number }>>("/admin/products", {
       params: { page, limit, ...filters },
     });
-    const { data, total } = response.data.data;
+    const { data, total } = response.data.data!;
     const hasMore = (page * limit) < total;
     return { data, hasMore };
   },
-  createProduct: (body: CreateProductDto) => axiosInstance.post<ApiResponse<Product>>("/admin/products", body),
-  updateProduct: (id: string, body: Partial<Product>) => axiosInstance.put<ApiResponse<null>>(`/admin/products/${id}`, body),
-  deleteProduct: (id: string) => axiosInstance.delete<ApiResponse<null>>(`/admin/products/${id}`),
-  uploadProductImage: (id: string, file: File) => {
+  createVendorProduct: (body: CreateVendorProductDto) => axiosInstance.post<ApiResponse<VendorProduct>>("/admin/products", body),
+  updateVendorProduct: (id: string, body: Partial<VendorProduct>) => axiosInstance.put<ApiResponse<null>>(`/admin/products/${id}`, body),
+  deleteVendorProduct: (id: string) => axiosInstance.delete<ApiResponse<null>>(`/admin/products/${id}`),
+  uploadVendorProductImage: (id: string, file: File) => {
     const formData = new FormData();
     formData.append("image", file); // Use "image" as the field name as per vendor-service upload
     return axiosInstance.post<ApiResponse<{ imageUrl: string }>>(`/admin/products/${id}/image`, formData, {
       headers: { "Content-Type": "multipart/form-data" },
     });
   },
+
+  // Global Products management
+  getGlobalProducts: async (
+    page: number,
+    limit: number
+  ): Promise<{ data: GlobalProduct[]; total: number }> => {
+    const response = await axiosInstance.get<ApiResponse<{ data: GlobalProduct[]; total: number }>>("/admin/global-products", {
+      params: { page, limit },
+    });
+    return response.data.data!;
+  },
+  createGlobalProduct: (body: Partial<GlobalProduct>) => axiosInstance.post<ApiResponse<GlobalProduct>>("/admin/global-products", body),
+  updateGlobalProduct: (id: string, body: Partial<GlobalProduct>) => axiosInstance.patch<ApiResponse<null>>(`/admin/global-products/${id}`, body),
+  deleteGlobalProduct: (id: string) => axiosInstance.delete<ApiResponse<null>>(`/admin/global-products/${id}`),
 };

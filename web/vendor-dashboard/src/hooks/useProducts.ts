@@ -24,42 +24,52 @@ export const useProducts = () => {
     enabled: !!vendorId,
   });
 
-  const createProductMutation = useMutation({
-    mutationFn: (data: any) => productService.createProduct({ ...data, vendorId }),
+  const createVendorProductMutation = useMutation({
+    mutationFn: (data: any) => productService.createVendorProduct({ ...data, vendorId }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["vendor-products", vendorId] });
     },
   });
 
-  const updateProductMutation = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: any }) => productService.updateProduct(id, data),
+  const updateVendorProductMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: any }) => productService.updateVendorProduct(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["vendor-products", vendorId] });
     },
   });
 
-  const deleteProductMutation = useMutation({
-    mutationFn: (id: string) => productService.deleteProduct(id),
+  const deleteVendorProductMutation = useMutation({
+    mutationFn: (id: string) => productService.deleteVendorProduct(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["vendor-products", vendorId] });
     },
   });
 
-  const uploadImageMutation = useMutation({
-    mutationFn: ({ id, file }: { id: string; file: File }) => productService.uploadImage(id, file),
+  const uploadVendorProductImageMutation = useMutation({
+    mutationFn: ({ id, file }: { id: string; file: File }) => productService.uploadVendorProductImage(id, file),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["vendor-products", vendorId] });
     },
+  });
+
+  const globalProductsQuery = useQuery({
+    queryKey: ["global-products"],
+    queryFn: () => productService.getGlobalProducts(1, 100),
   });
 
   return {
     products: productsQuery.data?.data || [],
     globalCategories: globalCategoriesQuery.data || [],
     vendorCategories: vendorCategoriesQuery.data || [],
-    isLoading: productsQuery.isLoading || globalCategoriesQuery.isLoading || vendorCategoriesQuery.isLoading,
-    createProduct: createProductMutation.mutate,
-    updateProduct: updateProductMutation.mutate,
-    deleteProduct: deleteProductMutation.mutate,
-    uploadImage: uploadImageMutation.mutate,
+    globalProducts: globalProductsQuery.data?.data || [],
+    isLoading:
+      productsQuery.isLoading ||
+      globalCategoriesQuery.isLoading ||
+      vendorCategoriesQuery.isLoading ||
+      globalProductsQuery.isLoading,
+    createVendorProduct: createVendorProductMutation.mutate,
+    updateVendorProduct: updateVendorProductMutation.mutate,
+    deleteVendorProduct: deleteVendorProductMutation.mutate,
+    uploadVendorProductImage: uploadVendorProductImageMutation.mutate,
   };
 };

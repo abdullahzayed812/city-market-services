@@ -209,10 +209,11 @@ export class ServiceClient {
     userId?: string,
     globalCategoryId?: string,
     vendorCategoryId?: string,
+    vendorId?: string,
   ) {
     const config = await this.getRequestConfig(userId);
     const response = await this.axiosInstance.get(`${this.catalogServiceUrl}/products`, {
-      params: { page, limit, globalCategoryId, vendorCategoryId },
+      params: { page, limit, globalCategoryId, vendorCategoryId, vendorId },
       ...config,
     });
     return response.data;
@@ -245,6 +246,34 @@ export class ServiceClient {
         ...(formData.getHeaders?.() || {}),
       },
     });
+    return response.data;
+  }
+
+  // Global Product Management
+  async getGlobalProducts(page: number = 1, limit: number = 20, userId?: string) {
+    const config = await this.getRequestConfig(userId);
+    const response = await this.axiosInstance.get(`${this.catalogServiceUrl}/global-products`, {
+      params: { page, limit },
+      ...config,
+    });
+    return response.data;
+  }
+
+  async createGlobalProduct(data: any, userId?: string) {
+    const config = await this.getRequestConfig(userId);
+    const response = await this.axiosInstance.post(`${this.catalogServiceUrl}/global-products`, data, config);
+    return response.data;
+  }
+
+  async updateGlobalProduct(id: string, data: any, userId?: string) {
+    const config = await this.getRequestConfig(userId);
+    const response = await this.axiosInstance.patch(`${this.catalogServiceUrl}/global-products/${id}`, data, config);
+    return response.data;
+  }
+
+  async deleteGlobalProduct(id: string, userId?: string) {
+    const config = await this.getRequestConfig(userId);
+    const response = await this.axiosInstance.delete(`${this.catalogServiceUrl}/global-products/${id}`, config);
     return response.data;
   }
 }

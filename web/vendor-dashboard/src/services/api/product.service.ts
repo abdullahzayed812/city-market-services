@@ -1,25 +1,27 @@
 import apiClient from "./client";
 import { ApiResponse } from "@city-market/shared";
-import type { Product, CreateProductDto, UpdateProductDto, Category } from "@city-market/shared";
+import type { VendorProduct, CreateVendorProductDto, UpdateVendorProductDto, Category } from "@city-market/shared";
 
 export const productService = {
   getVendorProducts: async (vendorId: string) => {
-    const response = await apiClient.get<ApiResponse<{ products: Product[] }>>(`/catalog/products/vendor/${vendorId}`);
+    const response = await apiClient.get<ApiResponse<{ data: VendorProduct[] }>>(
+      `/catalog/products/vendor/${vendorId}`,
+    );
     return response.data?.data;
   },
-  createProduct: async (data: CreateProductDto) => {
-    const response = await apiClient.post<ApiResponse<Product>>("/catalog/products", data);
+  createVendorProduct: async (data: CreateVendorProductDto) => {
+    const response = await apiClient.post<ApiResponse<VendorProduct>>("/catalog/products", data);
     return response.data?.data;
   },
-  updateProduct: async (id: string, data: UpdateProductDto) => {
+  updateVendorProduct: async (id: string, data: UpdateVendorProductDto) => {
     const response = await apiClient.patch<ApiResponse<null>>(`/catalog/products/${id}`, data);
     return response.data?.data;
   },
-  updateStock: async (id: string, stock: number) => {
+  updateVendorProductStock: async (id: string, stock: number) => {
     const response = await apiClient.patch<ApiResponse<null>>(`/catalog/products/${id}/stock`, { stock });
     return response.data?.data;
   },
-  deleteProduct: async (id: string) => {
+  deleteVendorProduct: async (id: string) => {
     const response = await apiClient.delete<ApiResponse<null>>(`/catalog/products/${id}`);
     return response.data?.data;
   },
@@ -31,7 +33,7 @@ export const productService = {
     const response = await apiClient.get<ApiResponse<Category[]>>(`/catalog/categories/vendor/${vendorId}`);
     return response.data?.data;
   },
-  uploadImage: async (id: string, file: File) => {
+  uploadVendorProductImage: async (id: string, file: File) => {
     const formData = new FormData();
     formData.append("image", file);
     const response = await apiClient.post<ApiResponse<{ imageUrl: string }>>(
@@ -43,6 +45,12 @@ export const productService = {
         },
       },
     );
+    return response.data?.data;
+  },
+  getGlobalProducts: async (page: number, limit: number) => {
+    const response = await apiClient.get<ApiResponse<{ data: any[]; total: number }>>("/catalog/global-products", {
+      params: { page, limit },
+    });
     return response.data?.data;
   },
 };

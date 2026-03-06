@@ -31,7 +31,6 @@ const seedDb = async () => {
         role: "CUSTOMER",
         is_active: true,
       },
-
       // SuperMarket 1
       {
         id: SEED_DATA.USERS.VENDOR1,
@@ -40,7 +39,6 @@ const seedDb = async () => {
         role: "VENDOR",
         is_active: true,
       },
-
       // SuperMarket 2
       {
         id: SEED_DATA.USERS.VENDOR2,
@@ -49,7 +47,6 @@ const seedDb = async () => {
         role: "VENDOR",
         is_active: true,
       },
-
       // Pharmacy
       {
         id: SEED_DATA.USERS.VENDOR3,
@@ -58,7 +55,6 @@ const seedDb = async () => {
         role: "VENDOR",
         is_active: true,
       },
-
       // Bakery
       {
         id: SEED_DATA.USERS.VENDOR4,
@@ -67,7 +63,30 @@ const seedDb = async () => {
         role: "VENDOR",
         is_active: true,
       },
-
+      // Butcher – جزار
+      {
+        id: SEED_DATA.USERS.VENDOR5,
+        email: "butcher@citymarket.com",
+        password_hash: passwordHash,
+        role: "VENDOR",
+        is_active: true,
+      },
+      // Poultry – محل دواجن
+      {
+        id: SEED_DATA.USERS.VENDOR6,
+        email: "poultry@citymarket.com",
+        password_hash: passwordHash,
+        role: "VENDOR",
+        is_active: true,
+      },
+      // Fish – محل أسماك
+      {
+        id: SEED_DATA.USERS.VENDOR7,
+        email: "fish@citymarket.com",
+        password_hash: passwordHash,
+        role: "VENDOR",
+        is_active: true,
+      },
       {
         id: SEED_DATA.USERS.COURIER,
         email: "courier@citymarket.com",
@@ -87,11 +106,11 @@ const seedDb = async () => {
     for (const user of users) {
       await connection.execute(
         "INSERT IGNORE INTO users (id, email, password_hash, role, is_active) VALUES (?, ?, ?, ?, ?)",
-        [user.id, user.email, user.password_hash, user.role, user.is_active]
+        [user.id, user.email, user.password_hash, user.role, user.is_active],
       );
     }
 
-    console.log("Database seeded successfully");
+    console.log("Users seeded successfully");
   } catch (error) {
     console.error("Error seeding database:", error);
     process.exit(1);

@@ -28,6 +28,15 @@ export class CustomerRepository implements ICustomerRepository {
     return rows.length > 0 ? this.mapToEntity(rows[0]) : null;
   }
 
+  async findByIds(ids: string[]): Promise<Customer[]> {
+    if (ids.length === 0) return [];
+    const placeholders = ids.map(() => "?").join(", ");
+    // Search by BOTH id and user_id to handle both internal and external (auth) IDs
+    const query = `SELECT * FROM customers WHERE id IN (${placeholders}) OR user_id IN (${placeholders})`;
+    const [rows] = await this.pool.execute<RowDataPacket[]>(query, [...ids, ...ids]);
+    return rows.map(row => this.mapToEntity(row));
+  }
+
   async update(id: string, data: Partial<Customer>): Promise<void> {
     const fields: string[] = [];
     const values: any[] = [];

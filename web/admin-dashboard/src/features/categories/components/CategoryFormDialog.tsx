@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -64,36 +64,39 @@ const CategoryFormDialog: React.FC<CategoryFormDialogProps> = ({
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle>
-            {category ? t("common.edit_category", "Edit Category") : t("common.create_category", "Create Category")}
+            {category ? t("categories.edit_category") : t("categories.create_category")}
           </DialogTitle>
+          <DialogDescription className="sr-only">
+            {category ? "Edit current category details." : "Create a new category for products."}
+          </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4 py-4">
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="type">{t("common.type", "Type")}</Label>
+              <Label htmlFor="type">{t("common.type")}</Label>
               <Select
                 value={formData.type}
                 onValueChange={(val: CategoryType) => setFormData({ ...formData, type: val })}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Select Type" />
+                  <SelectValue placeholder={t("categories.select_type")} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value={CategoryType.GLOBAL}>Global</SelectItem>
-                  <SelectItem value={CategoryType.VENDOR}>Vendor</SelectItem>
+                  <SelectItem value={CategoryType.GLOBAL}>{t("categories.global")}</SelectItem>
+                  <SelectItem value={CategoryType.VENDOR}>{t("categories.vendor")}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             {formData.type === CategoryType.VENDOR && (
               <div className="space-y-2">
-                <Label htmlFor="vendor">{t("common.vendor", "Vendor")}</Label>
+                <Label htmlFor="vendor">{t("common.vendor")}</Label>
                 <Select
                   value={formData.vendorId}
                   onValueChange={(val) => setFormData({ ...formData, vendorId: val })}
                   required
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Select Vendor" />
+                    <SelectValue placeholder={t("categories.select_vendor")} />
                   </SelectTrigger>
                   <SelectContent>
                     {vendors?.map((vendor) => (
@@ -116,7 +119,7 @@ const CategoryFormDialog: React.FC<CategoryFormDialogProps> = ({
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="description">{t("common.description", "Description")}</Label>
+            <Label htmlFor="description">{t("common.description")}</Label>
             <Input
               id="description"
               value={formData.description}
@@ -125,7 +128,7 @@ const CategoryFormDialog: React.FC<CategoryFormDialogProps> = ({
           </div>
           <DialogFooter>
             <Button type="submit" disabled={isPending}>
-              {category ? t("common.update", "Update") : t("common.create", "Create")}
+              {category ? t("common.update") : t("common.create")}
             </Button>
           </DialogFooter>
         </form>

@@ -1,11 +1,11 @@
 import { Response, NextFunction } from "express";
-import { ProductService } from "../../application/services/product.service";
+import { CatalogService } from "../../application/services/catalog.service";
 import { ApiResponse, ValidationError } from "@city-market/shared";
 import { Logger } from "@city-market/shared/node";
 import { AuthenticatedRequest } from "@city-market/shared/node";
 
-export class ProductController {
-  constructor(private productService: ProductService) { }
+export class VendorProductController {
+  constructor(private catalogService: CatalogService) {}
 
   getAll = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
@@ -13,12 +13,14 @@ export class ProductController {
       const limit = parseInt(req.query.limit as string) || 20;
       const globalCategoryId = (req.query.globalCategoryId as string) || (req.query.categoryId as string);
       const vendorCategoryId = req.query.vendorCategoryId as string;
+      const vendorId = req.query.vendorId as string;
 
-      const { products, total } = await this.productService.getAllProducts(
+      const { products, total } = await this.catalogService.getAllVendorProducts(
         page,
         limit,
         globalCategoryId,
         vendorCategoryId,
+        vendorId,
       );
       res.json(
         ApiResponse.success({
@@ -35,9 +37,9 @@ export class ProductController {
 
   create = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
-      const product = await this.productService.createProduct(req.body);
-      Logger.info("Product created", { productId: product.id });
-      res.status(201).json(ApiResponse.success(product, "product_created"));
+      const product = await this.catalogService.createVendorProduct(req.body);
+      Logger.info("Vendor product created", { productId: product.id });
+      res.status(201).json(ApiResponse.success(product, "vendor_product_created"));
     } catch (error) {
       next(error);
     }
@@ -45,7 +47,7 @@ export class ProductController {
 
   getById = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
-      const product = await this.productService.getProductById(req.params.id);
+      const product = await this.catalogService.getVendorProductById(req.params.id);
       res.json(ApiResponse.success(product));
     } catch (error) {
       next(error);
@@ -56,7 +58,7 @@ export class ProductController {
     try {
       const page = parseInt(req.query.page as string) || 1;
       const limit = parseInt(req.query.limit as string) || 20;
-      const { products, total } = await this.productService.getProductsByVendor(req.params.vendorId, page, limit);
+      const { products, total } = await this.catalogService.getVendorProductsByVendor(req.params.vendorId, page, limit);
       res.json(
         ApiResponse.success({
           data: products,
@@ -74,7 +76,11 @@ export class ProductController {
     try {
       const page = parseInt(req.query.page as string) || 1;
       const limit = parseInt(req.query.limit as string) || 20;
-      const { products, total } = await this.productService.getProductsByCategory(req.params.categoryId, page, limit);
+      const { products, total } = await this.catalogService.getVendorProductsByCategory(
+        req.params.categoryId,
+        page,
+        limit,
+      );
       res.json(
         ApiResponse.success({
           data: products,
@@ -101,7 +107,7 @@ export class ProductController {
         maxPrice: req.query.maxPrice ? parseFloat(req.query.maxPrice as string) : undefined,
         available: req.query.available === "true" ? true : req.query.available === "false" ? false : undefined,
       };
-      const { products, total } = await this.productService.searchProducts(filter, page, limit);
+      const { products, total } = await this.catalogService.searchVendorProducts(filter, page, limit);
       res.json(
         ApiResponse.success({
           data: products,
@@ -117,8 +123,8 @@ export class ProductController {
 
   update = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
-      await this.productService.updateProduct(req.params.id, req.body);
-      res.json(ApiResponse.success(null, "product_updated"));
+      await this.catalogService.updateVendorProduct(req.params.id, req.body);
+      res.json(ApiResponse.success(null, "vendor_product_updated"));
     } catch (error) {
       next(error);
     }
@@ -126,8 +132,8 @@ export class ProductController {
 
   updateStock = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
-      await this.productService.updateStock(req.params.id, req.body.stock);
-      res.json(ApiResponse.success(null, "stock_updated"));
+      await this.catalogService.updateVendorStock(req.params.id, req.body.stock);
+      res.json(ApiResponse.success(null, "vendor_stock_updated"));
     } catch (error) {
       next(error);
     }
@@ -135,8 +141,8 @@ export class ProductController {
 
   delete = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
-      await this.productService.deleteProduct(req.params.id);
-      res.json(ApiResponse.success(null, "product_deleted"));
+      await this.catalogService.deleteVendorProduct(req.params.id);
+      res.json(ApiResponse.success(null, "vendor_product_deleted"));
     } catch (error) {
       next(error);
     }
@@ -148,8 +154,8 @@ export class ProductController {
         throw new ValidationError("no_image_file_provided");
       }
       const imageUrl = `/catalog/uploads/products/${req.file.filename}`;
-      await this.productService.updateProductImage(req.params.id, imageUrl);
-      res.json(ApiResponse.success({ imageUrl }, "product_image_uploaded"));
+      await this.catalogService.updateVendorProductImage(req.params.id, imageUrl);
+      res.json(ApiResponse.success({ imageUrl }, "vendor_product_image_uploaded"));
     } catch (error) {
       next(error);
     }

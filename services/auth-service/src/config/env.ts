@@ -34,6 +34,26 @@ export const config = {
       clientSecret: process.env.WEBSOCKET_GATEWAY_CLIENT_SECRET || "websocket-gateway-secret",
       scope: "websocket", // Example scope
     },
+    {
+      clientId: process.env.RATING_SERVICE_CLIENT_ID || "rating-service-id",
+      clientSecret: process.env.RATING_SERVICE_CLIENT_SECRET || "rating-service-secret",
+      scope: "rating",
+    },
+    {
+      clientId: process.env.PAYMENT_SERVICE_CLIENT_ID || "payment-service-id",
+      clientSecret: process.env.PAYMENT_SERVICE_CLIENT_SECRET || "payment-service-secret",
+      scope: "payment",
+    },
+    {
+      clientId: process.env.CATALOG_SERVICE_CLIENT_ID || "catalog-service-id",
+      clientSecret: process.env.CATALOG_SERVICE_CLIENT_SECRET || "catalog-service-secret",
+      scope: "catalog",
+    },
+    {
+      clientId: process.env.NOTIFICATION_SERVICE_CLIENT_ID || "notification-service-id",
+      clientSecret: process.env.NOTIFICATION_SERVICE_CLIENT_SECRET || "notification-service-secret",
+      scope: "notification",
+    },
     // Add other services as they are configured
   ],
   // --- End Service Client Configuration ---

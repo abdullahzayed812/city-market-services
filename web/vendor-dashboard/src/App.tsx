@@ -6,6 +6,7 @@ import Products from "./pages/Products";
 import Inventory from "./pages/Inventory";
 import Payouts from "./pages/Payouts";
 import Profile from "./pages/Profile";
+import Reviews from "./pages/Reviews";
 import Settings from "./pages/Settings";
 import LoginPage from "./pages/LoginPage";
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -33,6 +34,7 @@ function App() {
               <Route path="/products" element={<Products />} />
               <Route path="/inventory" element={<Inventory />} />
               <Route path="/payouts" element={<Payouts />} />
+              <Route path="/reviews" element={<Reviews />} />
               <Route path="/profile" element={<Profile />} />
               <Route path="/settings" element={<Settings />} />
             </Route>

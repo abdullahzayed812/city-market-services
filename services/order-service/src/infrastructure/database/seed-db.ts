@@ -16,7 +16,7 @@ const seedDb = async () => {
     try {
         const orderId = SEED_DATA.ORDERS.ORDER_1;
         const customerId = SEED_DATA.CUSTOMERS.JOHN_DOE;
-        const vendorId = SEED_DATA.VENDORS.BEST_BURGER;
+        const vendorId = SEED_DATA.VENDORS.SUPER_MARKET_1;
 
         await connection.execute(
             "INSERT IGNORE INTO orders (id, customer_id, vendor_id, status, subtotal, delivery_fee, commission_amount, total_amount, delivery_address, delivery_latitude, delivery_longitude) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",

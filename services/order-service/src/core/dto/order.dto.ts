@@ -5,7 +5,7 @@ import { VendorOrder } from "../entities/vendor-order.entity";
 import { OrderItemProposal } from "../entities/order-item-proposal.entity";
 
 export interface CreateOrderItemDto {
-  productId: string;
+  vendorProductId: string;
   quantity: number;
 }
 

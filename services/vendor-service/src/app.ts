@@ -6,8 +6,10 @@ import { VendorController } from "./presentation/controllers/vendor.controller";
 import { VendorService } from "./application/services/vendor.service";
 import { VendorRepository } from "./infrastructure/repositories/vendor.repository";
 import { WorkingHoursRepository } from "./infrastructure/repositories/working-hours.repository";
-import { errorHandler, Database, authenticate } from "@city-market/shared/node";
-import { eventBus } from "@city-market/shared";
+import { VendorPublisher } from "./infrastructure/messaging/VendorPublisher";
+import { errorHandler, Database, authenticate, rabbitMQBus } from "@city-market/shared/node";
+import { EventType } from "@city-market/shared";
+import { RatingConsumer } from "./application/events/rating.consumer";
 import { config } from "./config/env";
 
 export const createApp = () => {
@@ -27,10 +29,16 @@ export const createApp = () => {
 
   const vendorRepo = new VendorRepository(db);
   const workingHoursRepo = new WorkingHoursRepository(db);
+  const publisher = new VendorPublisher(rabbitMQBus);
 
-  const vendorService = new VendorService(vendorRepo, workingHoursRepo, eventBus);
+  const vendorService = new VendorService(vendorRepo, workingHoursRepo, publisher);
 
   const vendorController = new VendorController(vendorService);
+
+  const ratingConsumer = new RatingConsumer(vendorService);
+  rabbitMQBus.subscribe(EventType.VENDOR_RATING_UPDATED, "vendor_service_rating", (event) =>
+    ratingConsumer.handle(event)
+  );
 
   app.use(authenticate);
 

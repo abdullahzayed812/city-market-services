@@ -86,14 +86,27 @@
     "deactivate": "تعطيل",
     "activate": "تفعيل",
     "no_products_found": "لم يتم العثور على منتجات.",
-    "filter_by_category": "تصفية حسب الفئة"
+    "filter_by_category": "تصفية حسب الفئة",
+    "vendor_listing": "إدراج للمورد",
+    "global_product": "منتج عالمي",
+    "select_global_product": "اختر منتج عالمي",
+    "link_to_global": "ربط بمنتج عالمي (اختياري)",
+    "select_existing": "اختر منتجاً موجوداً",
+    "none_create_new": "لاشيء (إنشاء جديد)",
+    "link_hint": "إذا تم الاختيار، فسيتم جلب البيانات الأساسية من الكتالوج العالمي.",
+    "create_global": "إنشاء منتج عالمي",
+    "create_listing": "إنشاء إدراج للمورد"
   },
   "categories": {
     "manage": "إدارة الفئات العامة والفئات الخاصة بالموردين.",
     "create_category": "إنشاء فئة",
     "edit_category": "تعديل الفئة",
     "global": "عامة",
-    "vendor": "مورد"
+    "vendor": "مورد",
+    "no_categories_found": "لم يتم العثور على فئات.",
+    "search_categories": "البحث في الفئات...",
+    "select_type": "اختر النوع",
+    "select_vendor": "اختر المورد"
   },
   "financial": {
     "total_revenue": "إجمالي الإيرادات",

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { memo, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import {
@@ -11,21 +11,21 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Image as ImageIcon, MoreHorizontal, Trash, Power, PowerOff, Eye, Upload, Pencil } from "lucide-react";
-import { type Product } from "@city-market/shared";
+import { type VendorProduct } from "@city-market/shared";
 
 interface ProductTableProps {
-  products: Product[];
-  onEdit: (product: Product) => void;
+  products: VendorProduct[];
+  onEdit: (product: VendorProduct) => void;
   onDelete: (id: string) => void;
-  onToggleAvailability: (product: Product) => void;
+  onToggleAvailability: (product: VendorProduct) => void;
   onUploadImage: (id: string, file: File) => void;
-  onViewImage: (product: Product) => void;
+  onViewImage: (product: VendorProduct) => void;
   hasMore: boolean;
   onLoadMore: () => void;
   isFetchingNextPage: boolean;
 }
 
-const ProductTable: React.FC<ProductTableProps> = ({
+const ProductTable: React.FC<ProductTableProps> = memo(({
   products,
   onEdit,
   onDelete,
@@ -45,10 +45,10 @@ const ProductTable: React.FC<ProductTableProps> = ({
     }
   };
 
-  const getImageUrl = (path: string) => {
+  const getImageUrl = useCallback((path: string) => {
     const baseUrl = import.meta.env.VITE_API_URL || `${window.location.protocol}//${window.location.hostname}:3000/api/v1`;
     return `${baseUrl}${path}`;
-  };
+  }, []);
 
   return (
     <div className="space-y-4">
@@ -196,6 +196,6 @@ const ProductTable: React.FC<ProductTableProps> = ({
       )}
     </div>
   );
-};
+});
 
 export default ProductTable;

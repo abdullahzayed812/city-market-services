@@ -43,6 +43,10 @@ export class UserService {
     return customer;
   }
 
+  async getCustomersByIds(ids: string[]): Promise<Customer[]> {
+    return this.customerRepo.findByIds(ids);
+  }
+
   async updateCustomer(id: string, dto: UpdateCustomerDto): Promise<void> {
     await this.getCustomerById(id);
     await this.customerRepo.update(id, dto);
