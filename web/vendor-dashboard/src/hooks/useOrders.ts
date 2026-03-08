@@ -48,8 +48,8 @@ export const useOrders = () => {
   }, [socket, vendorId, queryClient]);
 
   const updateStatusMutation = useMutation({
-    mutationFn: ({ id, status }: { id: string; status: VendorOrderStatus }) =>
-      orderService.updateOrderStatus(id, status),
+    mutationFn: ({ id, status, itemWeights }: { id: string; status: VendorOrderStatus; itemWeights?: { itemId: string; actualWeight?: number; actualWeightGrams?: number }[] }) =>
+      orderService.updateOrderStatus(id, status, itemWeights),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["vendor-orders", vendorId] });
     },

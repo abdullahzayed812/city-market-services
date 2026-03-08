@@ -35,7 +35,7 @@ const Inventory = () => {
     }
   };
 
-  const lowStockProducts = products.filter((p: any) => p.stock < 10);
+  const lowStockProducts = products.filter((p: any) => p.stockQuantity < 10);
 
   return (
     <div className="space-y-6">

@@ -15,8 +15,10 @@ export class VendorOrderItemRepository implements IVendorOrderItemRepository {
         const query = `
       INSERT INTO vendor_order_items (
         id, vendor_order_id, product_id, product_name,
-        quantity, unit_price, total_price
-      ) VALUES (?, ?, ?, ?, ?, ?, ?)
+        quantity, requested_weight, actual_weight, 
+        requested_weight_grams, actual_weight_grams,
+        unit_price, total_price
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
         await conn.query(query, [
             item.id,
@@ -24,6 +26,10 @@ export class VendorOrderItemRepository implements IVendorOrderItemRepository {
             item.vendorProductId,
             item.productName,
             item.quantity,
+            item.requestedWeight,
+            item.actualWeight,
+            item.requestedWeightGrams,
+            item.actualWeightGrams,
             item.unitPrice,
             item.totalPrice,
         ]);
@@ -59,6 +65,22 @@ export class VendorOrderItemRepository implements IVendorOrderItemRepository {
             fields.push("quantity = ?");
             values.push(data.quantity);
         }
+        if (data.requestedWeight !== undefined) {
+            fields.push("requested_weight = ?");
+            values.push(data.requestedWeight);
+        }
+        if (data.actualWeight !== undefined) {
+            fields.push("actual_weight = ?");
+            values.push(data.actualWeight);
+        }
+        if (data.requestedWeightGrams !== undefined) {
+            fields.push("requested_weight_grams = ?");
+            values.push(data.requestedWeightGrams);
+        }
+        if (data.actualWeightGrams !== undefined) {
+            fields.push("actual_weight_grams = ?");
+            values.push(data.actualWeightGrams);
+        }
         if (data.unitPrice !== undefined) {
             fields.push("unit_price = ?");
             values.push(data.unitPrice);
@@ -82,6 +104,10 @@ export class VendorOrderItemRepository implements IVendorOrderItemRepository {
             vendorProductId: row.product_id,
             productName: row.product_name,
             quantity: row.quantity,
+            requestedWeight: row.requested_weight ? parseFloat(row.requested_weight) : undefined,
+            actualWeight: row.actual_weight ? parseFloat(row.actual_weight) : undefined,
+            requestedWeightGrams: row.requested_weight_grams,
+            actualWeightGrams: row.actual_weight_grams,
             unitPrice: parseFloat(row.unit_price),
             totalPrice: parseFloat(row.total_price),
         };

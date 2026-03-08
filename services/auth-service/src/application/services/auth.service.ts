@@ -10,7 +10,10 @@ import { config } from "../../config/env";
 import { ValidationError, UnauthorizedError } from "@city-market/shared";
 
 export class AuthService {
-  constructor(private userRepo: IUserRepository, private refreshTokenRepo: IRefreshTokenRepository) { }
+  constructor(
+    private userRepo: IUserRepository,
+    private refreshTokenRepo: IRefreshTokenRepository,
+  ) {}
 
   async register(dto: RegisterDto): Promise<TokenPair> {
     // Validate email
@@ -45,8 +48,8 @@ export class AuthService {
   }
 
   async login(dto: LoginDto): Promise<TokenPair> {
-    // Find user
-    const user = await this.userRepo.findByEmail(dto.email);
+    // Find user with password hash for authentication
+    const user = await this.userRepo.findWithPasswordByEmail(dto.email);
     if (!user) {
       throw new UnauthorizedError("invalid_credentials");
     }
@@ -98,14 +101,18 @@ export class AuthService {
     await this.refreshTokenRepo.deleteByUserId(userId);
   }
 
-  async getUsers(page: number = 1, limit: number = 50, role?: string): Promise<{ data: User[], total: number }> {
+  async getUsers(
+    page: number = 1,
+    limit: number = 50,
+    role?: string,
+  ): Promise<{ data: Omit<User, "passwordHash">[]; total: number }> {
     const offset = (page - 1) * limit;
     const users = await this.userRepo.findAll(limit, offset, role);
     const total = await this.userRepo.countAll(role);
     return { data: users, total };
   }
 
-  async getUserById(id: string): Promise<User | null> {
+  async getUserById(id: string): Promise<Omit<User, "passwordHash"> | null> {
     return this.userRepo.findById(id);
   }
 
@@ -115,9 +122,12 @@ export class AuthService {
   }
 
   // New method to issue service-to-service tokens
-  async issueServiceToken(clientId: string, clientSecret: string): Promise<{ access_token: string, token_type: string, expires_in: number }> {
+  async issueServiceToken(
+    clientId: string,
+    clientSecret: string,
+  ): Promise<{ access_token: string; token_type: string; expires_in: number }> {
     const serviceClient = config.registeredServiceClients.find(
-      client => client.clientId === clientId && client.clientSecret === clientSecret
+      (client) => client.clientId === clientId && client.clientSecret === clientSecret,
     );
 
     if (!serviceClient) {
@@ -126,8 +136,8 @@ export class AuthService {
 
     const payload = {
       sub: serviceClient.clientId, // Subject is the client ID
-      scope: serviceClient.scope,  // Scope of the service client
-      iss: "auth-service",         // Issuer
+      scope: serviceClient.scope, // Scope of the service client
+      iss: "auth-service", // Issuer
     };
 
     const accessToken = jwt.sign(
@@ -137,7 +147,7 @@ export class AuthService {
         expiresIn: config.jwtServiceAccessExpiry,
         audience: "city-market-services", // Audience could be specific services or a general identifier
         jwtid: randomUUID(), // Unique JWT ID
-      } as any
+      } as any,
     );
 
     // Parse expiry string (e.g., "15m") to seconds
@@ -147,16 +157,23 @@ export class AuthService {
       const value = parseInt(expiryMatch[1]);
       const unit = expiryMatch[2];
       switch (unit) {
-        case 's': expiresInSeconds = value; break;
-        case 'm': expiresInSeconds = value * 60; break;
-        case 'h': expiresInSeconds = value * 3600; break;
-        case 'd': expiresInSeconds = value * 86400; break;
+        case "s":
+          expiresInSeconds = value;
+          break;
+        case "m":
+          expiresInSeconds = value * 60;
+          break;
+        case "h":
+          expiresInSeconds = value * 3600;
+          break;
+        case "d":
+          expiresInSeconds = value * 86400;
+          break;
       }
     } else {
       // Fallback or throw error if expiry format is unexpected
       expiresInSeconds = 15 * 60; // Default to 15 minutes if parsing fails
     }
-
 
     return {
       access_token: accessToken,
@@ -165,7 +182,7 @@ export class AuthService {
     };
   }
 
-  private async generateTokenPair(user: User): Promise<TokenPair> {
+  private async generateTokenPair(user: Omit<User, "passwordHash">): Promise<TokenPair> {
     const payload: TokenPayload = {
       userId: user.id,
       email: user.email,
@@ -177,7 +194,7 @@ export class AuthService {
       config.jwtAccessSecret as any,
       {
         expiresIn: config.jwtAccessExpiry,
-      } as any
+      } as any,
     );
 
     const refreshToken = jwt.sign(
@@ -185,7 +202,7 @@ export class AuthService {
       config.jwtRefreshSecret as any,
       {
         expiresIn: config.jwtRefreshExpiry,
-      } as any
+      } as any,
     );
 
     // Store refresh token
@@ -199,9 +216,8 @@ export class AuthService {
 
     await this.refreshTokenRepo.create(tokenRecord);
 
-    const { passwordHash, ...userProfile } = user;
-
-    return { accessToken, refreshToken, user: userProfile };
+    // No need to omit passwordHash here as it's already omitted in the input type
+    return { accessToken, refreshToken, user: user };
   }
 
   private isValidEmail(email: string): boolean {

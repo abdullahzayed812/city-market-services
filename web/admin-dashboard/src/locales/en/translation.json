@@ -41,6 +41,7 @@
     "stock": "Stock",
     "update": "Update",
     "create": "Create",
+    "cancel": "Cancel",
     "confirm": "Confirm",
     "confirm_delete": "Are you sure you want to delete this?",
     "yes": "Yes",
@@ -50,14 +51,30 @@
     "vendor": "Vendor",
     "global_category": "Global Category",
     "vendor_category": "Store Category",
-    "none": "None"
+    "none": "None",
+    "error": "Error occurred",
+    "phone": "Phone Number"
   },
   "auth": {
     "sign_in": "Sign in",
     "credentials_hint": "Enter your credentials to access the admin panel",
     "password": "Password",
     "protected_by": "Protected by CityMarket Security",
-    "login_button": "Log In"
+    "login_button": "Log In",
+    "first_name": "First Name",
+    "last_name": "Last Name"
+  },
+  "roles": {
+    "customer": "Customer",
+    "vendor": "Vendor",
+    "courier": "Courier",
+    "admin": "Admin"
+  },
+  "users": {
+    "create_new": "Create User",
+    "create_new_title": "Create New User Account",
+    "created_success": "User account created successfully",
+    "status_updated": "User status updated"
   },
   "dashboard": {
     "overview": "Overview",
@@ -137,11 +154,21 @@
   "couriers": {
     "vehicle": "Vehicle",
     "phone": "Phone",
-    "available_couriers": "Available Couriers"
+    "available_couriers": "Available Couriers",
+    "add_new": "Add Courier",
+    "add_new_title": "Register New Courier",
+    "license_plate": "License Plate",
+    "created_success": "Courier registered successfully"
   },
   "vendors": {
     "shop_name": "Shop Name",
     "shop_description": "Shop Description",
-    "address": "Address"
+    "address": "Address",
+    "add_new": "Add Vendor",
+    "add_new_title": "Register New Vendor",
+    "type": "Store Type",
+    "created_success": "Vendor registered successfully",
+    "status_updated": "Vendor status updated",
+    "image_uploaded": "Vendor image uploaded"
   }
 }

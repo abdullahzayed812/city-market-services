@@ -1,6 +1,6 @@
 import { Response, NextFunction } from "express";
 import { CatalogService } from "../../application/services/catalog.service";
-import { ApiResponse, ValidationError } from "@city-market/shared";
+import { ApiResponse, ValidationError, MeasurementType } from "@city-market/shared";
 import { Logger } from "@city-market/shared/node";
 import { AuthenticatedRequest } from "@city-market/shared/node";
 
@@ -132,8 +132,72 @@ export class VendorProductController {
 
   updateStock = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
-      await this.catalogService.updateVendorStock(req.params.id, req.body.stock);
+      if (req.body.stock !== undefined) {
+        await this.catalogService.updateVendorStock(req.params.id, req.body.stock);
+      } else if (req.body.weight !== undefined) {
+        await this.catalogService.updateVendorWeightStock(req.params.id, req.body.weight);
+      } else {
+        throw new ValidationError("stock_or_weight_must_be_provided");
+      }
       res.json(ApiResponse.success(null, "vendor_stock_updated"));
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  decrementStock = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      const { stock, weight } = req.body;
+      if (stock !== undefined) {
+        await this.catalogService.decrementVendorStock(req.params.id, stock, MeasurementType.UNIT);
+      } else if (weight !== undefined) {
+        await this.catalogService.decrementVendorStock(req.params.id, weight, MeasurementType.WEIGHT);
+      } else {
+        throw new ValidationError("stock_or_weight_must_be_provided");
+      }
+      res.json(ApiResponse.success(null, "vendor_stock_decremented"));
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  reserveStock = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      const { weightGrams } = req.body;
+      if (weightGrams !== undefined) {
+        await this.catalogService.reserveVendorWeightStock(req.params.id, weightGrams);
+      } else {
+        throw new ValidationError("weightGrams_must_be_provided");
+      }
+      res.json(ApiResponse.success(null, "vendor_stock_reserved"));
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  releaseStock = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      const { weightGrams } = req.body;
+      if (weightGrams !== undefined) {
+        await this.catalogService.releaseVendorWeightStock(req.params.id, weightGrams);
+      } else {
+        throw new ValidationError("weightGrams_must_be_provided");
+      }
+      res.json(ApiResponse.success(null, "vendor_stock_released"));
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  commitStock = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      const { actualWeightGrams, reservedWeightGrams } = req.body;
+      if (actualWeightGrams !== undefined && reservedWeightGrams !== undefined) {
+        await this.catalogService.commitVendorWeightStock(req.params.id, actualWeightGrams, reservedWeightGrams);
+      } else {
+        throw new ValidationError("actualWeightGrams_and_reservedWeightGrams_must_be_provided");
+      }
+      res.json(ApiResponse.success(null, "vendor_stock_committed"));
     } catch (error) {
       next(error);
     }

@@ -13,7 +13,7 @@ import {
   DialogDescription,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Eye, MapPin } from "lucide-react";
+import { Eye, MapPin, Scale } from "lucide-react";
 
 const OrdersManagement: React.FC = () => {
   const { t } = useTranslation();
@@ -32,7 +32,7 @@ const OrdersManagement: React.FC = () => {
     queryFn: async () => {
       if (!selectedOrderId) return null;
       const response = await adminApi.getOrderById(selectedOrderId);
-      // ✅ Correctly destructure: response.data.data.order & response.data.data.vendorOrders
+      if (!response.data.data) return null;
       const { order, vendorOrders } = response.data.data;
       return { order, vendorOrders };
     },
@@ -74,10 +74,10 @@ const OrdersManagement: React.FC = () => {
                     <DialogTrigger asChild>
                       <Button variant="ghost" size="sm" onClick={() => setSelectedOrderId(order.id)}>
                         <Eye className="h-4 w-4 me-2" />
-                        {t("common.edit")}
+                        {t("common.view")}
                       </Button>
                     </DialogTrigger>
-                    <DialogContent className="max-w-3xl">
+                    <DialogContent className="max-w-4xl">
                       <DialogHeader>
                         <DialogTitle>{t("orders.details")}</DialogTitle>
                         <DialogDescription>{t("orders.info")}</DialogDescription>
@@ -86,7 +86,7 @@ const OrdersManagement: React.FC = () => {
                       {isLoadingDetails ? (
                         <div className="py-8 text-center">{t("orders.loading_details")}</div>
                       ) : orderDetails ? (
-                        <div className="space-y-6">
+                        <div className="space-y-6 max-h-[70vh] overflow-y-auto pr-2">
                           {/* ── Order Summary ── */}
                           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                             <div className="bg-slate-50 p-3 rounded-lg">
@@ -109,55 +109,79 @@ const OrdersManagement: React.FC = () => {
                                 ${orderDetails.order.deliveryFee?.toFixed(2)}
                               </p>
                             </div>
-                            <div className="bg-slate-50 p-3 rounded-lg col-span-2">
-                              <p className="text-sm font-medium text-gray-500">{t("orders.total")}</p>
-                              <p className="font-bold text-gray-800 text-lg mt-1">
-                                $
-                                {((orderDetails.order.subtotal ?? 0) + (orderDetails.order.deliveryFee ?? 0)).toFixed(
-                                  2,
-                                )}
-                              </p>
-                            </div>
-                            <div className="bg-slate-50 p-3 rounded-lg col-span-2">
-                              <p className="text-sm font-medium text-gray-500">{t("orders.created_at")}</p>
-                              <p className="text-xs mt-1">{new Date(orderDetails.order.createdAt).toLocaleString()}</p>
-                            </div>
                           </div>
 
                           {/* ── Vendor Sub-Orders ── */}
-                          <div className="space-y-3">
+                          <div className="space-y-4">
                             <h3 className="font-bold border-b pb-2">{t("orders.vendor_sub_orders")}</h3>
                             {orderDetails.vendorOrders?.map((vendorOrder: any) => (
-                              <div key={vendorOrder.id} className="border rounded-md p-3 space-y-2">
+                              <div key={vendorOrder.id} className="border rounded-md p-4 space-y-3">
                                 <div className="flex justify-between items-center">
                                   <div>
-                                    <p className="font-medium">{vendorOrder.vendorName || "Vendor"}</p>
-                                    {/* <p className="text-xs text-gray-500 font-mono">{vendorOrder.id}</p>
-                                    <p className="text-xs text-gray-400 font-mono">Vendor ID: {vendorOrder.vendorId}</p> */}
-                                  </div>
-                                  <div className="text-end">
-                                    <Badge variant="outline" className="mb-1">
+                                    <p className="font-semibold text-lg">{vendorOrder.vendorName || "Vendor"}</p>
+                                    <Badge variant="outline" className="mt-1">
                                       {vendorOrder.status}
                                     </Badge>
-                                    <p className="text-sm font-bold text-gray-700">
+                                  </div>
+                                  <div className="text-end">
+                                    <p className="text-sm text-gray-500">{t("orders.subtotal")}</p>
+                                    <p className="font-bold text-gray-800">
                                       ${vendorOrder.subtotal?.toFixed(2)}
                                     </p>
                                   </div>
                                 </div>
 
                                 {/* Vendor Order Items */}
-                                {vendorOrder.items?.length > 0 && (
-                                  <div className="mt-2 border-t pt-2 space-y-1">
-                                    {vendorOrder.items.map((item: any) => (
-                                      <div key={item.id} className="flex justify-between text-sm text-gray-600">
-                                        <span>
-                                          {item.productName || item.name} × {item.quantity}
-                                        </span>
-                                        <span>${item.totalPrice.toFixed(2)}</span>
-                                      </div>
-                                    ))}
-                                  </div>
-                                )}
+                                <div className="mt-2 border-t pt-2 overflow-x-auto">
+                                  <Table>
+                                    <TableHeader>
+                                      <TableRow>
+                                        <TableHead className="h-8">{t("common.product")}</TableHead>
+                                        <TableHead className="h-8 text-center">{t("common.quantity")}</TableHead>
+                                        <TableHead className="h-8 text-center">{t("orders.weight")}</TableHead>
+                                        <TableHead className="h-8 text-end">{t("common.total")}</TableHead>
+                                      </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                      {vendorOrder.items.map((item: any) => (
+                                        <TableRow key={item.id}>
+                                          <TableCell className="py-2">
+                                            <p className="font-medium">{item.productName}</p>
+                                            {vendorOrder.proposals?.find((p: any) => p.vendorOrderItemId === item.id) && (
+                                                <div className="flex items-center gap-1 mt-1">
+                                                    <Badge variant="secondary" className="text-[10px] py-0 px-1 bg-yellow-100 text-yellow-800 hover:bg-yellow-200">
+                                                        {t("orders.pending_proposal")}
+                                                    </Badge>
+                                                </div>
+                                            )}
+                                          </TableCell>
+                                          <TableCell className="py-2 text-center">
+                                            {item.quantity ? `x${item.quantity}` : "-"}
+                                          </TableCell>
+                                          <TableCell className="py-2 text-center">
+                                            {item.requestedWeightGrams ? (
+                                                <div className="flex flex-col items-center">
+                                                    <span className="text-xs text-gray-500">Req: ≈{(item.requestedWeightGrams / 1000).toFixed(2)}kg</span>
+                                                    {item.actualWeightGrams && (
+                                                        <span className="text-xs font-bold text-primary">Act: {(item.actualWeightGrams / 1000).toFixed(2)}kg</span>
+                                                    )}
+                                                    {vendorOrder.proposals?.find((p: any) => p.vendorOrderItemId === item.id)?.proposedWeightGrams && (
+                                                        <span className="text-xs font-bold text-orange-500 flex items-center gap-1">
+                                                            <Scale className="h-3 w-3" />
+                                                            Prop: {(vendorOrder.proposals.find((p: any) => p.vendorOrderItemId === item.id).proposedWeightGrams / 1000).toFixed(2)}kg
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            ) : "-"}
+                                          </TableCell>
+                                          <TableCell className="py-2 text-end font-medium">
+                                            ${item.totalPrice.toFixed(2)}
+                                          </TableCell>
+                                        </TableRow>
+                                      ))}
+                                    </TableBody>
+                                  </Table>
+                                </div>
                               </div>
                             ))}
                           </div>

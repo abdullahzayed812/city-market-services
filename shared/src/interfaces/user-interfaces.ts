@@ -1,3 +1,17 @@
+import { UserRole } from "../enums/roles.js";
+
+export interface User {
+  id: string;
+  email: string;
+  role: UserRole;
+  isActive: boolean;
+  firstName?: string;
+  lastName?: string;
+  name?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 export interface Customer {
   id: string;
   userId: string;
@@ -35,4 +49,29 @@ export interface CreateAddressDto {
   latitude?: number;
   longitude?: number;
   isDefault?: boolean;
+}
+
+export interface RegisterDto {
+  email: string;
+  password: string;
+  role: UserRole;
+  firstName?: string;
+  lastName?: string;
+}
+
+export interface LoginDto {
+  email: string;
+  password: string;
+}
+
+export interface TokenPair {
+  accessToken: string;
+  refreshToken: string;
+  user: User;
+}
+
+export interface TokenPayload {
+  userId: string;
+  email: string;
+  role: UserRole;
 }

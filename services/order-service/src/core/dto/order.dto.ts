@@ -6,7 +6,9 @@ import { OrderItemProposal } from "../entities/order-item-proposal.entity";
 
 export interface CreateOrderItemDto {
   vendorProductId: string;
-  quantity: number;
+  quantity?: number;
+  weight?: number;
+  weightGrams?: number;
 }
 
 export interface CreateOrderDto {
@@ -26,12 +28,16 @@ export interface UpdateCustomerOrderStatusDto {
 export interface UpdateVendorOrderStatusDto {
   status: VendorOrderStatus;
   notes?: string;
+  itemWeights?: { itemId: string; actualWeight?: number; actualWeightGrams?: number }[];
 }
 
 export interface ProposeChangesDto {
   itemId: string;
-  type: "QUANTITY_REDUCTION" | "UNAVAILABLE";
+  type: "QUANTITY_REDUCTION" | "WEIGHT_ADJUSTMENT" | "UNAVAILABLE";
   proposedQuantity?: number;
+  proposedWeight?: number;
+  requestedWeightGrams?: number;
+  proposedWeightGrams?: number;
 }
 
 export interface OrderWithItems {
@@ -42,4 +48,3 @@ export interface OrderWithItems {
 export interface VendorOrderWithItemsDto extends VendorOrder {
   items: VendorOrderItem[];
 }
-

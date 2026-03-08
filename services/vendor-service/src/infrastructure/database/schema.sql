@@ -8,6 +8,7 @@ CREATE TABLE vendors (
   latitude DECIMAL(10, 8),
   longitude DECIMAL(11, 8),
   store_image VARCHAR(255),
+  type VARCHAR(50),
   status ENUM('OPEN', 'CLOSED', 'SUSPENDED') DEFAULT 'CLOSED',
   commission_rate DECIMAL(5, 2) DEFAULT 10.00,
   average_rating DECIMAL(2, 1) DEFAULT 0.0,

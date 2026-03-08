@@ -12,6 +12,11 @@ export interface IVendorProductRepository {
   findByFilter(filter: VendorProductFilter, limit: number, offset: number): Promise<VendorProduct[]>;
   update(id: string, data: Partial<VendorProduct>): Promise<void>;
   updateStock(id: string, quantity: number): Promise<void>;
+  updateWeightStock(id: string, weight: number): Promise<void>;
   delete(id: string): Promise<void>;
   decrementStock(id: string, quantity: number): Promise<void>;
+  decrementWeightStock(id: string, weight: number): Promise<void>;
+  reserveWeightStock(id: string, weight: number): Promise<void>;
+  releaseWeightStock(id: string, weight: number): Promise<void>;
+  commitWeightStock(id: string, actualWeight: number, reservedWeight: number): Promise<void>;
 }

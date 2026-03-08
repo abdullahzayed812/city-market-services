@@ -41,6 +41,7 @@
     "stock": "الكمية",
     "update": "تحديث",
     "create": "إنشاء",
+    "cancel": "إلغاء",
     "confirm": "تأكيد",
     "confirm_delete": "هل أنت متأكد أنك تريد الحذف؟",
     "yes": "نعم",
@@ -50,14 +51,30 @@
     "vendor": "المورد",
     "global_category": "الفئة العامة",
     "vendor_category": "فئة المتجر",
-    "none": "لا يوجد"
+    "none": "لا يوجد",
+    "error": "حدث خطأ",
+    "phone": "رقم الهاتف"
   },
   "auth": {
     "sign_in": "تسجيل الدخول",
     "credentials_hint": "أدخل بيانات الاعتماد الخاصة بك للوصول إلى لوحة الإدارة",
     "password": "كلمة المرور",
     "protected_by": "محمي بواسطة CityMarket Security",
-    "login_button": "تسجيل الدخول"
+    "login_button": "تسجيل الدخول",
+    "first_name": "الاسم الأول",
+    "last_name": "الاسم الأخير"
+  },
+  "roles": {
+    "customer": "عميل",
+    "vendor": "مورد",
+    "courier": "مندوب",
+    "admin": "مدير"
+  },
+  "users": {
+    "create_new": "إنشاء مستخدم",
+    "create_new_title": "إنشاء حساب مستخدم جديد",
+    "created_success": "تم إنشاء حساب المستخدم بنجاح",
+    "status_updated": "تم تحديث حالة المستخدم"
   },
   "dashboard": {
     "overview": "نظرة عامة",
@@ -137,11 +154,21 @@
   "couriers": {
     "vehicle": "المركبة",
     "phone": "الهاتف",
-    "available_couriers": "المناديب المتاحين"
+    "available_couriers": "المناديب المتاحين",
+    "add_new": "إضافة مندوب",
+    "add_new_title": "تسجيل مندوب جديد",
+    "license_plate": "رقم اللوحة",
+    "created_success": "تم تسجيل المندوب بنجاح"
   },
   "vendors": {
     "shop_name": "اسم المتجر",
     "shop_description": "وصف المتجر",
-    "address": "العنوان"
+    "address": "العنوان",
+    "add_new": "إضافة مورد",
+    "add_new_title": "تسجيل مورد جديد",
+    "type": "نوع المتجر",
+    "created_success": "تم تسجيل المورد بنجاح",
+    "status_updated": "تم تحديث حالة المورد",
+    "image_uploaded": "تم تحميل صورة المورد"
   }
 }

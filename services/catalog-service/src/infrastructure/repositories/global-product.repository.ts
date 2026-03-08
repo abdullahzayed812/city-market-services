@@ -12,13 +12,15 @@ export class GlobalProductRepository implements IGlobalProductRepository {
 
   async create(product: GlobalProduct): Promise<GlobalProduct> {
     const query =
-      "INSERT INTO global_products (id, name, description, image_url, global_category_id) VALUES (?, ?, ?, ?, ?)";
+      "INSERT INTO global_products (id, name, description, image_url, global_category_id, measurement_type, weight_unit) VALUES (?, ?, ?, ?, ?, ?, ?)";
     await this.pool.execute(query, [
       product.id,
       product.name,
       product.description || null,
       product.imageUrl || null,
       product.globalCategoryId,
+      product.measurementType || "UNIT",
+      product.weightUnit || null,
     ]);
     return product;
   }
@@ -44,6 +46,8 @@ export class GlobalProductRepository implements IGlobalProductRepository {
       description: "description",
       imageUrl: "image_url",
       globalCategoryId: "global_category_id",
+      measurementType: "measurement_type",
+      weightUnit: "weight_unit",
     };
 
     for (const [key, value] of Object.entries(data)) {
@@ -78,6 +82,8 @@ export class GlobalProductRepository implements IGlobalProductRepository {
       description: row.description,
       imageUrl: row.image_url,
       globalCategoryId: row.global_category_id,
+      measurementType: row.measurement_type,
+      weightUnit: row.weight_unit,
       createdAt: row.created_at,
       updatedAt: row.updated_at,
     };

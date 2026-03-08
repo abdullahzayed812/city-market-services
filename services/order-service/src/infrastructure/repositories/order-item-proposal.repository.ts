@@ -14,14 +14,18 @@ export class OrderItemProposalRepository implements IOrderItemProposalRepository
         const conn = connection || this.pool;
         const query = `
       INSERT INTO order_item_proposals (
-        id, vendor_order_item_id, type, proposed_quantity, status
-      ) VALUES (?, ?, ?, ?, ?)
+        id, vendor_order_item_id, type, proposed_quantity, proposed_weight, 
+        requested_weight_grams, proposed_weight_grams, status
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     `;
         await conn.query(query, [
             proposal.id,
             proposal.vendorOrderItemId,
             proposal.type,
             proposal.proposedQuantity || null,
+            proposal.proposedWeight || null,
+            proposal.requestedWeightGrams || null,
+            proposal.proposedWeightGrams || null,
             proposal.status,
         ]);
         return proposal;
@@ -71,6 +75,9 @@ export class OrderItemProposalRepository implements IOrderItemProposalRepository
             vendorOrderItemId: row.vendor_order_item_id,
             type: row.type as ProposalType,
             proposedQuantity: row.proposed_quantity,
+            proposedWeight: row.proposed_weight ? parseFloat(row.proposed_weight) : undefined,
+            requestedWeightGrams: row.requested_weight_grams,
+            proposedWeightGrams: row.proposed_weight_grams,
             status: row.status as ProposalStatus,
             createdAt: row.created_at,
             updatedAt: row.updated_at,

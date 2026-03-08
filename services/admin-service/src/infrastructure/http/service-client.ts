@@ -1,279 +1,162 @@
-import axios, { AxiosInstance } from "axios";
-import { adminServiceAuthenticator } from "../../config/env"; // Import the authenticator
+import { AuthClient } from "./clients/AuthClient";
+import { UserClient } from "./clients/UserClient";
+import { VendorClient } from "./clients/VendorClient";
+import { OrderClient } from "./clients/OrderClient";
+import { DeliveryClient } from "./clients/DeliveryClient";
+import { CatalogClient } from "./clients/CatalogClient";
 
 export class ServiceClient {
-  private axiosInstance: AxiosInstance;
+  public auth: AuthClient;
+  public user: UserClient;
+  public vendor: VendorClient;
+  public order: OrderClient;
+  public delivery: DeliveryClient;
+  public catalog: CatalogClient;
 
   constructor(
-    private orderServiceUrl: string,
-    private vendorServiceUrl: string,
-    private deliveryServiceUrl: string,
-    private userServiceUrl: string,
-    private authServiceUrl: string,
-    private catalogServiceUrl: string,
+    orderServiceUrl: string,
+    vendorServiceUrl: string,
+    deliveryServiceUrl: string,
+    userServiceUrl: string,
+    authServiceUrl: string,
+    catalogServiceUrl: string,
   ) {
-    this.axiosInstance = axios.create(); // Create base instance; headers will be dynamically added
+    this.auth = new AuthClient(authServiceUrl);
+    this.user = new UserClient(userServiceUrl);
+    this.vendor = new VendorClient(vendorServiceUrl);
+    this.order = new OrderClient(orderServiceUrl);
+    this.delivery = new DeliveryClient(deliveryServiceUrl);
+    this.catalog = new CatalogClient(catalogServiceUrl);
   }
 
-  private async getRequestConfig(userId?: string) {
-    const serviceToken = await adminServiceAuthenticator.getServiceToken();
-    const headers: Record<string, string> = {
-      Authorization: `Bearer ${serviceToken}`,
-    };
-    if (userId) {
-      headers["X-User-Id"] = userId; // Propagate user ID from validated context
-    }
-    return { headers };
+  // Deprecated methods for backward compatibility during transition
+  // They just delegate to the new specialized clients
+
+  async getAllOrders(page?: number, limit?: number, userId?: string) {
+    return this.order.getAllOrders(page, limit, userId);
   }
 
-  async getAllOrders(page: number = 1, limit: number = 50, userId?: string) {
-    const config = await this.getRequestConfig(userId);
-    const response = await this.axiosInstance.get(`${this.orderServiceUrl}/`, {
-      params: { page, limit },
-      ...config,
-    });
-    return response.data;
+  async getAllUsers(page?: number, limit?: number, userId?: string, role?: string) {
+    return this.auth.getAllUsers(page, limit, userId, role);
   }
 
-  async getAllUsers(page: number = 1, limit: number = 50, userId?: string, role?: string) {
-    const config = await this.getRequestConfig(userId);
-    const response = await this.axiosInstance.get(`${this.authServiceUrl}/users`, {
-      params: { page, limit, role },
-      ...config,
-    });
-    return response.data;
-  }
-
-  async getAllVendors(page: number = 1, limit: number = 50, userId?: string) {
-    const config = await this.getRequestConfig(userId);
-    const response = await this.axiosInstance.get(`${this.vendorServiceUrl}/`, {
-      params: { page, limit },
-      ...config,
-    });
-
-    return response.data;
+  async getAllVendors(page?: number, limit?: number, userId?: string) {
+    return this.vendor.getAllVendors(page, limit, userId);
   }
 
   async updateVendorCommission(vendorId: string, rate: number, userId?: string) {
-    const config = await this.getRequestConfig(userId);
-    const response = await this.axiosInstance.patch(
-      `${this.vendorServiceUrl}/${vendorId}/commission`,
-      { rate },
-      config,
-    );
-    return response.data;
+    return this.vendor.updateVendorCommission(vendorId, rate, userId);
   }
 
   async suspendVendor(vendorId: string, userId?: string) {
-    const config = await this.getRequestConfig(userId);
-    const response = await this.axiosInstance.patch(
-      `${this.vendorServiceUrl}/${vendorId}/status`,
-      { status: "SUSPENDED" },
-      config,
-    );
-    return response.data;
+    return this.vendor.suspendVendor(vendorId, userId);
   }
 
-  async getAllCouriers(page: number = 1, limit: number = 50, userId?: string) {
-    const config = await this.getRequestConfig(userId);
-    const response = await this.axiosInstance.get(`${this.deliveryServiceUrl}/couriers`, {
-      params: { page, limit },
-      ...config,
-    });
-    return response.data;
+  async getAllCouriers(page?: number, limit?: number, userId?: string) {
+    return this.delivery.getAllCouriers(page, limit, userId);
   }
 
   async deactivateCourier(courierId: string, userId?: string) {
-    const config = await this.getRequestConfig(userId);
-    const response = await this.axiosInstance.patch(
-      `${this.deliveryServiceUrl}/couriers/${courierId}/deactivate`,
-      null,
-      config,
-    );
-    return response.data;
+    return this.delivery.deactivateCourier(courierId, userId);
   }
 
   async getUserById(id: string, userId?: string) {
-    const config = await this.getRequestConfig(userId);
-    const response = await this.axiosInstance.get(`${this.userServiceUrl}/users/${id}`, config);
-    return response.data;
+    return this.user.getUserById(id, userId);
   }
 
   async updateUserStatus(id: string, status: string, userId?: string) {
-    const config = await this.getRequestConfig(userId);
-    const response = await this.axiosInstance.patch(`${this.userServiceUrl}/users/${id}/status`, { status }, config);
-    return response.data;
+    return this.user.updateUserStatus(id, status, userId);
   }
 
   async getVendorById(id: string, userId?: string) {
-    const config = await this.getRequestConfig(userId);
-    const response = await this.axiosInstance.get(`${this.vendorServiceUrl}/${id}`, config);
-    return response.data;
+    return this.vendor.getVendorById(id, userId);
   }
 
   async getVendorsByIds(ids: string[], userId?: string) {
-    const config = await this.getRequestConfig(userId);
-    const response = await this.axiosInstance.post(`${this.vendorServiceUrl}/bulk`, { ids }, config);
-    return response.data;
+    return this.vendor.getVendorsByIds(ids, userId);
   }
 
   async updateVendorStatus(id: string, status: string, userId?: string) {
-    const config = await this.getRequestConfig(userId);
-    const response = await this.axiosInstance.patch(`${this.vendorServiceUrl}/${id}/status`, { status }, config);
-    return response.data;
+    return this.vendor.updateVendorStatus(id, status, userId);
   }
 
   async uploadVendorImage(id: string, formData: any, userId?: string) {
-    const config = await this.getRequestConfig(userId);
-    const response = await this.axiosInstance.post(`${this.vendorServiceUrl}/${id}/image`, formData, {
-      ...config,
-      headers: {
-        ...config.headers,
-        ...(formData.getHeaders?.() || {}),
-      },
-    });
-    return response.data;
+    return this.vendor.uploadVendorImage(id, formData, userId);
   }
 
   async getOrderById(id: string, userId?: string) {
-    const config = await this.getRequestConfig(userId);
-    const response = await this.axiosInstance.get(`${this.orderServiceUrl}/customer-orders/${id}`, config);
-    return response.data;
+    return this.order.getOrderById(id, userId);
   }
 
   async updateOrderStatus(id: string, status: string, userId?: string) {
-    const config = await this.getRequestConfig(userId);
-    const response = await this.axiosInstance.patch(`${this.orderServiceUrl}/${id}/status`, { status }, config);
-    return response.data;
+    return this.order.updateOrderStatus(id, status, userId);
   }
 
   async getDeliveries(userId?: string) {
-    const config = await this.getRequestConfig(userId);
-    const response = await this.axiosInstance.get(`${this.deliveryServiceUrl}/deliveries`, config);
-    return response.data;
+    return this.delivery.getDeliveries(userId);
   }
 
   async getAvailableCouriers(userId?: string) {
-    const config = await this.getRequestConfig(userId);
-    const response = await this.axiosInstance.get(`${this.deliveryServiceUrl}/couriers/available`, config);
-    return response.data;
+    return this.delivery.getAvailableCouriers(userId);
   }
 
-  // Category Management
   async getAllCategories(userId?: string) {
-    const config = await this.getRequestConfig(userId);
-    const response = await this.axiosInstance.get(`${this.catalogServiceUrl}/categories`, config);
-    return response.data;
+    return this.catalog.getAllCategories(userId);
   }
 
   async getCategoryById(id: string, userId?: string) {
-    const config = await this.getRequestConfig(userId);
-    const response = await this.axiosInstance.get(`${this.catalogServiceUrl}/categories/${id}`, config);
-    return response.data;
+    return this.catalog.getCategoryById(id, userId);
   }
 
   async createCategory(data: any, userId?: string) {
-    const config = await this.getRequestConfig(userId);
-    const response = await this.axiosInstance.post(`${this.catalogServiceUrl}/categories`, data, config);
-    return response.data;
+    return this.catalog.createCategory(data, userId);
   }
 
   async updateCategory(id: string, data: any, userId?: string) {
-    const config = await this.getRequestConfig(userId);
-    const response = await this.axiosInstance.patch(`${this.catalogServiceUrl}/categories/${id}`, data, config);
-    return response.data;
+    return this.catalog.updateCategory(id, data, userId);
   }
 
   async deleteCategory(id: string, userId?: string) {
-    const config = await this.getRequestConfig(userId);
-    const response = await this.axiosInstance.delete(`${this.catalogServiceUrl}/categories/${id}`, config);
-    return response.data;
+    return this.catalog.deleteCategory(id, userId);
   }
 
   async uploadCategoryIcon(id: string, formData: any, userId?: string) {
-    const config = await this.getRequestConfig(userId);
-    const response = await this.axiosInstance.post(`${this.catalogServiceUrl}/categories/${id}/icon`, formData, {
-      ...config,
-      headers: {
-        ...config.headers,
-        ...(formData.getHeaders?.() || {}), // Handle form-data headers if it's from form-data package or standard
-      },
-    });
-    return response.data;
+    return this.catalog.uploadCategoryIcon(id, formData, userId);
   }
 
-  // Product Management
-  async getAllProducts(
-    page: number = 1,
-    limit: number = 20,
-    userId?: string,
-    globalCategoryId?: string,
-    vendorCategoryId?: string,
-    vendorId?: string,
-  ) {
-    const config = await this.getRequestConfig(userId);
-    const response = await this.axiosInstance.get(`${this.catalogServiceUrl}/products`, {
-      params: { page, limit, globalCategoryId, vendorCategoryId, vendorId },
-      ...config,
-    });
-    return response.data;
+  async getAllProducts(page?: number, limit?: number, userId?: string, globalCat?: string, vendorCat?: string, vendorId?: string) {
+    return this.catalog.getAllProducts(page, limit, userId, globalCat, vendorCat, vendorId);
   }
 
   async createProduct(data: any, userId?: string) {
-    const config = await this.getRequestConfig(userId);
-    const response = await this.axiosInstance.post(`${this.catalogServiceUrl}/products`, data, config);
-    return response.data;
+    return this.catalog.createProduct(data, userId);
   }
 
   async updateProduct(id: string, data: any, userId?: string) {
-    const config = await this.getRequestConfig(userId);
-    const response = await this.axiosInstance.put(`${this.catalogServiceUrl}/products/${id}`, data, config);
-    return response.data;
+    return this.catalog.updateProduct(id, data, userId);
   }
 
   async deleteProduct(id: string, userId?: string) {
-    const config = await this.getRequestConfig(userId);
-    const response = await this.axiosInstance.delete(`${this.catalogServiceUrl}/products/${id}`, config);
-    return response.data;
+    return this.catalog.deleteProduct(id, userId);
   }
 
   async uploadProductImage(id: string, formData: any, userId?: string) {
-    const config = await this.getRequestConfig(userId);
-    const response = await this.axiosInstance.post(`${this.catalogServiceUrl}/products/${id}/image`, formData, {
-      ...config,
-      headers: {
-        ...config.headers,
-        ...(formData.getHeaders?.() || {}),
-      },
-    });
-    return response.data;
+    return this.catalog.uploadProductImage(id, formData, userId);
   }
 
-  // Global Product Management
-  async getGlobalProducts(page: number = 1, limit: number = 20, userId?: string) {
-    const config = await this.getRequestConfig(userId);
-    const response = await this.axiosInstance.get(`${this.catalogServiceUrl}/global-products`, {
-      params: { page, limit },
-      ...config,
-    });
-    return response.data;
+  async getGlobalProducts(page?: number, limit?: number, userId?: string) {
+    return this.catalog.getGlobalProducts(page, limit, userId);
   }
 
   async createGlobalProduct(data: any, userId?: string) {
-    const config = await this.getRequestConfig(userId);
-    const response = await this.axiosInstance.post(`${this.catalogServiceUrl}/global-products`, data, config);
-    return response.data;
+    return this.catalog.createGlobalProduct(data, userId);
   }
 
   async updateGlobalProduct(id: string, data: any, userId?: string) {
-    const config = await this.getRequestConfig(userId);
-    const response = await this.axiosInstance.patch(`${this.catalogServiceUrl}/global-products/${id}`, data, config);
-    return response.data;
+    return this.catalog.updateGlobalProduct(id, data, userId);
   }
 
   async deleteGlobalProduct(id: string, userId?: string) {
-    const config = await this.getRequestConfig(userId);
-    const response = await this.axiosInstance.delete(`${this.catalogServiceUrl}/global-products/${id}`, config);
-    return response.data;
+    return this.catalog.deleteGlobalProduct(id, userId);
   }
 }

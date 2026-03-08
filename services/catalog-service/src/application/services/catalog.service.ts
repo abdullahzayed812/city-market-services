@@ -7,7 +7,7 @@ import { IGlobalProductRepository } from "../../core/interfaces/global-product.r
 import { VendorProduct } from "../../core/entities/vendor-product.entity";
 import { GlobalProduct } from "../../core/entities/global-product.entity";
 import { CreateVendorProductDto, UpdateVendorProductDto, VendorProductFilter } from "../../core/dto/vendor-product.dto";
-import { NotFoundError, CategoryType } from "@city-market/shared";
+import { NotFoundError, CategoryType, MeasurementType, WeightUnit } from "@city-market/shared";
 import { Logger } from "@city-market/shared/node";
 
 export class CatalogService {
@@ -38,6 +38,8 @@ export class CatalogService {
         description: dto.description,
         imageUrl: dto.imageUrl,
         globalCategoryId: dto.globalCategoryId,
+        measurementType: dto.measurementType || MeasurementType.UNIT,
+        weightUnit: dto.weightUnit,
         createdAt: new Date(),
         updatedAt: new Date(),
       };
@@ -59,7 +61,10 @@ export class CatalogService {
       name: dto.name,
       description: dto.description,
       price: dto.price,
-      stockQuantity: dto.stockQuantity,
+      stockQuantity: dto.stockQuantity || 0,
+      stockWeight: dto.stockWeight,
+      measurementType: dto.measurementType || MeasurementType.UNIT,
+      weightUnit: dto.weightUnit,
       imageUrl: dto.imageUrl,
       isAvailable: true,
       createdAt: new Date(),
@@ -159,6 +164,9 @@ export class CatalogService {
     const vendorUpdate: Partial<VendorProduct> = {
       price: data.price,
       stockQuantity: data.stockQuantity,
+      stockWeight: data.stockWeight,
+      measurementType: data.measurementType,
+      weightUnit: data.weightUnit,
       isAvailable: data.isAvailable,
       vendorCategoryId: data.vendorCategoryId,
       globalProductId: data.globalProductId,
@@ -170,6 +178,35 @@ export class CatalogService {
   async updateVendorStock(id: string, stock: number): Promise<void> {
     await this.getVendorProductById(id);
     await this.vendorProductRepo.updateStock(id, stock);
+  }
+
+  async updateVendorWeightStock(id: string, weight: number): Promise<void> {
+    await this.getVendorProductById(id);
+    await this.vendorProductRepo.updateWeightStock(id, weight);
+  }
+
+  async decrementVendorStock(id: string, amount: number, type: MeasurementType = MeasurementType.UNIT): Promise<void> {
+    await this.getVendorProductById(id);
+    if (type === MeasurementType.UNIT) {
+      await this.vendorProductRepo.decrementStock(id, amount);
+    } else {
+      await this.vendorProductRepo.decrementWeightStock(id, amount);
+    }
+  }
+
+  async reserveVendorWeightStock(id: string, weightGrams: number): Promise<void> {
+    await this.getVendorProductById(id);
+    await this.vendorProductRepo.reserveWeightStock(id, weightGrams);
+  }
+
+  async releaseVendorWeightStock(id: string, weightGrams: number): Promise<void> {
+    await this.getVendorProductById(id);
+    await this.vendorProductRepo.releaseWeightStock(id, weightGrams);
+  }
+
+  async commitVendorWeightStock(id: string, actualWeightGrams: number, reservedWeightGrams: number): Promise<void> {
+    await this.getVendorProductById(id);
+    await this.vendorProductRepo.commitWeightStock(id, actualWeightGrams, reservedWeightGrams);
   }
 
   async updateVendorProductImage(id: string, imageUrl: string): Promise<void> {
@@ -202,6 +239,8 @@ export class CatalogService {
       description: data.description,
       imageUrl: data.imageUrl,
       globalCategoryId: data.globalCategoryId!,
+      measurementType: data.measurementType || MeasurementType.UNIT,
+      weightUnit: data.weightUnit,
       createdAt: new Date(),
       updatedAt: new Date(),
     };

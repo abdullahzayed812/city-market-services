@@ -11,15 +11,17 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { MoreHorizontal, Eye, CheckCircle, XCircle, Package, ChefHat, ChevronDown, Send } from "lucide-react";
+import { MoreHorizontal, CheckCircle, XCircle, ChevronDown, Send, Scale } from "lucide-react";
 import { VendorOrderStatus } from "@city-market/shared";
 import type { VendorOrderWithItemsDto, ProposeChangesDto } from "@city-market/shared";
 import { ProposalDialog } from "@/components/ProposalDialog";
+import { WeightAdjustmentModal } from "@/components/WeightAdjustmentModal";
 
 const Orders = () => {
   const { t } = useTranslation();
   const { orders, isLoading, isError, updateStatus, cancelOrder, proposeChanges } = useOrders();
   const [isProposalDialogOpen, setIsProposalDialogOpen] = useState(false);
+  const [isWeightModalOpen, setIsWeightModalOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<VendorOrderWithItemsDto | null>(null);
 
   if (isLoading) {
@@ -39,15 +41,28 @@ const Orders = () => {
     setIsProposalDialogOpen(true);
   };
 
-  const handleCloseProposalDialog = () => {
+  const handleOpenWeightModal = (order: VendorOrderWithItemsDto) => {
+    setSelectedOrder(order);
+    setIsWeightModalOpen(true);
+  };
+
+  const handleCloseModals = () => {
     setSelectedOrder(null);
     setIsProposalDialogOpen(false);
+    setIsWeightModalOpen(false);
   };
 
   const handleProposeChanges = (proposals: ProposeChangesDto[]) => {
     if (selectedOrder) {
       proposeChanges({ orderId: selectedOrder.id, proposals });
-      handleCloseProposalDialog();
+      handleCloseModals();
+    }
+  };
+
+  const handleWeightAdjustment = (itemWeights: { itemId: string; actualWeightGrams: number }[]) => {
+    if (selectedOrder) {
+      updateStatus({ id: selectedOrder.id, status: selectedOrder.status, itemWeights });
+      handleCloseModals();
     }
   };
 
@@ -128,10 +143,6 @@ const Orders = () => {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          {/* <DropdownMenuItem className="gap-2">
-                            <Eye className="h-4 w-4" /> View Details
-                          </DropdownMenuItem> */}
-
                           {order.status === VendorOrderStatus.PENDING && (
                             <>
                               <DropdownMenuItem
@@ -139,12 +150,13 @@ const Orders = () => {
                                 onClick={() =>
                                   updateStatus({
                                     id: order.id,
-                                    status: VendorOrderStatus.CONFIRMED,
+                                    status: VendorOrderStatus.PREPARING,
                                   })
                                 }
                               >
-                                <CheckCircle className="h-4 w-4" /> Confirm Order
+                                <CheckCircle className="h-4 w-4" /> Preparing Order
                               </DropdownMenuItem>
+
                               <DropdownMenuItem
                                 className="gap-2 text-blue-600"
                                 onClick={() => handleOpenProposalDialog(order)}
@@ -160,71 +172,27 @@ const Orders = () => {
                             </>
                           )}
 
-                          {/* {order.status === VendorOrderStatus.CONFIRMED && (
+                          {order.status === VendorOrderStatus.PREPARING && (
                             <>
                               <DropdownMenuItem
                                 className="gap-2 text-blue-600"
-                                onClick={() =>
-                                  updateStatus({
-                                    id: order.id,
-                                    status: VendorOrderStatus.PICKED_UP,
-                                  })
-                                }
+                                onClick={() => handleOpenWeightModal(order)}
                               >
-                                <ChefHat className="h-4 w-4" /> Mark as Picked Up
+                                <Scale className="h-4 w-4" /> Adjust Weight
                               </DropdownMenuItem>
-                              <DropdownMenuItem
-                                className="gap-2 text-destructive"
-                                onClick={() => cancelOrder(order.id)}
-                              >
-                                <XCircle className="h-4 w-4" /> Cancel Order
-                              </DropdownMenuItem>
-                            </>
-                          )} */}
-
-                          {/* {order.status === VendorOrderStatus.PICKED_UP && (
-                            <>
                               <DropdownMenuItem
                                 className="gap-2 text-green-600"
                                 onClick={() =>
                                   updateStatus({
                                     id: order.id,
-                                    status: VendorOrderStatus.ON_THE_WAY,
+                                    status: VendorOrderStatus.CONFIRMED,
                                   })
                                 }
                               >
-                                <Package className="h-4 w-4" /> Mark as On The Way
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                className="gap-2 text-destructive"
-                                onClick={() => cancelOrder(order.id)}
-                              >
-                                <XCircle className="h-4 w-4" /> Cancel Order
+                                <CheckCircle className="h-4 w-4" /> Confirm Order
                               </DropdownMenuItem>
                             </>
-                          )} */}
-
-                          {/* {order.status === VendorOrderStatus.ON_THE_WAY && (
-                            <>
-                              <DropdownMenuItem
-                                className="gap-2 text-green-600"
-                                onClick={() =>
-                                  updateStatus({
-                                    id: order.id,
-                                    status: VendorOrderStatus.DELIVERED,
-                                  })
-                                }
-                              >
-                                <Package className="h-4 w-4" /> Mark as Delivered
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                className="gap-2 text-destructive"
-                                onClick={() => cancelOrder(order.id)}
-                              >
-                                <XCircle className="h-4 w-4" /> Cancel Order
-                              </DropdownMenuItem>
-                            </>
-                          )} */}
+                          )}
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </TableCell>
@@ -238,7 +206,7 @@ const Orders = () => {
                             <TableHeader>
                               <TableRow>
                                 <TableHead>Product Name</TableHead>
-                                <TableHead>Quantity</TableHead>
+                                <TableHead>Quantity / Weight</TableHead>
                                 <TableHead>Price</TableHead>
                                 <TableHead className="text-end">Total</TableHead>
                               </TableRow>
@@ -247,7 +215,13 @@ const Orders = () => {
                               {order.items.map((item) => (
                                 <TableRow key={item.id}>
                                   <TableCell>{item.productName}</TableCell>
-                                  <TableCell>{item.quantity}</TableCell>
+                                  <TableCell>
+                                    {item.quantity
+                                      ? item.quantity
+                                      : `≈ ${(item.requestedWeightGrams! / 1000).toFixed(2)} kg`}
+                                    {item.actualWeightGrams &&
+                                      ` (Actual: ${(item.actualWeightGrams / 1000).toFixed(2)} kg)`}
+                                  </TableCell>
                                   <TableCell>${item.unitPrice}</TableCell>
                                   <TableCell className="text-end">${item.totalPrice}</TableCell>
                                 </TableRow>
@@ -279,12 +253,20 @@ const Orders = () => {
         </Table>
       </div>
       {selectedOrder && (
-        <ProposalDialog
-          order={selectedOrder}
-          isOpen={isProposalDialogOpen}
-          onClose={handleCloseProposalDialog}
-          onSubmit={handleProposeChanges}
-        />
+        <>
+          <ProposalDialog
+            order={selectedOrder}
+            isOpen={isProposalDialogOpen}
+            onClose={handleCloseModals}
+            onSubmit={handleProposeChanges}
+          />
+          <WeightAdjustmentModal
+            order={selectedOrder}
+            isOpen={isWeightModalOpen}
+            onClose={handleCloseModals}
+            onSubmit={handleWeightAdjustment}
+          />
+        </>
       )}
     </div>
   );

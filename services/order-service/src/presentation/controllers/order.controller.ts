@@ -47,7 +47,8 @@ export class OrderController {
 
   updateVendorOrderStatus = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
-      await this.orderService.updateVendorOrderStatus(req.params.id, req.body.status, req.body.notes);
+      const { status, notes, itemWeights } = req.body;
+      await this.orderService.updateVendorOrderStatus(req.params.id, status, notes, false, itemWeights);
       res.json(ApiResponse.success(null, "vendor_order_status_updated"));
     } catch (error) {
       next(error);

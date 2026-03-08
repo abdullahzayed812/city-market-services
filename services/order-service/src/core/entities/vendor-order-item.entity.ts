@@ -3,7 +3,11 @@ export interface VendorOrderItem {
     vendorOrderId: string;
     vendorProductId: string;
     productName: string;
-    quantity: number;
+    quantity?: number;
+    requestedWeight?: number;
+    actualWeight?: number;
+    requestedWeightGrams?: number;
+    actualWeightGrams?: number;
     unitPrice: number;
     totalPrice: number;
 }

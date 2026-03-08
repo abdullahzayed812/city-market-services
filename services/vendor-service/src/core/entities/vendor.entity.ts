@@ -10,6 +10,7 @@ export interface Vendor {
   latitude?: number;
   longitude?: number;
   storeImage?: string;
+  type?: string;
   status: ShopStatus;
   commissionRate: number;
   averageRating: number;

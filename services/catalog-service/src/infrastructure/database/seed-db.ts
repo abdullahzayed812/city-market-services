@@ -1,4 +1,4 @@
-import { SEED_DATA, CategoryType } from "@city-market/shared";
+import { SEED_DATA, CategoryType, MeasurementType, WeightUnit } from "@city-market/shared";
 import { Database } from "@city-market/shared/node";
 import { config } from "../../config/env";
 import { randomUUID } from "crypto";
@@ -23,8 +23,12 @@ const VENDOR_IDS = {
   MAZAARE_AL_KHEIR: "c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a56",
 };
 
-const getRandomPrice = (min: number, max: number) => Number((Math.random() * (max - min) + min).toFixed(2));
+const getRandomPrice = (min: number, max: number) => {
+  const rawPrice = Math.random() * (max - min) + min;
+  return Number((Math.round(rawPrice * 4) / 4).toFixed(2));
+};
 const getRandomStock = (min: number, max: number) => Math.floor(Math.random() * (max - min) + min);
+const getRandomWeightStock = (minKg: number, maxKg: number) => Math.floor((Math.random() * (maxKg - minKg) + minKg) * 1000);
 
 const seedDb = async () => {
   const db = Database.getInstance({
@@ -95,22 +99,25 @@ const seedDb = async () => {
       }
     }
 
-    // 3. Product Generation (Weight-Free)
+    // 3. Product Generation (With Weight Support)
     const productMap = [
-      { globalCat: SEED_DATA.CATEGORIES.DAIRY, vendors: [SEED_DATA.VENDORS.SUPER_MARKET_1, SEED_DATA.VENDORS.SUPER_MARKET_2, VENDOR_IDS.SANAQREH], vCat: "ألبان", items: ["حليب جهينة", "زبادي المراعي", "جبنة بيضاء", "قشطة", "زبدة", "لبن رايب"] },
-      { globalCat: SEED_DATA.CATEGORIES.GROCERY, vendors: [SEED_DATA.VENDORS.SUPER_MARKET_1, SEED_DATA.VENDORS.SUPER_MARKET_2, VENDOR_IDS.SANAQREH], vCat: "بقالة", items: ["أرز", "مكرونة", "سكر", "عدس أصفر", "فاصوليا بيضاء", "فول مدمس", "صلصة طماطم", "تونه", "ملح", "خل", "دقيق", "حلاوة طحينية"] },
-      { globalCat: SEED_DATA.CATEGORIES.DRINKS, vendors: [SEED_DATA.VENDORS.SUPER_MARKET_1, SEED_DATA.VENDORS.SUPER_MARKET_2, VENDOR_IDS.SANAQREH], vCat: "مشروبات", items: ["مياه سيوة", "عصير جهينة برتقال", "بيبسي", "شاي ليبتون", "نسكافيه", "ريد بول"] },
-      { globalCat: SEED_DATA.CATEGORIES.CLEANING, vendors: [SEED_DATA.VENDORS.SUPER_MARKET_1, SEED_DATA.VENDORS.SUPER_MARKET_2, VENDOR_IDS.SANAQREH], vCat: "منظفات", items: ["تايد أوتوماتيك", "فيري ليمون", "ديتول أرضيات", "كلور", "مناديل مطبخ", "معطر جو"] },
-      { globalCat: SEED_DATA.CATEGORIES.PHARMACY_OTC, vendors: [SEED_DATA.VENDORS.PHARMACY, VENDOR_IDS.AHMED_YEHIA, VENDOR_IDS.SABAWI], vCat: "أدوية", items: ["بنادول اكسترا", "بروفين", "كتافلام", "كومتركس", "فيتامين سي فوار", "أسبيرين"] },
-      { globalCat: SEED_DATA.CATEGORIES.MEAT, vendors: [SEED_DATA.VENDORS.BUTCHER, VENDOR_IDS.ABDULLAH_BUTCHER], vCat: "لحوم طازجة", items: ["لحم بقري", "لحم ضاني", "كبدة بقري", "مفروم بقري", "سجق بلدي", "كفتة حياتي"] },
-      { globalCat: SEED_DATA.CATEGORIES.POULTRY, vendors: [SEED_DATA.VENDORS.POULTRY, VENDOR_IDS.BEHEIRY_POULTRY], vCat: "دواجن", items: ["فراخ بيضاء", "فراخ بلدي", "بانية", "شيش طاووق", "أوراك فراخ", "كبد وقوانص"] },
-      { globalCat: SEED_DATA.CATEGORIES.FISH, vendors: [SEED_DATA.VENDORS.FISH, VENDOR_IDS.GHANEM_FISH, VENDOR_IDS.MUTAWAKKIL_FISH, VENDOR_IDS.ABU_YOUSSEF_FISH], vCat: "أسماك", items: ["سمك بلطي", "سمك بوري", "جمبري", "سبيط", "سمك ماكريل", "سمك فيليه"] },
-      { globalCat: ROASTERY_CAT, vendors: [VENDOR_IDS.BONDOQA, VENDOR_IDS.ASHRI, VENDOR_IDS.LOZINA], vCat: "لب وبن", items: ["لب سوبر", "لب عباد", "فول سوداني", "بن فاتح", "بن محوج", "مكسرات مشكلة"] },
-      { globalCat: SEED_DATA.CATEGORIES.BAKERY, vendors: [SEED_DATA.VENDORS.BAKERY, VENDOR_IDS.AL_BARAKA_BAKERY], vCat: "خبز طازج", items: ["عيش بلدي", "عيش فينو", "بقسماط", "قرص سادة", "باتيه جبنة", "توست أبيض"] },
-      { globalCat: SEED_DATA.CATEGORIES.BAKERY, vendors: [VENDOR_IDS.ABU_OMAR, VENDOR_IDS.RAWAN], vCat: "حلويات شرقية", items: ["بسبوسة سادة", "كنافة بالكريمة", "بقلاوة مكسرات", "تورتة شوكولاتة", "بلح الشام"] },
-      { globalCat: STATIONERY_CAT, vendors: [VENDOR_IDS.SHADY_LIBRARY], vCat: "أدوات مكتبية", items: ["كشكول سلك", "قلم جاف أزرق", "مقلمة", "ألوان خشب", "براية", "أستيكة"] },
-      { globalCat: VEG_FRUIT_CAT, vendors: [VENDOR_IDS.AWLAD_RAGAB, VENDOR_IDS.MAZAARE_AL_KHEIR], vCat: "خضروات", items: ["طماطم", "خيار", "بطاطس", "بصل", "فلفل رومي", "باذنجان"] },
-      { globalCat: VEG_FRUIT_CAT, vendors: [VENDOR_IDS.AWLAD_RAGAB, VENDOR_IDS.MAZAARE_AL_KHEIR], vCat: "فاكهة", items: ["تفاح أحمر", "موز", "برتقال بلدي", "فراولة", "جوافة"] },
+      { globalCat: SEED_DATA.CATEGORIES.DAIRY, measureType: MeasurementType.UNIT, vendors: [SEED_DATA.VENDORS.SUPER_MARKET_1, SEED_DATA.VENDORS.SUPER_MARKET_2, VENDOR_IDS.SANAQREH], vCat: "ألبان", items: ["حليب جهينة", "زبادي المراعي", "جبنة بيضاء", "قشطة", "زبدة", "لبن رايب"] },
+      { globalCat: SEED_DATA.CATEGORIES.GROCERY, measureType: MeasurementType.UNIT, vendors: [SEED_DATA.VENDORS.SUPER_MARKET_1, SEED_DATA.VENDORS.SUPER_MARKET_2, VENDOR_IDS.SANAQREH], vCat: "بقالة", items: ["أرز", "مكرونة", "سكر", "عدس أصفر", "فاصوليا بيضاء", "فول مدمس", "صلصة طماطم", "تونه", "ملح", "خل", "دقيق", "حلاوة طحينية"] },
+      { globalCat: SEED_DATA.CATEGORIES.DRINKS, measureType: MeasurementType.UNIT, vendors: [SEED_DATA.VENDORS.SUPER_MARKET_1, SEED_DATA.VENDORS.SUPER_MARKET_2, VENDOR_IDS.SANAQREH], vCat: "مشروبات", items: ["مياه سيوة", "عصير جهينة برتقال", "بيبسي", "شاي ليبتون", "نسكافيه", "ريد بول"] },
+      { globalCat: SEED_DATA.CATEGORIES.CLEANING, measureType: MeasurementType.UNIT, vendors: [SEED_DATA.VENDORS.SUPER_MARKET_1, SEED_DATA.VENDORS.SUPER_MARKET_2, VENDOR_IDS.SANAQREH], vCat: "منظفات", items: ["تايد أوتوماتيك", "فيري ليمون", "ديتول أرضيات", "كلور", "مناديل مطبخ", "معطر جو"] },
+      { globalCat: SEED_DATA.CATEGORIES.PHARMACY_OTC, measureType: MeasurementType.UNIT, vendors: [SEED_DATA.VENDORS.PHARMACY, VENDOR_IDS.AHMED_YEHIA, VENDOR_IDS.SABAWI], vCat: "أدوية", items: ["بنادول اكسترا", "بروفين", "كتافلام", "كومتركس", "فيتامين سي فوار", "أسبيرين"] },
+      
+      { globalCat: SEED_DATA.CATEGORIES.MEAT, measureType: MeasurementType.WEIGHT, vendors: [SEED_DATA.VENDORS.BUTCHER, VENDOR_IDS.ABDULLAH_BUTCHER], vCat: "لحوم طازجة", items: ["لحم بقري", "لحم ضاني", "كبدة بقري", "مفروم بقري", "سجق بلدي", "كفتة حياتي"] },
+      { globalCat: SEED_DATA.CATEGORIES.POULTRY, measureType: MeasurementType.WEIGHT, vendors: [SEED_DATA.VENDORS.POULTRY, VENDOR_IDS.BEHEIRY_POULTRY], vCat: "دواجن", items: ["فراخ بيضاء", "فراخ بلدي", "بانية", "شيش طاووق", "أوراك فراخ", "كبد وقوانص"] },
+      { globalCat: SEED_DATA.CATEGORIES.FISH, measureType: MeasurementType.WEIGHT, vendors: [SEED_DATA.VENDORS.FISH, VENDOR_IDS.GHANEM_FISH, VENDOR_IDS.MUTAWAKKIL_FISH, VENDOR_IDS.ABU_YOUSSEF_FISH], vCat: "أسماك", items: ["سمك بلطي", "سمك بوري", "جمبري", "سبيط", "سمك ماكريل", "سمك فيليه"] },
+      
+      { globalCat: ROASTERY_CAT, measureType: MeasurementType.WEIGHT, vendors: [VENDOR_IDS.BONDOQA, VENDOR_IDS.ASHRI, VENDOR_IDS.LOZINA], vCat: "لب وبن", items: ["لب سوبر", "لب عباد", "فول سوداني", "بن فاتح", "بن محوج", "مكسرات مشكلة"] },
+      { globalCat: SEED_DATA.CATEGORIES.BAKERY, measureType: MeasurementType.UNIT, vendors: [SEED_DATA.VENDORS.BAKERY, VENDOR_IDS.AL_BARAKA_BAKERY], vCat: "خبز طازج", items: ["عيش بلدي", "عيش فينو", "بقسماط", "قرص سادة", "باتيه جبنة", "توست أبيض"] },
+      { globalCat: SEED_DATA.CATEGORIES.BAKERY, measureType: MeasurementType.UNIT, vendors: [VENDOR_IDS.ABU_OMAR, VENDOR_IDS.RAWAN], vCat: "حلويات شرقية", items: ["بسبوسة سادة", "كنافة بالكريمة", "بقلاوة مكسرات", "تورتة شوكولاتة", "بلح الشام"] },
+      { globalCat: STATIONERY_CAT, measureType: MeasurementType.UNIT, vendors: [VENDOR_IDS.SHADY_LIBRARY], vCat: "أدوات مكتبية", items: ["كشكول سلك", "قلم جاف أزرق", "مقلمة", "ألوان خشب", "براية", "أستيكة"] },
+      
+      { globalCat: VEG_FRUIT_CAT, measureType: MeasurementType.WEIGHT, vendors: [VENDOR_IDS.AWLAD_RAGAB, VENDOR_IDS.MAZAARE_AL_KHEIR], vCat: "خضروات", items: ["طماطم", "خيار", "بطاطس", "بصل", "فلفل رومي", "باذنجان"] },
+      { globalCat: VEG_FRUIT_CAT, measureType: MeasurementType.WEIGHT, vendors: [VENDOR_IDS.AWLAD_RAGAB, VENDOR_IDS.MAZAARE_AL_KHEIR], vCat: "فاكهة", items: ["تفاح أحمر", "موز", "برتقال بلدي", "فراولة", "جوافة"] },
     ];
 
     for (const section of productMap) {
@@ -118,10 +125,22 @@ const seedDb = async () => {
         const vCatId = vendorCatMap[vId][section.vCat] || Object.values(vendorCatMap[vId])[0];
         for (const name of section.items) {
           const globalId = randomUUID();
-          await connection.execute("INSERT IGNORE INTO global_products (id, name, global_category_id) VALUES (?, ?, ?)", [globalId, name, section.globalCat]);
-          await connection.execute("INSERT IGNORE INTO vendor_products (id, vendor_id, global_product_id, vendor_category_id, price, stock_quantity, is_available) VALUES (?, ?, ?, ?, ?, ?, ?)", [
-            randomUUID(), vId, globalId, vCatId, getRandomPrice(10, 500), getRandomStock(10, 100), true
-          ]);
+          await connection.execute(
+            "INSERT IGNORE INTO global_products (id, name, global_category_id, measurement_type, weight_unit) VALUES (?, ?, ?, ?, ?)", 
+            [globalId, name, section.globalCat, section.measureType, section.measureType === MeasurementType.WEIGHT ? WeightUnit.KG : null]
+          );
+          
+          if (section.measureType === MeasurementType.UNIT) {
+            await connection.execute(
+              "INSERT IGNORE INTO vendor_products (id, vendor_id, global_product_id, vendor_category_id, price, stock_quantity, stock_weight_grams, measurement_type, weight_unit, is_available) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", 
+              [randomUUID(), vId, globalId, vCatId, getRandomPrice(10, 500), getRandomStock(10, 100), 0, section.measureType, null, true]
+            );
+          } else {
+            await connection.execute(
+              "INSERT IGNORE INTO vendor_products (id, vendor_id, global_product_id, vendor_category_id, price, stock_quantity, stock_weight_grams, measurement_type, weight_unit, is_available) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", 
+              [randomUUID(), vId, globalId, vCatId, getRandomPrice(10, 500), 0, getRandomWeightStock(20, 200), section.measureType, WeightUnit.KG, true]
+            );
+          }
         }
       }
     }

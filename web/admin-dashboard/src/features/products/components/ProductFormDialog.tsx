@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { type VendorProduct, type CreateVendorProductDto, type Category, type Vendor, type GlobalProduct, CategoryType } from "@city-market/shared";
+import { type VendorProduct, type CreateVendorProductDto, type Category, type Vendor, type GlobalProduct, CategoryType, MeasurementType, WeightUnit } from "@city-market/shared";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { adminApi } from "@/services/api/admin-api";
 
@@ -35,6 +35,9 @@ const ProductFormDialog: React.FC<ProductFormDialogProps> = memo(({
     description: "",
     price: 0,
     stockQuantity: 0,
+    stockWeightGrams: 0,
+    measurementType: MeasurementType.UNIT,
+    weightUnit: WeightUnit.KG,
     globalCategoryId: "",
     vendorCategoryId: "",
     vendorId: "",
@@ -42,8 +45,6 @@ const ProductFormDialog: React.FC<ProductFormDialogProps> = memo(({
   });
 
   useEffect(() => {
-    // Only fetch if dialog is open, we're in vendor mode, it's a new product, 
-    // and we haven't fetched them yet or it's been some time.
     if (open && productType === "vendor" && !product && availableGlobalProducts.length === 0) {
       fetchGlobalProducts();
     }
@@ -69,6 +70,9 @@ const ProductFormDialog: React.FC<ProductFormDialogProps> = memo(({
         description: product.description || "",
         price: product.price,
         stockQuantity: product.stockQuantity,
+        stockWeightGrams: product.stockWeightGrams || 0,
+        measurementType: product.measurementType || MeasurementType.UNIT,
+        weightUnit: product.weightUnit || WeightUnit.KG,
         globalCategoryId: product.globalCategoryId || "",
         vendorCategoryId: product.vendorCategoryId || "",
         vendorId: product.vendorId || "",
@@ -80,6 +84,9 @@ const ProductFormDialog: React.FC<ProductFormDialogProps> = memo(({
         description: "",
         price: 0,
         stockQuantity: 0,
+        stockWeightGrams: 0,
+        measurementType: MeasurementType.UNIT,
+        weightUnit: WeightUnit.KG,
         globalCategoryId: "",
         vendorCategoryId: "",
         vendorId: "",
@@ -101,11 +108,12 @@ const ProductFormDialog: React.FC<ProductFormDialogProps> = memo(({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (productType === "global") {
-      // Dedicated global product creation
       adminApi.createGlobalProduct({
         name: formData.name,
         description: formData.description,
         globalCategoryId: formData.globalCategoryId,
+        measurementType: formData.measurementType,
+        weightUnit: formData.weightUnit,
       }).then(() => onOpenChange(false));
     } else {
       onSubmit(formData);
@@ -121,6 +129,8 @@ const ProductFormDialog: React.FC<ProductFormDialogProps> = memo(({
         name: selected.name,
         description: selected.description || "",
         globalCategoryId: selected.globalCategoryId,
+        measurementType: selected.measurementType,
+        weightUnit: selected.weightUnit,
       });
     } else {
       setFormData({
@@ -169,7 +179,6 @@ const ProductFormDialog: React.FC<ProductFormDialogProps> = memo(({
                   ))}
                 </SelectContent>
               </Select>
-              <p className="text-xs text-muted-foreground">{t("products.link_hint")}</p>
             </div>
           )}
 
@@ -182,6 +191,43 @@ const ProductFormDialog: React.FC<ProductFormDialogProps> = memo(({
               required
               disabled={!!formData.globalProductId && formData.globalProductId !== "none"}
             />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>{t("products.measurement_type")}</Label>
+              <Select
+                value={formData.measurementType}
+                onValueChange={(val) => setFormData({ ...formData, measurementType: val as MeasurementType })}
+                disabled={!!formData.globalProductId && formData.globalProductId !== "none"}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={MeasurementType.UNIT}>{t("products.unit")}</SelectItem>
+                  <SelectItem value={MeasurementType.WEIGHT}>{t("products.weight")}</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            {formData.measurementType === MeasurementType.WEIGHT && (
+              <div className="space-y-2">
+                <Label>{t("products.weight_unit")}</Label>
+                <Select
+                  value={formData.weightUnit}
+                  onValueChange={(val) => setFormData({ ...formData, weightUnit: val as WeightUnit })}
+                  disabled={!!formData.globalProductId && formData.globalProductId !== "none"}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={WeightUnit.KG}>{t("products.kg")}</SelectItem>
+                    <SelectItem value={WeightUnit.GRAM}>{t("products.gram")}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
           </div>
 
           {productType === "vendor" && (
@@ -255,7 +301,7 @@ const ProductFormDialog: React.FC<ProductFormDialogProps> = memo(({
           {productType === "vendor" && (
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="price">{t("common.price")} ($)</Label>
+                <Label htmlFor="price">{formData.measurementType === MeasurementType.WEIGHT ? t("products.price_per_kg") : t("common.price")}</Label>
                 <Input
                   id="price"
                   type="number"
@@ -266,12 +312,19 @@ const ProductFormDialog: React.FC<ProductFormDialogProps> = memo(({
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="stock">{t("common.stock")}</Label>
+                <Label htmlFor="stock">{formData.measurementType === MeasurementType.WEIGHT ? t("products.stock_grams") : t("common.stock")}</Label>
                 <Input
                   id="stock"
                   type="number"
-                  value={formData.stockQuantity}
-                  onChange={(e) => setFormData({ ...formData, stockQuantity: parseInt(e.target.value) })}
+                  value={formData.measurementType === MeasurementType.WEIGHT ? formData.stockWeightGrams : formData.stockQuantity}
+                  onChange={(e) => {
+                      const val = parseInt(e.target.value);
+                      if (formData.measurementType === MeasurementType.WEIGHT) {
+                          setFormData({ ...formData, stockWeightGrams: val });
+                      } else {
+                          setFormData({ ...formData, stockQuantity: val });
+                      }
+                  }}
                   required
                 />
               </div>

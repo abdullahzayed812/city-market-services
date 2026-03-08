@@ -22,7 +22,7 @@ export const useAdminProducts = ({
   const [limit] = useState(initialLimit);
 
   // --- Fetching Vendor Products ---
-  const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading, isError, error } = useInfiniteQuery({
+  const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading, error } = useInfiniteQuery({
     queryKey: ["adminProducts", { globalCategoryId, vendorCategoryId, vendorId }],
     queryFn: async ({ pageParam = 1 }) => {
       const response = await adminApi.getVendorProducts(pageParam, limit, { globalCategoryId, vendorCategoryId, vendorId });

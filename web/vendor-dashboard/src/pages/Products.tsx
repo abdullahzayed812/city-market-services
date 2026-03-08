@@ -16,6 +16,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Image as ImageIcon, MoreHorizontal, Plus, Pencil, Trash2, Upload } from "lucide-react";
 import VendorProductImageModal from "@/components/ProductImageModal";
+import { MeasurementType, WeightUnit } from "@city-market/shared";
 
 const Products = () => {
   const { t } = useTranslation();
@@ -39,6 +40,9 @@ const Products = () => {
     description: "",
     price: 0,
     stockQuantity: 0,
+    stockWeightGrams: 0,
+    measurementType: MeasurementType.UNIT,
+    weightUnit: WeightUnit.KG,
     globalCategoryId: "",
     vendorCategoryId: "",
     globalProductId: "",
@@ -58,6 +62,8 @@ const Products = () => {
         name: selected.name,
         description: selected.description || "",
         globalCategoryId: selected.globalCategoryId,
+        measurementType: selected.measurementType || MeasurementType.UNIT,
+        weightUnit: selected.weightUnit || WeightUnit.KG,
       });
     } else {
       setNewProduct({
@@ -76,6 +82,9 @@ const Products = () => {
           description: "",
           price: 0,
           stockQuantity: 0,
+          stockWeightGrams: 0,
+          measurementType: MeasurementType.UNIT,
+          weightUnit: WeightUnit.KG,
           globalCategoryId: "",
           vendorCategoryId: "",
           globalProductId: "",
@@ -91,8 +100,12 @@ const Products = () => {
       description: product.description || "",
       price: product.price,
       stockQuantity: product.stockQuantity,
+      stockWeightGrams: product.stockWeightGrams || 0,
+      measurementType: product.measurementType || MeasurementType.UNIT,
+      weightUnit: product.weightUnit || WeightUnit.KG,
       globalCategoryId: product.globalCategoryId,
       vendorCategoryId: product.vendorCategoryId,
+      globalProductId: product.globalProductId,
     });
     setIsEditDialogOpen(true);
   };
@@ -107,6 +120,9 @@ const Products = () => {
             description: editingProduct.description,
             price: editingProduct.price,
             stockQuantity: editingProduct.stockQuantity,
+            stockWeightGrams: editingProduct.stockWeightGrams,
+            measurementType: editingProduct.measurementType,
+            weightUnit: editingProduct.weightUnit,
             globalCategoryId: editingProduct.globalCategoryId,
             vendorCategoryId: editingProduct.vendorCategoryId,
           },
@@ -182,6 +198,43 @@ const Products = () => {
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
+                  <Label>{t("products.measurement_type")}</Label>
+                  <Select
+                    value={newProduct.measurementType}
+                    onValueChange={(val) => setNewProduct({ ...newProduct, measurementType: val as MeasurementType })}
+                    disabled={!!newProduct.globalProductId && newProduct.globalProductId !== "none"}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={MeasurementType.UNIT}>{t("products.unit")}</SelectItem>
+                      <SelectItem value={MeasurementType.WEIGHT}>{t("products.weight")}</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                {newProduct.measurementType === MeasurementType.WEIGHT && (
+                  <div className="space-y-2">
+                    <Label>{t("products.weight_unit")}</Label>
+                    <Select
+                      value={newProduct.weightUnit}
+                      onValueChange={(val) => setNewProduct({ ...newProduct, weightUnit: val as WeightUnit })}
+                      disabled={!!newProduct.globalProductId && newProduct.globalProductId !== "none"}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value={WeightUnit.KG}>{t("products.kg")}</SelectItem>
+                        <SelectItem value={WeightUnit.GRAM}>{t("products.gram")}</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
                   <Label htmlFor="global-category">{t("products.global_category")}</Label>
                   <Select
                     value={newProduct.globalCategoryId}
@@ -222,7 +275,7 @@ const Products = () => {
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="price">{t("products.price")}</Label>
+                  <Label htmlFor="price">{newProduct.measurementType === MeasurementType.WEIGHT ? t("products.price_per_kg") : t("products.price")}</Label>
                   <Input
                     id="price"
                     type="number"
@@ -231,12 +284,19 @@ const Products = () => {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="stock">{t("products.stock")}</Label>
+                  <Label htmlFor="stock">{newProduct.measurementType === MeasurementType.WEIGHT ? t("products.stock_grams") : t("products.stock")}</Label>
                   <Input
                     id="stock"
                     type="number"
-                    value={newProduct.stockQuantity}
-                    onChange={(e) => setNewProduct({ ...newProduct, stockQuantity: parseInt(e.target.value) })}
+                    value={newProduct.measurementType === MeasurementType.WEIGHT ? newProduct.stockWeightGrams : newProduct.stockQuantity}
+                    onChange={(e) => {
+                        const val = parseInt(e.target.value);
+                        if (newProduct.measurementType === MeasurementType.WEIGHT) {
+                            setNewProduct({ ...newProduct, stockWeightGrams: val });
+                        } else {
+                            setNewProduct({ ...newProduct, stockQuantity: val });
+                        }
+                    }}
                   />
                 </div>
               </div>
@@ -273,6 +333,43 @@ const Products = () => {
                     onChange={(e) => setEditingProduct({ ...editingProduct, name: e.target.value })}
                     disabled={!!editingProduct.globalProductId}
                   />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>{t("products.measurement_type")}</Label>
+                    <Select
+                      value={editingProduct.measurementType}
+                      onValueChange={(val) => setEditingProduct({ ...editingProduct, measurementType: val as MeasurementType })}
+                      disabled={!!editingProduct.globalProductId}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value={MeasurementType.UNIT}>{t("products.unit")}</SelectItem>
+                        <SelectItem value={MeasurementType.WEIGHT}>{t("products.weight")}</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  {editingProduct.measurementType === MeasurementType.WEIGHT && (
+                    <div className="space-y-2">
+                      <Label>{t("products.weight_unit")}</Label>
+                      <Select
+                        value={editingProduct.weightUnit}
+                        onValueChange={(val) => setEditingProduct({ ...editingProduct, weightUnit: val as WeightUnit })}
+                        disabled={!!editingProduct.globalProductId}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value={WeightUnit.KG}>{t("products.kg")}</SelectItem>
+                          <SelectItem value={WeightUnit.GRAM}>{t("products.gram")}</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
@@ -317,7 +414,7 @@ const Products = () => {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="edit-price">{t("products.price")}</Label>
+                    <Label htmlFor="edit-price">{editingProduct.measurementType === MeasurementType.WEIGHT ? t("products.price_per_kg") : t("products.price")}</Label>
                     <Input
                       id="edit-price"
                       type="number"
@@ -326,14 +423,19 @@ const Products = () => {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="edit-stock">{t("products.stock")}</Label>
+                    <Label htmlFor="edit-stock">{editingProduct.measurementType === MeasurementType.WEIGHT ? t("products.stock_grams") : t("products.stock")}</Label>
                     <Input
                       id="edit-stock"
                       type="number"
-                      value={editingProduct.stockQuantity}
-                      onChange={(e) =>
-                        setEditingProduct({ ...editingProduct, stockQuantity: parseInt(e.target.value) })
-                      }
+                      value={editingProduct.measurementType === MeasurementType.WEIGHT ? editingProduct.stockWeightGrams : editingProduct.stockQuantity}
+                      onChange={(e) => {
+                          const val = parseInt(e.target.value);
+                          if (editingProduct.measurementType === MeasurementType.WEIGHT) {
+                              setEditingProduct({ ...editingProduct, stockWeightGrams: val });
+                          } else {
+                              setEditingProduct({ ...editingProduct, stockQuantity: val });
+                          }
+                      }}
                     />
                   </div>
                 </div>
@@ -418,10 +520,15 @@ const Products = () => {
                 <TableCell className="font-medium">{product.name}</TableCell>
                 <TableCell>{product.globalCategoryName || t("common.none")}</TableCell>
                 <TableCell>{product.vendorCategoryName || t("common.none")}</TableCell>
-                <TableCell>${product.price}</TableCell>
                 <TableCell>
-                  <span className={product.stockQuantity < 10 ? "text-destructive font-bold" : ""}>
-                    {product.stockQuantity}
+                    ${product.price}
+                    <span className="text-[10px] text-muted-foreground block">
+                        {product.measurementType === MeasurementType.WEIGHT ? `/${t("products.kg")}` : `/${t("products.unit_short") || "unit"}`}
+                    </span>
+                </TableCell>
+                <TableCell>
+                  <span className={(product.measurementType === MeasurementType.UNIT ? product.stockQuantity : product.stockWeightGrams) < 10 ? "text-destructive font-bold" : ""}>
+                    {product.measurementType === MeasurementType.UNIT ? product.stockQuantity : `${(product.stockWeightGrams / 1000).toFixed(2)} kg`}
                   </span>
                 </TableCell>
                 <TableCell>

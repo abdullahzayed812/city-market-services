@@ -23,7 +23,7 @@ export const useDashboardData = () => {
   const isError = ordersQuery.isError || productsQuery.isError;
 
   const orders = ordersQuery.data || [];
-  const products = productsQuery.data?.products || [];
+  const products = productsQuery.data?.data || [];
 
   // Compute summary data
   const today = new Date().toISOString().split("T")[0];

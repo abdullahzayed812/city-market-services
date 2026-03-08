@@ -1,4 +1,4 @@
-import { Response, NextFunction } from "express"; // Removed Request
+import { Response, NextFunction } from "express";
 import { AdminService } from "../../application/services/admin.service";
 import { ApiResponse } from "@city-market/shared";
 import { AuthenticatedRequest } from "@city-market/shared/node";
@@ -51,7 +51,6 @@ export class AdminController {
 
   suspendVendor = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
-      // Removed: const token = req.headers.authorization?.split(" ')[1];
       const { vendorId } = req.params;
       const result = await this.adminService.suspendVendor(vendorId, req.user!.userId);
       res.json(result);
@@ -211,6 +210,34 @@ export class AdminController {
     }
   };
 
+  // Creation Management
+  registerUser = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      const result = await this.adminService.registerUser(req.body, req.user!.userId);
+      res.json(result);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  createCourier = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      const result = await this.adminService.createCourier(req.body, req.user!.userId);
+      res.json(result);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  createVendor = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      const result = await this.adminService.createVendor(req.body, req.user!.userId);
+      res.json(result);
+    } catch (error) {
+      next(error);
+    }
+  };
+
   // Category Management
   getAllCategories = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
@@ -250,8 +277,6 @@ export class AdminController {
 
   uploadCategoryIcon = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
-      // We expect the icon to be passed in the request. If we use multer, it will be in req.file.
-      // We need to forward it to catalog-service.
       if (!req.file) {
         throw new Error("No file uploaded");
       }

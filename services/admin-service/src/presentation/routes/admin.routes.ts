@@ -30,6 +30,11 @@ export const createAdminRoutes = (controller: AdminController): Router => {
   router.get("/revenue", authorize(UserRole.ADMIN), controller.getRevenue);
   router.get("/payouts", authorize(UserRole.ADMIN), controller.getPayouts);
 
+  // Creation Management
+  router.post("/users/register", authorize(UserRole.ADMIN), controller.registerUser);
+  router.post("/couriers/register", authorize(UserRole.ADMIN), controller.createCourier);
+  router.post("/vendors/register", authorize(UserRole.ADMIN), controller.createVendor);
+
   router.get("/categories", authorize(UserRole.ADMIN), controller.getAllCategories);
   router.post("/categories", authorize(UserRole.ADMIN), controller.createCategory);
   router.patch("/categories/:id", authorize(UserRole.ADMIN), controller.updateCategory);

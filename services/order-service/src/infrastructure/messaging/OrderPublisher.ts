@@ -64,6 +64,7 @@ export class OrderPublisher {
     customerOrderId: string;
     vendorId: string;
     customerId: string;
+    vendorUserId?: string;
   }): Promise<void> {
     await this.publish(EventType.PROPOSAL_REJECTED, data);
   }

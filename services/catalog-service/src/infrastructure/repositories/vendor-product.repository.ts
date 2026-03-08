@@ -13,7 +13,7 @@ export class VendorProductRepository implements IVendorProductRepository {
 
   async create(product: VendorProduct): Promise<VendorProduct> {
     const query =
-      "INSERT INTO vendor_products (id, vendor_id, global_product_id, vendor_category_id, price, stock_quantity, is_available) VALUES (?, ?, ?, ?, ?, ?, ?)";
+      "INSERT INTO vendor_products (id, vendor_id, global_product_id, vendor_category_id, price, stock_quantity, stock_weight, stock_weight_grams, reserved_weight_grams, is_available) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
     await this.pool.execute(query, [
       product.id,
       product.vendorId,
@@ -21,6 +21,9 @@ export class VendorProductRepository implements IVendorProductRepository {
       product.vendorCategoryId,
       product.price,
       product.stockQuantity,
+      product.stockWeight || 0,
+      product.stockWeightGrams || 0,
+      product.reservedWeightGrams || 0,
       product.isAvailable,
     ]);
     return product;
@@ -123,6 +126,11 @@ export class VendorProductRepository implements IVendorProductRepository {
     const fieldMap: Record<string, string> = {
       price: "price",
       stockQuantity: "stock_quantity",
+      stockWeight: "stock_weight",
+      stockWeightGrams: "stock_weight_grams",
+      reservedWeightGrams: "reserved_weight_grams",
+      measurementType: "measurement_type",
+      weightUnit: "weight_unit",
       isAvailable: "is_available",
       vendorCategoryId: "vendor_category_id",
       globalProductId: "global_product_id",
@@ -147,11 +155,48 @@ export class VendorProductRepository implements IVendorProductRepository {
     await this.pool.execute(query, [quantity, id]);
   }
 
+  async updateWeightStock(id: string, weight: number): Promise<void> {
+    const query = "UPDATE vendor_products SET stock_weight_grams = ? WHERE id = ?";
+    await this.pool.execute(query, [weight, id]);
+  }
+
   async decrementStock(id: string, quantity: number): Promise<void> {
     const query = "UPDATE vendor_products SET stock_quantity = stock_quantity - ? WHERE id = ? AND stock_quantity >= ?";
     const [result] = await this.pool.execute<ResultSetHeader>(query, [quantity, id, quantity]);
     if (result.affectedRows === 0) {
       throw new Error("Insufficient stock or product not found");
+    }
+  }
+
+  async decrementWeightStock(id: string, weight: number): Promise<void> {
+    const query = "UPDATE vendor_products SET stock_weight_grams = stock_weight_grams - ? WHERE id = ? AND stock_weight_grams >= ?";
+    const [result] = await this.pool.execute<ResultSetHeader>(query, [weight, id, weight]);
+    if (result.affectedRows === 0) {
+      throw new Error("Insufficient stock or product not found");
+    }
+  }
+
+  async reserveWeightStock(id: string, weight: number): Promise<void> {
+    const query = "UPDATE vendor_products SET reserved_weight_grams = reserved_weight_grams + ? WHERE id = ? AND (stock_weight_grams - reserved_weight_grams) >= ?";
+    const [result] = await this.pool.execute<ResultSetHeader>(query, [weight, id, weight]);
+    if (result.affectedRows === 0) {
+      throw new Error("Insufficient available weight or product not found");
+    }
+  }
+
+  async releaseWeightStock(id: string, weight: number): Promise<void> {
+    const query = "UPDATE vendor_products SET reserved_weight_grams = reserved_weight_grams - ? WHERE id = ? AND reserved_weight_grams >= ?";
+    const [result] = await this.pool.execute<ResultSetHeader>(query, [weight, id, weight]);
+    if (result.affectedRows === 0) {
+      throw new Error("Reservation error: not enough reserved weight or product not found");
+    }
+  }
+
+  async commitWeightStock(id: string, actualWeight: number, reservedWeight: number): Promise<void> {
+    const query = "UPDATE vendor_products SET stock_weight_grams = stock_weight_grams - ?, reserved_weight_grams = reserved_weight_grams - ? WHERE id = ? AND stock_weight_grams >= ? AND reserved_weight_grams >= ?";
+    const [result] = await this.pool.execute<ResultSetHeader>(query, [actualWeight, reservedWeight, id, actualWeight, reservedWeight]);
+    if (result.affectedRows === 0) {
+      throw new Error("Commit error: insufficient stock or reserved weight");
     }
   }
 
@@ -212,10 +257,15 @@ export class VendorProductRepository implements IVendorProductRepository {
       description: row.description,
       price: Number(row.price),
       stockQuantity: row.stock_quantity,
+      stockWeight: row.stock_weight ? Number(row.stock_weight) : undefined,
+      stockWeightGrams: row.stock_weight_grams,
+      reservedWeightGrams: row.reserved_weight_grams,
+      measurementType: row.measurement_type,
+      weightUnit: row.weight_unit,
       imageUrl: row.image_url,
       isAvailable: Boolean(row.is_available),
       createdAt: row.created_at,
-      updatedAt: row.updated_at,
-    };
+      updated_at: row.updated_at,
+    } as any;
   }
 }

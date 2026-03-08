@@ -10,6 +10,7 @@ export interface Vendor {
   latitude?: number;
   longitude?: number;
   storeImage?: string;
+  type?: string;
   status: ShopStatus;
   commissionRate: number;
   isActive: boolean;
@@ -34,6 +35,7 @@ export interface CreateVendorDto {
   address: string;
   latitude?: number;
   longitude?: number;
+  type?: string;
 }
 
 export interface UpdateVendorDto {
@@ -43,6 +45,7 @@ export interface UpdateVendorDto {
   address?: string;
   latitude?: number;
   longitude?: number;
+  type?: string;
 }
 
 export interface UpdateStatusDto {

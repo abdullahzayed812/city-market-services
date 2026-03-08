@@ -1,3 +1,5 @@
+import { MeasurementType, WeightUnit } from "../../../../../shared/src/enums/index.js";
+
 export interface VendorProduct {
   id: string;
   vendorId: string;
@@ -10,6 +12,11 @@ export interface VendorProduct {
   description?: string;
   price: number;
   stockQuantity: number;
+  stockWeight?: number;
+  stockWeightGrams?: number;
+  reservedWeightGrams?: number;
+  measurementType: MeasurementType;
+  weightUnit?: WeightUnit;
   imageUrl?: string;
   isAvailable: boolean;
   createdAt: Date;

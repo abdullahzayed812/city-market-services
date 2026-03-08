@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
-import type { VendorOrderWithItemsDto, ProposeChangesDto } from "@city-market/shared";
+import { ProposalType, type VendorOrderWithItemsDto, type ProposeChangesDto } from "@city-market/shared";
 import { useForm, useFieldArray } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 
@@ -40,12 +40,12 @@ export const ProposalDialog = ({ order, isOpen, onClose, onSubmit }: ProposalDia
       if (item.isUnavailable) {
         proposals.push({
           itemId: originalItem.id,
-          type: "UNAVAILABLE",
+          type: ProposalType.UNAVAILABLE,
         });
-      } else if (item.newQuantity < originalItem.quantity) {
+      } else if (originalItem.quantity !== undefined && item.newQuantity < originalItem.quantity) {
         proposals.push({
           itemId: originalItem.id,
-          type: "QUANTITY_REDUCTION",
+          type: ProposalType.QUANTITY_REDUCTION,
           proposedQuantity: item.newQuantity,
         });
       }

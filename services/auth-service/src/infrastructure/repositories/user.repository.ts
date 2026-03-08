@@ -19,7 +19,7 @@ export class UserRepository implements IUserRepository {
     return user;
   }
 
-  async findByEmail(email: string): Promise<User | null> {
+  async findByEmail(email: string): Promise<Omit<User, "passwordHash"> | null> {
     const query = "SELECT * FROM users WHERE email = ?";
     const [rows] = await this.pool.execute<RowDataPacket[]>(query, [email]);
 
@@ -28,7 +28,25 @@ export class UserRepository implements IUserRepository {
     return this.mapToEntity(rows[0]);
   }
 
-  async findById(id: string): Promise<User | null> {
+  async findWithPasswordByEmail(email: string): Promise<User | null> {
+    const query = "SELECT * FROM users WHERE email = ?";
+    const [rows] = await this.pool.execute<RowDataPacket[]>(query, [email]);
+
+    if (rows.length === 0) return null;
+
+    const row = rows[0];
+    return {
+      id: row.id,
+      email: row.email,
+      passwordHash: row.password_hash,
+      role: row.role,
+      isActive: row.is_active,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+    };
+  }
+
+  async findById(id: string): Promise<Omit<User, "passwordHash"> | null> {
     const query = "SELECT * FROM users WHERE id = ?";
     const [rows] = await this.pool.execute<RowDataPacket[]>(query, [id]);
 
@@ -37,7 +55,7 @@ export class UserRepository implements IUserRepository {
     return this.mapToEntity(rows[0]);
   }
 
-  async findAll(limit: number, offset: number, role?: string): Promise<User[]> {
+  async findAll(limit: number, offset: number, role?: string): Promise<Omit<User, "passwordHash">[]> {
     let query = "SELECT * FROM users";
     const params: any[] = [];
 
@@ -50,7 +68,7 @@ export class UserRepository implements IUserRepository {
     params.push(limit, offset);
 
     const [rows] = await this.pool.query<RowDataPacket[]>(query, params);
-    return rows.map(this.mapToEntity);
+    return rows.map((row) => this.mapToEntity(row));
   }
 
   async countAll(role?: string): Promise<number> {
@@ -71,11 +89,10 @@ export class UserRepository implements IUserRepository {
     await this.pool.execute(query, [isActive, userId]);
   }
 
-  private mapToEntity(row: any): User {
+  private mapToEntity(row: any): Omit<User, "passwordHash"> {
     return {
       id: row.id,
       email: row.email,
-      passwordHash: row.password_hash,
       role: row.role,
       isActive: row.is_active,
       createdAt: row.created_at,

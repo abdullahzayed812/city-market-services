@@ -1,4 +1,6 @@
 import { CategoryType } from "../enums/category-type.enum.js";
+import { MeasurementType } from "../enums/measurement-type.enum.js";
+import { WeightUnit } from "../enums/weight-unit.enum.js";
 
 export interface GlobalProduct {
   id: string;
@@ -6,6 +8,8 @@ export interface GlobalProduct {
   description?: string;
   imageUrl?: string;
   globalCategoryId: string;
+  measurementType: MeasurementType;
+  weightUnit?: WeightUnit;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -22,6 +26,11 @@ export interface VendorProduct {
   description?: string;
   price: number;
   stockQuantity: number;
+  stockWeight?: number;
+  stockWeightGrams?: number;
+  reservedWeightGrams?: number;
+  measurementType: MeasurementType;
+  weightUnit?: WeightUnit;
   imageUrl?: string;
   isAvailable: boolean;
   createdAt: Date;
@@ -47,7 +56,11 @@ export interface CreateVendorProductDto {
   name: string;
   description?: string;
   price: number;
-  stockQuantity: number;
+  stockQuantity?: number;
+  stockWeight?: number;
+  stockWeightGrams?: number;
+  measurementType?: MeasurementType;
+  weightUnit?: WeightUnit;
   imageUrl?: string;
 }
 
@@ -59,6 +72,10 @@ export interface UpdateVendorProductDto {
   description?: string;
   price?: number;
   stockQuantity?: number;
+  stockWeight?: number;
+  stockWeightGrams?: number;
+  measurementType?: MeasurementType;
+  weightUnit?: WeightUnit;
   imageUrl?: string;
   isAvailable?: boolean;
 }

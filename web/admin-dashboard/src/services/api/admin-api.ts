@@ -2,7 +2,6 @@ import axiosInstance from "./axios-instance";
 import {
   ApiResponse,
   type CustomerOrder,
-  type Customer,
   type Vendor,
   type Courier,
   type Delivery,
@@ -18,6 +17,7 @@ import {
   type VendorProduct,
   type CreateVendorProductDto,
   type GlobalProduct,
+  type User,
 } from "@city-market/shared";
 
 export const adminApi = {
@@ -25,8 +25,8 @@ export const adminApi = {
   getStats: () => axiosInstance.get<ApiResponse<DashboardStats>>("/admin/dashboard"),
 
   // Users Management
-  getUsers: (role?: string) => axiosInstance.get<ApiResponse<Customer[]>>("/admin/users", { params: { role } }),
-  getUserById: (id: string) => axiosInstance.get<ApiResponse<Customer>>(`/admin/users/${id}`),
+  getUsers: (role?: string) => axiosInstance.get<ApiResponse<{ data: User[]; total: number }>>("/admin/users", { params: { role } }),
+  getUserById: (id: string) => axiosInstance.get<ApiResponse<User>>(`/admin/users/${id}`),
   updateUserStatus: (id: string, body: UpdateUserStatusRequest) =>
     axiosInstance.patch<ApiResponse<null>>(`/admin/users/${id}/status`, body),
 
@@ -56,10 +56,16 @@ export const adminApi = {
   // Delivery Monitoring
   getDeliveries: () => axiosInstance.get<ApiResponse<Delivery[]>>("/admin/deliveries"),
   getCouriers: () => axiosInstance.get<ApiResponse<Courier[]>>("/admin/couriers"),
+  deactivateCourier: (id: string) => axiosInstance.patch<ApiResponse<null>>(`/admin/couriers/${id}/deactivate`, {}),
 
   // Financial Overview
   getRevenue: () => axiosInstance.get<ApiResponse<RevenueReport>>("/admin/revenue"),
   getPayouts: () => axiosInstance.get<ApiResponse<PayoutsReport>>("/admin/payouts"),
+
+  // Registration Management
+  registerUser: (data: any) => axiosInstance.post<ApiResponse<any>>("/admin/users/register", data),
+  registerCourier: (data: any) => axiosInstance.post<ApiResponse<any>>("/admin/couriers/register", data),
+  registerVendor: (data: any) => axiosInstance.post<ApiResponse<any>>("/admin/vendors/register", data),
 
   // Categories Management
   getCategories: () => axiosInstance.get<ApiResponse<Category[]>>("/admin/categories"),

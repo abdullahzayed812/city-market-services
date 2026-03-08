@@ -38,6 +38,13 @@ export const useProducts = () => {
     },
   });
 
+  const updateStockMutation = useMutation({
+    mutationFn: ({ id, stock }: { id: string; stock: number }) => productService.updateVendorProductStock(id, stock),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["vendor-products", vendorId] });
+    },
+  });
+
   const deleteVendorProductMutation = useMutation({
     mutationFn: (id: string) => productService.deleteVendorProduct(id),
     onSuccess: () => {
@@ -69,6 +76,7 @@ export const useProducts = () => {
       globalProductsQuery.isLoading,
     createVendorProduct: createVendorProductMutation.mutate,
     updateVendorProduct: updateVendorProductMutation.mutate,
+    updateStock: updateStockMutation.mutate,
     deleteVendorProduct: deleteVendorProductMutation.mutate,
     uploadVendorProductImage: uploadVendorProductImageMutation.mutate,
   };

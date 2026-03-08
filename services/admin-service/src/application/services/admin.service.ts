@@ -13,14 +13,14 @@ export interface DashboardStats {
 export class AdminService {
   constructor(private serviceClient: ServiceClient) { }
 
-  async getDashboardStats(userId?: string): Promise<DashboardStats> { // Changed to userId
+  async getDashboardStats(userId?: string): Promise<DashboardStats> {
     Logger.info("Fetching dashboard statistics");
 
     const [ordersData, vendorsData, couriersData, usersData] = await Promise.all([
-      this.serviceClient.getAllOrders(1, 100, userId), // Passed userId
-      this.serviceClient.getAllVendors(1, 100, userId), // Passed userId
-      this.serviceClient.getAllCouriers(1, 100, userId), // Passed userId
-      this.serviceClient.getAllUsers(1, 100, userId), // Passed userId
+      this.serviceClient.order.getAllOrders(1, 100, userId),
+      this.serviceClient.vendor.getAllVendors(1, 100, userId),
+      this.serviceClient.delivery.getAllCouriers(1, 100, userId),
+      this.serviceClient.auth.getAllUsers(1, 100, userId),
     ]);
 
     const stats: DashboardStats = {
@@ -36,78 +36,77 @@ export class AdminService {
     return stats;
   }
 
-  async getAllOrders(page: number = 1, limit: number = 50, userId?: string) { // Changed to userId
-    return this.serviceClient.getAllOrders(page, limit, userId); // Passed userId
+  async getAllOrders(page: number = 1, limit: number = 50, userId?: string) {
+    return this.serviceClient.order.getAllOrders(page, limit, userId);
   }
 
-  async getAllVendors(page: number = 1, limit: number = 50, userId?: string) { // Changed to userId
-    return this.serviceClient.getAllVendors(page, limit, userId); // Passed userId
+  async getAllVendors(page: number = 1, limit: number = 50, userId?: string) {
+    return this.serviceClient.vendor.getAllVendors(page, limit, userId);
   }
 
-  async updateVendorCommission(vendorId: string, rate: number, userId?: string) { // Changed to userId
+  async updateVendorCommission(vendorId: string, rate: number, userId?: string) {
     if (rate < 0 || rate > 100) {
       throw new Error("Commission rate must be between 0 and 100");
     }
-    return this.serviceClient.updateVendorCommission(vendorId, rate, userId); // Passed userId
+    return this.serviceClient.vendor.updateVendorCommission(vendorId, rate, userId);
   }
 
-  async suspendVendor(vendorId: string, userId?: string) { // Changed to userId
+  async suspendVendor(vendorId: string, userId?: string) {
     Logger.warn(`Suspending vendor ${vendorId}`);
-    return this.serviceClient.suspendVendor(vendorId, userId); // Passed userId
+    return this.serviceClient.vendor.suspendVendor(vendorId, userId);
   }
 
-  async getAllCouriers(page: number = 1, limit: number = 50, userId?: string) { // Changed to userId
-    return this.serviceClient.getAllCouriers(page, limit, userId); // Passed userId
+  async getAllCouriers(page: number = 1, limit: number = 50, userId?: string) {
+    return this.serviceClient.delivery.getAllCouriers(page, limit, userId);
   }
 
-  async deactivateCourier(courierId: string, userId?: string) { // Changed to userId
+  async deactivateCourier(courierId: string, userId?: string) {
     Logger.warn(`Deactivating courier ${courierId}`);
-    return this.serviceClient.deactivateCourier(courierId, userId); // Passed userId
+    return this.serviceClient.delivery.deactivateCourier(courierId, userId);
   }
 
-  async getAllUsers(page: number = 1, limit: number = 50, userId?: string, role?: string) { // Changed to userId
-    return this.serviceClient.getAllUsers(page, limit, userId, role); // Passed userId
+  async getAllUsers(page: number = 1, limit: number = 50, userId?: string, role?: string) {
+    return this.serviceClient.auth.getAllUsers(page, limit, userId, role);
   }
 
-  async getUserById(id: string, userId?: string) { // Changed to userId
-    return this.serviceClient.getUserById(id, userId); // Passed userId
+  async getUserById(id: string, userId?: string) {
+    return this.serviceClient.user.getUserById(id, userId);
   }
 
-  async updateUserStatus(id: string, status: string, userId?: string) { // Changed to userId
-    return this.serviceClient.updateUserStatus(id, status, userId); // Passed userId
+  async updateUserStatus(id: string, status: string, userId?: string) {
+    return this.serviceClient.user.updateUserStatus(id, status, userId);
   }
 
-  async getVendorById(id: string, userId?: string) { // Changed to userId
-    return this.serviceClient.getVendorById(id, userId); // Passed userId
+  async getVendorById(id: string, userId?: string) {
+    return this.serviceClient.vendor.getVendorById(id, userId);
   }
 
-  async updateVendorStatus(id: string, status: string, userId?: string) { // Changed to userId
-    return this.serviceClient.updateVendorStatus(id, status, userId); // Passed userId
+  async updateVendorStatus(id: string, status: string, userId?: string) {
+    return this.serviceClient.vendor.updateVendorStatus(id, status, userId);
   }
 
   async uploadVendorImage(id: string, formData: FormData, userId?: string) {
     Logger.info(`Uploading image for vendor ${id}`);
-    return this.serviceClient.uploadVendorImage(id, formData, userId);
+    return this.serviceClient.vendor.uploadVendorImage(id, formData, userId);
   }
 
-  async getOrderById(id: string, userId?: string) { // Changed to userId
-    return this.serviceClient.getOrderById(id, userId); // Passed userId
+  async getOrderById(id: string, userId?: string) {
+    return this.serviceClient.order.getOrderById(id, userId);
   }
 
-  async updateOrderStatus(id: string, status: string, userId?: string) { // Changed to userId
-    return this.serviceClient.updateOrderStatus(id, status, userId); // Passed userId
+  async updateOrderStatus(id: string, status: string, userId?: string) {
+    return this.serviceClient.order.updateOrderStatus(id, status, userId);
   }
 
-  async getDeliveries(userId?: string) { // Changed to userId
-    return this.serviceClient.getDeliveries(userId); // Passed userId
+  async getDeliveries(userId?: string) {
+    return this.serviceClient.delivery.getDeliveries(userId);
   }
 
-  async getAvailableCouriers(userId?: string) { // Changed to userId
-    return this.serviceClient.getAvailableCouriers(userId); // Passed userId
+  async getAvailableCouriers(userId?: string) {
+    return this.serviceClient.delivery.getAvailableCouriers(userId);
   }
 
-  async getRevenue(userId?: string) { // Changed to userId
-    // In a real application, this would involve more complex logic
+  async getRevenue(userId?: string) {
     return Promise.resolve({
       totalRevenue: 25000,
       platformCommission: 2500,
@@ -119,34 +118,90 @@ export class AdminService {
     });
   }
 
-  async getPayouts(userId?: string) { // Changed to userId
-    // In a real application, this would involve more complex logic
+  async getPayouts(userId?: string) {
     return Promise.resolve({ payouts: 5000, date: new Date() });
+  }
+
+  // Creation Management
+  async registerUser(data: any, userId?: string) {
+    Logger.info("Registering new user via Admin");
+    return this.serviceClient.auth.register(data, userId);
+  }
+
+  async createCourier(data: any, userId?: string) {
+    Logger.info("Creating new courier via Admin");
+    // 1. Register user
+    const userData = {
+      email: data.email,
+      password: data.password,
+      role: "COURIER",
+      firstName: data.firstName,
+      lastName: data.lastName,
+    };
+    const registerResponse = await this.serviceClient.auth.register(userData, userId);
+    const newUserId = registerResponse.data.user.id;
+
+    // 2. Register courier profile
+    const courierData = {
+      userId: newUserId,
+      fullName: `${data.firstName} ${data.lastName}`,
+      phone: data.phone,
+      vehicleType: data.vehicleType,
+      licensePlate: data.licensePlate,
+    };
+    return this.serviceClient.delivery.registerCourier(courierData, userId);
+  }
+
+  async createVendor(data: any, userId?: string) {
+    Logger.info("Creating new vendor via Admin");
+    // 1. Register user
+    const userData = {
+      email: data.email,
+      password: data.password,
+      role: "VENDOR",
+      firstName: data.firstName,
+      lastName: data.lastName,
+    };
+    const registerResponse = await this.serviceClient.auth.register(userData, userId);
+    const newUserId = registerResponse.data.user.id;
+
+    // 2. Register vendor profile
+    const vendorData = {
+      userId: newUserId,
+      shopName: data.shopName,
+      shopDescription: data.shopDescription,
+      phone: data.phone,
+      address: data.address,
+      type: data.type,
+      latitude: data.latitude,
+      longitude: data.longitude,
+    };
+    return this.serviceClient.vendor.createVendor(vendorData, userId);
   }
 
   // Category Management
   async getAllCategories(userId?: string) {
-    return this.serviceClient.getAllCategories(userId);
+    return this.serviceClient.catalog.getAllCategories(userId);
   }
 
   async getCategoryById(id: string, userId?: string) {
-    return this.serviceClient.getCategoryById(id, userId);
+    return this.serviceClient.catalog.getCategoryById(id, userId);
   }
 
   async createCategory(data: any, userId?: string) {
-    return this.serviceClient.createCategory(data, userId);
+    return this.serviceClient.catalog.createCategory(data, userId);
   }
 
   async updateCategory(id: string, data: any, userId?: string) {
-    return this.serviceClient.updateCategory(id, data, userId);
+    return this.serviceClient.catalog.updateCategory(id, data, userId);
   }
 
   async deleteCategory(id: string, userId?: string) {
-    return this.serviceClient.deleteCategory(id, userId);
+    return this.serviceClient.catalog.deleteCategory(id, userId);
   }
 
   async uploadCategoryIcon(id: string, formData: any, userId?: string) {
-    return this.serviceClient.uploadCategoryIcon(id, formData, userId);
+    return this.serviceClient.catalog.uploadCategoryIcon(id, formData, userId);
   }
 
   // Product Management
@@ -158,11 +213,11 @@ export class AdminService {
     vendorCategoryId?: string,
     vendorId?: string
   ) {
-    const productsData = await this.serviceClient.getAllProducts(page, limit, userId, globalCategoryId, vendorCategoryId, vendorId);
+    const productsData = await this.serviceClient.catalog.getAllProducts(page, limit, userId, globalCategoryId, vendorCategoryId, vendorId);
 
     if (productsData.data?.data && productsData.data.data.length > 0) {
       const vendorIds = [...new Set(productsData.data.data.map((p: any) => p.vendorId))];
-      const vendorsResponse = await this.serviceClient.getVendorsByIds(vendorIds as string[], userId);
+      const vendorsResponse = await this.serviceClient.vendor.getVendorsByIds(vendorIds as string[], userId);
       const vendorsMap = (vendorsResponse.data || []).reduce((acc: any, v: any) => {
         acc[v.id] = v.shopName;
         return acc;
@@ -178,40 +233,40 @@ export class AdminService {
   }
 
   async createProduct(data: any, userId?: string) {
-    return this.serviceClient.createProduct(data, userId);
+    return this.serviceClient.catalog.createProduct(data, userId);
   }
 
   async updateProduct(id: string, data: any, userId?: string) {
-    return this.serviceClient.updateProduct(id, data, userId);
+    return this.serviceClient.catalog.updateProduct(id, data, userId);
   }
 
   async deleteProduct(id: string, userId?: string) {
-    return this.serviceClient.deleteProduct(id, userId);
+    return this.serviceClient.catalog.deleteProduct(id, userId);
   }
 
   async uploadProductImage(id: string, formData: FormData, userId?: string) {
     Logger.info(`Uploading image for product ${id}`);
-    return this.serviceClient.uploadProductImage(id, formData, userId);
+    return this.serviceClient.catalog.uploadProductImage(id, formData, userId);
   }
 
   // Global Product Management
   async getGlobalProducts(page: number = 1, limit: number = 20, userId?: string) {
     Logger.info("Fetching global products");
-    return this.serviceClient.getGlobalProducts(page, limit, userId);
+    return this.serviceClient.catalog.getGlobalProducts(page, limit, userId);
   }
 
   async createGlobalProduct(data: any, userId?: string) {
     Logger.info("Creating global product");
-    return this.serviceClient.createGlobalProduct(data, userId);
+    return this.serviceClient.catalog.createGlobalProduct(data, userId);
   }
 
   async updateGlobalProduct(id: string, data: any, userId?: string) {
     Logger.info(`Updating global product ${id}`);
-    return this.serviceClient.updateGlobalProduct(id, data, userId);
+    return this.serviceClient.catalog.updateGlobalProduct(id, data, userId);
   }
 
   async deleteGlobalProduct(id: string, userId?: string) {
     Logger.warn(`Deleting global product ${id}`);
-    return this.serviceClient.deleteGlobalProduct(id, userId);
+    return this.serviceClient.catalog.deleteGlobalProduct(id, userId);
   }
 }

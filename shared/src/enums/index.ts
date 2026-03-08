@@ -9,3 +9,5 @@ export * from "./proposal-enums.js";
 export * from "./user-status.js";
 export * from "./category-type.enum.js";
 export * from "./app-types.enum.js";
+export * from "./measurement-type.enum.js";
+export * from "./weight-unit.enum.js";

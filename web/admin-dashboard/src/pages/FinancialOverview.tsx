@@ -5,7 +5,7 @@ import { adminApi } from "@/services/api/admin-api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { DollarSign, TrendingUp, Wallet, ArrowUpRight, ArrowDownRight } from "lucide-react";
+import { DollarSign, TrendingUp, Wallet, ArrowUpRight } from "lucide-react";
 
 const FinancialOverview: React.FC = () => {
   const { t } = useTranslation();
@@ -13,7 +13,7 @@ const FinancialOverview: React.FC = () => {
     queryKey: ["adminRevenue"],
     queryFn: async () => {
       const response = await adminApi.getRevenue();
-      return response.data;
+      return response.data.data;
     },
   });
 

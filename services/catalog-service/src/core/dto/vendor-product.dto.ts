@@ -1,3 +1,5 @@
+import { MeasurementType, WeightUnit } from "@city-market/shared";
+
 export interface CreateVendorProductDto {
   vendorId: string;
   globalProductId: string;
@@ -7,6 +9,10 @@ export interface CreateVendorProductDto {
   description?: string;
   price: number;
   stockQuantity: number;
+  stockWeight?: number;
+  stockWeightGrams?: number;
+  measurementType?: MeasurementType;
+  weightUnit?: WeightUnit;
   imageUrl?: string;
 }
 
@@ -18,6 +24,10 @@ export interface UpdateVendorProductDto {
   description?: string;
   price?: number;
   stockQuantity?: number;
+  stockWeight?: number;
+  stockWeightGrams?: number;
+  measurementType?: MeasurementType;
+  weightUnit?: WeightUnit;
   imageUrl?: string;
   isAvailable?: boolean;
 }

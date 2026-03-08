@@ -27,8 +27,8 @@ export const orderService = {
     const response = await apiClient.post<ApiResponse<null>>(`/orders/vendor-orders/${id}/propose`, { proposals });
     return response.data?.data;
   },
-  updateOrderStatus: async (id: string, status: VendorOrderStatus, notes?: string) => {
-    const response = await apiClient.patch<ApiResponse<null>>(`/orders/vendor-orders/${id}/status`, { status, notes });
+  updateOrderStatus: async (id: string, status: VendorOrderStatus, itemWeights?: { itemId: string; actualWeight?: number; actualWeightGrams?: number }[], notes?: string) => {
+    const response = await apiClient.patch<ApiResponse<null>>(`/orders/vendor-orders/${id}/status`, { status, notes, itemWeights });
     return response.data?.data;
   },
   cancelOrder: async (id: string) => {

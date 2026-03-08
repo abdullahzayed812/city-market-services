@@ -14,8 +14,8 @@ export class VendorRepository implements IVendorRepository {
     const query = `
       INSERT INTO vendors (
         id, user_id, shop_name, shop_description, phone, address,
-        latitude, longitude, store_image, status, commission_rate, is_active
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        latitude, longitude, store_image, type, status, commission_rate, is_active
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
     await this.pool.execute(query, [
       vendor.id,
@@ -27,6 +27,7 @@ export class VendorRepository implements IVendorRepository {
       vendor.latitude || null,
       vendor.longitude || null,
       vendor.storeImage || null,
+      vendor.type || null,
       vendor.status,
       vendor.commissionRate,
       vendor.isActive,
@@ -54,8 +55,8 @@ export class VendorRepository implements IVendorRepository {
   }
 
   async findAll(limit: number, offset: number): Promise<Vendor[]> {
-    const query = "SELECT * FROM vendors ORDER BY created_at DESC LIMIT ? OFFSET ?";
-    const [rows] = await this.pool.query<RowDataPacket[]>(query, [limit, offset]);
+    const query = "SELECT * FROM vendors ORDER BY created_at DESC";
+    const [rows] = await this.pool.query<RowDataPacket[]>(query);
     return rows.map((row) => this.mapToEntity(row));
   }
 
@@ -97,6 +98,10 @@ export class VendorRepository implements IVendorRepository {
       fields.push("store_image = ?");
       values.push(data.storeImage);
     }
+    if (data.type !== undefined) {
+      fields.push("type = ?");
+      values.push(data.type);
+    }
 
     if (fields.length === 0) return;
 
@@ -131,6 +136,7 @@ export class VendorRepository implements IVendorRepository {
       latitude: row.latitude,
       longitude: row.longitude,
       storeImage: row.store_image,
+      type: row.type,
       status: row.status,
       commissionRate: parseFloat(row.commission_rate),
       averageRating: row.average_rating ? parseFloat(row.average_rating) : 0,

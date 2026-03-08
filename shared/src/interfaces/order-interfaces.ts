@@ -37,7 +37,11 @@ export interface VendorOrderItem {
   vendorOrderId: string;
   vendorProductId: string;
   productName: string;
-  quantity: number;
+  quantity?: number;
+  requestedWeight?: number;
+  actualWeight?: number;
+  requestedWeightGrams?: number;
+  actualWeightGrams?: number;
   unitPrice: number;
   totalPrice: number;
 }
@@ -47,6 +51,10 @@ export interface OrderItemProposal {
   vendorOrderItemId: string;
   type: ProposalType;
   proposedQuantity?: number;
+  proposedWeight?: number;
+  requestedWeight?: number;
+  requestedWeightGrams?: number;
+  proposedWeightGrams?: number;
   status: ProposalStatus;
   createdAt: Date;
   updatedAt: Date;
@@ -59,7 +67,9 @@ export interface OrderWithItems {
 
 export interface CreateOrderItemDto {
   vendorProductId: string;
-  quantity: number;
+  quantity?: number;
+  weight?: number;
+  weightGrams?: number;
 }
 
 export interface CreateOrderDto {
@@ -79,12 +89,17 @@ export interface UpdateCustomerOrderStatusDto {
 export interface UpdateVendorOrderStatusDto {
   status: VendorOrderStatus;
   notes?: string;
+  actualWeight?: number;
+  actualWeightGrams?: number;
 }
 
 export interface ProposeChangesDto {
   itemId: string;
   type: ProposalType;
   proposedQuantity?: number;
+  proposedWeight?: number;
+  requestedWeightGrams?: number;
+  proposedWeightGrams?: number;
 }
 
 export interface VendorOrderWithItemsDto extends VendorOrder {

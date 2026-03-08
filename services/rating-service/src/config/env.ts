@@ -9,6 +9,7 @@ export const config = {
     dbName: process.env.DB_NAME || "rating_db",
     orderServiceUrl: process.env.ORDER_SERVICE_URL || "http://localhost:3005",
     userServiceUrl: process.env.USER_SERVICE_URL || "http://localhost:3002",
+    vendorServiceUrl: process.env.VENDOR_SERVICE_URL || "http://localhost:3003",
     authServiceUrl: process.env.AUTH_SERVICE_URL || "http://localhost:3001",
     ratingServiceClientId: process.env.RATING_SERVICE_CLIENT_ID || "rating-service-id",
     ratingServiceClientSecret: process.env.RATING_SERVICE_CLIENT_SECRET || "rating-service-secret",
