@@ -80,8 +80,8 @@ export class VendorOrderRepository implements IVendorOrderRepository {
         voi.product_id AS item_product_id,
         voi.product_name AS item_product_name,
         voi.quantity AS item_quantity,
-        voi.requested_weight AS item_requested_weight,
-        voi.actual_weight AS item_actual_weight,
+        voi.requested_weight_grams AS item_requested_weight_grams,
+        voi.actual_weight_grams AS item_actual_weight_grams,
         voi.unit_price AS item_unit_price,
         voi.total_price AS item_total_price
       FROM vendor_orders vo
@@ -130,8 +130,8 @@ export class VendorOrderRepository implements IVendorOrderRepository {
           vendorProductId: row.item_product_id,
           productName: row.item_product_name,
           quantity: row.item_quantity,
-          requestedWeight: row.item_requested_weight ? parseFloat(row.item_requested_weight) : undefined,
-          actualWeight: row.item_actual_weight ? parseFloat(row.item_actual_weight) : undefined,
+          requestedWeightGrams: row.item_requested_weight_grams,
+          actualWeightGrams: row.item_actual_weight_grams,
           unitPrice: parseFloat(row.item_unit_price),
           totalPrice: parseFloat(row.item_total_price),
         });

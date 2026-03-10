@@ -25,15 +25,11 @@ const Orders = () => {
   const [selectedOrder, setSelectedOrder] = useState<VendorOrderWithItemsDto | null>(null);
 
   if (isLoading) {
-    return <div className="flex items-center justify-center h-full">Loading...</div>;
+    return <div className="flex items-center justify-center h-full">{t("common.loading")}</div>;
   }
 
   if (isError) {
-    return (
-      <div className="flex items-center justify-center h-full text-destructive">
-        Error loading orders. Please try again later.
-      </div>
-    );
+    return <div className="flex items-center justify-center h-full text-destructive">{t("orders.errorLoading")}</div>;
   }
 
   const handleOpenProposalDialog = (order: VendorOrderWithItemsDto) => {
@@ -59,9 +55,9 @@ const Orders = () => {
     }
   };
 
-  const handleWeightAdjustment = (itemWeights: { itemId: string; actualWeightGrams: number }[]) => {
+  const handleWeightAdjustment = (proposals: ProposeChangesDto[]) => {
     if (selectedOrder) {
-      updateStatus({ id: selectedOrder.id, status: selectedOrder.status, itemWeights });
+      proposeChanges({ orderId: selectedOrder.id, proposals });
       handleCloseModals();
     }
   };
@@ -99,7 +95,7 @@ const Orders = () => {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">{t("common.orders")}</h1>
-          <p className="text-muted-foreground">Manage and track your customer orders.</p>
+          <p className="text-muted-foreground">{t("orders.subtitle")}</p>
         </div>
       </div>
 
@@ -108,11 +104,11 @@ const Orders = () => {
           <TableHeader>
             <TableRow>
               <TableHead className="w-[100px]"></TableHead>
-              <TableHead>Order ID</TableHead>
-              <TableHead>Date</TableHead>
-              <TableHead>Customer</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="text-end">Amount</TableHead>
+              <TableHead>{t("orders.orderId")}</TableHead>
+              <TableHead>{t("orders.date")}</TableHead>
+              <TableHead>{t("orders.customer")}</TableHead>
+              <TableHead>{t("orders.status")}</TableHead>
+              <TableHead className="text-end">{t("orders.amount")}</TableHead>
               <TableHead className="w-[100px]"></TableHead>
             </TableRow>
           </TableHeader>
@@ -130,7 +126,7 @@ const Orders = () => {
                     </TableCell>
                     <TableCell className="font-medium">#{order.id.slice(0, 8)}</TableCell>
                     <TableCell>{new Date(order.createdAt).toLocaleDateString()}</TableCell>
-                    <TableCell>Customer</TableCell>
+                    <TableCell>{t("orders.customer")}</TableCell>
                     <TableCell>
                       <Badge className={getStatusColor(order.status)}>{formatStatus(order.status)}</Badge>
                     </TableCell>
@@ -146,7 +142,7 @@ const Orders = () => {
                           {order.status === VendorOrderStatus.PENDING && (
                             <>
                               <DropdownMenuItem
-                                className="gap-2 text-green-600"
+                                className="gap-2 text-orange-600"
                                 onClick={() =>
                                   updateStatus({
                                     id: order.id,
@@ -154,20 +150,20 @@ const Orders = () => {
                                   })
                                 }
                               >
-                                <CheckCircle className="h-4 w-4" /> Preparing Order
+                                <CheckCircle className="h-4 w-4" /> {t("orders.preparingOrder")}
                               </DropdownMenuItem>
 
                               <DropdownMenuItem
                                 className="gap-2 text-blue-600"
                                 onClick={() => handleOpenProposalDialog(order)}
                               >
-                                <Send className="h-4 w-4" /> Send Proposal
+                                <Send className="h-4 w-4" /> {t("orders.sendProposal")}
                               </DropdownMenuItem>
                               <DropdownMenuItem
                                 className="gap-2 text-destructive"
                                 onClick={() => cancelOrder(order.id)}
                               >
-                                <XCircle className="h-4 w-4" /> Cancel Order
+                                <XCircle className="h-4 w-4" /> {t("orders.cancelOrder")}
                               </DropdownMenuItem>
                             </>
                           )}
@@ -178,7 +174,7 @@ const Orders = () => {
                                 className="gap-2 text-blue-600"
                                 onClick={() => handleOpenWeightModal(order)}
                               >
-                                <Scale className="h-4 w-4" /> Adjust Weight
+                                <Scale className="h-4 w-4" /> {t("orders.adjustWeight")}
                               </DropdownMenuItem>
                               <DropdownMenuItem
                                 className="gap-2 text-green-600"
@@ -189,7 +185,7 @@ const Orders = () => {
                                   })
                                 }
                               >
-                                <CheckCircle className="h-4 w-4" /> Confirm Order
+                                <CheckCircle className="h-4 w-4" /> {t("orders.confirmOrder")}
                               </DropdownMenuItem>
                             </>
                           )}
@@ -201,14 +197,14 @@ const Orders = () => {
                     <TableRow>
                       <TableCell colSpan={7}>
                         <div className="p-4 bg-muted/50">
-                          <h4 className="font-semibold mb-2">Order Items</h4>
+                          <h4 className="font-semibold mb-2">{t("orders.orderItems")}</h4>
                           <Table>
                             <TableHeader>
                               <TableRow>
-                                <TableHead>Product Name</TableHead>
-                                <TableHead>Quantity / Weight</TableHead>
-                                <TableHead>Price</TableHead>
-                                <TableHead className="text-end">Total</TableHead>
+                                <TableHead>{t("orders.productName")}</TableHead>
+                                <TableHead>{t("orders.qtyWeight")}</TableHead>
+                                <TableHead>{t("orders.price")}</TableHead>
+                                <TableHead className="text-end">{t("orders.total")}</TableHead>
                               </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -218,9 +214,9 @@ const Orders = () => {
                                   <TableCell>
                                     {item.quantity
                                       ? item.quantity
-                                      : `≈ ${(item.requestedWeightGrams! / 1000).toFixed(2)} kg`}
+                                      : `≈ ${item.requestedWeight} ${t("inventory.units.kg")}`}
                                     {item.actualWeightGrams &&
-                                      ` (Actual: ${(item.actualWeightGrams / 1000).toFixed(2)} kg)`}
+                                      ` (${t("orders.actual")}: ${(item.actualWeightGrams / 1000).toFixed(2)} ${t("inventory.units.kg")})`}
                                   </TableCell>
                                   <TableCell>${item.unitPrice}</TableCell>
                                   <TableCell className="text-end">${item.totalPrice}</TableCell>
@@ -229,7 +225,7 @@ const Orders = () => {
                               {order.items.length === 0 && (
                                 <TableRow>
                                   <TableCell colSpan={4} className="text-center py-4 text-muted-foreground">
-                                    No items in this order.
+                                    {t("orders.noItems")}
                                   </TableCell>
                                 </TableRow>
                               )}
@@ -245,7 +241,7 @@ const Orders = () => {
             {orders.length === 0 && (
               <TableRow>
                 <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
-                  No orders found.
+                  {t("orders.noOrders")}
                 </TableCell>
               </TableRow>
             )}

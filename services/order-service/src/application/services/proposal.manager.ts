@@ -21,6 +21,8 @@ import {
 import { randomUUID } from "crypto";
 
 const COMMISSION_RATE = 0.1;
+const WEIGHT_TOLERANCE_GRAMS = 100;
+const MAX_WEIGHT_DIFFERENCE_THRESHOLD = 0.3;
 
 export class ProposalManager {
   constructor(
@@ -38,17 +40,48 @@ export class ProposalManager {
     const vo = await this.vendorOrderRepo.findByIdWithLock(vendorOrderId, connection);
     if (!vo) throw new NotFoundError("vendor_order_not_found");
 
+    let statusChangedToProposal = false;
+    let autoAcceptedAny = false;
+
     for (let item of dto) {
       const existingProposals = await this.proposalRepo.findByVendorOrderItem(item.itemId, connection);
       if (existingProposals.some((p) => p.status === ProposalStatus.PENDING)) {
         throw new ValidationError("vendor_order_item_has_pending_proposal");
       }
+
+      const orderItem = await this.vendorOrderItemRepo.findByIdWithLock(item.itemId, connection);
+      if (!orderItem) throw new NotFoundError(`order_item_${item.itemId}_not_found`);
+
+      if (item.type === ProposalType.WEIGHT_ADJUSTMENT && item.proposedWeightGrams !== undefined) {
+          if (orderItem.requestedWeightGrams === undefined) throw new ValidationError(`item_${item.itemId}_is_not_weight_based`);
+          
+          const diffGrams = Math.abs(item.proposedWeightGrams - orderItem.requestedWeightGrams);
+          const diffRatio = diffGrams / orderItem.requestedWeightGrams;
+          
+          if (diffRatio > MAX_WEIGHT_DIFFERENCE_THRESHOLD) {
+              throw new ValidationError(`weight_adjustment_exceeds_threshold_for_item_${item.itemId}`);
+          }
+
+          // Always update the actual weight and price on the item immediately
+          const strategy = PricingStrategyFactory.getStrategy(MeasurementType.WEIGHT);
+          const newTotalPrice = strategy.calculateTotal(orderItem.unitPrice, item.proposedWeightGrams);
+          await this.vendorOrderItemRepo.update(orderItem.id, {
+              actualWeightGrams: item.proposedWeightGrams,
+              totalPrice: newTotalPrice
+          }, connection);
+          autoAcceptedAny = true;
+
+          if (diffGrams <= WEIGHT_TOLERANCE_GRAMS) {
+              // Within tolerance: No need to create a proposal for customer approval
+              continue; 
+          }
+      }
+
       const proposal: any = {
         id: randomUUID(),
         vendorOrderItemId: item.itemId,
         type: item.type as ProposalType,
         proposedQuantity: item.proposedQuantity,
-        proposedWeight: item.proposedWeight || (item.proposedWeightGrams ? item.proposedWeightGrams / 1000 : undefined),
         requestedWeightGrams: item.requestedWeightGrams,
         proposedWeightGrams: item.proposedWeightGrams,
         status: ProposalStatus.PENDING,
@@ -57,21 +90,28 @@ export class ProposalManager {
       };
 
       await this.proposalRepo.create(proposal, connection);
+      statusChangedToProposal = true;
     }
 
-    await this.vendorOrderRepo.updateStatus(vendorOrderId, VendorOrderStatus.PROPOSAL_SENT, connection);
-    await this.stateManager.recordStatusChange({ vendorOrderId }, VendorOrderStatus.PROPOSAL_SENT, `Proposals sent.`, connection);
+    if (autoAcceptedAny) {
+        await this.recalculateTotals(vendorOrderId, connection);
+    }
 
-    const co = await this.customerOrderRepo.findByIdWithLock(vo.customerOrderId, connection);
-    await this.publisher.publishVendorOrderProposed({
-      vendorOrderId,
-      customerOrderId: vo.customerOrderId,
-      vendorId: vo.vendorId,
-      customerId: co?.customerId
-    });
+    if (statusChangedToProposal) {
+        await this.vendorOrderRepo.updateStatus(vendorOrderId, VendorOrderStatus.PROPOSAL_SENT, connection);
+        await this.stateManager.recordStatusChange({ vendorOrderId }, VendorOrderStatus.PROPOSAL_SENT, `Proposals sent.`, connection);
 
-    await this.customerOrderRepo.updateStatus(vo.customerOrderId, CustomerOrderStatus.WAITING_CUSTOMER_DECISION, connection);
-    await this.stateManager.recordStatusChange({ customerOrderId: vo.customerOrderId }, CustomerOrderStatus.WAITING_CUSTOMER_DECISION, `Waiting customer decision`, connection);
+        const co = await this.customerOrderRepo.findByIdWithLock(vo.customerOrderId, connection);
+        await this.publisher.publishVendorOrderProposed({
+          vendorOrderId,
+          customerOrderId: vo.customerOrderId,
+          vendorId: vo.vendorId,
+          customerId: co?.customerId
+        });
+
+        await this.customerOrderRepo.updateStatus(vo.customerOrderId, CustomerOrderStatus.WAITING_CUSTOMER_DECISION, connection);
+        await this.stateManager.recordStatusChange({ customerOrderId: vo.customerOrderId }, CustomerOrderStatus.WAITING_CUSTOMER_DECISION, `Waiting customer decision`, connection);
+    }
   }
 
   async accept(proposalId: string, connection: PoolConnection): Promise<void> {
@@ -97,7 +137,6 @@ export class ProposalManager {
       const newTotalPrice = strategy.calculateTotal(item.unitPrice, proposal.proposedWeightGrams);
       await this.vendorOrderItemRepo.update(item.id, {
         actualWeightGrams: proposal.proposedWeightGrams,
-        actualWeight: proposal.proposedWeightGrams / 1000,
         totalPrice: newTotalPrice
       }, connection);
     } else if (proposal.type === ProposalType.UNAVAILABLE) {

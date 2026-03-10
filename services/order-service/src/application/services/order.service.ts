@@ -8,11 +8,7 @@ import { CustomerOrder } from "../../core/entities/customer-order.entity";
 import { VendorOrder } from "../../core/entities/vendor-order.entity";
 import { VendorOrderItem } from "../../core/entities/vendor-order-item.entity";
 import { OrderItemProposal } from "../../core/entities/order-item-proposal.entity";
-import {
-  CreateOrderDto,
-  ProposeChangesDto,
-  OrderWithItems,
-} from "../../core/dto/order.dto";
+import { CreateOrderDto, ProposeChangesDto, OrderWithItems } from "../../core/dto/order.dto";
 import {
   CustomerOrderStatus,
   VendorOrderStatus,
@@ -30,6 +26,7 @@ import { OrderStateManager } from "./order-state.manager";
 import { OrderCreationManager } from "./order-creation.manager";
 import { ProposalManager } from "./proposal.manager";
 import { VendorOrderManager } from "./vendor-order.manager";
+import { OrderMapper } from "../mappers/order.mapper";
 
 export class OrderService {
   private stateManager: OrderStateManager;
@@ -53,7 +50,7 @@ export class OrderService {
       vendorOrderRepo,
       proposalRepo,
       statusHistoryRepo,
-      publisher
+      publisher,
     );
     this.proposalManager = new ProposalManager(
       customerOrderRepo,
@@ -63,7 +60,7 @@ export class OrderService {
       catalogClient,
       vendorClient,
       publisher,
-      this.stateManager
+      this.stateManager,
     );
     this.creationManager = new OrderCreationManager(
       customerOrderRepo,
@@ -72,13 +69,13 @@ export class OrderService {
       catalogClient,
       vendorClient,
       publisher,
-      this.stateManager
+      this.stateManager,
     );
     this.vendorOrderManager = new VendorOrderManager(
       vendorOrderRepo,
       vendorOrderItemRepo,
       this.stateManager,
-      this.proposalManager
+      this.proposalManager,
     );
   }
 
@@ -88,7 +85,7 @@ export class OrderService {
       connection = await this.db.beginTransaction();
       const result = await this.creationManager.create(dto, userId, connection);
       await this.db.commit(connection);
-      return result;
+      return OrderMapper.mapOrderWithItems(result.order, result.vendorOrders);
     } catch (error) {
       if (connection) await this.db.rollback(connection);
       throw error;
@@ -101,56 +98,94 @@ export class OrderService {
 
     const vendorOrders = await this.vendorOrderRepo.findByCustomerOrder(id);
     const uniqueVendorIds = Array.from(new Set(vendorOrders.map((vo) => vo.vendorId)));
-    const vendorDetailsArray = await Promise.all(uniqueVendorIds.map((vid) => this.vendorClient.getVendor(vid, userId)));
+    const vendorDetailsArray = await Promise.all(
+      uniqueVendorIds.map((vid) => this.vendorClient.getVendor(vid, userId)),
+    );
     const vendorMap = new Map(uniqueVendorIds.map((vid, i) => [vid, vendorDetailsArray[i]]));
 
     const vendorOrdersWithItems = await Promise.all(
       vendorOrders.map(async (vo) => {
         const items = await this.vendorOrderItemRepo.findByVendorOrder(vo.id);
         const vendor = vendorMap.get(vo.vendorId);
-        const proposals = await this.proposalRepo.findByVendorOrder(vo.id);
+        // const proposals = await this.proposalRepo.findByVendorOrder(vo.id);
         return {
           ...vo,
           vendorName: vendor?.shopName || "Unknown Vendor",
           items,
-          proposals: proposals.filter((p) => p.status === ProposalStatus.PENDING),
+          // proposals: [], // No proposals in response
         };
       }),
     );
 
-    return { order: customerOrder, vendorOrders: vendorOrdersWithItems };
+    return OrderMapper.mapOrderWithItems(customerOrder, vendorOrdersWithItems);
   }
 
   async getCustomerOrders(customerId: string, page: number = 1, limit: number = 20): Promise<CustomerOrder[]> {
     const offset = (page - 1) * limit;
-    return this.customerOrderRepo.findByCustomer(customerId, limit, offset);
+    const orders = await this.customerOrderRepo.findByCustomer(customerId, limit, offset);
+    return orders.map((o) => OrderMapper.mapCustomerOrder(o));
   }
 
   async getAllOrders(page: number = 1, limit: number = 20): Promise<CustomerOrder[]> {
     const offset = (page - 1) * limit;
-    return this.customerOrderRepo.findAll(limit, offset);
+    const orders = await this.customerOrderRepo.findAll(limit, offset);
+    return orders.map((o) => OrderMapper.mapCustomerOrder(o));
   }
 
-  async getVendorOrders(vendorId: string, page: number = 1, limit: number = 20): Promise<(VendorOrder & { items: VendorOrderItem[] })[]> {
+  async getOrderProposals(orderId: string): Promise<OrderItemProposal[]> {
+    const proposals = await this.proposalRepo.findByCustomerOrder(orderId);
+    
+    // Enrich with vendor shop names
+    const uniqueVendorIds = Array.from(new Set(proposals.map(p => p.vendorId).filter(Boolean) as string[]));
+    const vendorDetailsArray = await Promise.all(
+      uniqueVendorIds.map((vid) => this.vendorClient.getVendor(vid)),
+    );
+    const vendorMap = new Map(uniqueVendorIds.map((vid, i) => [vid, vendorDetailsArray[i]]));
+
+    return proposals
+      .filter((p) => p.status === ProposalStatus.PENDING)
+      .map(p => {
+          const vendor = p.vendorId ? vendorMap.get(p.vendorId) : null;
+          return OrderMapper.mapProposal({
+              ...p,
+              vendorName: vendor?.shopName || "Unknown Vendor"
+          });
+      });
+  }
+
+  async getVendorOrders(
+    vendorId: string,
+    page: number = 1,
+    limit: number = 20,
+  ): Promise<(VendorOrder & { items: VendorOrderItem[] })[]> {
     const offset = (page - 1) * limit;
-    return this.vendorOrderRepo.findByVendorWithItems(vendorId, limit, offset);
+    const orders = await this.vendorOrderRepo.findByVendorWithItems(vendorId, limit, offset);
+    return orders.map((vo) => OrderMapper.mapVendorOrderWithItems(vo));
   }
 
-  async getVendorOrderById(id: string, userId?: string): Promise<VendorOrder & { items: VendorOrderItem[]; vendorName: string; proposals: OrderItemProposal[] }> {
+  async getVendorOrderById(
+    id: string,
+    userId?: string,
+  ): Promise<VendorOrder & { items: VendorOrderItem[]; vendorName: string; proposals: OrderItemProposal[] }> {
     const vo = await this.vendorOrderRepo.findById(id);
     if (!vo) throw new NotFoundError("vendor_order_not_found");
     const items = await this.vendorOrderItemRepo.findByVendorOrder(vo.id);
     const vendor = await this.vendorClient.getVendor(vo.vendorId, userId);
     const proposals = await this.proposalRepo.findByVendorOrder(vo.id);
-    
+
+    const mappedVo = OrderMapper.mapVendorOrder(vo);
+    const mappedItems = items.map((i) => OrderMapper.mapVendorOrderItem(i));
+    const mappedProposals = proposals
+      .filter((p) => p.status === ProposalStatus.PENDING)
+      .map((p) => OrderMapper.mapProposal(p));
+
     return {
-      ...vo,
+      ...mappedVo,
       vendorName: vendor?.shopName || "Unknown Vendor",
-      items,
-      proposals: proposals.filter((p) => p.status === ProposalStatus.PENDING),
+      items: mappedItems,
+      proposals: mappedProposals,
     };
   }
-
   async proposeChanges(vendorOrderId: string, dto: ProposeChangesDto[]): Promise<void> {
     let connection: PoolConnection | undefined;
     try {
@@ -180,7 +215,7 @@ export class OrderService {
         vendorOrderId,
         customerOrderId: vo.customerOrderId,
         vendorId: vo.vendorId,
-        customerId: co.customerId
+        customerId: co.customerId,
       });
 
       await this.stateManager.syncCustomerOrderStatus(vo.customerOrderId, connection);
@@ -196,12 +231,19 @@ export class OrderService {
     status: VendorOrderStatus,
     notes?: string,
     skipCustomerSync: boolean = false,
-    itemWeights?: { itemId: string; actualWeight?: number; actualWeightGrams?: number }[],
+    // itemWeights?: { itemId: string; actualWeight?: number; actualWeightGrams?: number }[],
   ): Promise<void> {
     let connection: PoolConnection | undefined;
     try {
       connection = await this.db.beginTransaction();
-      await this.vendorOrderManager.updateStatus(vendorOrderId, status, itemWeights, notes, skipCustomerSync, connection);
+      await this.vendorOrderManager.updateStatus(
+        vendorOrderId,
+        status,
+        // itemWeights,
+        notes,
+        skipCustomerSync,
+        connection,
+      );
       await this.db.commit(connection);
     } catch (error) {
       if (connection) await this.db.rollback(connection);
@@ -239,22 +281,23 @@ export class OrderService {
       connection = await this.db.beginTransaction();
       const co = await this.customerOrderRepo.findByIdWithLock(customerOrderId, connection);
       if (!co) throw new NotFoundError("customer_order_not_found");
-      if (!this.stateManager.isValidCustomerStatusTransition(co.status, status)) throw new ValidationError("invalid_customer_order_status_transition");
+      if (!this.stateManager.isValidCustomerStatusTransition(co.status, status))
+        throw new ValidationError("invalid_customer_order_status_transition");
 
       await this.customerOrderRepo.updateStatus(customerOrderId, status, connection);
       await this.stateManager.recordStatusChange({ customerOrderId }, status, notes, connection);
 
       if (status === CustomerOrderStatus.COMPLETED) {
-          const vendorOrders = await this.vendorOrderRepo.findByCustomerOrder(customerOrderId, connection);
-          for (const vo of vendorOrders) {
-              const items = await this.vendorOrderItemRepo.findByVendorOrder(vo.id, connection);
-              for (const item of items) {
-                  if (item.requestedWeightGrams) {
-                      const actualWeight = item.actualWeightGrams || item.requestedWeightGrams;
-                      await this.catalogClient.commitWeightStock(item.vendorProductId, actualWeight, item.requestedWeightGrams);
-                  }
-              }
+        const vendorOrders = await this.vendorOrderRepo.findByCustomerOrder(customerOrderId, connection);
+        for (const vo of vendorOrders) {
+          const items = await this.vendorOrderItemRepo.findByVendorOrder(vo.id, connection);
+          for (const item of items) {
+            if (item.requestedWeightGrams) {
+              const actualWeight = item.actualWeightGrams || item.requestedWeightGrams;
+              await this.catalogClient.commitWeightStock(item.vendorProductId, actualWeight, item.requestedWeightGrams);
+            }
           }
+        }
       }
 
       await this.db.commit(connection);

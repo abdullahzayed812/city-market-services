@@ -39,7 +39,8 @@ export const useProducts = () => {
   });
 
   const updateStockMutation = useMutation({
-    mutationFn: ({ id, stock }: { id: string; stock: number }) => productService.updateVendorProductStock(id, stock),
+    mutationFn: ({ id, stock, weight }: { id: string; stock?: number; weight?: number }) =>
+      productService.updateVendorProductStock(id, stock, weight),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["vendor-products", vendorId] });
     },

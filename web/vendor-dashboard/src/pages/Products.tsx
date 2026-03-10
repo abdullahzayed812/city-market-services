@@ -41,11 +41,10 @@ const Products = () => {
     price: 0,
     stockQuantity: 0,
     stockWeightGrams: 0,
-    measurementType: MeasurementType.UNIT,
-    weightUnit: WeightUnit.KG,
     globalCategoryId: "",
     vendorCategoryId: "",
     globalProductId: "",
+    measurementType: MeasurementType.UNIT,
   });
   const [editingProduct, setEditingProduct] = useState<any>(null);
 
@@ -63,18 +62,13 @@ const Products = () => {
         description: selected.description || "",
         globalCategoryId: selected.globalCategoryId,
         measurementType: selected.measurementType || MeasurementType.UNIT,
-        weightUnit: selected.weightUnit || WeightUnit.KG,
-      });
-    } else {
-      setNewProduct({
-        ...newProduct,
-        globalProductId: "",
       });
     }
   };
 
   const handleAddProduct = () => {
-    createVendorProduct(newProduct, {
+    const { measurementType, ...dto } = newProduct;
+    createVendorProduct(dto, {
       onSuccess: () => {
         setIsAddDialogOpen(false);
         setNewProduct({
@@ -83,11 +77,10 @@ const Products = () => {
           price: 0,
           stockQuantity: 0,
           stockWeightGrams: 0,
-          measurementType: MeasurementType.UNIT,
-          weightUnit: WeightUnit.KG,
           globalCategoryId: "",
           vendorCategoryId: "",
           globalProductId: "",
+          measurementType: MeasurementType.UNIT,
         });
       },
     });
@@ -101,31 +94,21 @@ const Products = () => {
       price: product.price,
       stockQuantity: product.stockQuantity,
       stockWeightGrams: product.stockWeightGrams || 0,
-      measurementType: product.measurementType || MeasurementType.UNIT,
-      weightUnit: product.weightUnit || WeightUnit.KG,
       globalCategoryId: product.globalCategoryId,
       vendorCategoryId: product.vendorCategoryId,
       globalProductId: product.globalProductId,
+      measurementType: product.measurementType || MeasurementType.UNIT,
     });
     setIsEditDialogOpen(true);
   };
 
   const handleUpdateProduct = () => {
     if (editingProduct) {
+      const { id, measurementType, ...data } = editingProduct;
       updateVendorProduct(
         {
-          id: editingProduct.id,
-          data: {
-            name: editingProduct.name,
-            description: editingProduct.description,
-            price: editingProduct.price,
-            stockQuantity: editingProduct.stockQuantity,
-            stockWeightGrams: editingProduct.stockWeightGrams,
-            measurementType: editingProduct.measurementType,
-            weightUnit: editingProduct.weightUnit,
-            globalCategoryId: editingProduct.globalCategoryId,
-            vendorCategoryId: editingProduct.vendorCategoryId,
-          },
+          id,
+          data,
         },
         {
           onSuccess: () => {
@@ -168,14 +151,13 @@ const Products = () => {
               <div className="space-y-2">
                 <Label htmlFor="global-product-select">{t("products.link_to_global")}</Label>
                 <Select
-                  value={newProduct.globalProductId || "none"}
+                  value={newProduct.globalProductId}
                   onValueChange={handleGlobalProductSelect}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder={t("products.select_existing")} />
                   </SelectTrigger>
                   <SelectContent className="max-h-[200px] overflow-y-auto">
-                    <SelectItem value="none">{t("products.none_create_new")}</SelectItem>
                     {globalProducts.map((p: any) => (
                       <SelectItem key={p.id} value={p.id}>
                         {p.name}
@@ -192,7 +174,7 @@ const Products = () => {
                   id="name"
                   value={newProduct.name}
                   onChange={(e) => setNewProduct({ ...newProduct, name: e.target.value })}
-                  disabled={!!newProduct.globalProductId && newProduct.globalProductId !== "none"}
+                  disabled={true}
                 />
               </div>
 
@@ -202,7 +184,7 @@ const Products = () => {
                   <Select
                     value={newProduct.measurementType}
                     onValueChange={(val) => setNewProduct({ ...newProduct, measurementType: val as MeasurementType })}
-                    disabled={!!newProduct.globalProductId && newProduct.globalProductId !== "none"}
+                    disabled={true}
                   >
                     <SelectTrigger>
                       <SelectValue />
@@ -213,24 +195,6 @@ const Products = () => {
                     </SelectContent>
                   </Select>
                 </div>
-                {newProduct.measurementType === MeasurementType.WEIGHT && (
-                  <div className="space-y-2">
-                    <Label>{t("products.weight_unit")}</Label>
-                    <Select
-                      value={newProduct.weightUnit}
-                      onValueChange={(val) => setNewProduct({ ...newProduct, weightUnit: val as WeightUnit })}
-                      disabled={!!newProduct.globalProductId && newProduct.globalProductId !== "none"}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value={WeightUnit.KG}>{t("products.kg")}</SelectItem>
-                        <SelectItem value={WeightUnit.GRAM}>{t("products.gram")}</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                )}
               </div>
 
               <div className="grid grid-cols-2 gap-4">
@@ -239,7 +203,7 @@ const Products = () => {
                   <Select
                     value={newProduct.globalCategoryId}
                     onValueChange={(val) => setNewProduct({ ...newProduct, globalCategoryId: val })}
-                    disabled={!!newProduct.globalProductId && newProduct.globalProductId !== "none"}
+                    disabled={true}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder={t("products.select_global_category")} />
@@ -331,7 +295,7 @@ const Products = () => {
                     id="edit-name"
                     value={editingProduct.name}
                     onChange={(e) => setEditingProduct({ ...editingProduct, name: e.target.value })}
-                    disabled={!!editingProduct.globalProductId}
+                    disabled={true}
                   />
                 </div>
 
@@ -341,7 +305,7 @@ const Products = () => {
                     <Select
                       value={editingProduct.measurementType}
                       onValueChange={(val) => setEditingProduct({ ...editingProduct, measurementType: val as MeasurementType })}
-                      disabled={!!editingProduct.globalProductId}
+                      disabled={true}
                     >
                       <SelectTrigger>
                         <SelectValue />
@@ -352,24 +316,6 @@ const Products = () => {
                       </SelectContent>
                     </Select>
                   </div>
-                  {editingProduct.measurementType === MeasurementType.WEIGHT && (
-                    <div className="space-y-2">
-                      <Label>{t("products.weight_unit")}</Label>
-                      <Select
-                        value={editingProduct.weightUnit}
-                        onValueChange={(val) => setEditingProduct({ ...editingProduct, weightUnit: val as WeightUnit })}
-                        disabled={!!editingProduct.globalProductId}
-                      >
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value={WeightUnit.KG}>{t("products.kg")}</SelectItem>
-                          <SelectItem value={WeightUnit.GRAM}>{t("products.gram")}</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  )}
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
@@ -378,7 +324,7 @@ const Products = () => {
                     <Select
                       value={editingProduct.globalCategoryId}
                       onValueChange={(val) => setEditingProduct({ ...editingProduct, globalCategoryId: val })}
-                      disabled={!!editingProduct.globalProductId}
+                      disabled={true}
                     >
                       <SelectTrigger>
                         <SelectValue placeholder={t("products.select_global_category")} />

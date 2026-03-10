@@ -2,7 +2,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogC
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
-import type { VendorOrderWithItemsDto } from "@city-market/shared";
+import { ProposalType, type VendorOrderWithItemsDto, type ProposeChangesDto } from "@city-market/shared";
 import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 
@@ -10,28 +10,36 @@ interface WeightAdjustmentModalProps {
   order: VendorOrderWithItemsDto;
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (itemWeights: { itemId: string; actualWeightGrams: number }[]) => void;
+  onSubmit: (proposals: ProposeChangesDto[]) => void;
 }
 
 export const WeightAdjustmentModal = ({ order, isOpen, onClose, onSubmit }: WeightAdjustmentModalProps) => {
   const { t } = useTranslation();
-  const weightItems = order.items.filter(item => item.requestedWeightGrams !== undefined);
+  const weightItems = order.items.filter((item) => item.requestedWeightGrams !== undefined);
 
   const { register, handleSubmit } = useForm({
     defaultValues: {
-      weights: weightItems.reduce((acc, item) => {
-        acc[item.id] = item.actualWeightGrams || item.requestedWeightGrams || 0;
-        return acc;
-      }, {} as Record<string, number>)
-    }
+      weights: weightItems.reduce(
+        (acc, item) => {
+          acc[item.id] = (item.requestedWeightGrams || 0) / 1000;
+          return acc;
+        },
+        {} as Record<string, number>,
+      ),
+    },
   });
 
   const onFormSubmit = (data: any) => {
-    const itemWeights = Object.entries(data.weights).map(([itemId, weightGrams]) => ({
-      itemId,
-      actualWeightGrams: Number(weightGrams)
-    }));
-    onSubmit(itemWeights);
+    const proposals: ProposeChangesDto[] = Object.entries(data.weights).map(([itemId, weightKg]) => {
+      const item = weightItems.find((i) => i.id === itemId);
+      return {
+        itemId,
+        type: ProposalType.WEIGHT_ADJUSTMENT,
+        proposedWeightGrams: Math.round(Number(weightKg) * 1000),
+        requestedWeightGrams: item?.requestedWeightGrams,
+      };
+    });
+    onSubmit(proposals);
   };
 
   return (
@@ -46,29 +54,34 @@ export const WeightAdjustmentModal = ({ order, isOpen, onClose, onSubmit }: Weig
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Product Name</TableHead>
-                <TableHead>Requested Weight (kg)</TableHead>
-                <TableHead>Actual Weight (kg)</TableHead>
+                <TableHead>{t("orders.productName")}</TableHead>
+                <TableHead>
+                  {t("orders.requestedWeight")} ({t("inventory.units.kg")})
+                </TableHead>
+                <TableHead>
+                  {t("orders.actualWeight")} ({t("inventory.units.kg")})
+                </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {weightItems.map((item) => (
                 <TableRow key={item.id}>
                   <TableCell>{item.productName}</TableCell>
-                  <TableCell>≈ {(item.requestedWeightGrams! / 1000).toFixed(2)} kg</TableCell>
+                  <TableCell>
+                    ≈ {(item.requestedWeightGrams! / 1000).toFixed(2)} {t("inventory.units.kg")}
+                  </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">
-                        <Input
-                            type="number"
-                            step="0.01"
-                            min="0.01"
-                            className="w-32"
-                            {...register(`weights.${item.id}` as any, { 
-                                required: true,
-                                setValueAs: (v) => Math.round(parseFloat(v) * 1000)
-                            })}
-                        />
-                        <span>kg</span>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        min="0.01"
+                        className="w-32"
+                        {...register(`weights.${item.id}` as any, {
+                          required: true,
+                        })}
+                      />
+                      <span>{t("inventory.units.kg")}</span>
                     </div>
                   </TableCell>
                 </TableRow>

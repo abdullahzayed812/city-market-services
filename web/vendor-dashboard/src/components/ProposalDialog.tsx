@@ -65,10 +65,10 @@ export const ProposalDialog = ({ order, isOpen, onClose, onSubmit }: ProposalDia
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Product</TableHead>
-                <TableHead>Original Qty</TableHead>
-                <TableHead>New Qty</TableHead>
-                <TableHead>Unavailable</TableHead>
+                <TableHead>{t("orders.product")}</TableHead>
+                <TableHead>{t("orders.originalQty")}</TableHead>
+                <TableHead>{t("orders.newQty")}</TableHead>
+                <TableHead>{t("orders.unavailable")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>

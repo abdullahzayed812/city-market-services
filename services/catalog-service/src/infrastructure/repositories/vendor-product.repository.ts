@@ -13,7 +13,7 @@ export class VendorProductRepository implements IVendorProductRepository {
 
   async create(product: VendorProduct): Promise<VendorProduct> {
     const query =
-      "INSERT INTO vendor_products (id, vendor_id, global_product_id, vendor_category_id, price, stock_quantity, stock_weight, stock_weight_grams, reserved_weight_grams, is_available) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+      "INSERT INTO vendor_products (id, vendor_id, global_product_id, vendor_category_id, price, stock_quantity, stock_weight_grams, reserved_weight_grams, is_available) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
     await this.pool.execute(query, [
       product.id,
       product.vendorId,
@@ -21,7 +21,6 @@ export class VendorProductRepository implements IVendorProductRepository {
       product.vendorCategoryId,
       product.price,
       product.stockQuantity,
-      product.stockWeight || 0,
       product.stockWeightGrams || 0,
       product.reservedWeightGrams || 0,
       product.isAvailable,
@@ -31,7 +30,7 @@ export class VendorProductRepository implements IVendorProductRepository {
 
   async findById(id: string): Promise<VendorProduct | null> {
     const query = `
-      SELECT vp.*, gp.name, gp.description, gp.image_url, gp.global_category_id, 
+      SELECT vp.*, gp.name, gp.description, gp.image_url, gp.global_category_id, gp.measurement_type, gp.weight_unit, 
              gc.name as global_category_name, vc.name as vendor_category_name 
       FROM vendor_products vp
       JOIN global_products gp ON vp.global_product_id = gp.id
@@ -44,7 +43,7 @@ export class VendorProductRepository implements IVendorProductRepository {
 
   async findAll(limit: number, offset: number): Promise<VendorProduct[]> {
     const query = `
-      SELECT vp.*, gp.name, gp.description, gp.image_url, gp.global_category_id, 
+      SELECT vp.*, gp.name, gp.description, gp.image_url, gp.global_category_id, gp.measurement_type, gp.weight_unit, 
              gc.name as global_category_name, vc.name as vendor_category_name 
       FROM vendor_products vp
       JOIN global_products gp ON vp.global_product_id = gp.id
@@ -75,7 +74,7 @@ export class VendorProductRepository implements IVendorProductRepository {
 
   async findByVendor(vendorId: string, limit: number, offset: number): Promise<VendorProduct[]> {
     const query = `
-      SELECT vp.*, gp.name, gp.description, gp.image_url, gp.global_category_id, 
+      SELECT vp.*, gp.name, gp.description, gp.image_url, gp.global_category_id, gp.measurement_type, gp.weight_unit, 
              gc.name as global_category_name, vc.name as vendor_category_name 
       FROM vendor_products vp
       JOIN global_products gp ON vp.global_product_id = gp.id
@@ -90,7 +89,7 @@ export class VendorProductRepository implements IVendorProductRepository {
 
   async findByCategory(categoryId: string, limit: number, offset: number): Promise<VendorProduct[]> {
     const query = `
-      SELECT vp.*, gp.name, gp.description, gp.image_url, gp.global_category_id, 
+      SELECT vp.*, gp.name, gp.description, gp.image_url, gp.global_category_id, gp.measurement_type, gp.weight_unit, 
              gc.name as global_category_name, vc.name as vendor_category_name 
       FROM vendor_products vp
       JOIN global_products gp ON vp.global_product_id = gp.id
@@ -106,7 +105,7 @@ export class VendorProductRepository implements IVendorProductRepository {
   async findByFilter(filter: VendorProductFilter, limit: number, offset: number): Promise<VendorProduct[]> {
     const { whereClause, values } = this.buildFilterQuery(filter);
     const query = `
-      SELECT vp.*, gp.name, gp.description, gp.image_url, gp.global_category_id, 
+      SELECT vp.*, gp.name, gp.description, gp.image_url, gp.global_category_id, gp.measurement_type, gp.weight_unit, 
              gc.name as global_category_name, vc.name as vendor_category_name 
       FROM vendor_products vp
       JOIN global_products gp ON vp.global_product_id = gp.id
@@ -126,11 +125,8 @@ export class VendorProductRepository implements IVendorProductRepository {
     const fieldMap: Record<string, string> = {
       price: "price",
       stockQuantity: "stock_quantity",
-      stockWeight: "stock_weight",
       stockWeightGrams: "stock_weight_grams",
       reservedWeightGrams: "reserved_weight_grams",
-      measurementType: "measurement_type",
-      weightUnit: "weight_unit",
       isAvailable: "is_available",
       vendorCategoryId: "vendor_category_id",
       globalProductId: "global_product_id",
@@ -257,7 +253,6 @@ export class VendorProductRepository implements IVendorProductRepository {
       description: row.description,
       price: Number(row.price),
       stockQuantity: row.stock_quantity,
-      stockWeight: row.stock_weight ? Number(row.stock_weight) : undefined,
       stockWeightGrams: row.stock_weight_grams,
       reservedWeightGrams: row.reserved_weight_grams,
       measurementType: row.measurement_type,
@@ -265,7 +260,7 @@ export class VendorProductRepository implements IVendorProductRepository {
       imageUrl: row.image_url,
       isAvailable: Boolean(row.is_available),
       createdAt: row.created_at,
-      updated_at: row.updated_at,
+      updatedAt: row.updated_at,
     } as any;
   }
 }

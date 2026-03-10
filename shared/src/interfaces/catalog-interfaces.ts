@@ -26,11 +26,10 @@ export interface VendorProduct {
   description?: string;
   price: number;
   stockQuantity: number;
-  stockWeight?: number;
   stockWeightGrams?: number;
   reservedWeightGrams?: number;
-  measurementType: MeasurementType;
-  weightUnit?: WeightUnit;
+  measurementType: MeasurementType; // Fetched from GlobalProduct, but needed in interface for UI
+  weightUnit?: WeightUnit; // Fetched from GlobalProduct, but needed in interface for UI
   imageUrl?: string;
   isAvailable: boolean;
   createdAt: Date;
@@ -57,10 +56,7 @@ export interface CreateVendorProductDto {
   description?: string;
   price: number;
   stockQuantity?: number;
-  stockWeight?: number;
   stockWeightGrams?: number;
-  measurementType?: MeasurementType;
-  weightUnit?: WeightUnit;
   imageUrl?: string;
 }
 
@@ -72,10 +68,7 @@ export interface UpdateVendorProductDto {
   description?: string;
   price?: number;
   stockQuantity?: number;
-  stockWeight?: number;
   stockWeightGrams?: number;
-  measurementType?: MeasurementType;
-  weightUnit?: WeightUnit;
   imageUrl?: string;
   isAvailable?: boolean;
 }

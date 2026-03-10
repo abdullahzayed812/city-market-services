@@ -6,5 +6,6 @@ export interface IOrderItemProposalRepository {
     findByIdWithLock(id: string, connection: any): Promise<OrderItemProposal | null>;
     findByVendorOrderItem(vendorOrderItemId: string, connection?: any): Promise<OrderItemProposal[]>;
     findByVendorOrder(vendorOrderId: string, connection?: any): Promise<OrderItemProposal[]>;
+    findByCustomerOrder(customerOrderId: string, connection?: any): Promise<OrderItemProposal[]>;
     updateStatus(id: string, status: string, connection?: any): Promise<void>;
 }

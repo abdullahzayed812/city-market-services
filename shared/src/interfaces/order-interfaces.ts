@@ -38,10 +38,10 @@ export interface VendorOrderItem {
   vendorProductId: string;
   productName: string;
   quantity?: number;
-  requestedWeight?: number;
-  actualWeight?: number;
   requestedWeightGrams?: number;
   actualWeightGrams?: number;
+  requestedWeight?: number; // Computed for API (KG)
+  actualWeight?: number; // Computed for API (KG)
   unitPrice: number;
   totalPrice: number;
 }
@@ -51,13 +51,15 @@ export interface OrderItemProposal {
   vendorOrderItemId: string;
   type: ProposalType;
   proposedQuantity?: number;
-  proposedWeight?: number;
-  requestedWeight?: number;
   requestedWeightGrams?: number;
   proposedWeightGrams?: number;
+  proposedWeight?: number; // Computed for API (KG)
+  requestedWeight?: number; // Computed for API (KG)
   status: ProposalStatus;
   createdAt: Date;
   updatedAt: Date;
+  vendorName?: string;
+  productName?: string;
 }
 
 export interface OrderWithItems {
@@ -68,7 +70,6 @@ export interface OrderWithItems {
 export interface CreateOrderItemDto {
   vendorProductId: string;
   quantity?: number;
-  weight?: number;
   weightGrams?: number;
 }
 
@@ -89,7 +90,6 @@ export interface UpdateCustomerOrderStatusDto {
 export interface UpdateVendorOrderStatusDto {
   status: VendorOrderStatus;
   notes?: string;
-  actualWeight?: number;
   actualWeightGrams?: number;
 }
 
@@ -97,7 +97,6 @@ export interface ProposeChangesDto {
   itemId: string;
   type: ProposalType;
   proposedQuantity?: number;
-  proposedWeight?: number;
   requestedWeightGrams?: number;
   proposedWeightGrams?: number;
 }

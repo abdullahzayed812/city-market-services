@@ -4,13 +4,30 @@ export const SEED_DATA = {
     CUSTOMER: "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a12",
     COURIER: "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a15",
     DELIVERY_MANAGER: "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a16",
-    VENDOR1: "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a13", // SuperMarket 1
-    VENDOR2: "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a14", // SuperMarket 2
-    VENDOR3: "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a17", // Pharmacy
-    VENDOR4: "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a18", // Bakery
-    VENDOR5: "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a19", // Butcher (جزار)
-    VENDOR6: "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a20", // Poultry (دواجن)
-    VENDOR7: "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a22", // Fish (أسماك)
+    MADINATY_SUPERMARKET: "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a13", // SuperMarket 1
+    AL_JAZIRA_SUPERMARKET: "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a14", // SuperMarket 2
+    MOATAZ_PHARMACY: "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a17", // Pharmacy
+    EL_MADINA_BAKERY: "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a18", // Bakery
+    AL_RADWA_BUTCHER: "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a19", // Butcher (جزار)
+    AL_HAKEEM_POULTRY: "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a20", // Poultry (دواجن)
+    AL_HAKEEM_FISH: "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a22", // Fish (أسماك)
+    SANAQREH: "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a30",
+    AHMED_YEHIA: "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a31",
+    SABAWI: "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a32",
+    ABDULLAH_BUTCHER: "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a33",
+    BEHEIRY_POULTRY: "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a34",
+    GHANEM_FISH: "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a35",
+    MUTAWAKKIL_FISH: "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a36",
+    ABU_YOUSSEF_FISH: "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a37",
+    BONDOQA: "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a38",
+    ASHRI: "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a39",
+    LOZINA: "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a40",
+    AL_BARAKA_BAKERY: "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a41",
+    ABU_OMAR: "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a42",
+    RAWAN: "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a43",
+    SHADY_LIBRARY: "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a44",
+    AWLAD_RAGAB: "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a45",
+    MAZAARE_AL_KHEIR: "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a46",
   },
   CUSTOMERS: {
     JOHN_DOE: "b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a21",
@@ -23,6 +40,23 @@ export const SEED_DATA = {
     BUTCHER: "c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a35", // محل جزارة
     POULTRY: "c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a36", // محل دواجن
     FISH: "c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a37", // محل أسماك
+    SANAQREH: "c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a40",
+    AHMED_YEHIA: "c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a41",
+    SABAWI: "c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a42",
+    ABDULLAH_BUTCHER: "c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a43",
+    BEHEIRY_POULTRY: "c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a44",
+    GHANEM_FISH: "c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a45",
+    MUTAWAKKIL_FISH: "c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a46",
+    ABU_YOUSSEF_FISH: "c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a47",
+    BONDOQA: "c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a48",
+    ASHRI: "c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a49",
+    LOZINA: "c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a50",
+    AL_BARAKA_BAKERY: "c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a51",
+    ABU_OMAR: "c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a52",
+    RAWAN: "c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a53",
+    SHADY_LIBRARY: "c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a54",
+    AWLAD_RAGAB: "c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a55",
+    MAZAARE_AL_KHEIR: "c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a56",
   },
   CATEGORIES: {
     DAIRY: "d0eebc99-9c0b-4ef8-bb6d-6bb9bd380a41",

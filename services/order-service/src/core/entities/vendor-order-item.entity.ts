@@ -4,10 +4,10 @@ export interface VendorOrderItem {
     vendorProductId: string;
     productName: string;
     quantity?: number;
-    requestedWeight?: number;
-    actualWeight?: number;
     requestedWeightGrams?: number;
     actualWeightGrams?: number;
+    requestedWeight?: number; // Computed for API (KG)
+    actualWeight?: number; // Computed for API (KG)
     unitPrice: number;
     totalPrice: number;
 }

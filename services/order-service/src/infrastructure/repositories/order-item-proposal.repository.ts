@@ -14,16 +14,15 @@ export class OrderItemProposalRepository implements IOrderItemProposalRepository
         const conn = connection || this.pool;
         const query = `
       INSERT INTO order_item_proposals (
-        id, vendor_order_item_id, type, proposed_quantity, proposed_weight, 
+        id, vendor_order_item_id, type, proposed_quantity, 
         requested_weight_grams, proposed_weight_grams, status
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?)
     `;
         await conn.query(query, [
             proposal.id,
             proposal.vendorOrderItemId,
             proposal.type,
             proposal.proposedQuantity || null,
-            proposal.proposedWeight || null,
             proposal.requestedWeightGrams || null,
             proposal.proposedWeightGrams || null,
             proposal.status,
@@ -54,12 +53,26 @@ export class OrderItemProposalRepository implements IOrderItemProposalRepository
     async findByVendorOrder(vendorOrderId: string, connection?: PoolConnection): Promise<OrderItemProposal[]> {
         const conn = connection || this.pool;
         const query = `
-            SELECT p.* 
+            SELECT p.*, i.product_name, v.vendor_id
             FROM order_item_proposals p
             JOIN vendor_order_items i ON p.vendor_order_item_id = i.id
+            JOIN vendor_orders v ON i.vendor_order_id = v.id
             WHERE i.vendor_order_id = ?
         `;
         const [rows] = await conn.execute<RowDataPacket[]>(query, [vendorOrderId]);
+        return rows.map((row) => this.mapToEntity(row));
+    }
+
+    async findByCustomerOrder(customerOrderId: string, connection?: PoolConnection): Promise<OrderItemProposal[]> {
+        const conn = connection || this.pool;
+        const query = `
+            SELECT p.*, i.product_name, v.vendor_id
+            FROM order_item_proposals p
+            JOIN vendor_order_items i ON p.vendor_order_item_id = i.id
+            JOIN vendor_orders v ON i.vendor_order_id = v.id
+            WHERE v.customer_order_id = ?
+        `;
+        const [rows] = await conn.execute<RowDataPacket[]>(query, [customerOrderId]);
         return rows.map((row) => this.mapToEntity(row));
     }
 
@@ -75,12 +88,13 @@ export class OrderItemProposalRepository implements IOrderItemProposalRepository
             vendorOrderItemId: row.vendor_order_item_id,
             type: row.type as ProposalType,
             proposedQuantity: row.proposed_quantity,
-            proposedWeight: row.proposed_weight ? parseFloat(row.proposed_weight) : undefined,
             requestedWeightGrams: row.requested_weight_grams,
             proposedWeightGrams: row.proposed_weight_grams,
             status: row.status as ProposalStatus,
             createdAt: row.created_at,
             updatedAt: row.updated_at,
+            productName: row.product_name,
+            vendorId: row.vendor_id,
         };
     }
 }

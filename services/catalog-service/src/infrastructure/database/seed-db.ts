@@ -132,13 +132,13 @@ const seedDb = async () => {
           
           if (section.measureType === MeasurementType.UNIT) {
             await connection.execute(
-              "INSERT IGNORE INTO vendor_products (id, vendor_id, global_product_id, vendor_category_id, price, stock_quantity, stock_weight_grams, measurement_type, weight_unit, is_available) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", 
-              [randomUUID(), vId, globalId, vCatId, getRandomPrice(10, 500), getRandomStock(10, 100), 0, section.measureType, null, true]
+              "INSERT IGNORE INTO vendor_products (id, vendor_id, global_product_id, vendor_category_id, price, stock_quantity, stock_weight_grams, is_available) VALUES (?, ?, ?, ?, ?, ?, ?, ?)", 
+              [randomUUID(), vId, globalId, vCatId, getRandomPrice(10, 500), getRandomStock(10, 100), 0, true]
             );
           } else {
             await connection.execute(
-              "INSERT IGNORE INTO vendor_products (id, vendor_id, global_product_id, vendor_category_id, price, stock_quantity, stock_weight_grams, measurement_type, weight_unit, is_available) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", 
-              [randomUUID(), vId, globalId, vCatId, getRandomPrice(10, 500), 0, getRandomWeightStock(20, 200), section.measureType, WeightUnit.KG, true]
+              "INSERT IGNORE INTO vendor_products (id, vendor_id, global_product_id, vendor_category_id, price, stock_quantity, stock_weight_grams, is_available) VALUES (?, ?, ?, ?, ?, ?, ?, ?)", 
+              [randomUUID(), vId, globalId, vCatId, getRandomPrice(10, 500), 0, getRandomWeightStock(20, 200), true]
             );
           }
         }

@@ -17,8 +17,11 @@ export const productService = {
     const response = await apiClient.patch<ApiResponse<null>>(`/catalog/products/${id}`, data);
     return response.data?.data;
   },
-  updateVendorProductStock: async (id: string, stock: number) => {
-    const response = await apiClient.patch<ApiResponse<null>>(`/catalog/products/${id}/stock`, { stock });
+  updateVendorProductStock: async (id: string, stock?: number, weight?: number) => {
+    const payload: any = {};
+    if (stock !== undefined) payload.stock = stock;
+    if (weight !== undefined) payload.weight = weight;
+    const response = await apiClient.patch<ApiResponse<null>>(`/catalog/products/${id}/stock`, payload);
     return response.data?.data;
   },
   deleteVendorProduct: async (id: string) => {

@@ -8,6 +8,7 @@ export const createOrderRoutes = (controller: OrderController): Router => {
   router.post("/", controller.create);
   router.get("/customer-orders", controller.getMyOrders);
   router.get("/customer-orders/:id", controller.getCustomerOrderById);
+  router.get("/customer-orders/:id/proposals", controller.getOrderProposals);
   router.patch("/customer-orders/:id/status", controller.updateCustomerOrderStatus);
 
   // Vendor Routes

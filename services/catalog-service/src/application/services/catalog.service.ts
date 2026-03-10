@@ -62,14 +62,12 @@ export class CatalogService {
       description: dto.description,
       price: dto.price,
       stockQuantity: dto.stockQuantity || 0,
-      stockWeight: dto.stockWeight,
-      measurementType: dto.measurementType || MeasurementType.UNIT,
-      weightUnit: dto.weightUnit,
+      stockWeightGrams: dto.stockWeightGrams || 0,
       imageUrl: dto.imageUrl,
       isAvailable: true,
       createdAt: new Date(),
       updatedAt: new Date(),
-    };
+    } as any;
 
     return this.vendorProductRepo.create(product);
   }
@@ -164,9 +162,7 @@ export class CatalogService {
     const vendorUpdate: Partial<VendorProduct> = {
       price: data.price,
       stockQuantity: data.stockQuantity,
-      stockWeight: data.stockWeight,
-      measurementType: data.measurementType,
-      weightUnit: data.weightUnit,
+      stockWeightGrams: data.stockWeightGrams,
       isAvailable: data.isAvailable,
       vendorCategoryId: data.vendorCategoryId,
       globalProductId: data.globalProductId,

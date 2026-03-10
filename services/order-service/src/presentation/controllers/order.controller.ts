@@ -5,7 +5,7 @@ import { Logger } from "@city-market/shared/node";
 import { AuthenticatedRequest } from "@city-market/shared/node";
 
 export class OrderController {
-  constructor(private orderService: OrderService) { }
+  constructor(private orderService: OrderService) {}
 
   create = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
@@ -47,8 +47,8 @@ export class OrderController {
 
   updateVendorOrderStatus = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
-      const { status, notes, itemWeights } = req.body;
-      await this.orderService.updateVendorOrderStatus(req.params.id, status, notes, false, itemWeights);
+      const { status, notes } = req.body;
+      await this.orderService.updateVendorOrderStatus(req.params.id, status, notes, false);
       res.json(ApiResponse.success(null, "vendor_order_status_updated"));
     } catch (error) {
       next(error);
@@ -88,6 +88,15 @@ export class OrderController {
     try {
       const order = await this.orderService.getCustomerOrderById(req.params.id, req.user?.userId);
       res.json(ApiResponse.success(order));
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  getOrderProposals = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      const proposals = await this.orderService.getOrderProposals(req.params.id);
+      res.json(ApiResponse.success(proposals));
     } catch (error) {
       next(error);
     }

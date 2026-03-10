@@ -7,12 +7,12 @@ import { CatalogHttpClient, ProductInfo } from "../../infrastructure/http/catalo
 import { VendorHttpClient } from "../../infrastructure/http/vendor-http-client";
 import { OrderPublisher } from "../../infrastructure/messaging/OrderPublisher";
 import { OrderStateManager } from "./order-state.manager";
-import { 
-  CustomerOrderStatus, 
-  VendorOrderStatus, 
-  ValidationError, 
-  MeasurementType, 
-  PricingStrategyFactory 
+import {
+  CustomerOrderStatus,
+  VendorOrderStatus,
+  ValidationError,
+  MeasurementType,
+  PricingStrategyFactory,
 } from "@city-market/shared";
 import { randomUUID } from "crypto";
 import { CustomerOrder } from "../../core/entities/customer-order.entity";
@@ -30,10 +30,14 @@ export class OrderCreationManager {
     private catalogClient: CatalogHttpClient,
     private vendorClient: VendorHttpClient,
     private publisher: OrderPublisher,
-    private stateManager: OrderStateManager
+    private stateManager: OrderStateManager,
   ) {}
 
-  async create(dto: CreateOrderDto, userId?: string, connection?: PoolConnection): Promise<{ order: CustomerOrder, vendorOrders: (VendorOrder & { items: VendorOrderItem[] })[] }> {
+  async create(
+    dto: CreateOrderDto,
+    userId?: string,
+    connection?: PoolConnection,
+  ): Promise<{ order: CustomerOrder; vendorOrders: (VendorOrder & { items: VendorOrderItem[] })[] }> {
     if (dto.items.length === 0) {
       throw new ValidationError("order_must_have_at_least_one_item");
     }
@@ -43,7 +47,12 @@ export class OrderCreationManager {
     const { totalSubtotal, vendorOrdersData } = this.calculateTotals(vendorItemsMap);
 
     const customerOrder = await this.createCustomerOrderRecord(dto, totalSubtotal, connection!);
-    const createdVendorOrders = await this.createVendorOrderRecords(customerOrder, vendorOrdersData, userId, connection!);
+    const createdVendorOrders = await this.createVendorOrderRecords(
+      customerOrder,
+      vendorOrdersData,
+      userId,
+      connection!,
+    );
 
     await this.handleStockOperations(dto, productInfos, userId);
     await this.publisher.publishOrderCreated(customerOrder.id, customerOrder.customerId);
@@ -53,7 +62,7 @@ export class OrderCreationManager {
 
   private async fetchAndValidateProducts(dto: CreateOrderDto, userId?: string) {
     const productInfos = await Promise.all(
-      dto.items.map((item) => this.catalogClient.getVendorProduct(item.vendorProductId, userId))
+      dto.items.map((item) => this.catalogClient.getVendorProduct(item.vendorProductId, userId)),
     );
 
     for (let i = 0; i < productInfos.length; i++) {
@@ -77,12 +86,13 @@ export class OrderCreationManager {
         if (requestedItem.quantity !== undefined) {
           throw new ValidationError("weight_product_cannot_have_quantity");
         }
-        const weightGrams = requestedItem.weightGrams || (requestedItem.weight ? Math.round(requestedItem.weight * 1000) : undefined);
+        const weightGrams =
+          requestedItem.weightGrams || (requestedItem.weight ? Math.round(requestedItem.weight * 1000) : undefined);
         if (weightGrams === undefined || weightGrams <= 0) throw new ValidationError("invalid_weight");
-        
+
         const availableWeight = (product.stockWeightGrams || 0) - (product.reservedWeightGrams || 0);
         if (availableWeight < weightGrams) throw new ValidationError("insufficient_stock");
-        
+
         requestedItem.weightGrams = weightGrams;
       }
     }
@@ -94,7 +104,8 @@ export class OrderCreationManager {
     for (let i = 0; i < productInfos.length; i++) {
       const product = productInfos[i];
       const requestedItem = dto.items[i];
-      const amount = product.measurementType === MeasurementType.UNIT ? requestedItem.quantity! : requestedItem.weightGrams!;
+      const amount =
+        product.measurementType === MeasurementType.UNIT ? requestedItem.quantity! : requestedItem.weightGrams!;
       const vendorItems = vendorItemsMap.get(product.vendorId) || [];
       vendorItems.push({ product, amount });
       vendorItemsMap.set(product.vendorId, vendorItems);
@@ -121,11 +132,10 @@ export class OrderCreationManager {
           vendorProductId: item.product.id,
           productName: item.product.name,
           quantity: item.product.measurementType === MeasurementType.UNIT ? item.amount : undefined,
-          requestedWeight: item.product.measurementType === MeasurementType.WEIGHT ? item.amount / 1000 : undefined,
           requestedWeightGrams: item.product.measurementType === MeasurementType.WEIGHT ? item.amount : undefined,
           unitPrice: item.product.price,
           totalPrice: itemTotal,
-        });
+        } as any);
       }
 
       totalSubtotal += vendorSubtotal;
@@ -141,7 +151,11 @@ export class OrderCreationManager {
     return { totalSubtotal, vendorOrdersData };
   }
 
-  private async createCustomerOrderRecord(dto: CreateOrderDto, totalSubtotal: number, connection: PoolConnection): Promise<CustomerOrder> {
+  private async createCustomerOrderRecord(
+    dto: CreateOrderDto,
+    totalSubtotal: number,
+    connection: PoolConnection,
+  ): Promise<CustomerOrder> {
     const deliveryFee = DELIVERY_FEE;
     const totalAmount = totalSubtotal + deliveryFee;
 
@@ -166,12 +180,17 @@ export class OrderCreationManager {
       { customerOrderId: customerOrder.id },
       CustomerOrderStatus.PENDING_VENDOR_CONFIRMATION,
       undefined,
-      connection
+      connection,
     );
     return created;
   }
 
-  private async createVendorOrderRecords(customerOrder: CustomerOrder, vendorOrdersData: any[], userId: string | undefined, connection: PoolConnection) {
+  private async createVendorOrderRecords(
+    customerOrder: CustomerOrder,
+    vendorOrdersData: any[],
+    userId: string | undefined,
+    connection: PoolConnection,
+  ) {
     const createdVendorOrders: (VendorOrder & { items: VendorOrderItem[] })[] = [];
 
     for (const voData of vendorOrdersData) {
@@ -188,7 +207,12 @@ export class OrderCreationManager {
       };
 
       await this.vendorOrderRepo.create(vendorOrder, connection);
-      await this.stateManager.recordStatusChange({ vendorOrderId: vendorOrder.id }, VendorOrderStatus.PENDING, undefined, connection);
+      await this.stateManager.recordStatusChange(
+        { vendorOrderId: vendorOrder.id },
+        VendorOrderStatus.PENDING,
+        undefined,
+        connection,
+      );
 
       const uniqueItems = this.mergeDuplicateItems(voData.items, vendorOrder.id);
       for (const item of uniqueItems) {
@@ -203,7 +227,7 @@ export class OrderCreationManager {
         vendorId: vendorOrder.vendorId,
         vendorUserId: vendorInfo?.userId,
         customerOrderId: customerOrder.id,
-        customerId: customerOrder.customerId
+        customerId: customerOrder.customerId,
       });
     }
     return createdVendorOrders;
@@ -217,7 +241,6 @@ export class OrderCreationManager {
         if (item.quantity !== undefined) existing.quantity! += item.quantity;
         if (item.requestedWeightGrams !== undefined) {
           existing.requestedWeightGrams! += item.requestedWeightGrams;
-          existing.requestedWeight = existing.requestedWeightGrams! / 1000;
         }
         existing.totalPrice = Number(existing.totalPrice) + Number(item.totalPrice);
       } else {
@@ -230,9 +253,14 @@ export class OrderCreationManager {
 
   private async handleStockOperations(dto: CreateOrderDto, productInfos: ProductInfo[], userId?: string) {
     for (const item of dto.items) {
-      const product = productInfos.find(p => p?.id === item.vendorProductId);
+      const product = productInfos.find((p) => p?.id === item.vendorProductId);
       if (product?.measurementType === MeasurementType.UNIT) {
-        await this.catalogClient.checkAndDecrementStock(item.vendorProductId, item.quantity!, userId, product.measurementType);
+        await this.catalogClient.checkAndDecrementStock(
+          item.vendorProductId,
+          item.quantity!,
+          userId,
+          product.measurementType,
+        );
       } else if (product?.measurementType === MeasurementType.WEIGHT) {
         await this.catalogClient.reserveWeightStock(item.vendorProductId, item.weightGrams!, userId);
       }
