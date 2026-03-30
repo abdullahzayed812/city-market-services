@@ -20,12 +20,15 @@ export interface Delivery {
   pickupLongitude?: number;
   deliveryLatitude?: number;
   deliveryLongitude?: number;
+  totalPrice: number;
+  itemsCount: number;
   assignedAt?: Date;
   pickedUpAt?: Date;
   deliveredAt?: Date;
   notes?: string;
   courierName?: string;
   courierPhone?: string;
+  vendorOrders?: any[]; // Added to include items
   createdAt: Date;
   updatedAt: Date;
 }

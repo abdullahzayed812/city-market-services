@@ -23,6 +23,7 @@ export interface Delivery {
   notes?: string;
   courierName?: string;
   courierPhone?: string;
+  vendorOrders?: any[]; // Added to include items
   createdAt: Date;
   updatedAt: Date;
 }

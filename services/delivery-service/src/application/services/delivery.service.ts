@@ -193,7 +193,7 @@ export class DeliveryService {
           const delivery = await this.createIndividualDelivery(customerOrder, [v], customerOrderId, v, connection); // Pass connection
           createdDeliveries.push(delivery);
           lastDeliveryId = delivery.id;
-          
+
           eventsToPublish.push(() => this.publisher.publishDeliveryCreated({
             deliveryId: delivery.id,
             customerId: customerOrder.customerId,
@@ -288,7 +288,7 @@ export class DeliveryService {
     return R * c;
   }
 
-  async getDeliveryById(id: string, userId?: string): Promise<Delivery & { order?: any }> {
+  async getDeliveryById(id: string, userId?: string): Promise<Delivery> {
     const delivery = await this.deliveryRepo.findById(id);
     if (!delivery) {
       throw new NotFoundError("delivery_not_found");
@@ -296,25 +296,56 @@ export class DeliveryService {
 
     try {
       const orderData = await this.orderClient.getOrder(delivery.customerOrderId, userId);
-      return { ...delivery, order: orderData };
+      if (orderData && orderData.vendorOrders) {
+        const deliveryVendorOrderIds = delivery.pickupLocations.map(pl => pl.vendorOrderId);
+        delivery.vendorOrders = orderData.vendorOrders.filter((vo: any) =>
+          deliveryVendorOrderIds.includes(vo.id)
+        );
+      }
+      return delivery;
     } catch (error: any) {
       Logger.warn(`Failed to fetch order details for delivery ${id}:`, error.message);
       return delivery;
     }
   }
 
-  async getPendingDeliveries(): Promise<Delivery[]> {
-    return this.deliveryRepo.findPending();
+  async getPendingDeliveries(userId?: string): Promise<Delivery[]> {
+    const deliveries = await this.deliveryRepo.findPending();
+    return this.enrichDeliveriesWithOrderData(deliveries, userId);
   }
 
-  async getCourierDeliveries(courierId: string, page: number = 1, limit: number = 20): Promise<Delivery[]> {
+  async getCourierDeliveries(courierId: string, page: number = 1, limit: number = 20, userId?: string): Promise<Delivery[]> {
     const offset = (page - 1) * limit;
-    return this.deliveryRepo.findByCourier(courierId, limit, offset);
+    const deliveries = await this.deliveryRepo.findByCourier(courierId, limit, offset);
+    return this.enrichDeliveriesWithOrderData(deliveries, userId);
   }
 
-  async getAllDeliveries(page: number = 1, limit: number = 20): Promise<Delivery[]> {
+  async getAllDeliveries(page: number = 1, limit: number = 20, userId?: string): Promise<Delivery[]> {
     const offset = (page - 1) * limit;
-    return this.deliveryRepo.findAll(limit, offset);
+    const deliveries = await this.deliveryRepo.findAll(limit, offset);
+    return this.enrichDeliveriesWithOrderData(deliveries, userId);
+  }
+
+  private async enrichDeliveriesWithOrderData(deliveries: Delivery[], userId?: string): Promise<Delivery[]> {
+    if (deliveries.length === 0) return deliveries;
+
+    return Promise.all(
+      deliveries.map(async (delivery) => {
+        try {
+          const orderData = await this.orderClient.getOrder(delivery.customerOrderId, userId);
+          if (orderData && orderData.vendorOrders) {
+            const deliveryVendorOrderIds = delivery.pickupLocations.map((pl) => pl.vendorOrderId);
+            delivery.vendorOrders = orderData.vendorOrders.filter((vo: any) =>
+              deliveryVendorOrderIds.includes(vo.id)
+            );
+          }
+          return delivery;
+        } catch (error: any) {
+          Logger.warn(`Failed to fetch order details for delivery ${delivery.id}:`, error.message);
+          return delivery;
+        }
+      })
+    );
   }
 
   async updateDeliveryStatus(deliveryId: string, dto: UpdateDeliveryStatusDto): Promise<void> {

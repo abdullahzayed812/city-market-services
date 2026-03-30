@@ -239,6 +239,41 @@ const Deliveries = () => {
                     )} */}
                   </div>
                 </div>
+
+                <div className="mt-6 pt-6 border-t">
+                  <h4 className="text-sm font-semibold mb-3 flex items-center gap-2">
+                    <Package className="w-4 h-4 text-primary" />
+                    {t("orders.order_items")}
+                  </h4>
+                  <div className="space-y-4">
+                    {delivery.vendorOrders?.map((vo: any) => (
+                      <div key={vo.id} className="bg-muted/20 p-3 rounded-lg border">
+                        <div className="flex items-center gap-2 mb-2">
+                          <User className="w-3 h-3 text-muted-foreground" />
+                          <span className="text-xs font-bold text-primary">{vo.vendorName || "Vendor"}</span>
+                        </div>
+                        <div className="space-y-1">
+                          {vo.items?.map((item: any) => (
+                            <div key={item.id} className="flex justify-between text-sm">
+                              <span className="text-muted-foreground">
+                                {item.productName} {item.quantity ? `x${item.quantity}` : ""}
+                                {item.actualWeightGrams
+                                  ? ` (${(item.actualWeightGrams / 1000).toFixed(2)} kg)`
+                                  : item.requestedWeightGrams
+                                    ? ` (${(item.requestedWeightGrams / 1000).toFixed(2)} kg)`
+                                    : ""}
+                              </span>
+                              <span className="font-medium">{item.totalPrice.toFixed(2)} {t("common.currency")}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                    {(!delivery.vendorOrders || delivery.vendorOrders.length === 0) && (
+                      <p className="text-sm text-muted-foreground italic">No items found.</p>
+                    )}
+                  </div>
+                </div>
               </CardContent>
             </Card>
           ))

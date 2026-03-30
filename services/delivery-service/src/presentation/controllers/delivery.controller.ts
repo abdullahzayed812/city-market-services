@@ -87,7 +87,7 @@ export class DeliveryController {
 
   getPendingDeliveries = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
-      const deliveries = await this.deliveryService.getPendingDeliveries();
+      const deliveries = await this.deliveryService.getPendingDeliveries(req.user?.userId);
       res.json(ApiResponse.success(deliveries));
     } catch (error) {
       next(error);
@@ -99,7 +99,7 @@ export class DeliveryController {
       const courier = await this.deliveryService.getCourierByUserId(req.user!.userId);
       const page = parseInt(req.query.page as string) || 1;
       const limit = parseInt(req.query.limit as string) || 20;
-      const deliveries = await this.deliveryService.getCourierDeliveries(courier.id, page, limit);
+      const deliveries = await this.deliveryService.getCourierDeliveries(courier.id, page, limit, req.user?.userId);
       res.json(ApiResponse.success(deliveries));
     } catch (error) {
       next(error);
@@ -128,7 +128,7 @@ export class DeliveryController {
     try {
       const page = parseInt(req.query.page as string) || 1;
       const limit = parseInt(req.query.limit as string) || 20;
-      const deliveries = await this.deliveryService.getAllDeliveries(page, limit);
+      const deliveries = await this.deliveryService.getAllDeliveries(page, limit, req.user?.userId);
       res.json(ApiResponse.success(deliveries));
     } catch (error) {
       next(error);

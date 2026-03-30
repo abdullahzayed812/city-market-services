@@ -1,4 +1,4 @@
-import { CustomerOrderStatus, VendorOrderStatus } from "../enums";
+import { CustomerOrderStatus, MeasurementType, VendorOrderStatus } from "../enums";
 import { ProposalType, ProposalStatus } from "../enums/proposal-enums";
 
 export interface CustomerOrder {
@@ -37,13 +37,14 @@ export interface VendorOrderItem {
   vendorOrderId: string;
   vendorProductId: string;
   productName: string;
+  unitPrice: number;
+  totalPrice: number;
   quantity?: number;
+  measurementType?: MeasurementType,
   requestedWeightGrams?: number;
   actualWeightGrams?: number;
   requestedWeight?: number; // Computed for API (KG)
   actualWeight?: number; // Computed for API (KG)
-  unitPrice: number;
-  totalPrice: number;
 }
 
 export interface OrderItemProposal {

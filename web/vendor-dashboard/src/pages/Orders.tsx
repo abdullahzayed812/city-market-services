@@ -11,17 +11,15 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { MoreHorizontal, CheckCircle, XCircle, ChevronDown, Send, Scale } from "lucide-react";
+import { MoreHorizontal, CheckCircle, XCircle, ChevronDown, Send } from "lucide-react";
 import { VendorOrderStatus } from "@city-market/shared";
 import type { VendorOrderWithItemsDto, ProposeChangesDto } from "@city-market/shared";
-import { ProposalDialog } from "@/components/ProposalDialog";
-import { WeightAdjustmentModal } from "@/components/WeightAdjustmentModal";
+import { OrderPreparationModal } from "@/components/OrderPreparationModal";
 
 const Orders = () => {
   const { t } = useTranslation();
   const { orders, isLoading, isError, updateStatus, cancelOrder, proposeChanges } = useOrders();
-  const [isProposalDialogOpen, setIsProposalDialogOpen] = useState(false);
-  const [isWeightModalOpen, setIsWeightModalOpen] = useState(false);
+  const [isPreparationModalOpen, setIsPreparationModalOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<VendorOrderWithItemsDto | null>(null);
 
   if (isLoading) {
@@ -32,30 +30,17 @@ const Orders = () => {
     return <div className="flex items-center justify-center h-full text-destructive">{t("orders.errorLoading")}</div>;
   }
 
-  const handleOpenProposalDialog = (order: VendorOrderWithItemsDto) => {
+  const handleOpenPreparationModal = (order: VendorOrderWithItemsDto) => {
     setSelectedOrder(order);
-    setIsProposalDialogOpen(true);
-  };
-
-  const handleOpenWeightModal = (order: VendorOrderWithItemsDto) => {
-    setSelectedOrder(order);
-    setIsWeightModalOpen(true);
+    setIsPreparationModalOpen(true);
   };
 
   const handleCloseModals = () => {
     setSelectedOrder(null);
-    setIsProposalDialogOpen(false);
-    setIsWeightModalOpen(false);
+    setIsPreparationModalOpen(false);
   };
 
-  const handleProposeChanges = (proposals: ProposeChangesDto[]) => {
-    if (selectedOrder) {
-      proposeChanges({ orderId: selectedOrder.id, proposals });
-      handleCloseModals();
-    }
-  };
-
-  const handleWeightAdjustment = (proposals: ProposeChangesDto[]) => {
+  const handlePreparationSubmit = (proposals: ProposeChangesDto[]) => {
     if (selectedOrder) {
       proposeChanges({ orderId: selectedOrder.id, proposals });
       handleCloseModals();
@@ -150,14 +135,7 @@ const Orders = () => {
                                   })
                                 }
                               >
-                                <CheckCircle className="h-4 w-4" /> {t("orders.preparingOrder")}
-                              </DropdownMenuItem>
-
-                              <DropdownMenuItem
-                                className="gap-2 text-blue-600"
-                                onClick={() => handleOpenProposalDialog(order)}
-                              >
-                                <Send className="h-4 w-4" /> {t("orders.sendProposal")}
+                                <CheckCircle className="h-4 w-4" /> {t("orders.prepareOrder")}
                               </DropdownMenuItem>
                               <DropdownMenuItem
                                 className="gap-2 text-destructive"
@@ -172,9 +150,9 @@ const Orders = () => {
                             <>
                               <DropdownMenuItem
                                 className="gap-2 text-blue-600"
-                                onClick={() => handleOpenWeightModal(order)}
+                                onClick={() => handleOpenPreparationModal(order)}
                               >
-                                <Scale className="h-4 w-4" /> {t("orders.adjustWeight")}
+                                <Send className="h-4 w-4" /> {t("orders.proposeChanges")}
                               </DropdownMenuItem>
                               <DropdownMenuItem
                                 className="gap-2 text-green-600"
@@ -250,17 +228,11 @@ const Orders = () => {
       </div>
       {selectedOrder && (
         <>
-          <ProposalDialog
+          <OrderPreparationModal
             order={selectedOrder}
-            isOpen={isProposalDialogOpen}
+            isOpen={isPreparationModalOpen}
             onClose={handleCloseModals}
-            onSubmit={handleProposeChanges}
-          />
-          <WeightAdjustmentModal
-            order={selectedOrder}
-            isOpen={isWeightModalOpen}
-            onClose={handleCloseModals}
-            onSubmit={handleWeightAdjustment}
+            onSubmit={handlePreparationSubmit}
           />
         </>
       )}
