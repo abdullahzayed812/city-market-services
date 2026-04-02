@@ -102,6 +102,7 @@ export class PushNotificationProvider {
           priority: 'high',
           notification: {
             priority: 'high',
+            channelId: 'high_priority',
             defaultSound: true,
             defaultVibrateTimings: true,
           },
@@ -139,6 +140,7 @@ export class PushNotificationProvider {
           priority: 'high',
           notification: {
             priority: 'high',
+            channelId: 'high_priority',
             defaultSound: true,
             defaultVibrateTimings: true,
           },

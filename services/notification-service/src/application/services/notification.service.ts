@@ -21,8 +21,9 @@ export class NotificationService {
     }
 
     // Default translation for saving to DB (in English or fallback)
-    const dbTitle = translate(titleKey, 'en', metadata);
-    const dbMessage = translate(messageKey, 'en', metadata);
+    const truncatedMetadata = this.truncateMetadata(metadata);
+    const dbTitle = translate(titleKey, 'en', truncatedMetadata);
+    const dbMessage = translate(messageKey, 'en', truncatedMetadata);
 
     // 2. Save Notification
     const notification: Notification = {
@@ -52,8 +53,9 @@ export class NotificationService {
 
         // Send to each language group
         for (const [lang, groupedTokens] of Object.entries(languageGroups)) {
-          const translatedTitle = translate(titleKey, lang, metadata);
-          const translatedMessage = translate(messageKey, lang, metadata);
+          const truncatedMetadata = this.truncateMetadata(metadata);
+          const translatedTitle = translate(titleKey, lang, truncatedMetadata);
+          const translatedMessage = translate(messageKey, lang, truncatedMetadata);
 
           const staleTokens = await this.pushProvider.sendMulticast(
             groupedTokens,
@@ -91,8 +93,9 @@ export class NotificationService {
     }, {} as Record<string, string[]>);
 
     for (const [lang, groupedTokens] of Object.entries(languageGroups)) {
-      const translatedTitle = translate(titleKey, lang, metadata);
-      const translatedMessage = translate(messageKey, lang, metadata);
+      const truncatedMetadata = this.truncateMetadata(metadata);
+      const translatedTitle = translate(titleKey, lang, truncatedMetadata);
+      const translatedMessage = translate(messageKey, lang, truncatedMetadata);
 
       const staleTokens = await this.pushProvider.sendMulticast(
         groupedTokens,
@@ -131,5 +134,18 @@ export class NotificationService {
 
   async markAllRead(userId: string) {
     await this.repo.markAllAsRead(userId);
+  }
+
+  private truncateMetadata(metadata?: Record<string, any>): Record<string, any> {
+    if (!metadata) return {};
+    const truncated = { ...metadata };
+    const keysToTruncate = ['orderId', 'customerOrderId', 'vendorOrderId', 'deliveryId', 'ratingId'];
+
+    for (const key of keysToTruncate) {
+      if (truncated[key] && typeof truncated[key] === 'string' && truncated[key].length > 6) {
+        truncated[key] = truncated[key].substring(0, 6);
+      }
+    }
+    return truncated;
   }
 }
