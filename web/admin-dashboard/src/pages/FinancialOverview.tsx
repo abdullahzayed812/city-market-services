@@ -13,7 +13,7 @@ const FinancialOverview: React.FC = () => {
     queryKey: ["adminRevenue"],
     queryFn: async () => {
       const response = await adminApi.getRevenue();
-      return response.data.data;
+      return response.data;
     },
   });
 
@@ -63,9 +63,7 @@ const FinancialOverview: React.FC = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">$850</div>
-            <p className="text-xs text-muted-foreground mt-1">
-              {t("financial.awaiting_payment", { count: 3 })}
-            </p>
+            <p className="text-xs text-muted-foreground mt-1">{t("financial.awaiting_payment", { count: 3 })}</p>
           </CardContent>
         </Card>
       </div>
@@ -92,9 +90,7 @@ const FinancialOverview: React.FC = () => {
                   <TableCell>{payout.vendorName}</TableCell>
                   <TableCell>${payout.amount.toLocaleString()}</TableCell>
                   <TableCell>
-                    <Badge variant={payout.status === "completed" ? "default" : "secondary"}>
-                      {payout.status}
-                    </Badge>
+                    <Badge variant={payout.status === "completed" ? "default" : "secondary"}>{payout.status}</Badge>
                   </TableCell>
                   <TableCell>{payout.date}</TableCell>
                 </TableRow>

@@ -33,6 +33,8 @@ export const adminApi = {
   // Vendors Management
   getVendors: () => axiosInstance.get<ApiResponse<Vendor[]>>("/admin/vendors"),
   getVendorById: (id: string) => axiosInstance.get<ApiResponse<Vendor>>(`/admin/vendors/${id}`),
+  updateVendor: (id: string, body: Partial<Vendor>) => axiosInstance.patch<ApiResponse<null>>(`/admin/vendors/${id}`, body),
+  updateVendorCommission: (id: string, rate: number) => axiosInstance.patch<ApiResponse<null>>(`/admin/vendors/${id}/commission`, { rate }),
   updateVendorStatus: (
     id: string,
     body: { status: ShopStatus } // Use inline type for update status

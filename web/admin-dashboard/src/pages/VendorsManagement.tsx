@@ -8,17 +8,124 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import { Store, Phone, Upload, Plus } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
+import { Store, Phone, Upload, Plus, Edit } from "lucide-react";
 import { ShopStatus } from "@city-market/shared";
 import { useToast } from "@/hooks/use-toast";
+
+// eslint-disable-next-line react-refresh/only-export-components
+export const VENDOR_TYPES = [
+  "Supermarket",
+  "VegFruit",
+  "Pharmacy",
+  "Butcher",
+  "Poultry",
+  "Fish",
+  "Roastery",
+  "Bakery",
+  "Pastry",
+  "Stationery",
+];
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const VendorEditDialog = ({ isOpen, onOpenChange, vendor, onSave, isSaving }: any) => {
+  const { t } = useTranslation();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [formData, setFormData] = useState<any>(null);
+
+  React.useEffect(() => {
+    if (isOpen && vendor) {
+      setFormData({
+        ...vendor,
+        commissionRate: vendor.commissionRate ?? 10,
+      });
+    }
+  }, [isOpen, vendor]);
+
+  if (!formData) return null;
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-[600px]">
+        <DialogHeader>
+          <DialogTitle>{t("common.edit")}</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4 py-4 max-h-[70vh] overflow-y-auto px-1">
+          <div className="space-y-2">
+            <Label htmlFor="editShopName">{t("vendors.shop_name")}</Label>
+            <Input
+              id="editShopName"
+              value={formData.shopName}
+              onChange={(e) => setFormData({ ...formData, shopName: e.target.value })}
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="editPhone">{t("common.phone")}</Label>
+              <Input
+                id="editPhone"
+                value={formData.phone}
+                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="editType">{t("vendors.type")}</Label>
+              <Select value={formData.type} onValueChange={(val) => setFormData({ ...formData, type: val })}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select type" />
+                </SelectTrigger>
+
+                <SelectContent>
+                  {VENDOR_TYPES.map((type) => (
+                    <SelectItem key={type} value={type}>
+                      {type}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="editCommission">{t("vendors.commission_rate", "Commission Rate (%)")}</Label>
+              <Input
+                id="editCommission"
+                type="number"
+                step="0.01"
+                value={formData.commissionRate}
+                onChange={(e) => setFormData({ ...formData, commissionRate: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="editAddress">{t("vendors.address")}</Label>
+              <Input
+                id="editAddress"
+                value={formData.address}
+                onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+              />
+            </div>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="editShopDescription">{t("common.description")}</Label>
+            <Input
+              id="editShopDescription"
+              value={formData.shopDescription}
+              onChange={(e) => setFormData({ ...formData, shopDescription: e.target.value })}
+            />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            {t("common.cancel")}
+          </Button>
+          <Button onClick={() => onSave(formData)} disabled={isSaving}>
+            {isSaving ? t("common.loading") : t("common.save")}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+};
 
 const VendorsManagement: React.FC = () => {
   const { t } = useTranslation();
@@ -26,6 +133,8 @@ const VendorsManagement: React.FC = () => {
   const { toast } = useToast();
   const [uploadingId, setUploadingId] = useState<string | null>(null);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [editingVendor, setEditingVendor] = useState<any>(null);
   const [newVendor, setNewVendor] = useState({
     email: "",
     password: "",
@@ -47,11 +156,32 @@ const VendorsManagement: React.FC = () => {
   });
 
   const updateStatusMutation = useMutation({
-    mutationFn: ({ id, status }: { id: string; status: ShopStatus }) => 
-      adminApi.updateVendorStatus(id, { status }),
+    mutationFn: ({ id, status }: { id: string; status: ShopStatus }) => adminApi.updateVendorStatus(id, { status }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["adminVendors"] });
       toast({ description: t("vendors.status_updated") });
+    },
+  });
+
+  const updateVendorMutation = useMutation({
+    mutationFn: async (data: any) => {
+      const { id, commissionRate, ...rest } = data;
+      await adminApi.updateVendor(id, rest);
+      if (commissionRate !== undefined) {
+        await adminApi.updateVendorCommission(id, Number(commissionRate));
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["adminVendors"] });
+      setIsEditDialogOpen(false);
+      setEditingVendor(null);
+      toast({ description: t("common.success") });
+    },
+    onError: (error: any) => {
+      toast({
+        variant: "destructive",
+        description: error.response?.data?.message || t("common.error"),
+      });
     },
   });
 
@@ -76,7 +206,7 @@ const VendorsManagement: React.FC = () => {
     onError: (error: any) => {
       toast({
         variant: "destructive",
-        description: error.response?.data?.message || t("common.error")
+        description: error.response?.data?.message || t("common.error"),
       });
     },
   });
@@ -173,10 +303,7 @@ const VendorsManagement: React.FC = () => {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="type">{t("vendors.type")}</Label>
-                  <Select
-                    value={newVendor.type}
-                    onValueChange={(val) => setNewVendor({ ...newVendor, type: val })}
-                  >
+                  <Select value={newVendor.type} onValueChange={(val) => setNewVendor({ ...newVendor, type: val })}>
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
@@ -218,6 +345,14 @@ const VendorsManagement: React.FC = () => {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        <VendorEditDialog
+          isOpen={isEditDialogOpen}
+          onOpenChange={setIsEditDialogOpen}
+          vendor={editingVendor}
+          onSave={(data: any) => updateVendorMutation.mutate(data)}
+          isSaving={updateVendorMutation.isPending}
+        />
       </div>
 
       <div className="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden">
@@ -266,22 +401,31 @@ const VendorsManagement: React.FC = () => {
                     {vendor.phone}
                   </div>
                 </TableCell>
-                <TableCell className="max-w-[200px] truncate text-gray-600 text-sm">
-                  {vendor.address}
-                </TableCell>
+                <TableCell className="max-w-[200px] truncate text-gray-600 text-sm">{vendor.address}</TableCell>
                 <TableCell>
-                  <Badge variant={vendor.status === "OPEN" ? "default" : "secondary"}>
-                    {vendor.status}
-                  </Badge>
+                  <Badge variant={vendor.status === "OPEN" ? "default" : "secondary"}>{vendor.status}</Badge>
                 </TableCell>
                 <TableCell className="text-end">
-                  <Button 
-                    variant="ghost" 
+                  <Button
+                    variant="ghost"
                     size="sm"
-                    onClick={() => updateStatusMutation.mutate({ 
-                      id: vendor.id, 
-                      status: vendor.status === "OPEN" ? ShopStatus.CLOSED : ShopStatus.OPEN 
-                    })}
+                    className="me-2"
+                    onClick={() => {
+                      setEditingVendor(vendor);
+                      setIsEditDialogOpen(true);
+                    }}
+                  >
+                    <Edit size={16} />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() =>
+                      updateStatusMutation.mutate({
+                        id: vendor.id,
+                        status: vendor.status === "OPEN" ? ShopStatus.CLOSED : ShopStatus.OPEN,
+                      })
+                    }
                   >
                     {vendor.status === "OPEN" ? t("common.deactivate") : t("common.activate")}
                   </Button>

@@ -14,6 +14,7 @@ export const createVendorRoutes = (controller: VendorController): Router => {
   router.get("/:id", authorize(UserRole.VENDOR, UserRole.CUSTOMER, UserRole.ADMIN), controller.getById);
   router.get("/", authorize(UserRole.VENDOR, UserRole.CUSTOMER, UserRole.ADMIN), controller.getAll);
   router.patch("/:id", authorize(UserRole.VENDOR, UserRole.ADMIN), controller.update);
+  router.patch("/:id/commission", authorize(UserRole.ADMIN), controller.updateCommission);
   router.patch("/:id/status", authorize(UserRole.VENDOR, UserRole.ADMIN), controller.updateStatus);
   router.post("/:id/working-hours", authorize(UserRole.VENDOR, UserRole.ADMIN), controller.setWorkingHours);
   router.get("/:id/working-hours", authorize(UserRole.VENDOR, UserRole.ADMIN), controller.getWorkingHours);

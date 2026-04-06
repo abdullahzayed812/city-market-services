@@ -145,6 +145,19 @@ export class VendorProductController {
     }
   };
 
+  updatePrice = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      if (req.body.price) {
+        await this.catalogService.updateVendorProductPrice(req.params.id, req.body.price);
+      } else {
+        throw new ValidationError("price_must_be_provided");
+      }
+      res.json(ApiResponse.success(null, "vendor_product_price_updated"));
+    } catch (error) {
+      next(error);
+    }
+  };
+
   decrementStock = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
       const { stock, weight } = req.body;

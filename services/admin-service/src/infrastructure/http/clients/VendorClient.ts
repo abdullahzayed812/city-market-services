@@ -28,6 +28,12 @@ export class VendorClient extends BaseClient {
     return response.data;
   }
 
+  async updateVendor(id: string, data: any, userId?: string) {
+    const config = await this.getRequestConfig(userId);
+    const response = await this.axiosInstance.patch(`/${id}`, data, config);
+    return response.data;
+  }
+
   async updateVendorCommission(vendorId: string, rate: number, userId?: string) {
     const config = await this.getRequestConfig(userId);
     const response = await this.axiosInstance.patch(`/${vendorId}/commission`, { rate }, config);

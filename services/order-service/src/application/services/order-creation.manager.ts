@@ -20,7 +20,6 @@ import { VendorOrder } from "../../core/entities/vendor-order.entity";
 import { VendorOrderItem } from "../../core/entities/vendor-order-item.entity";
 
 const DELIVERY_FEE = 15.0;
-const COMMISSION_RATE = 0.1;
 
 export class OrderCreationManager {
   constructor(
@@ -31,7 +30,7 @@ export class OrderCreationManager {
     private vendorClient: VendorHttpClient,
     private publisher: OrderPublisher,
     private stateManager: OrderStateManager,
-  ) {}
+  ) { }
 
   async create(
     dto: CreateOrderDto,
@@ -44,13 +43,24 @@ export class OrderCreationManager {
 
     const productInfos = await this.fetchAndValidateProducts(dto, userId);
     const vendorItemsMap = this.groupByVendor(dto, productInfos);
-    const { totalSubtotal, vendorOrdersData } = this.calculateTotals(vendorItemsMap);
 
-    const customerOrder = await this.createCustomerOrderRecord(dto, totalSubtotal, connection!);
+    const vendorInfosMap = new Map<string, any>();
+    const vendorCommissionsMap = new Map<string, number>();
+
+    const vendorIds = Array.from(vendorItemsMap.keys());
+    await Promise.all(vendorIds.map(async (vendorId) => {
+      const vendorInfo = await this.vendorClient.getVendor(vendorId, userId);
+      vendorInfosMap.set(vendorId, vendorInfo);
+      vendorCommissionsMap.set(vendorId, vendorInfo?.commissionRate ?? 10.0);
+    }));
+
+    const { totalSubtotal, totalCommissionAmount, vendorOrdersData } = this.calculateTotals(vendorItemsMap, vendorCommissionsMap);
+
+    const customerOrder = await this.createCustomerOrderRecord(dto, totalSubtotal, totalCommissionAmount, connection!);
     const createdVendorOrders = await this.createVendorOrderRecords(
       customerOrder,
       vendorOrdersData,
-      userId,
+      vendorInfosMap,
       connection!,
     );
 
@@ -113,12 +123,14 @@ export class OrderCreationManager {
     return vendorItemsMap;
   }
 
-  private calculateTotals(vendorItemsMap: Map<string, { product: ProductInfo; amount: number }[]>) {
+  private calculateTotals(vendorItemsMap: Map<string, { product: ProductInfo; amount: number }[]>, vendorCommissionsMap: Map<string, number>) {
     let totalSubtotal = 0;
+    let totalCommissionAmount = 0;
     const vendorOrdersData: any[] = [];
 
     for (const [vendorId, items] of vendorItemsMap.entries()) {
       let vendorSubtotal = 0;
+      const commissionRate = vendorCommissionsMap.get(vendorId) ?? 10.0;
       const vendorItemsData: VendorOrderItem[] = [];
 
       for (const item of items) {
@@ -138,22 +150,25 @@ export class OrderCreationManager {
         } as any);
       }
 
+      const commissionAmount = vendorSubtotal * (commissionRate / 100);
       totalSubtotal += vendorSubtotal;
+      totalCommissionAmount += commissionAmount;
       vendorOrdersData.push({
         id: randomUUID(),
         vendorId,
         subtotal: vendorSubtotal,
-        commissionAmount: vendorSubtotal * COMMISSION_RATE,
+        commissionAmount,
         totalAmount: vendorSubtotal,
         items: vendorItemsData,
       });
     }
-    return { totalSubtotal, vendorOrdersData };
+    return { totalSubtotal, totalCommissionAmount, vendorOrdersData };
   }
 
   private async createCustomerOrderRecord(
     dto: CreateOrderDto,
     totalSubtotal: number,
+    totalCommissionAmount: number,
     connection: PoolConnection,
   ): Promise<CustomerOrder> {
     const deliveryFee = DELIVERY_FEE;
@@ -166,7 +181,7 @@ export class OrderCreationManager {
       subtotal: totalSubtotal,
       deliveryFee,
       totalAmount,
-      commissionAmount: totalSubtotal * COMMISSION_RATE,
+      commissionAmount: totalCommissionAmount,
       deliveryAddress: dto.deliveryAddress,
       deliveryLatitude: dto.deliveryLatitude,
       deliveryLongitude: dto.deliveryLongitude,
@@ -188,7 +203,7 @@ export class OrderCreationManager {
   private async createVendorOrderRecords(
     customerOrder: CustomerOrder,
     vendorOrdersData: any[],
-    userId: string | undefined,
+    vendorInfosMap: Map<string, any>,
     connection: PoolConnection,
   ) {
     const createdVendorOrders: (VendorOrder & { items: VendorOrderItem[] })[] = [];
@@ -221,7 +236,7 @@ export class OrderCreationManager {
 
       createdVendorOrders.push({ ...vendorOrder, items: uniqueItems });
 
-      const vendorInfo = await this.vendorClient.getVendor(vendorOrder.vendorId, userId);
+      const vendorInfo = vendorInfosMap.get(vendorOrder.vendorId);
       await this.publisher.publishVendorOrderCreated({
         vendorOrderId: vendorOrder.id,
         vendorId: vendorOrder.vendorId,

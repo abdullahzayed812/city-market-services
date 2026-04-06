@@ -24,7 +24,7 @@ export class VendorHttpClient implements IVendorClient {
   async getVendor(vendorId: string, userId?: string): Promise<VendorInfo | null> {
     try {
       const config = await this.getRequestConfig(userId);
-      const response = await this.axiosInstance.get(`${this.baseUrl}/vendors/${vendorId}`, config);
+      const response = await this.axiosInstance.get(`${this.baseUrl}/${vendorId}`, config);
       if (response.data.success && response.data.data) {
         return response.data.data;
       }

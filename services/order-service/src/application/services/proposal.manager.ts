@@ -20,7 +20,6 @@ import {
 } from "@city-market/shared";
 import { randomUUID } from "crypto";
 
-const COMMISSION_RATE = 0.1;
 const WEIGHT_TOLERANCE_GRAMS = 100;
 const MAX_WEIGHT_DIFFERENCE_THRESHOLD = 0.3;
 
@@ -34,7 +33,7 @@ export class ProposalManager {
     private vendorClient: VendorHttpClient,
     private publisher: OrderPublisher,
     private stateManager: OrderStateManager,
-  ) {}
+  ) { }
 
   async propose(vendorOrderId: string, dto: ProposeChangesDto[], connection: PoolConnection): Promise<void> {
     const vo = await this.vendorOrderRepo.findByIdWithLock(vendorOrderId, connection);
@@ -258,37 +257,47 @@ export class ProposalManager {
   }
 
   private async recalculateTotals(vendorOrderId: string, connection: PoolConnection): Promise<void> {
+    const vo = await this.vendorOrderRepo.findById(vendorOrderId, connection);
+    if (!vo) return;
+
+    const vendorInfo = await this.vendorClient.getVendor(vo.vendorId);
+    const commissionRate = vendorInfo?.commissionRate ?? 10.0;
+
     const items = await this.vendorOrderItemRepo.findByVendorOrder(vendorOrderId, connection);
     const newSubtotal = items.reduce((sum, item) => sum + item.totalPrice, 0);
+    const commissionAmount = newSubtotal * (commissionRate / 100);
+
     await this.vendorOrderRepo.update(
       vendorOrderId,
       {
         subtotal: newSubtotal,
         totalAmount: newSubtotal,
-        commissionAmount: newSubtotal * COMMISSION_RATE,
+        commissionAmount,
       },
       connection,
     );
 
-    const vo = await this.vendorOrderRepo.findById(vendorOrderId, connection);
-    if (vo) {
-      const co = await this.customerOrderRepo.findByIdWithLock(vo.customerOrderId, connection);
-      if (co) {
-        const allVo = await this.vendorOrderRepo.findByCustomerOrder(co.id, connection);
-        const customerSubtotal = allVo.reduce(
-          (sum, v) => sum + (v.status !== VendorOrderStatus.CANCELLED ? v.subtotal : 0),
-          0,
-        );
-        await this.customerOrderRepo.update(
-          co.id,
-          {
-            subtotal: customerSubtotal,
-            totalAmount: customerSubtotal + co.deliveryFee,
-            commissionAmount: customerSubtotal * COMMISSION_RATE,
-          },
-          connection,
-        );
-      }
+    const co = await this.customerOrderRepo.findByIdWithLock(vo.customerOrderId, connection);
+    if (co) {
+      const allVo = await this.vendorOrderRepo.findByCustomerOrder(co.id, connection);
+      const customerSubtotal = allVo.reduce(
+        (sum, v) => sum + (v.status !== VendorOrderStatus.CANCELLED ? v.subtotal : 0),
+        0,
+      );
+      const customerCommissionAmount = allVo.reduce(
+        (sum, v) => sum + (v.status !== VendorOrderStatus.CANCELLED ? v.commissionAmount : 0),
+        0,
+      );
+
+      await this.customerOrderRepo.update(
+        co.id,
+        {
+          subtotal: customerSubtotal,
+          totalAmount: customerSubtotal + co.deliveryFee,
+          commissionAmount: customerCommissionAmount,
+        },
+        connection,
+      );
     }
   }
 }

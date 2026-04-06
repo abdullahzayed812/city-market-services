@@ -82,6 +82,7 @@
     "total_users": "إجمالي المستخدمين",
     "total_vendors": "إجمالي الموردين",
     "total_couriers": "إجمالي المناديب",
+    "total_revenue": "إجمالي الإيرادات",
     "revenue_summary": "ملخص الإيرادات",
     "revenue_chart_placeholder": "مكان مخطط الإيرادات",
     "recent_activity_placeholder": "مكان النشاط الأخير"

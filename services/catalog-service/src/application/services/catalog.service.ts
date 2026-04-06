@@ -172,13 +172,17 @@ export class CatalogService {
   }
 
   async updateVendorStock(id: string, stock: number): Promise<void> {
-    await this.getVendorProductById(id);
+    // await this.getVendorProductById(id);
     await this.vendorProductRepo.updateStock(id, stock);
   }
 
   async updateVendorWeightStock(id: string, weight: number): Promise<void> {
-    await this.getVendorProductById(id);
+    // await this.getVendorProductById(id);
     await this.vendorProductRepo.updateWeightStock(id, weight);
+  }
+
+  async updateVendorProductPrice(id: string, price: number): Promise<void> {
+    await this.vendorProductRepo.updatePrice(id, price);
   }
 
   async decrementVendorStock(id: string, amount: number, type: MeasurementType = MeasurementType.UNIT): Promise<void> {

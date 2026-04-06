@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
 import { adminApi } from "@/services/api/admin-api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users, ShoppingBag, Truck, Store } from "lucide-react";
+import { Users, ShoppingBag, Truck, Store, DollarSign } from "lucide-react";
 
 const Dashboard: React.FC = () => {
   const { t } = useTranslation();
@@ -22,6 +22,13 @@ const Dashboard: React.FC = () => {
     { title: t("dashboard.total_orders"), value: stats?.totalOrders, icon: ShoppingBag, color: "text-emerald-600" },
     { title: t("dashboard.total_vendors"), value: stats?.totalVendors, icon: Store, color: "text-orange-600" },
     { title: t("dashboard.total_couriers"), value: stats?.totalCouriers, icon: Truck, color: "text-purple-600" },
+    {
+      title: t("dashboard.total_revenue"),
+      value: stats?.revenueToday,
+      icon: DollarSign,
+      color: "text-green-600",
+      isCurrency: true,
+    },
   ];
 
   return (
@@ -43,7 +50,7 @@ const Dashboard: React.FC = () => {
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
-        <Card className="col-span-1">
+        {/* <Card className="col-span-1">
           <CardHeader>
             <CardTitle>{t("dashboard.revenue_summary")}</CardTitle>
           </CardHeader>
@@ -58,7 +65,7 @@ const Dashboard: React.FC = () => {
           <CardContent className="h-[300px] flex items-center justify-center border-2 border-dashed rounded-md m-4">
             <p className="text-gray-400">{t("dashboard.recent_activity_placeholder")}</p>
           </CardContent>
-        </Card>
+        </Card> */}
       </div>
     </div>
   );

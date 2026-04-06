@@ -156,6 +156,11 @@ export class VendorProductRepository implements IVendorProductRepository {
     await this.pool.execute(query, [weight, id]);
   }
 
+  async updatePrice(id: string, price: number): Promise<void> {
+    const query = "UPDATE vendor_products SET price = ? WHERE id = ?";
+    await this.pool.execute(query, [price, id]);
+  }
+
   async decrementStock(id: string, quantity: number): Promise<void> {
     const query = "UPDATE vendor_products SET stock_quantity = stock_quantity - ? WHERE id = ? AND stock_quantity >= ?";
     const [result] = await this.pool.execute<ResultSetHeader>(query, [quantity, id, quantity]);
@@ -165,7 +170,8 @@ export class VendorProductRepository implements IVendorProductRepository {
   }
 
   async decrementWeightStock(id: string, weight: number): Promise<void> {
-    const query = "UPDATE vendor_products SET stock_weight_grams = stock_weight_grams - ? WHERE id = ? AND stock_weight_grams >= ?";
+    const query =
+      "UPDATE vendor_products SET stock_weight_grams = stock_weight_grams - ? WHERE id = ? AND stock_weight_grams >= ?";
     const [result] = await this.pool.execute<ResultSetHeader>(query, [weight, id, weight]);
     if (result.affectedRows === 0) {
       throw new Error("Insufficient stock or product not found");
@@ -173,7 +179,8 @@ export class VendorProductRepository implements IVendorProductRepository {
   }
 
   async reserveWeightStock(id: string, weight: number): Promise<void> {
-    const query = "UPDATE vendor_products SET reserved_weight_grams = reserved_weight_grams + ? WHERE id = ? AND (stock_weight_grams - reserved_weight_grams) >= ?";
+    const query =
+      "UPDATE vendor_products SET reserved_weight_grams = reserved_weight_grams + ? WHERE id = ? AND (stock_weight_grams - reserved_weight_grams) >= ?";
     const [result] = await this.pool.execute<ResultSetHeader>(query, [weight, id, weight]);
     if (result.affectedRows === 0) {
       throw new Error("Insufficient available weight or product not found");
@@ -181,7 +188,8 @@ export class VendorProductRepository implements IVendorProductRepository {
   }
 
   async releaseWeightStock(id: string, weight: number): Promise<void> {
-    const query = "UPDATE vendor_products SET reserved_weight_grams = reserved_weight_grams - ? WHERE id = ? AND reserved_weight_grams >= ?";
+    const query =
+      "UPDATE vendor_products SET reserved_weight_grams = reserved_weight_grams - ? WHERE id = ? AND reserved_weight_grams >= ?";
     const [result] = await this.pool.execute<ResultSetHeader>(query, [weight, id, weight]);
     if (result.affectedRows === 0) {
       throw new Error("Reservation error: not enough reserved weight or product not found");
@@ -189,8 +197,15 @@ export class VendorProductRepository implements IVendorProductRepository {
   }
 
   async commitWeightStock(id: string, actualWeight: number, reservedWeight: number): Promise<void> {
-    const query = "UPDATE vendor_products SET stock_weight_grams = stock_weight_grams - ?, reserved_weight_grams = reserved_weight_grams - ? WHERE id = ? AND stock_weight_grams >= ? AND reserved_weight_grams >= ?";
-    const [result] = await this.pool.execute<ResultSetHeader>(query, [actualWeight, reservedWeight, id, actualWeight, reservedWeight]);
+    const query =
+      "UPDATE vendor_products SET stock_weight_grams = stock_weight_grams - ?, reserved_weight_grams = reserved_weight_grams - ? WHERE id = ? AND stock_weight_grams >= ? AND reserved_weight_grams >= ?";
+    const [result] = await this.pool.execute<ResultSetHeader>(query, [
+      actualWeight,
+      reservedWeight,
+      id,
+      actualWeight,
+      reservedWeight,
+    ]);
     if (result.affectedRows === 0) {
       throw new Error("Commit error: insufficient stock or reserved weight");
     }

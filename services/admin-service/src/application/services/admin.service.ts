@@ -81,6 +81,10 @@ export class AdminService {
     return this.serviceClient.vendor.getVendorById(id, userId);
   }
 
+  async updateVendor(id: string, data: any, userId?: string) {
+    return this.serviceClient.vendor.updateVendor(id, data, userId);
+  }
+
   async updateVendorStatus(id: string, status: string, userId?: string) {
     return this.serviceClient.vendor.updateVendorStatus(id, status, userId);
   }

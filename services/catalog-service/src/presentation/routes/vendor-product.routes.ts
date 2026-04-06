@@ -13,6 +13,7 @@ export const createVendorProductRoutes = (controller: VendorProductController): 
   router.get("/products/:id", controller.getById);
   router.patch("/products/:id", controller.update);
   router.patch("/products/:id/stock", controller.updateStock);
+  router.patch("/products/:id/price", controller.updatePrice);
   router.patch("/products/:id/decrement", controller.decrementStock);
   router.patch("/products/:id/reserve", controller.reserveStock);
   router.patch("/products/:id/release", controller.releaseStock);

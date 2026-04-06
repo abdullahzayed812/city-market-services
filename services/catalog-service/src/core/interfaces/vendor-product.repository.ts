@@ -13,6 +13,7 @@ export interface IVendorProductRepository {
   update(id: string, data: Partial<VendorProduct>): Promise<void>;
   updateStock(id: string, quantity: number): Promise<void>;
   updateWeightStock(id: string, weight: number): Promise<void>;
+  updatePrice(id: string, price: number): Promise<void>;
   delete(id: string): Promise<void>;
   decrementStock(id: string, quantity: number): Promise<void>;
   decrementWeightStock(id: string, weight: number): Promise<void>;

@@ -21,6 +21,7 @@ export const createAdminRoutes = (controller: AdminController): Router => {
   router.get("/users/:id", authorize(UserRole.ADMIN), controller.getUserById);
   router.patch("/users/:id/status", authorize(UserRole.ADMIN), controller.updateUserStatus);
   router.get("/vendors/:id", authorize(UserRole.ADMIN), controller.getVendorById);
+  router.patch("/vendors/:id", authorize(UserRole.ADMIN), controller.updateVendor);
   router.patch("/vendors/:id/status", authorize(UserRole.ADMIN), controller.updateVendorStatus);
   router.post("/vendors/:id/image", authorize(UserRole.ADMIN), upload.single("image"), controller.uploadVendorImage);
   router.get("/orders/:id", authorize(UserRole.ADMIN), controller.getOrderById);

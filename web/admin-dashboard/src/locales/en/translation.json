@@ -82,6 +82,7 @@
     "total_users": "Total Users",
     "total_vendors": "Total Vendors",
     "total_couriers": "Total Couriers",
+    "total_revenue": "Total Revenue",
     "revenue_summary": "Revenue Summary",
     "revenue_chart_placeholder": "Revenue Chart Placeholder",
     "recent_activity_placeholder": "Recent Activity Placeholder"
