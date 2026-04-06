@@ -1,112 +1,78 @@
-import React, { useState } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
-import { useAuth } from "../components/AuthProvider";
-import { Button } from "../components/ui/button";
-import { Input } from "../components/ui/input";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "../components/ui/card";
-import { Label } from "../components/ui/label";
-import { Lock, Mail, Loader2, Truck } from "lucide-react";
+import { useState } from "react";
+import { useTranslation } from "react-i18next";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import { Truck } from "lucide-react";
 
-const LoginPage: React.FC = () => {
-  const [email, setEmail] = useState("deliverymanager@citymarket.com");
-  const [password, setPassword] = useState("password123");
-  const [error, setError] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-
-  const { login } = useAuth();
+const LoginPage = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
-  const location = useLocation();
+  const { login } = useAuth();
+  const [isLoading, setIsLoading] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
 
-  const from = location.state?.from?.pathname || "/";
-
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError(null);
     setIsLoading(true);
-
     try {
-      await login({ email, password });
-      navigate(from, { replace: true });
-    } catch (err: any) {
-      setError(err.response?.data?.message || "Failed to login. Please check your credentials.");
+      await login(email, password);
+      navigate("/");
+    } catch (error) {
+      console.error("Login failed:", error);
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-blue-50 px-4 py-12 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
-        <div className="text-center">
-          <div className="flex justify-center mb-4">
-            <div className="p-3 bg-blue-100 rounded-2xl">
-              <Truck className="h-10 w-10 text-blue-600" />
-            </div>
+    <div className="min-h-screen flex items-center justify-center bg-muted/50 p-4">
+      <Card className="w-full max-w-md animate-in fade-in zoom-in duration-500">
+        <CardHeader className="space-y-1 flex flex-col items-center">
+          <div className="p-3 bg-primary rounded-full mb-4">
+            <Truck className="w-8 h-8 text-primary-foreground" />
           </div>
-          <h1 className="text-4xl font-extrabold text-slate-900 tracking-tight mb-2">CityMarket</h1>
-          <h2 className="text-xl font-semibold text-slate-600">Delivery Dashboard</h2>
-        </div>
-
-        <Card className="border-none shadow-xl bg-white/80 backdrop-blur-sm">
-          <CardHeader className="space-y-1">
-            <CardTitle className="text-2xl text-center">Sign in</CardTitle>
-            <CardDescription className="text-center">Access your delivery management tools</CardDescription>
-          </CardHeader>
-          <CardContent className="grid gap-4">
-            <form onSubmit={handleSubmit} className="space-y-4">
-              {error && (
-                <div className="p-3 rounded-lg bg-red-50 border border-red-200 text-red-800 text-sm">{error}</div>
-              )}
-              <div className="grid gap-2">
-                <Label htmlFor="email">Email</Label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="courier@citymarket.com"
-                    className="pl-10 h-11"
-                    value={email}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)}
-                    required
-                  />
-                </div>
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="password">Password</Label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
-                  <Input
-                    id="password"
-                    type="password"
-                    className="pl-10 h-11"
-                    value={password}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
-                    required
-                  />
-                </div>
-              </div>
-              <Button
-                type="submit"
-                className="w-full h-11 text-base font-medium bg-blue-600 hover:bg-blue-700 transition-all duration-200 hover:scale-[1.02]"
-                disabled={isLoading}
-              >
-                {isLoading ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Signing in...
-                  </>
-                ) : (
-                  "Sign In"
-                )}
-              </Button>
-            </form>
-          </CardContent>
-          <CardFooter className="flex flex-col space-y-4">
-            <div className="text-sm text-center text-slate-500">Secure access for authorized couriers only</div>
-          </CardFooter>
-        </Card>
-      </div>
+          <CardTitle className="text-2xl font-bold">{t("common.citymarket")}</CardTitle>
+          <CardDescription>{t("common.delivery_office")}</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleLogin} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="email">{t("common.email")}</Label>
+              <Input
+                id="email"
+                type="email"
+                placeholder="admin@citymarket.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="password">{t("common.password")}</Label>
+              <Input
+                id="password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+              />
+            </div>
+            <Button className="w-full" type="submit" disabled={isLoading}>
+              {isLoading ? t("common.loading") : t("common.logout").replace(t("common.logout"), "Login")} {/* Simple fallback if login translation missing */}
+            </Button>
+          </form>
+        </CardContent>
+        <CardFooter className="flex flex-col">
+          <p className="text-xs text-center text-muted-foreground mt-4">
+            &copy; {new Date().getFullYear()} {t("common.citymarket")}. {t("common.admin")}
+          </p>
+        </CardFooter>
+      </Card>
     </div>
   );
 };

@@ -15,7 +15,34 @@
     "couriers": "المندوبين",
     "delivery_office": "مكتب التوصيل",
     "citymarket": "سيتي ماركت",
-    "admin": "المدير"
+    "admin": "المدير",
+    "password": "كلمة المرور",
+    "loading": "جاري التحميل...",
+    "no_deliveries": "لا توجد طلبات.",
+    "no_couriers": "لا يوجد مناديب.",
+    "created_at": "تاريخ الإنشاء",
+    "courier": "المندوب",
+    "currency": "ر.س",
+    "assign": "تعيين مندوب",
+    "select_courier": "اختر مندوباً",
+    "confirm_assignment": "تأكيد التعيين",
+    "assigning": "جاري التعيين...",
+    "email": "البريد الإلكتروني",
+    "phone": "رقم الهاتف",
+    "vehicle": "المركبة",
+    "rating": "التقييم",
+    "total_deliveries": "إجمالي الطلبات",
+    "notifications": "التنبيهات",
+    "new_order_alerts": "تنبيهات الطلبات الجديدة",
+    "new_order_alerts_desc": "تلقي تنبيهات للطلبات الجديدة المسندة إليك.",
+    "earnings_reports": "تقارير الأرباح",
+    "earnings_reports_desc": "الحصول على ملخصات أسبوعية لأرباحك.",
+    "privacy_security": "الخصوصية والأمان",
+    "share_location": "مشاركة الموقع",
+    "share_location_desc": "السماح للعملاء بتتبع موقعك أثناء التوصيل.",
+    "appearance": "المظهر",
+    "dark_mode": "الوضع الليلي",
+    "dark_mode_desc": "التبديل بين الوضع الفاتح والمظلم."
   },
   "dashboard": {
     "active_couriers": "المناديب النشطين",
@@ -35,6 +62,9 @@
     "on_the_way": "في الطريق",
     "delivered": "تم التوصيل",
     "assigned": "تم تعيين مندوب",
-    "pending": "قيد الانتظار"
+    "pending": "قيد الانتظار",
+    "failed": "فشل",
+    "order_items": "عناصر الطلب",
+    "no_items": "لم يتم العثور على عناصر."
   }
 }

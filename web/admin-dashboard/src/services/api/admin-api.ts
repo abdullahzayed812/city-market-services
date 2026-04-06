@@ -64,6 +64,9 @@ export const adminApi = {
   getRevenue: () => axiosInstance.get<ApiResponse<RevenueReport>>("/admin/revenue"),
   getPayouts: () => axiosInstance.get<ApiResponse<PayoutsReport>>("/admin/payouts"),
 
+  getFinancialAnalytics: (vendorId: string, params?: { periodStart?: string; periodEnd?: string }) =>
+    axiosInstance.get<ApiResponse<any>>(`/admin/vendors/${vendorId}/financial-analytics`, { params }),
+
   // Registration Management
   registerUser: (data: any) => axiosInstance.post<ApiResponse<any>>("/admin/users/register", data),
   registerCourier: (data: any) => axiosInstance.post<ApiResponse<any>>("/admin/couriers/register", data),

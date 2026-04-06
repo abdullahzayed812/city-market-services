@@ -9,9 +9,8 @@ const Settings = () => {
     const { t } = useTranslation();
 
     return (
-        <div className="space-y-6">
-            <div>
-                <h1 className="text-3xl font-bold tracking-tight">{t("common.settings")}</h1>
+      <div className="space-y-6 animate-in fade-in zoom-in duration-500">
+        <div>                <h1 className="text-3xl font-bold tracking-tight">{t("common.settings")}</h1>
                 <p className="text-muted-foreground">
                     Manage your account and notification preferences.
                 </p>

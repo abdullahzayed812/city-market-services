@@ -114,7 +114,7 @@ const LoginPage: React.FC = () => {
           </Card>
 
           {/* Standard Login Card */}
-          <Card className="border-none shadow-2xl bg-white overflow-hidden flex flex-col">
+          <Card className="border-none shadow-2xl bg-white overflow-hidden flex flex-col animate-in fade-in zoom-in duration-500">
             <div className="h-2 bg-orange-600 w-full" />
             <CardHeader className="space-y-1 pt-8">
               <CardTitle className="text-2xl font-bold text-center text-slate-900">{t("auth.signin")}</CardTitle>

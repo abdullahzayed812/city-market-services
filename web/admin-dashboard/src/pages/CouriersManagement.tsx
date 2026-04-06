@@ -5,27 +5,15 @@ import { adminApi } from "@/services/api/admin-api";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
 import { Bike, Phone, User, Plus, Power, PowerOff } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import CreateCourierDialog from "@/features/couriers/components/CreateCourierDialog";
 
 const CouriersManagement: React.FC = () => {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-  const [newCourier, setNewCourier] = useState({
-    email: "",
-    password: "",
-    firstName: "",
-    lastName: "",
-    phone: "",
-    vehicleType: "Motorcycle",
-    licensePlate: "",
-  });
 
   const { data: couriers, isLoading } = useQuery({
     queryKey: ["adminCouriers"],
@@ -40,15 +28,6 @@ const CouriersManagement: React.FC = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["adminCouriers"] });
       setIsCreateDialogOpen(false);
-      setNewCourier({
-        email: "",
-        password: "",
-        firstName: "",
-        lastName: "",
-        phone: "",
-        vehicleType: "Motorcycle",
-        licensePlate: "",
-      });
       toast({ description: t("couriers.created_success") });
     },
     onError: (error: any) => {
@@ -70,109 +49,24 @@ const CouriersManagement: React.FC = () => {
   if (isLoading) return <div className="p-8 text-center">{t("common.loading")}</div>;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-in fade-in zoom-in duration-500">
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold text-gray-800">{t("common.couriers")}</h2>
         <div className="flex gap-4 items-center">
           <Badge variant="outline" className="px-3 py-1">
             {t("couriers.available_couriers")}: {couriers?.filter((c) => c.isAvailable).length || 0}
           </Badge>
-          <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-            <DialogTrigger asChild>
-              <Button className="gap-2">
-                <Plus size={16} />
-                {t("couriers.add_new")}
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-[500px]">
-              <DialogHeader>
-                <DialogTitle>{t("couriers.add_new_title")}</DialogTitle>
-              </DialogHeader>
-              <div className="space-y-4 py-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="firstName">{t("auth.first_name")}</Label>
-                    <Input
-                      id="firstName"
-                      value={newCourier.firstName}
-                      onChange={(e) => setNewCourier({ ...newCourier, firstName: e.target.value })}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="lastName">{t("auth.last_name")}</Label>
-                    <Input
-                      id="lastName"
-                      value={newCourier.lastName}
-                      onChange={(e) => setNewCourier({ ...newCourier, lastName: e.target.value })}
-                    />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="email">{t("common.email")}</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    value={newCourier.email}
-                    onChange={(e) => setNewCourier({ ...newCourier, email: e.target.value })}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="password">{t("auth.password")}</Label>
-                  <Input
-                    id="password"
-                    type="password"
-                    value={newCourier.password}
-                    onChange={(e) => setNewCourier({ ...newCourier, password: e.target.value })}
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="phone">{t("common.phone")}</Label>
-                    <Input
-                      id="phone"
-                      value={newCourier.phone}
-                      onChange={(e) => setNewCourier({ ...newCourier, phone: e.target.value })}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="vehicleType">{t("couriers.vehicle")}</Label>
-                    <Select
-                      value={newCourier.vehicleType}
-                      onValueChange={(val) => setNewCourier({ ...newCourier, vehicleType: val })}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Motorcycle">Motorcycle</SelectItem>
-                        <SelectItem value="Car">Car</SelectItem>
-                        <SelectItem value="Bicycle">Bicycle</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="licensePlate">{t("couriers.license_plate")}</Label>
-                  <Input
-                    id="licensePlate"
-                    value={newCourier.licensePlate}
-                    onChange={(e) => setNewCourier({ ...newCourier, licensePlate: e.target.value })}
-                  />
-                </div>
-              </div>
-              <DialogFooter>
-                <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
-                  {t("common.cancel")}
-                </Button>
-                <Button
-                  onClick={() => createCourierMutation.mutate(newCourier)}
-                  disabled={createCourierMutation.isPending}
-                >
-                  {createCourierMutation.isPending ? t("common.loading") : t("common.create")}
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
+          <Button className="gap-2" onClick={() => setIsCreateDialogOpen(true)}>
+            <Plus size={16} />
+            {t("couriers.add_new")}
+          </Button>
+          
+          <CreateCourierDialog
+            open={isCreateDialogOpen}
+            onOpenChange={setIsCreateDialogOpen}
+            onSubmit={(data) => createCourierMutation.mutate(data)}
+            isPending={createCourierMutation.isPending}
+          />
         </div>
       </div>
 

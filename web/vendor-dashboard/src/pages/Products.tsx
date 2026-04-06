@@ -10,13 +10,11 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Image as ImageIcon, MoreHorizontal, Plus, Pencil, Trash2, Upload } from "lucide-react";
 import VendorProductImageModal from "@/components/ProductImageModal";
-import { MeasurementType, WeightUnit } from "@city-market/shared";
+import { MeasurementType } from "@city-market/shared";
+import ProductFormDialog from "@/features/products/components/ProductFormDialog";
 
 const Products = () => {
   const { t } = useTranslation();
@@ -35,89 +33,37 @@ const Products = () => {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isImageModalOpen, setIsImageModalOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
-  const [newProduct, setNewProduct] = useState({
-    name: "",
-    description: "",
-    price: 0,
-    stockQuantity: 0,
-    stockWeightGrams: 0,
-    globalCategoryId: "",
-    vendorCategoryId: "",
-    globalProductId: "",
-    measurementType: MeasurementType.UNIT,
-  });
   const [editingProduct, setEditingProduct] = useState<any>(null);
 
   if (isLoading) {
     return <div className="flex items-center justify-center h-full">{t("common.loading")}</div>;
   }
 
-  const handleGlobalProductSelect = (id: string) => {
-    const selected = globalProducts.find((p: any) => p.id === id);
-    if (selected) {
-      setNewProduct({
-        ...newProduct,
-        globalProductId: id,
-        name: selected.name,
-        description: selected.description || "",
-        globalCategoryId: selected.globalCategoryId,
-        measurementType: selected.measurementType || MeasurementType.UNIT,
-      });
-    }
-  };
-
-  const handleAddProduct = () => {
-    const { measurementType, ...dto } = newProduct;
+  const handleCreateProduct = (data: any) => {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { measurementType, ...dto } = data;
     createVendorProduct(dto, {
       onSuccess: () => {
         setIsAddDialogOpen(false);
-        setNewProduct({
-          name: "",
-          description: "",
-          price: 0,
-          stockQuantity: 0,
-          stockWeightGrams: 0,
-          globalCategoryId: "",
-          vendorCategoryId: "",
-          globalProductId: "",
-          measurementType: MeasurementType.UNIT,
-        });
       },
     });
   };
 
-  const handleEditProduct = (product: any) => {
-    setEditingProduct({
-      id: product.id,
-      name: product.name,
-      description: product.description || "",
-      price: product.price,
-      stockQuantity: product.stockQuantity,
-      stockWeightGrams: product.stockWeightGrams || 0,
-      globalCategoryId: product.globalCategoryId,
-      vendorCategoryId: product.vendorCategoryId,
-      globalProductId: product.globalProductId,
-      measurementType: product.measurementType || MeasurementType.UNIT,
-    });
-    setIsEditDialogOpen(true);
-  };
-
-  const handleUpdateProduct = () => {
-    if (editingProduct) {
-      const { id, measurementType, ...data } = editingProduct;
-      updateVendorProduct(
-        {
-          id,
-          data,
+  const handleUpdateProduct = (data: any) => {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { id, measurementType, ...rest } = data;
+    updateVendorProduct(
+      {
+        id,
+        data: rest,
+      },
+      {
+        onSuccess: () => {
+          setIsEditDialogOpen(false);
+          setEditingProduct(null);
         },
-        {
-          onSuccess: () => {
-            setIsEditDialogOpen(false);
-            setEditingProduct(null);
-          },
-        },
-      );
-    }
+      },
+    );
   };
 
   const handleImageUpload = (productId: string, e: React.ChangeEvent<HTMLInputElement>) => {
@@ -128,279 +74,39 @@ const Products = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-in fade-in zoom-in duration-500">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">{t("products.title")}</h1>
           <p className="text-muted-foreground">{t("products.subtitle")}</p>
         </div>
-        <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-          <DialogTrigger asChild>
-            <Button className="gap-2">
-              <Plus className="h-4 w-4" /> {t("products.add_product")}
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>{t("products.add_new_product")}</DialogTitle>
-              <DialogDescription className="sr-only">
-                {t("products.add_product_description", "Create a new product listing for your shop.")}
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4 py-4 max-h-[80vh] overflow-y-auto">
-              <div className="space-y-2">
-                <Label htmlFor="global-product-select">{t("products.link_to_global")}</Label>
-                <Select
-                  value={newProduct.globalProductId}
-                  onValueChange={handleGlobalProductSelect}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder={t("products.select_existing")} />
-                  </SelectTrigger>
-                  <SelectContent className="max-h-[200px] overflow-y-auto">
-                    {globalProducts.map((p: any) => (
-                      <SelectItem key={p.id} value={p.id}>
-                        {p.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <p className="text-xs text-muted-foreground">{t("products.global_catalog_info")}</p>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="name">{t("products.product_name")}</Label>
-                <Input
-                  id="name"
-                  value={newProduct.name}
-                  onChange={(e) => setNewProduct({ ...newProduct, name: e.target.value })}
-                  disabled={true}
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>{t("products.measurement_type")}</Label>
-                  <Select
-                    value={newProduct.measurementType}
-                    onValueChange={(val) => setNewProduct({ ...newProduct, measurementType: val as MeasurementType })}
-                    disabled={true}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value={MeasurementType.UNIT}>{t("products.unit")}</SelectItem>
-                      <SelectItem value={MeasurementType.WEIGHT}>{t("products.weight")}</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="global-category">{t("products.global_category")}</Label>
-                  <Select
-                    value={newProduct.globalCategoryId}
-                    onValueChange={(val) => setNewProduct({ ...newProduct, globalCategoryId: val })}
-                    disabled={true}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder={t("products.select_global_category")} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {globalCategories.map((cat: any) => (
-                        <SelectItem key={cat.id} value={cat.id}>
-                          {cat.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="vendor-category">{t("products.store_category")}</Label>
-                  <Select
-                    value={newProduct.vendorCategoryId}
-                    onValueChange={(val) => setNewProduct({ ...newProduct, vendorCategoryId: val })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder={t("products.select_store_category")} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {vendorCategories.map((cat: any) => (
-                        <SelectItem key={cat.id} value={cat.id}>
-                          {cat.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="price">{newProduct.measurementType === MeasurementType.WEIGHT ? t("products.price_per_kg") : t("products.price")}</Label>
-                  <Input
-                    id="price"
-                    type="number"
-                    value={newProduct.price}
-                    onChange={(e) => setNewProduct({ ...newProduct, price: parseFloat(e.target.value) })}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="stock">{newProduct.measurementType === MeasurementType.WEIGHT ? t("products.stock_grams") : t("products.stock")}</Label>
-                  <Input
-                    id="stock"
-                    type="number"
-                    value={newProduct.measurementType === MeasurementType.WEIGHT ? newProduct.stockWeightGrams : newProduct.stockQuantity}
-                    onChange={(e) => {
-                        const val = parseInt(e.target.value);
-                        if (newProduct.measurementType === MeasurementType.WEIGHT) {
-                            setNewProduct({ ...newProduct, stockWeightGrams: val });
-                        } else {
-                            setNewProduct({ ...newProduct, stockQuantity: val });
-                        }
-                    }}
-                  />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="description">{t("products.description")}</Label>
-                <Input
-                  id="description"
-                  value={newProduct.description}
-                  onChange={(e) => setNewProduct({ ...newProduct, description: e.target.value })}
-                />
-              </div>
-              <Button className="w-full" onClick={handleAddProduct}>
-                {t("products.create_product")}
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
-
-        <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>{t("products.edit_product")}</DialogTitle>
-              <DialogDescription className="sr-only">
-                {t("products.edit_product_description", "Update details for your shop product.")}
-              </DialogDescription>
-            </DialogHeader>
-            {editingProduct && (
-              <div className="space-y-4 py-4 max-h-[80vh] overflow-y-auto">
-                <div className="space-y-2">
-                  <Label htmlFor="edit-name">{t("products.product_name")}</Label>
-                  <Input
-                    id="edit-name"
-                    value={editingProduct.name}
-                    onChange={(e) => setEditingProduct({ ...editingProduct, name: e.target.value })}
-                    disabled={true}
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>{t("products.measurement_type")}</Label>
-                    <Select
-                      value={editingProduct.measurementType}
-                      onValueChange={(val) => setEditingProduct({ ...editingProduct, measurementType: val as MeasurementType })}
-                      disabled={true}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value={MeasurementType.UNIT}>{t("products.unit")}</SelectItem>
-                        <SelectItem value={MeasurementType.WEIGHT}>{t("products.weight")}</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="edit-global-category">{t("products.global_category")}</Label>
-                    <Select
-                      value={editingProduct.globalCategoryId}
-                      onValueChange={(val) => setEditingProduct({ ...editingProduct, globalCategoryId: val })}
-                      disabled={true}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder={t("products.select_global_category")} />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {globalCategories.map((cat: any) => (
-                          <SelectItem key={cat.id} value={cat.id}>
-                            {cat.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="edit-vendor-category">{t("products.store_category")}</Label>
-                    <Select
-                      value={editingProduct.vendorCategoryId}
-                      onValueChange={(val) => setEditingProduct({ ...editingProduct, vendorCategoryId: val })}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder={t("products.select_store_category")} />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {vendorCategories.map((cat: any) => (
-                          <SelectItem key={cat.id} value={cat.id}>
-                            {cat.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="edit-price">{editingProduct.measurementType === MeasurementType.WEIGHT ? t("products.price_per_kg") : t("products.price")}</Label>
-                    <Input
-                      id="edit-price"
-                      type="number"
-                      value={editingProduct.price}
-                      onChange={(e) => setEditingProduct({ ...editingProduct, price: parseFloat(e.target.value) })}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="edit-stock">{editingProduct.measurementType === MeasurementType.WEIGHT ? t("products.stock_grams") : t("products.stock")}</Label>
-                    <Input
-                      id="edit-stock"
-                      type="number"
-                      value={editingProduct.measurementType === MeasurementType.WEIGHT ? editingProduct.stockWeightGrams : editingProduct.stockQuantity}
-                      onChange={(e) => {
-                          const val = parseInt(e.target.value);
-                          if (editingProduct.measurementType === MeasurementType.WEIGHT) {
-                              setEditingProduct({ ...editingProduct, stockWeightGrams: val });
-                          } else {
-                              setEditingProduct({ ...editingProduct, stockQuantity: val });
-                          }
-                      }}
-                    />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="edit-description">{t("products.description")}</Label>
-                  <Input
-                    id="edit-description"
-                    value={editingProduct.description}
-                    onChange={(e) => setEditingProduct({ ...editingProduct, description: e.target.value })}
-                  />
-                </div>
-                <Button className="w-full" onClick={handleUpdateProduct}>
-                  {t("products.update_product")}
-                </Button>
-              </div>
-            )}
-          </DialogContent>
-        </Dialog>
+        <Button className="gap-2" onClick={() => setIsAddDialogOpen(true)}>
+          <Plus className="h-4 w-4" /> {t("products.add_product")}
+        </Button>
       </div>
+
+      <ProductFormDialog
+        open={isAddDialogOpen}
+        onOpenChange={setIsAddDialogOpen}
+        isCreate={true}
+        product={null}
+        globalProducts={globalProducts}
+        globalCategories={globalCategories}
+        vendorCategories={vendorCategories}
+        onSubmit={handleCreateProduct}
+        isPending={false} // Hook handles loading
+      />
+
+      <ProductFormDialog
+        open={isEditDialogOpen}
+        onOpenChange={setIsEditDialogOpen}
+        product={editingProduct}
+        globalProducts={globalProducts}
+        globalCategories={globalCategories}
+        vendorCategories={vendorCategories}
+        onSubmit={handleUpdateProduct}
+        isPending={false}
+      />
 
       <div className="border rounded-lg bg-card">
         <Table>
@@ -469,12 +175,12 @@ const Products = () => {
                 <TableCell>
                     ${product.price}
                     <span className="text-[10px] text-muted-foreground block">
-                        {product.measurementType === MeasurementType.WEIGHT ? `/${t("products.kg")}` : `/${t("products.unit_short") || "unit"}`}
+                        {product.measurementType === MeasurementType.WEIGHT ? `/${t("inventory.units.kg")}` : `/${t("products.unit_short") || "unit"}`}
                     </span>
                 </TableCell>
                 <TableCell>
                   <span className={(product.measurementType === MeasurementType.UNIT ? product.stockQuantity : product.stockWeightGrams) < 10 ? "text-destructive font-bold" : ""}>
-                    {product.measurementType === MeasurementType.UNIT ? product.stockQuantity : `${(product.stockWeightGrams / 1000).toFixed(2)} kg`}
+                    {product.measurementType === MeasurementType.UNIT ? product.stockQuantity : `${((product.stockWeightGrams || 0) / 1000).toFixed(2)} ${t("inventory.units.kg")}`}
                   </span>
                 </TableCell>
                 <TableCell>
@@ -490,7 +196,10 @@ const Products = () => {
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <DropdownMenuItem className="gap-2" onClick={() => handleEditProduct(product)}>
+                      <DropdownMenuItem className="gap-2" onClick={() => {
+                        setEditingProduct(product);
+                        setIsEditDialogOpen(true);
+                      }}>
                         <Pencil className="h-4 w-4" /> {t("products.edit_product")}
                       </DropdownMenuItem>
                       <DropdownMenuItem className="gap-2 text-destructive" onClick={() => deleteVendorProduct(product.id)}>

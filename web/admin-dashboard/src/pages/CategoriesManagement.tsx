@@ -98,7 +98,7 @@ const CategoriesManagement: React.FC = () => {
   if (isLoadingCategories || isLoadingVendors) return <div className="p-8 text-center">{t("common.loading")}</div>;
 
   return (
-    <div className="space-y-6 p-6">
+    <div className="space-y-6 p-6 animate-in fade-in zoom-in duration-500">
       <div className="flex justify-between items-center">
         <div>
           <h2 className="text-2xl font-bold text-gray-800">{t("common.categories")}</h2>

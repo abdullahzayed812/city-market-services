@@ -1,4 +1,5 @@
 import React from "react";
+import { useTranslation } from "react-i18next";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 
 interface ProductImageModalProps {
@@ -9,13 +10,15 @@ interface ProductImageModalProps {
 }
 
 const ProductImageModal: React.FC<ProductImageModalProps> = ({ isOpen, onClose, imageUrl, productName }) => {
+  const { t } = useTranslation();
+  
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Image for {productName}</DialogTitle>
+          <DialogTitle>{t("products.image_for", { name: productName })}</DialogTitle>
           <DialogDescription className="sr-only">
-            Visual preview of the product image.
+            {t("products.visual_preview")}
           </DialogDescription>
         </DialogHeader>
         <div className="flex justify-center items-center p-4">
@@ -29,7 +32,7 @@ const ProductImageModal: React.FC<ProductImageModalProps> = ({ isOpen, onClose, 
             />
           ) : (
             <div className="w-full h-48 bg-muted flex items-center justify-center rounded-md text-muted-foreground">
-              No Image Available
+              {t("products.no_image")}
             </div>
           )}
         </div>

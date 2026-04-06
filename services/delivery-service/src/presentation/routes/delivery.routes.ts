@@ -42,6 +42,11 @@ export const createDeliveryRoutes = (controller: DeliveryController): Router => 
     controller.updateDeliveryStatus
   );
   router.get("/deliveries", authorize(UserRole.ADMIN, UserRole.DELIVERY_MANAGER), controller.getAllDeliveries);
+  router.get(
+    "/deliveries-analytics",
+    authorize(UserRole.ADMIN),
+    controller.getFinancialAnalytics
+  );
 
   return router;
 };

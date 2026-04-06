@@ -454,4 +454,8 @@ export class DeliveryService {
 
     return transitions[currentStatus]?.includes(newStatus) || false;
   }
+
+  async getVendorDeliveriesCount(vendorOrderIds: string[], periodStart?: Date, periodEnd?: Date): Promise<number> {
+    return this.deliveryRepo.countByVendorOrderIds(vendorOrderIds, periodStart, periodEnd);
+  }
 }

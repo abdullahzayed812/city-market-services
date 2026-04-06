@@ -53,7 +53,14 @@
     "vendor_category": "Store Category",
     "none": "None",
     "error": "Error occurred",
-    "phone": "Phone Number"
+    "phone": "Phone Number",
+    "quantity": "Quantity",
+    "reset": "Reset",
+    "save": "Save",
+    "success": "Success",
+    "total": "Total",
+    "view": "View",
+    "to": "to"
   },
   "auth": {
     "sign_in": "Sign in",
@@ -113,7 +120,12 @@
     "none_create_new": "None (Create New)",
     "link_hint": "If selected, core data will be fetched from the global catalog.",
     "create_global": "Create Global Product",
-    "create_listing": "Create Vendor Listing"
+    "create_listing": "Create Vendor Listing",
+    "image_for": "Image for {{name}}",
+    "filter_by_global": "Filter by Global Category",
+    "filter_by_vendor_cat": "Filter by Store Category",
+    "no_image": "No Image Available",
+    "visual_preview": "Visual preview of the product image."
   },
   "categories": {
     "manage": "Manage global and vendor-specific categories.",
@@ -124,7 +136,9 @@
     "no_categories_found": "No categories found.",
     "search_categories": "Search categories...",
     "select_type": "Select Type",
-    "select_vendor": "Select Vendor"
+    "select_vendor": "Select Vendor",
+    "edit_description": "Edit current category details.",
+    "create_description": "Create a new category for products."
   },
   "financial": {
     "total_revenue": "Total Revenue",
@@ -135,7 +149,16 @@
     "from_last_month": "{{percent}}% from last month",
     "awaiting_payment": "{{count}} vendors awaiting payment",
     "amount": "Amount",
-    "date": "Date"
+    "date": "Date",
+    "analytics": "Financial Analytics",
+    "delivery_fees": "Delivery Fees",
+    "gross_revenue": "Gross Revenue (Subtotal)",
+    "net_revenue": "Vendor Net Revenue",
+    "please_select_vendor": "Please select a vendor to view deep analytics.",
+    "select_vendor": "Select a vendor",
+    "total_orders": "Total Orders",
+    "reset_dates": "Reset Dates",
+    "deliveries_completed": "deliveries completed"
   },
   "orders": {
     "order_id": "Order ID",
@@ -150,7 +173,10 @@
     "failed_load": "Failed to load order details.",
     "created_at": "Created At",
     "subtotal": "Subtotal",
-    "delivery_fee": "Delivery Fee"
+    "delivery_fee": "Delivery Fee",
+    "pending_proposal": "Pending Proposal",
+    "weight": "Weight",
+    "address_not_provided": "Address details not provided"
   },
   "couriers": {
     "vehicle": "Vehicle",
@@ -159,7 +185,8 @@
     "add_new": "Add Courier",
     "add_new_title": "Register New Courier",
     "license_plate": "License Plate",
-    "created_success": "Courier registered successfully"
+    "created_success": "Courier registered successfully",
+    "status_updated": "Courier status updated"
   },
   "vendors": {
     "shop_name": "Shop Name",
@@ -170,6 +197,20 @@
     "type": "Store Type",
     "created_success": "Vendor registered successfully",
     "status_updated": "Vendor status updated",
-    "image_uploaded": "Vendor image uploaded"
+    "image_uploaded": "Vendor image uploaded",
+    "commission_rate": "Commission Rate",
+    "types": {
+      "supermarket": "Supermarket",
+      "vegfruit": "Vegetables & Fruit",
+      "pharmacy": "Pharmacy",
+      "butcher": "Butcher",
+      "poultry": "Poultry",
+      "fish": "Fish",
+      "roastery": "Roastery",
+      "bakery": "Bakery",
+      "pastry": "Pastry",
+      "stationery": "Stationery",
+      "other": "Other"
+    }
   }
 }

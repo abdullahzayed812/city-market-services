@@ -6,24 +6,23 @@ import { deliveryService } from "@/services/api/delivery.service";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { MapPin, Package, Clock, User } from "lucide-react";
 import { DeliveryStatus, EventType } from "@city-market/shared";
-import type { Delivery, Courier } from "@city-market/shared"; // Import shared types
+import type { Delivery, Courier } from "@city-market/shared";
+import AssignCourierDialog from "@/features/deliveries/components/AssignCourierDialog";
 
 const Deliveries = () => {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
-  const [selectedCourier, setSelectedCourier] = useState<string>("");
   const [assigningDeliveryId, setAssigningDeliveryId] = useState<string | null>(null);
+  const [isAssignDialogOpen, setIsAssignDialogOpen] = useState(false);
 
-  const { data: deliveries = [], isLoading } = useQuery<Delivery[] | undefined>({ // Use Delivery[]
+  const { data: deliveries = [], isLoading } = useQuery<Delivery[] | undefined>({
     queryKey: ["deliveries"],
     queryFn: deliveryService.getAllDeliveries,
   });
 
-  const { data: availableCouriers = [] } = useQuery<Courier[] | undefined>({ // Use Courier[]
+  const { data: availableCouriers = [] } = useQuery<Courier[] | undefined>({
     queryKey: ["available-couriers"],
     queryFn: deliveryService.getAvailableCouriers,
   });
@@ -55,34 +54,16 @@ const Deliveries = () => {
 
   const assignMutation = useMutation({
     mutationFn: ({ deliveryId, courierId }: { deliveryId: string; courierId: string }) =>
-      deliveryService.assignCourier(deliveryId, { courierId }), // Pass as DTO
+      deliveryService.assignCourier(deliveryId, { courierId }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["deliveries"] });
       queryClient.invalidateQueries({ queryKey: ["available-couriers"] });
       setAssigningDeliveryId(null);
-      setSelectedCourier("");
+      setIsAssignDialogOpen(false);
     },
   });
 
-  // const updateStatusMutation = useMutation({
-  //   mutationFn: ({ id, status }: { id: string; status: DeliveryStatus }) => // Use DeliveryStatus and UpdateDeliveryStatusDto
-  //     deliveryService.updateDeliveryStatus(id, { status, vendorOrderId: "TODO" }), // TODO: vendorOrderId needs to be passed
-  //   onSuccess: () => {
-  //     queryClient.invalidateQueries({ queryKey: ["deliveries"] });
-  //   },
-  // });
-
-  const handleAssign = () => {
-    if (assigningDeliveryId && selectedCourier) {
-      assignMutation.mutate({ deliveryId: assigningDeliveryId, courierId: selectedCourier });
-    }
-  };
-
-  if (isLoading) {
-    return <div className="flex items-center justify-center h-full">Loading...</div>;
-  }
-
-  const getStatusColor = (status: DeliveryStatus) => { // Use DeliveryStatus
+  const getStatusColor = (status: DeliveryStatus) => {
     switch (status) {
       case DeliveryStatus.PENDING:
         return "bg-yellow-100 text-yellow-800";
@@ -102,24 +83,25 @@ const Deliveries = () => {
   };
 
   const formatStatus = (status: string) => {
-    return status
-      .split("_")
-      .map((word) => word.charAt(0) + word.slice(1).toLowerCase())
-      .join(" ");
+    return t(`orders.${status.toLowerCase()}`);
   };
 
+  if (isLoading) {
+    return <div className="flex items-center justify-center h-full">{t("common.loading")}</div>;
+  }
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-in fade-in zoom-in duration-500">
       <h1 className="text-3xl font-bold">{t("common.deliveries")}</h1>
 
       <div className="grid lg:grid-cols-2 gap-6">
         {deliveries.length === 0 ? (
           <div className="text-center py-12 bg-card border rounded-xl border-dashed">
             <Package className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-            <p className="text-muted-foreground">No deliveries found.</p>
+            <p className="text-muted-foreground">{t("common.no_deliveries")}</p>
           </div>
         ) : (
-          deliveries.map((delivery: Delivery) => ( // Use Delivery
+          deliveries.map((delivery: Delivery) => (
             <Card key={delivery.id} className="overflow-hidden">
               <CardHeader className="flex flex-row items-center justify-between bg-muted/30 py-4">
                 <div className="flex items-center gap-2">
@@ -139,7 +121,6 @@ const Deliveries = () => {
                       </div>
                       <div>
                         <p className="text-sm font-semibold">{t("orders.pickup_details")}</p>
-                        {/* Assuming first pickup location is the main one for display */}
                         <p className="text-sm text-muted-foreground">{delivery.pickupLocations[0]?.address}</p>
                       </div>
                     </div>
@@ -154,89 +135,28 @@ const Deliveries = () => {
                     </div>
                   </div>
                   <div className="space-y-4">
-                    {/* <div className="flex items-center gap-3">
-                      <Phone className="w-4 h-4 text-muted-foreground" />
-                      <p className="text-sm">{delivery.customerPhone}</p> // customerPhone is not directly in Delivery
-                    </div> */}
                     <div className="flex items-center gap-3">
                       <Clock className="w-4 h-4 text-muted-foreground" />
-                      <p className="text-sm">Created at: {new Date(delivery.createdAt).toLocaleString()}</p>
+                      <p className="text-sm">{t("common.created_at")}: {new Date(delivery.createdAt).toLocaleString()}</p>
                     </div>
                     {delivery.courierId && (
                       <div className="flex items-center gap-3">
                         <User className="w-4 h-4 text-muted-foreground" />
-                        <p className="text-sm">Courier: {delivery.courierId} (ID)</p> {/* Displaying ID for now */}
+                        <p className="text-sm">{t("common.courier")}: {delivery.courierId} (ID)</p>
                       </div>
                     )}
 
-                    {delivery.status === DeliveryStatus.PENDING && ( // Use DeliveryStatus
-                      <Dialog>
-                        <DialogTrigger asChild>
-                          <Button className="w-full mt-4" onClick={() => setAssigningDeliveryId(delivery.id)}>
-                            Assign Courier
-                          </Button>
-                        </DialogTrigger>
-                        <DialogContent>
-                          <DialogHeader>
-                            <DialogTitle>Assign Courier</DialogTitle>
-                          </DialogHeader>
-                          <div className="space-y-4 py-4">
-                            <Select onValueChange={setSelectedCourier} value={selectedCourier}>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select a courier" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {availableCouriers.map((courier: Courier) => ( // Use Courier
-                                  <SelectItem key={courier.id} value={courier.id}>
-                                    {courier.fullName} ({courier.vehicleType})
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                            <Button
-                              className="w-full"
-                              onClick={handleAssign}
-                              disabled={!selectedCourier || assignMutation.isPending}
-                            >
-                              {assignMutation.isPending ? "Assigning..." : "Confirm Assignment"}
-                            </Button>
-                          </div>
-                        </DialogContent>
-                      </Dialog>
-                    )}
-
-                    {/* {delivery.status === DeliveryStatus.ASSIGNED && (
-                      <Button
-                        className="w-full mt-4"
-                        variant="outline"
-                        onClick={() => updateStatusMutation.mutate({ id: delivery.id, status: DeliveryStatus.PICKED_UP, vendorOrderId: "TODO" })}
-                        disabled={updateStatusMutation.isPending}
+                    {delivery.status === DeliveryStatus.PENDING && (
+                      <Button 
+                        className="w-full mt-4" 
+                        onClick={() => {
+                          setAssigningDeliveryId(delivery.id);
+                          setIsAssignDialogOpen(true);
+                        }}
                       >
-                        Mark as Picked Up
+                        {t("common.assign")}
                       </Button>
                     )}
-
-                    {delivery.status === DeliveryStatus.PICKED_UP && (
-                      <Button
-                        className="w-full mt-4"
-                        variant="outline"
-                        onClick={() => updateStatusMutation.mutate({ id: delivery.id, status: DeliveryStatus.ON_THE_WAY, vendorOrderId: "TODO" })}
-                        disabled={updateStatusMutation.isPending}
-                      >
-                        Mark as On The Way
-                      </Button>
-                    )}
-
-                    {delivery.status === DeliveryStatus.ON_THE_WAY && (
-                      <Button
-                        className="w-full mt-4"
-                        variant="default"
-                        onClick={() => updateStatusMutation.mutate({ id: delivery.id, status: DeliveryStatus.DELIVERED, vendorOrderId: "TODO" })}
-                        disabled={updateStatusMutation.isPending}
-                      >
-                        Mark as Delivered
-                      </Button>
-                    )} */}
                   </div>
                 </div>
 
@@ -270,7 +190,7 @@ const Deliveries = () => {
                       </div>
                     ))}
                     {(!delivery.vendorOrders || delivery.vendorOrders.length === 0) && (
-                      <p className="text-sm text-muted-foreground italic">No items found.</p>
+                      <p className="text-sm text-muted-foreground italic">{t("orders.no_items")}</p>
                     )}
                   </div>
                 </div>
@@ -279,6 +199,18 @@ const Deliveries = () => {
           ))
         )}
       </div>
+
+      <AssignCourierDialog
+        open={isAssignDialogOpen}
+        onOpenChange={setIsAssignDialogOpen}
+        availableCouriers={availableCouriers || []}
+        onAssign={(courierId) => {
+          if (assigningDeliveryId) {
+            assignMutation.mutate({ deliveryId: assigningDeliveryId, courierId });
+          }
+        }}
+        isPending={assignMutation.isPending}
+      />
     </div>
   );
 };

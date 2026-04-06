@@ -8,6 +8,7 @@ import FinancialOverview from "./pages/FinancialOverview.tsx";
 import CategoriesManagement from "./pages/CategoriesManagement.tsx";
 import VendorsManagement from "./pages/VendorsManagement.tsx";
 import ProductsManagement from "./pages/ProductsManagement.tsx";
+import FinancialAnalytics from "./pages/FinancialAnalytics.tsx";
 import LoginPage from "./pages/LoginPage.tsx";
 import ProtectedRoute from "./components/ProtectedRoute.tsx";
 import { AuthProvider } from "./components/AuthProvider.tsx";
@@ -36,6 +37,7 @@ function App() {
               <Route path="orders" element={<OrdersManagement />} />
               <Route path="couriers" element={<CouriersManagement />} />
               <Route path="revenue" element={<FinancialOverview />} />
+              <Route path="financial-analytics" element={<FinancialAnalytics />} />
               <Route path="categories" element={<CategoriesManagement />} />
               <Route path="settings" element={<div>Settings Page (Coming Soon)</div>} />
             </Route>

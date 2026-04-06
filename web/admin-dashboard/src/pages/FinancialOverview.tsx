@@ -4,73 +4,68 @@ import { useQuery } from "@tanstack/react-query";
 import { adminApi } from "@/services/api/admin-api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
-import { DollarSign, TrendingUp, Wallet, ArrowUpRight } from "lucide-react";
+import { DollarSign, Wallet, Clock, History } from "lucide-react";
 
 const FinancialOverview: React.FC = () => {
   const { t } = useTranslation();
-  const { data: revenueData, isLoading } = useQuery({
-    queryKey: ["adminRevenue"],
+
+  const { data: financialData, isLoading } = useQuery({
+    queryKey: ["financialOverview"],
     queryFn: async () => {
-      const response = await adminApi.getRevenue();
-      return response.data;
+      const response = await adminApi.getFinancialOverview();
+      return response.data.data;
     },
   });
 
   if (isLoading) return <div className="p-8 text-center">{t("common.loading")}</div>;
 
+  const summaryCards = [
+    {
+      title: t("financial.total_revenue"),
+      value: `$${financialData?.totalRevenue?.toLocaleString()}`,
+      icon: DollarSign,
+      color: "text-emerald-600",
+      description: t("financial.from_last_month", { percent: 12 }),
+    },
+    {
+      title: t("financial.platform_commission"),
+      value: `$${financialData?.totalCommission?.toLocaleString()}`,
+      icon: Wallet,
+      color: "text-blue-600",
+      description: "8.5% avg commission",
+    },
+    {
+      title: t("financial.pending_payouts"),
+      value: `$${financialData?.pendingPayouts?.toLocaleString()}`,
+      icon: Clock,
+      color: "text-orange-600",
+      description: t("financial.awaiting_payment", { count: 5 }),
+    },
+  ];
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-in fade-in zoom-in duration-500">
       <h2 className="text-2xl font-bold text-gray-800">{t("common.revenue")}</h2>
 
-      <div className="grid gap-4 md:grid-cols-3">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">{t("financial.total_revenue")}</CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">${revenueData?.totalRevenue?.toLocaleString()}</div>
-            <p className="text-xs text-muted-foreground flex items-center mt-1">
-              <span className="text-emerald-500 flex items-center me-1">
-                <ArrowUpRight className="h-3 w-3 me-0.5" />
-                {t("financial.from_last_month", { percent: 12 })}
-              </span>
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">{t("financial.platform_commission")}</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">${revenueData?.platformCommission?.toLocaleString()}</div>
-            <p className="text-xs text-muted-foreground flex items-center mt-1">
-              <span className="text-emerald-500 flex items-center me-1">
-                <ArrowUpRight className="h-3 w-3 me-0.5" />
-                {t("financial.from_last_month", { percent: 8 })}
-              </span>
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">{t("financial.pending_payouts")}</CardTitle>
-            <Wallet className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">$850</div>
-            <p className="text-xs text-muted-foreground mt-1">{t("financial.awaiting_payment", { count: 3 })}</p>
-          </CardContent>
-        </Card>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {summaryCards.map((card) => (
+          <Card key={card.title}>
+            <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+              <CardTitle className="text-sm font-medium text-gray-600">{card.title}</CardTitle>
+              <card.icon className={`h-4 w-4 ${card.color}`} />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{card.value}</div>
+              <p className="text-xs text-gray-500 mt-1">{card.description}</p>
+            </CardContent>
+          </Card>
+        ))}
       </div>
 
       <Card>
-        <CardHeader>
-          <CardTitle>{t("financial.recent_payouts")}</CardTitle>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle className="text-lg font-bold">{t("financial.recent_payouts")}</CardTitle>
+          <History className="h-4 w-4 text-gray-400" />
         </CardHeader>
         <CardContent>
           <Table>
@@ -79,20 +74,22 @@ const FinancialOverview: React.FC = () => {
                 <TableHead>{t("financial.payout_id")}</TableHead>
                 <TableHead>{t("common.vendor")}</TableHead>
                 <TableHead>{t("financial.amount")}</TableHead>
-                <TableHead>{t("common.status")}</TableHead>
                 <TableHead>{t("financial.date")}</TableHead>
+                <TableHead>{t("common.status")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {revenueData?.payouts?.map((payout: any) => (
+              {financialData?.recentPayouts?.map((payout: any) => (
                 <TableRow key={payout.id}>
-                  <TableCell className="font-medium">{payout.id}</TableCell>
+                  <TableCell className="font-mono text-xs">{payout.id}</TableCell>
                   <TableCell>{payout.vendorName}</TableCell>
-                  <TableCell>${payout.amount.toLocaleString()}</TableCell>
+                  <TableCell className="font-medium">${payout.amount.toLocaleString()}</TableCell>
+                  <TableCell className="text-gray-500 text-sm">{payout.date}</TableCell>
                   <TableCell>
-                    <Badge variant={payout.status === "completed" ? "default" : "secondary"}>{payout.status}</Badge>
+                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-emerald-100 text-emerald-800">
+                      Paid
+                    </span>
                   </TableCell>
-                  <TableCell>{payout.date}</TableCell>
                 </TableRow>
               ))}
             </TableBody>

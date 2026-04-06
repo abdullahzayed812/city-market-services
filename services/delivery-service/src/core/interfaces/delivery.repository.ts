@@ -11,4 +11,5 @@ export interface IDeliveryRepository {
   findAll(limit: number, offset: number, connection?: any): Promise<Delivery[]>;
   update(id: string, data: Partial<Delivery>, connection?: any): Promise<void>;
   assignCourier(id: string, courierId: string, connection?: any): Promise<void>;
+  countByVendorOrderIds(vendorOrderIds: string[], periodStart?: Date, periodEnd?: Date, connection?: any): Promise<number>;
 }

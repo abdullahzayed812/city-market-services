@@ -13,6 +13,7 @@ export const createOrderRoutes = (controller: OrderController): Router => {
 
   // Vendor Routes
   router.get("/vendor/:vendorId", controller.getVendorOrders); // restored
+  router.get("/vendor/:vendorId/financials", controller.getVendorFinancials);
   router.get("/vendor-orders/:id", controller.getVendorOrderById);
   router.post("/vendor-orders/:id/accept", controller.acceptVendorOrder);
   router.post("/vendor-orders/:id/propose", controller.proposeChanges);

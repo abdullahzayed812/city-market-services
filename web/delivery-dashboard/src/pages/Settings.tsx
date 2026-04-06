@@ -8,28 +8,28 @@ const Settings = () => {
     const { t } = useTranslation();
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-6 animate-in fade-in zoom-in duration-500">
             <h1 className="text-3xl font-bold">{t("common.settings")}</h1>
 
             <div className="grid gap-6">
                 <Card>
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2">
-                            <Bell className="h-5 w-5" /> Notifications
+                            <Bell className="h-5 w-5" /> {t("common.notifications")}
                         </CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4">
                         <div className="flex items-center justify-between">
                             <div className="space-y-0.5">
-                                <Label>New Order Alerts</Label>
-                                <p className="text-sm text-muted-foreground">Receive alerts for new assigned deliveries.</p>
+                                <Label>{t("common.new_order_alerts")}</Label>
+                                <p className="text-sm text-muted-foreground">{t("common.new_order_alerts_desc")}</p>
                             </div>
                             <Switch defaultChecked />
                         </div>
                         <div className="flex items-center justify-between border-t pt-4">
                             <div className="space-y-0.5">
-                                <Label>Earnings Reports</Label>
-                                <p className="text-sm text-muted-foreground">Get weekly summaries of your earnings.</p>
+                                <Label>{t("common.earnings_reports")}</Label>
+                                <p className="text-sm text-muted-foreground">{t("common.earnings_reports_desc")}</p>
                             </div>
                             <Switch defaultChecked />
                         </div>
@@ -39,14 +39,14 @@ const Settings = () => {
                 <Card>
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2">
-                            <Shield className="h-5 w-5" /> Privacy & Security
+                            <Shield className="h-5 w-5" /> {t("common.privacy_security")}
                         </CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4">
                         <div className="flex items-center justify-between">
                             <div className="space-y-0.5">
-                                <Label>Share Location</Label>
-                                <p className="text-sm text-muted-foreground">Allow customers to track your location during delivery.</p>
+                                <Label>{t("common.share_location")}</Label>
+                                <p className="text-sm text-muted-foreground">{t("common.share_location_desc")}</p>
                             </div>
                             <Switch defaultChecked />
                         </div>
@@ -56,16 +56,16 @@ const Settings = () => {
                 <Card>
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2">
-                            <Globe className="h-5 w-5" /> Appearance
+                            <Globe className="h-5 w-5" /> {t("common.appearance")}
                         </CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4">
                         <div className="flex items-center justify-between">
                             <div className="space-y-0.5">
                                 <Label className="flex items-center gap-2">
-                                    <Moon className="h-4 w-4" /> Dark Mode
+                                    <Moon className="h-4 w-4" /> {t("common.dark_mode")}
                                 </Label>
-                                <p className="text-sm text-muted-foreground">Toggle between light and dark themes.</p>
+                                <p className="text-sm text-muted-foreground">{t("common.dark_mode_desc")}</p>
                             </div>
                             <Switch />
                         </div>

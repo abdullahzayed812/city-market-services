@@ -202,6 +202,19 @@ export class AdminController {
     }
   };
 
+  getFinancialAnalytics = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      const { vendorId } = req.params;
+      const periodStart = req.query.periodStart as string;
+      const periodEnd = req.query.periodEnd as string;
+
+      const result = await this.adminService.getFinancialAnalytics(vendorId, periodStart, periodEnd, req.user!.userId);
+      res.json(ApiResponse.success(result));
+    } catch (error) {
+      next(error);
+    }
+  };
+
   getRevenue = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
       const revenue = await this.adminService.getRevenue(req.user!.userId);

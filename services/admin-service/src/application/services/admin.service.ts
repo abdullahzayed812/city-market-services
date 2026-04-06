@@ -110,6 +110,33 @@ export class AdminService {
     return this.serviceClient.delivery.getAvailableCouriers(userId);
   }
 
+  async getFinancialAnalytics(vendorId: string, periodStart?: string, periodEnd?: string, userId?: string) {
+    const ordersResult = await this.serviceClient.order.getVendorFinancials(vendorId, periodStart, periodEnd, userId);
+
+    let deliveryCount = 0;
+    const vendorOrderIds = ordersResult.data?.vendorOrderIds || [];
+
+    if (vendorOrderIds.length > 0) {
+      const deliveryResult = await this.serviceClient.delivery.getDeliveriesAnalytics(vendorOrderIds, periodStart, periodEnd, userId);
+      deliveryCount = deliveryResult.data?.totalDeliveries || 0;
+    }
+
+    const { totalRevenue, platformCommission, totalOrders } = ordersResult.data || {};
+    const DELIVERY_FEE = 5; // 5 EGP
+    const totalDeliveryFees = deliveryCount * DELIVERY_FEE;
+    const platformCommissionAmount = platformCommission || 0;
+    const netRevenue = (totalRevenue || 0) - platformCommissionAmount - totalDeliveryFees;
+
+    return {
+      totalRevenue: totalRevenue || 0,
+      totalOrders: totalOrders || 0,
+      totalDeliveries: deliveryCount,
+      platformCommission: platformCommissionAmount,
+      totalDeliveryFees,
+      netRevenue
+    };
+  }
+
   async getRevenue(userId?: string) {
     return Promise.resolve({
       totalRevenue: 25000,

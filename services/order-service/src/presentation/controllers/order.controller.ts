@@ -5,7 +5,7 @@ import { Logger } from "@city-market/shared/node";
 import { AuthenticatedRequest } from "@city-market/shared/node";
 
 export class OrderController {
-  constructor(private orderService: OrderService) {}
+  constructor(private orderService: OrderService) { }
 
   create = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
@@ -108,6 +108,17 @@ export class OrderController {
       const limit = parseInt(req.query.limit as string) || 20;
       const orders = await this.orderService.getVendorOrders(req.params.vendorId, page, limit);
       res.json(ApiResponse.success(orders));
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  getVendorFinancials = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      const periodStart = req.query.periodStart ? new Date(req.query.periodStart as string) : undefined;
+      const periodEnd = req.query.periodEnd ? new Date(req.query.periodEnd as string) : undefined;
+      const financials = await this.orderService.getVendorFinancials(req.params.vendorId, periodStart, periodEnd);
+      res.json(ApiResponse.success(financials));
     } catch (error) {
       next(error);
     }

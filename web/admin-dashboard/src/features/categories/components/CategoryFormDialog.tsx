@@ -67,7 +67,7 @@ const CategoryFormDialog: React.FC<CategoryFormDialogProps> = ({
             {category ? t("categories.edit_category") : t("categories.create_category")}
           </DialogTitle>
           <DialogDescription className="sr-only">
-            {category ? "Edit current category details." : "Create a new category for products."}
+            {category ? t("categories.edit_description") : t("categories.create_description")}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4 py-4">

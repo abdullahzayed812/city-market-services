@@ -21,4 +21,17 @@ export class OrderClient extends BaseClient {
     const response = await this.axiosInstance.patch(`/${id}/status`, { status }, config);
     return response.data;
   }
+
+  async getVendorFinancials(vendorId: string, periodStart?: string, periodEnd?: string, userId?: string) {
+    const config = await this.getRequestConfig(userId);
+    const params: any = {};
+    if (periodStart) params.periodStart = periodStart;
+    if (periodEnd) params.periodEnd = periodEnd;
+
+    const response = await this.axiosInstance.get(`/vendor/${vendorId}/financials`, {
+      params,
+      ...config,
+    });
+    return response.data;
+  }
 }

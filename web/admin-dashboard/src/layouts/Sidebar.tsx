@@ -16,6 +16,7 @@ const Sidebar: React.FC = () => {
     { name: t("common.products"), href: "/products", icon: Box },
     { name: t("common.categories"), href: "/categories", icon: LayoutDashboard },
     { name: t("common.revenue"), href: "/revenue", icon: BarChart3 },
+    { name: t("financial.analytics", "Vendor Analytics"), href: "/financial-analytics", icon: BarChart3 },
     { name: t("common.settings"), href: "/settings", icon: Settings },
   ];
 

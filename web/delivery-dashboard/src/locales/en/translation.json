@@ -15,7 +15,34 @@
     "couriers": "Couriers",
     "delivery_office": "Delivery Office",
     "citymarket": "CityMarket",
-    "admin": "Admin"
+    "admin": "Admin",
+    "password": "Password",
+    "loading": "Loading...",
+    "no_deliveries": "No deliveries found.",
+    "no_couriers": "No couriers found.",
+    "created_at": "Created at",
+    "courier": "Courier",
+    "currency": "SAR",
+    "assign": "Assign Courier",
+    "select_courier": "Select a courier",
+    "confirm_assignment": "Confirm Assignment",
+    "assigning": "Assigning...",
+    "email": "Email",
+    "phone": "Phone",
+    "vehicle": "Vehicle",
+    "rating": "Rating",
+    "total_deliveries": "Total Deliveries",
+    "notifications": "Notifications",
+    "new_order_alerts": "New Order Alerts",
+    "new_order_alerts_desc": "Receive alerts for new assigned deliveries.",
+    "earnings_reports": "Earnings Reports",
+    "earnings_reports_desc": "Get weekly summaries of your earnings.",
+    "privacy_security": "Privacy & Security",
+    "share_location": "Share Location",
+    "share_location_desc": "Allow customers to track your location during delivery.",
+    "appearance": "Appearance",
+    "dark_mode": "Dark Mode",
+    "dark_mode_desc": "Toggle between light and dark themes."
   },
   "dashboard": {
     "active_couriers": "Active Couriers",
@@ -35,6 +62,9 @@
     "on_the_way": "On the Way",
     "delivered": "Delivered",
     "assigned": "Assigned",
-    "pending": "Pending"
+    "pending": "Pending",
+    "failed": "Failed",
+    "order_items": "Order Items",
+    "no_items": "No items found."
   }
 }

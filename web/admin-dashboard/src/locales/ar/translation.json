@@ -53,7 +53,14 @@
     "vendor_category": "فئة المتجر",
     "none": "لا يوجد",
     "error": "حدث خطأ",
-    "phone": "رقم الهاتف"
+    "phone": "رقم الهاتف",
+    "quantity": "الكمية",
+    "reset": "إعادة تعيين",
+    "save": "حفظ",
+    "success": "تم بنجاح",
+    "total": "الإجمالي",
+    "view": "عرض",
+    "to": "إلى"
   },
   "auth": {
     "sign_in": "تسجيل الدخول",
@@ -113,7 +120,12 @@
     "none_create_new": "لاشيء (إنشاء جديد)",
     "link_hint": "إذا تم الاختيار، فسيتم جلب البيانات الأساسية من الكتالوج العالمي.",
     "create_global": "إنشاء منتج عالمي",
-    "create_listing": "إنشاء إدراج للمورد"
+    "create_listing": "إنشاء إدراج للمورد",
+    "image_for": "صورة لـ {{name}}",
+    "filter_by_global": "تصفية حسب الفئة العامة",
+    "filter_by_vendor_cat": "تصفية حسب فئة المتجر",
+    "no_image": "لا توجد صورة متاحة",
+    "visual_preview": "عرض مرئي لصورة المنتج."
   },
   "categories": {
     "manage": "إدارة الفئات العامة والفئات الخاصة بالموردين.",
@@ -124,7 +136,9 @@
     "no_categories_found": "لم يتم العثور على فئات.",
     "search_categories": "البحث في الفئات...",
     "select_type": "اختر النوع",
-    "select_vendor": "اختر المورد"
+    "select_vendor": "اختر المورد",
+    "edit_description": "تعديل تفاصيل الفئة الحالية.",
+    "create_description": "إنشاء فئة جديدة للمنتجات."
   },
   "financial": {
     "total_revenue": "إجمالي الإيرادات",
@@ -135,7 +149,16 @@
     "from_last_month": "{{percent}}% من الشهر الماضي",
     "awaiting_payment": "{{count}} موردين في انتظار الدفع",
     "amount": "المبلغ",
-    "date": "التاريخ"
+    "date": "التاريخ",
+    "analytics": "التحليلات المالية",
+    "delivery_fees": "رسوم التوصيل",
+    "gross_revenue": "إجمالي الإيرادات (المجموع الفرعي)",
+    "net_revenue": "صافي إيرادات المورد",
+    "please_select_vendor": "يرجى اختيار مورد لعرض التحليلات العميقة.",
+    "select_vendor": "اختر مورد",
+    "total_orders": "إجمالي الطلبات",
+    "reset_dates": "إعادة تعيين التواريخ",
+    "deliveries_completed": "توصيلات مكتملة"
   },
   "orders": {
     "order_id": "رقم الطلب",
@@ -150,7 +173,10 @@
     "failed_load": "فشل تحميل تفاصيل الطلب.",
     "created_at": "تاريخ الإنشاء",
     "subtotal": "المجموع الفرعي",
-    "delivery_fee": "رسوم التوصيل"
+    "delivery_fee": "رسوم التوصيل",
+    "pending_proposal": "عرض معلق",
+    "weight": "الوزن",
+    "address_not_provided": "تفاصيل العنوان غير متوفرة"
   },
   "couriers": {
     "vehicle": "المركبة",
@@ -159,7 +185,8 @@
     "add_new": "إضافة مندوب",
     "add_new_title": "تسجيل مندوب جديد",
     "license_plate": "رقم اللوحة",
-    "created_success": "تم تسجيل المندوب بنجاح"
+    "created_success": "تم تسجيل المندوب بنجاح",
+    "status_updated": "تم تحديث حالة المندوب"
   },
   "vendors": {
     "shop_name": "اسم المتجر",
@@ -170,6 +197,20 @@
     "type": "نوع المتجر",
     "created_success": "تم تسجيل المورد بنجاح",
     "status_updated": "تم تحديث حالة المورد",
-    "image_uploaded": "تم تحميل صورة المورد"
+    "image_uploaded": "تم تحميل صورة المورد",
+    "commission_rate": "نسبة العمولة",
+    "types": {
+      "supermarket": "سوبر ماركت",
+      "vegfruit": "خضروات وفواكه",
+      "pharmacy": "صيدلية",
+      "butcher": "جزار",
+      "poultry": "دواجن",
+      "fish": "أسماك",
+      "roastery": "محمصة",
+      "bakery": "مخبز",
+      "pastry": "حلويات",
+      "stationery": "مكتبة",
+      "other": "آخر"
+    }
   }
 }

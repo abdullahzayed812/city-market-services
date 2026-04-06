@@ -42,7 +42,7 @@ const LoginPage: React.FC = () => {
         <h2 className="text-xl font-semibold text-slate-600">{t("common.admin_title")}</h2>
       </div>
 
-      <Card className="w-full max-w-md shadow-lg border-slate-200">
+      <Card className="w-full max-w-md shadow-lg border-slate-200 animate-in fade-in zoom-in duration-500">
         <CardHeader className="space-y-1">
           <CardTitle className="text-2xl text-center">{t("auth.sign_in")}</CardTitle>
           <CardDescription className="text-center">{t("auth.credentials_hint")}</CardDescription>

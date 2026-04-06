@@ -14,7 +14,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { MoreHorizontal, CheckCircle, XCircle, ChevronDown, Send } from "lucide-react";
 import { VendorOrderStatus } from "@city-market/shared";
 import type { VendorOrderWithItemsDto, ProposeChangesDto } from "@city-market/shared";
-import { OrderPreparationModal } from "@/components/OrderPreparationModal";
+import { OrderPreparationModal } from "@/features/orders/components/OrderPreparationModal";
 
 const Orders = () => {
   const { t } = useTranslation();
@@ -63,20 +63,19 @@ const Orders = () => {
         return "bg-green-100 text-green-800";
       case VendorOrderStatus.CANCELLED:
         return "bg-red-100 text-red-800";
+      case VendorOrderStatus.PREPARING:
+        return "bg-orange-100 text-orange-800";
       default:
         return "bg-gray-100 text-gray-800";
     }
   };
 
   const formatStatus = (status: string) => {
-    return status
-      .split("_")
-      .map((word) => word.charAt(0) + word.slice(1).toLowerCase())
-      .join(" ");
+    return t(`orders.statuses.${status.toLowerCase()}`, status);
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-in fade-in zoom-in duration-500">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">{t("common.orders")}</h1>
@@ -111,7 +110,7 @@ const Orders = () => {
                     </TableCell>
                     <TableCell className="font-medium">#{order.id.slice(0, 8)}</TableCell>
                     <TableCell>{new Date(order.createdAt).toLocaleDateString()}</TableCell>
-                    <TableCell>{t("orders.customer")}</TableCell>
+                    <TableCell>{order.customerName || t("orders.customer")}</TableCell>
                     <TableCell>
                       <Badge className={getStatusColor(order.status)}>{formatStatus(order.status)}</Badge>
                     </TableCell>
@@ -192,7 +191,7 @@ const Orders = () => {
                                   <TableCell>
                                     {item.quantity
                                       ? item.quantity
-                                      : `≈ ${item.requestedWeight} ${t("inventory.units.kg")}`}
+                                      : `≈ ${(item.requestedWeightGrams || 0) / 1000} ${t("inventory.units.kg")}`}
                                     {item.actualWeightGrams &&
                                       ` (${t("orders.actual")}: ${(item.actualWeightGrams / 1000).toFixed(2)} ${t("inventory.units.kg")})`}
                                   </TableCell>

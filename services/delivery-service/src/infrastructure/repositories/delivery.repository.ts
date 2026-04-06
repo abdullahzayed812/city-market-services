@@ -190,6 +190,32 @@ export class DeliveryRepository implements IDeliveryRepository {
     await conn.execute(query, [courierId, id]);
   }
 
+  async countByVendorOrderIds(vendorOrderIds: string[], periodStart?: Date, periodEnd?: Date, connection?: PoolConnection): Promise<number> {
+    if (!vendorOrderIds || vendorOrderIds.length === 0) return 0;
+
+    const conn = connection || this.pool;
+    let query = `
+      SELECT COUNT(DISTINCT d.id) as totalDeliveries
+      FROM deliveries d
+      JOIN delivery_pickup_locations p ON d.id = p.delivery_id
+      WHERE p.vendor_order_id IN (${vendorOrderIds.map(() => '?').join(',')}) 
+      AND d.status = 'DELIVERED'
+    `;
+    const params: any[] = [...vendorOrderIds];
+
+    if (periodStart) {
+      query += " AND d.created_at >= ?";
+      params.push(periodStart);
+    }
+    if (periodEnd) {
+      query += " AND d.created_at <= ?";
+      params.push(periodEnd);
+    }
+
+    const [rows] = await conn.execute<RowDataPacket[]>(query, params);
+    return parseInt(rows[0].totalDeliveries) || 0;
+  }
+
   private async getPickupLocationsForDelivery(deliveryId: string, conn: Pool | PoolConnection): Promise<PickupLocation[]> {
     const query = "SELECT id, delivery_id, vendor_order_id, address, latitude, longitude FROM delivery_pickup_locations WHERE delivery_id = ?";
     const [rows] = await conn.execute<RowDataPacket[]>(query, [deliveryId]);

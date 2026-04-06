@@ -28,7 +28,7 @@ const Dashboard = () => {
   }).length;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-in fade-in zoom-in duration-500">
       <h1 className="text-3xl font-bold">{t("common.dashboard")}</h1>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="p-6 bg-card border rounded-xl shadow-sm flex items-center gap-4">

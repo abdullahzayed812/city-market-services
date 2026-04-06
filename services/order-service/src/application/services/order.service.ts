@@ -134,7 +134,7 @@ export class OrderService {
 
   async getOrderProposals(orderId: string): Promise<OrderItemProposal[]> {
     const proposals = await this.proposalRepo.findByCustomerOrder(orderId);
-    
+
     // Enrich with vendor shop names
     const uniqueVendorIds = Array.from(new Set(proposals.map(p => p.vendorId).filter(Boolean) as string[]));
     const vendorDetailsArray = await Promise.all(
@@ -145,11 +145,11 @@ export class OrderService {
     return proposals
       .filter((p) => p.status === ProposalStatus.PENDING)
       .map(p => {
-          const vendor = p.vendorId ? vendorMap.get(p.vendorId) : null;
-          return OrderMapper.mapProposal({
-              ...p,
-              vendorName: vendor?.shopName || "Unknown Vendor"
-          });
+        const vendor = p.vendorId ? vendorMap.get(p.vendorId) : null;
+        return OrderMapper.mapProposal({
+          ...p,
+          vendorName: vendor?.shopName || "Unknown Vendor"
+        });
       });
   }
 
@@ -161,6 +161,10 @@ export class OrderService {
     const offset = (page - 1) * limit;
     const orders = await this.vendorOrderRepo.findByVendorWithItems(vendorId, limit, offset);
     return orders.map((vo) => OrderMapper.mapVendorOrderWithItems(vo));
+  }
+
+  async getVendorFinancials(vendorId: string, periodStart?: Date, periodEnd?: Date) {
+    return this.vendorOrderRepo.getVendorFinancials(vendorId, periodStart, periodEnd);
   }
 
   async getVendorOrderById(

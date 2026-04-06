@@ -188,6 +188,50 @@ export class VendorOrderRepository implements IVendorOrderRepository {
     const query = `UPDATE vendor_orders SET ${fields.join(", ")} WHERE id = ?`;
     await conn.execute(query, values);
   }
+
+  async getVendorFinancials(vendorId: string, periodStart?: Date, periodEnd?: Date, connection?: PoolConnection): Promise<{ totalRevenue: number; platformCommission: number; totalOrders: number; vendorOrderIds: string[] }> {
+    const conn = connection || this.pool;
+    let query = `
+      SELECT 
+        SUM(subtotal) as totalRevenue,
+        SUM(commission_amount) as platformCommission,
+        COUNT(id) as totalOrders
+      FROM vendor_orders 
+      WHERE vendor_id = ? AND status = 'DELIVERED'
+    `;
+    const params: any[] = [vendorId];
+
+    if (periodStart) {
+      query += " AND created_at >= ?";
+      params.push(periodStart);
+    }
+    if (periodEnd) {
+      query += " AND created_at <= ?";
+      params.push(periodEnd);
+    }
+
+    const [rows] = await conn.execute<RowDataPacket[]>(query, params);
+
+    let idsQuery = `SELECT id FROM vendor_orders WHERE vendor_id = ? AND status = 'DELIVERED'`;
+    const idsParams: any[] = [vendorId];
+    if (periodStart) {
+      idsQuery += " AND created_at >= ?";
+      idsParams.push(periodStart);
+    }
+    if (periodEnd) {
+      idsQuery += " AND created_at <= ?";
+      idsParams.push(periodEnd);
+    }
+    const [idRows] = await conn.execute<RowDataPacket[]>(idsQuery, idsParams);
+
+    return {
+      totalRevenue: parseFloat(rows[0].totalRevenue) || 0,
+      platformCommission: parseFloat(rows[0].platformCommission) || 0,
+      totalOrders: parseInt(rows[0].totalOrders) || 0,
+      vendorOrderIds: (idRows as any[]).map(r => r.id)
+    };
+  }
+
   private mapToEntity(row: any): VendorOrder {
     return {
       id: row.id,

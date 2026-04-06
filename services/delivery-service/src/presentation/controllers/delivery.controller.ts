@@ -134,4 +134,18 @@ export class DeliveryController {
       next(error);
     }
   };
+
+  getFinancialAnalytics = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      const vendorOrderIdsStr = req.query.vendorOrderIds as string;
+      const vendorOrderIds = vendorOrderIdsStr ? vendorOrderIdsStr.split(',') : [];
+      const periodStart = req.query.periodStart ? new Date(req.query.periodStart as string) : undefined;
+      const periodEnd = req.query.periodEnd ? new Date(req.query.periodEnd as string) : undefined;
+
+      const count = await this.deliveryService.getVendorDeliveriesCount(vendorOrderIds, periodStart, periodEnd);
+      res.json(ApiResponse.success({ totalDeliveries: count }));
+    } catch (error) {
+      next(error);
+    }
+  };
 }
