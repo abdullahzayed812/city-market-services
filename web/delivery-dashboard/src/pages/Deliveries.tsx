@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useSocket } from "@/contexts/SocketContext";
 import { useTranslation } from "react-i18next";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -45,10 +45,10 @@ const Deliveries = () => {
       EventType.ORDER_DELIVERED,
     ];
 
-    events.forEach(event => socket.on(event, handleUpdate));
+    events.forEach((event) => socket.on(event, handleUpdate));
 
     return () => {
-      events.forEach(event => socket.off(event, handleUpdate));
+      events.forEach((event) => socket.off(event, handleUpdate));
     };
   }, [socket, queryClient]);
 
@@ -62,6 +62,21 @@ const Deliveries = () => {
       setIsAssignDialogOpen(false);
     },
   });
+
+  const deliveriesWithTotal = useMemo(() => {
+    return deliveries.map((d) => ({
+      ...d,
+      computedTotal:
+        d.vendorOrders?.reduce((total: number, vo: any) => {
+          return (
+            total +
+            (vo.items?.reduce((sum: number, item: any) => {
+              return sum + (item.totalPrice || 0);
+            }, 0) || 0)
+          );
+        }, 0) || 0,
+    }));
+  }, [deliveries]);
 
   const getStatusColor = (status: DeliveryStatus) => {
     switch (status) {
@@ -101,16 +116,14 @@ const Deliveries = () => {
             <p className="text-muted-foreground">{t("common.no_deliveries")}</p>
           </div>
         ) : (
-          deliveries.map((delivery: Delivery) => (
+          deliveriesWithTotal.map((delivery: Delivery) => (
             <Card key={delivery.id} className="overflow-hidden">
               <CardHeader className="flex flex-row items-center justify-between bg-muted/30 py-4">
                 <div className="flex items-center gap-2">
                   <Package className="w-5 h-5 text-primary" />
                   <CardTitle className="text-lg">Order #{delivery.customerOrderId?.substring(0, 8)}</CardTitle>
                 </div>
-                <Badge className={getStatusColor(delivery.status)}>
-                  {formatStatus(delivery.status)}
-                </Badge>
+                <Badge className={getStatusColor(delivery.status)}>{formatStatus(delivery.status)}</Badge>
               </CardHeader>
               <CardContent className="p-6">
                 <div className="grid md:grid-cols-2 gap-6">
@@ -137,18 +150,22 @@ const Deliveries = () => {
                   <div className="space-y-4">
                     <div className="flex items-center gap-3">
                       <Clock className="w-4 h-4 text-muted-foreground" />
-                      <p className="text-sm">{t("common.created_at")}: {new Date(delivery.createdAt).toLocaleString()}</p>
+                      <p className="text-sm">
+                        {t("common.created_at")}: {new Date(delivery.createdAt).toLocaleString()}
+                      </p>
                     </div>
                     {delivery.courierId && (
                       <div className="flex items-center gap-3">
                         <User className="w-4 h-4 text-muted-foreground" />
-                        <p className="text-sm">{t("common.courier")}: {delivery.courierId} (ID)</p>
+                        <p className="text-sm">
+                          {t("common.courier")}: {delivery.courierId} (ID)
+                        </p>
                       </div>
                     )}
 
                     {delivery.status === DeliveryStatus.PENDING && (
-                      <Button 
-                        className="w-full mt-4" 
+                      <Button
+                        className="w-full mt-4"
                         onClick={() => {
                           setAssigningDeliveryId(delivery.id);
                           setIsAssignDialogOpen(true);
@@ -183,12 +200,21 @@ const Deliveries = () => {
                                     ? ` (${(item.requestedWeightGrams / 1000).toFixed(2)} kg)`
                                     : ""}
                               </span>
-                              <span className="font-medium">{item.totalPrice.toFixed(2)} {t("common.currency")}</span>
+                              <span className="font-medium">
+                                {item.totalPrice.toFixed(2)} {t("common.currency")}
+                              </span>
                             </div>
                           ))}
                         </div>
                       </div>
                     ))}
+
+                    <div className="mt-4 flex justify-between items-center border-t pt-3">
+                      <span className="text-sm font-semibold">{t("orders.total_price")}</span>
+                      <span className="text-sm font-bold text-primary">
+                        {delivery?.computedTotal?.toFixed(2)} {t("common.currency")}
+                      </span>
+                    </div>
                     {(!delivery.vendorOrders || delivery.vendorOrders.length === 0) && (
                       <p className="text-sm text-muted-foreground italic">{t("orders.no_items")}</p>
                     )}

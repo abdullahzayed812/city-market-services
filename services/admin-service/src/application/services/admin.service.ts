@@ -11,7 +11,7 @@ export interface DashboardStats {
 }
 
 export class AdminService {
-  constructor(private serviceClient: ServiceClient) { }
+  constructor(private serviceClient: ServiceClient) {}
 
   async getDashboardStats(userId?: string): Promise<DashboardStats> {
     Logger.info("Fetching dashboard statistics");
@@ -117,7 +117,12 @@ export class AdminService {
     const vendorOrderIds = ordersResult.data?.vendorOrderIds || [];
 
     if (vendorOrderIds.length > 0) {
-      const deliveryResult = await this.serviceClient.delivery.getDeliveriesAnalytics(vendorOrderIds, periodStart, periodEnd, userId);
+      const deliveryResult = await this.serviceClient.delivery.getDeliveriesAnalytics(
+        vendorOrderIds,
+        periodStart,
+        periodEnd,
+        userId,
+      );
       deliveryCount = deliveryResult.data?.totalDeliveries || 0;
     }
 
@@ -125,7 +130,7 @@ export class AdminService {
     const DELIVERY_FEE = 5; // 5 EGP
     const totalDeliveryFees = deliveryCount * DELIVERY_FEE;
     const platformCommissionAmount = platformCommission || 0;
-    const netRevenue = (totalRevenue || 0) - platformCommissionAmount - totalDeliveryFees;
+    // const netRevenue = (totalRevenue || 0) - platformCommissionAmount - totalDeliveryFees;
 
     return {
       totalRevenue: totalRevenue || 0,
@@ -133,7 +138,7 @@ export class AdminService {
       totalDeliveries: deliveryCount,
       platformCommission: platformCommissionAmount,
       totalDeliveryFees,
-      netRevenue
+      // netRevenue
     };
   }
 
@@ -242,9 +247,16 @@ export class AdminService {
     userId?: string,
     globalCategoryId?: string,
     vendorCategoryId?: string,
-    vendorId?: string
+    vendorId?: string,
   ) {
-    const productsData = await this.serviceClient.catalog.getAllProducts(page, limit, userId, globalCategoryId, vendorCategoryId, vendorId);
+    const productsData = await this.serviceClient.catalog.getAllProducts(
+      page,
+      limit,
+      userId,
+      globalCategoryId,
+      vendorCategoryId,
+      vendorId,
+    );
 
     if (productsData.data?.data && productsData.data.data.length > 0) {
       const vendorIds = [...new Set(productsData.data.data.map((p: any) => p.vendorId))];
@@ -256,7 +268,7 @@ export class AdminService {
 
       productsData.data.data = productsData.data.data.map((p: any) => ({
         ...p,
-        vendorShopName: vendorsMap[p.vendorId] || "Unknown"
+        vendorShopName: vendorsMap[p.vendorId] || "Unknown",
       }));
     }
 

@@ -22,7 +22,7 @@
     "no_couriers": "No couriers found.",
     "created_at": "Created at",
     "courier": "Courier",
-    "currency": "SAR",
+    "currency": "EGP",
     "assign": "Assign Courier",
     "select_courier": "Select a courier",
     "confirm_assignment": "Confirm Assignment",
@@ -65,6 +65,7 @@
     "pending": "Pending",
     "failed": "Failed",
     "order_items": "Order Items",
-    "no_items": "No items found."
+    "no_items": "No items found.",
+    "total_price": "Total price"
   }
 }

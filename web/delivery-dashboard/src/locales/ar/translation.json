@@ -22,7 +22,7 @@
     "no_couriers": "لا يوجد مناديب.",
     "created_at": "تاريخ الإنشاء",
     "courier": "المندوب",
-    "currency": "ر.س",
+    "currency": "ج.م",
     "assign": "تعيين مندوب",
     "select_courier": "اختر مندوباً",
     "confirm_assignment": "تأكيد التعيين",
@@ -65,6 +65,7 @@
     "pending": "قيد الانتظار",
     "failed": "فشل",
     "order_items": "عناصر الطلب",
-    "no_items": "لم يتم العثور على عناصر."
+    "no_items": "لم يتم العثور على عناصر.",
+    "total_price": "السعر الإجمالي"
   }
 }

@@ -36,7 +36,7 @@ function App() {
               <Route path="products" element={<ProductsManagement />} />
               <Route path="orders" element={<OrdersManagement />} />
               <Route path="couriers" element={<CouriersManagement />} />
-              <Route path="revenue" element={<FinancialOverview />} />
+              {/* <Route path="revenue" element={<FinancialOverview />} /> */}
               <Route path="financial-analytics" element={<FinancialAnalytics />} />
               <Route path="categories" element={<CategoriesManagement />} />
               <Route path="settings" element={<div>Settings Page (Coming Soon)</div>} />

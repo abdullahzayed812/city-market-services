@@ -29,6 +29,7 @@ export interface Delivery {
   courierName?: string;
   courierPhone?: string;
   vendorOrders?: any[]; // Added to include items
+  computedTotal?: number;
   createdAt: Date;
   updatedAt: Date;
 }

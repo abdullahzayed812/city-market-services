@@ -23,12 +23,12 @@ const Dashboard: React.FC = () => {
     { title: t("dashboard.total_orders"), value: stats?.totalOrders, icon: ShoppingBag, color: "text-emerald-600" },
     { title: t("dashboard.total_vendors"), value: stats?.totalVendors, icon: Store, color: "text-orange-600" },
     { title: t("dashboard.total_couriers"), value: stats?.totalCouriers, icon: Truck, color: "text-purple-600" },
-    {
-      title: t("dashboard.total_revenue"),
-      value: `$${stats?.totalRevenue?.toLocaleString()}`,
-      icon: DollarSign,
-      color: "text-indigo-600",
-    },
+    // {
+    //   title: t("dashboard.total_revenue"),
+    //   value: `$${stats?.totalRevenue?.toLocaleString()}`,
+    //   icon: DollarSign,
+    //   color: "text-indigo-600",
+    // },
   ];
 
   return (

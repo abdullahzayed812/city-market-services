@@ -1,26 +1,26 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Truck } from "lucide-react";
+import { useAuth } from "@/components/AuthProvider";
 
 const LoginPage = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { login } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [email, setEmail] = useState("deliverymanager@citymarket.com");
+  const [password, setPassword] = useState("password123");
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     try {
-      await login(email, password);
+      await login({ email, password });
       navigate("/");
     } catch (error) {
       console.error("Login failed:", error);
@@ -63,7 +63,8 @@ const LoginPage = () => {
               />
             </div>
             <Button className="w-full" type="submit" disabled={isLoading}>
-              {isLoading ? t("common.loading") : t("common.logout").replace(t("common.logout"), "Login")} {/* Simple fallback if login translation missing */}
+              {isLoading ? t("common.loading") : t("common.logout").replace(t("common.logout"), "Login")}{" "}
+              {/* Simple fallback if login translation missing */}
             </Button>
           </form>
         </CardContent>
