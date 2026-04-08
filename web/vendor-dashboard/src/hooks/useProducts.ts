@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from "@tanstack/react-query";
 import { productService } from "@/services/api/product.service";
 import { useAuth } from "@/components/AuthProvider";
 
@@ -7,10 +7,19 @@ export const useProducts = () => {
   const vendorId = vendor?.id;
   const queryClient = useQueryClient();
 
-  const productsQuery = useQuery({
+  const productsQuery = useInfiniteQuery({
     queryKey: ["vendor-products", vendorId],
-    queryFn: () => productService.getVendorProducts(vendorId!),
+    queryFn: ({ pageParam = 1 }) => productService.getVendorProducts(vendorId!, pageParam, 20),
+    getNextPageParam: (lastPage) => {
+      if (!lastPage || typeof lastPage.total !== 'number') return undefined;
+      const { page, limit, total } = lastPage;
+      if (page * limit < total) {
+        return page + 1;
+      }
+      return undefined;
+    },
     enabled: !!vendorId,
+    initialPageParam: 1,
   });
 
   const globalCategoriesQuery = useQuery({
@@ -66,7 +75,10 @@ export const useProducts = () => {
   });
 
   return {
-    products: productsQuery.data?.data || [],
+    products: productsQuery.data?.pages.flatMap((page) => page?.data || []) || [],
+    hasMoreProducts: !!productsQuery.hasNextPage,
+    isFetchingNextProductsPage: productsQuery.isFetchingNextPage,
+    loadMoreProducts: productsQuery.fetchNextPage,
     globalCategories: globalCategoriesQuery.data || [],
     vendorCategories: vendorCategoriesQuery.data || [],
     globalProducts: globalProductsQuery.data?.data || [],

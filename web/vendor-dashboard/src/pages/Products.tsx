@@ -28,6 +28,9 @@ const Products = () => {
     updateVendorProduct,
     deleteVendorProduct,
     uploadVendorProductImage,
+    hasMoreProducts,
+    isFetchingNextProductsPage,
+    loadMoreProducts,
   } = useProducts();
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -173,10 +176,10 @@ const Products = () => {
                 <TableCell>{product.globalCategoryName || t("common.none")}</TableCell>
                 <TableCell>{product.vendorCategoryName || t("common.none")}</TableCell>
                 <TableCell>
-                    ${product.price}
-                    <span className="text-[10px] text-muted-foreground block">
-                        {product.measurementType === MeasurementType.WEIGHT ? `/${t("inventory.units.kg")}` : `/${t("products.unit_short") || "unit"}`}
-                    </span>
+                  ${product.price}
+                  <span className="text-[10px] text-muted-foreground block">
+                    {product.measurementType === MeasurementType.WEIGHT ? `/${t("inventory.units.kg")}` : `/${t("products.unit_short") || "unit"}`}
+                  </span>
                 </TableCell>
                 <TableCell>
                   <span className={(product.measurementType === MeasurementType.UNIT ? product.stockQuantity : product.stockWeightGrams) < 10 ? "text-destructive font-bold" : ""}>
@@ -220,6 +223,18 @@ const Products = () => {
           </TableBody>
         </Table>
       </div>
+
+      {hasMoreProducts && (
+        <div className="flex justify-center pt-4">
+          <Button
+            variant="outline"
+            onClick={() => loadMoreProducts()}
+            disabled={isFetchingNextProductsPage}
+          >
+            {isFetchingNextProductsPage ? t("common.loading", "Loading...") : t("common.load_more", "Load More")}
+          </Button>
+        </div>
+      )}
 
       <VendorProductImageModal
         isOpen={isImageModalOpen}

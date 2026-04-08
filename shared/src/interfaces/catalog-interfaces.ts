@@ -22,6 +22,7 @@ export interface VendorProduct {
   vendorCategoryId: string;
   globalCategoryName?: string | null;
   vendorCategoryName?: string | null;
+  vendorName?: string;
   name: string;
   description?: string;
   price: number;
