@@ -38,18 +38,18 @@ const ProductsManagement: React.FC = () => {
     // Pass both category IDs and vendor ID to the hook
     globalCategoryId: selectedGlobalCategoryId,
     vendorCategoryId: selectedVendorCategoryId,
-    vendorId: selectedVendorId
+    vendorId: selectedVendorId,
   });
 
-  const globalCategories = useMemo(() =>
-    categories?.filter(c => c.type === CategoryType.GLOBAL || !c.type) || [],
-    [categories]
+  const globalCategories = useMemo(
+    () => categories?.filter((c) => c.type === CategoryType.GLOBAL || !c.type) || [],
+    [categories],
   );
 
   const vendorCategories = useMemo(() => {
-    let filtered = categories?.filter(c => c.type === CategoryType.VENDOR) || [];
+    let filtered = categories?.filter((c) => c.type === CategoryType.VENDOR) || [];
     if (selectedVendorId) {
-      filtered = filtered.filter(c => c.vendorId === selectedVendorId);
+      filtered = filtered.filter((c) => c.vendorId === selectedVendorId);
     }
     return filtered;
   }, [categories, selectedVendorId]);
@@ -64,31 +64,43 @@ const ProductsManagement: React.FC = () => {
     setIsDialogOpen(true);
   }, []);
 
-  const handleFormSubmit = useCallback((data: CreateVendorProductDto | Partial<VendorProduct>) => {
-    if (editingProduct) {
-      updateVendorProduct(editingProduct.id, data);
-    } else {
-      createVendorProduct(data as CreateVendorProductDto);
-    }
-    setIsDialogOpen(false);
-  }, [editingProduct, updateVendorProduct, createVendorProduct]);
+  const handleFormSubmit = useCallback(
+    (data: CreateVendorProductDto | Partial<VendorProduct>) => {
+      if (editingProduct) {
+        updateVendorProduct(editingProduct.id, data);
+      } else {
+        createVendorProduct(data as CreateVendorProductDto);
+      }
+      setIsDialogOpen(false);
+    },
+    [editingProduct, updateVendorProduct, createVendorProduct],
+  );
 
-  const handleToggleAvailability = useCallback((product: VendorProduct) => {
-    updateVendorProduct(product.id, { isAvailable: !product.isAvailable });
-  }, [updateVendorProduct]);
+  const handleToggleAvailability = useCallback(
+    (product: VendorProduct) => {
+      updateVendorProduct(product.id, { isAvailable: !product.isAvailable });
+    },
+    [updateVendorProduct],
+  );
 
   const handleViewImage = useCallback((product: VendorProduct) => {
     setSelectedProductForImage(product);
     setIsImageModalOpen(true);
   }, []);
 
-  const handleUploadImage = useCallback((id: string, file: File) => {
-    uploadVendorProductImage(id, file);
-  }, [uploadVendorProductImage]);
+  const handleUploadImage = useCallback(
+    (id: string, file: File) => {
+      uploadVendorProductImage(id, file);
+    },
+    [uploadVendorProductImage],
+  );
 
-  const handleDeleteProduct = useCallback((id: string) => {
-    deleteVendorProduct(id);
-  }, [deleteVendorProduct]);
+  const handleDeleteProduct = useCallback(
+    (id: string) => {
+      deleteVendorProduct(id);
+    },
+    [deleteVendorProduct],
+  );
 
   const handleLoadMore = useCallback(() => {
     loadMoreProducts();
@@ -103,7 +115,7 @@ const ProductsManagement: React.FC = () => {
   }
 
   return (
-    <div className="space-y-6 animate-in fade-in zoom-in duration-500">
+    <div className="">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">{t("common.products")}</h1>
@@ -122,10 +134,10 @@ const ProductsManagement: React.FC = () => {
             onValueChange={(val) => {
               const newVendorId = val === "all" ? undefined : val;
               setSelectedVendorId(newVendorId);
-              
+
               // Reset vendor category if it doesn't belong to the new vendor
               if (selectedVendorCategoryId) {
-                const category = categories?.find(c => c.id === selectedVendorCategoryId);
+                const category = categories?.find((c) => c.id === selectedVendorCategoryId);
                 if (newVendorId && category?.vendorId !== newVendorId) {
                   setSelectedVendorCategoryId(undefined);
                 }
@@ -176,7 +188,7 @@ const ProductsManagement: React.FC = () => {
               } else {
                 setSelectedVendorCategoryId(val);
                 // Also set vendor if not set or different
-                const cat = categories?.find(c => c.id === val);
+                const cat = categories?.find((c) => c.id === val);
                 if (cat && cat.vendorId && cat.vendorId !== selectedVendorId) {
                   setSelectedVendorId(cat.vendorId);
                 }
@@ -193,7 +205,7 @@ const ProductsManagement: React.FC = () => {
                   <div className="flex flex-col">
                     <span>{cat.name}</span>
                     <span className="text-[10px] text-gray-400">
-                      {vendors?.find(v => v.id === cat.vendorId)?.shopName || cat.vendorId}
+                      {vendors?.find((v) => v.id === cat.vendorId)?.shopName || cat.vendorId}
                     </span>
                   </div>
                 </SelectItem>

@@ -44,13 +44,6 @@ export class AdminService {
     return this.serviceClient.vendor.getAllVendors(page, limit, userId);
   }
 
-  async updateVendorCommission(vendorId: string, rate: number, userId?: string) {
-    if (rate < 0 || rate > 100) {
-      throw new Error("Commission rate must be between 0 and 100");
-    }
-    return this.serviceClient.vendor.updateVendorCommission(vendorId, rate, userId);
-  }
-
   async suspendVendor(vendorId: string, userId?: string) {
     Logger.warn(`Suspending vendor ${vendorId}`);
     return this.serviceClient.vendor.suspendVendor(vendorId, userId);
@@ -110,53 +103,53 @@ export class AdminService {
     return this.serviceClient.delivery.getAvailableCouriers(userId);
   }
 
-  async getFinancialAnalytics(vendorId: string, periodStart?: string, periodEnd?: string, userId?: string) {
-    const ordersResult = await this.serviceClient.order.getVendorFinancials(vendorId, periodStart, periodEnd, userId);
+  // async getFinancialAnalytics(vendorId: string, periodStart?: string, periodEnd?: string, userId?: string) {
+  //   const ordersResult = await this.serviceClient.order.getVendorFinancials(vendorId, periodStart, periodEnd, userId);
 
-    let deliveryCount = 0;
-    const vendorOrderIds = ordersResult.data?.vendorOrderIds || [];
+  //   let deliveryCount = 0;
+  //   const vendorOrderIds = ordersResult.data?.vendorOrderIds || [];
 
-    if (vendorOrderIds.length > 0) {
-      const deliveryResult = await this.serviceClient.delivery.getDeliveriesAnalytics(
-        vendorOrderIds,
-        periodStart,
-        periodEnd,
-        userId,
-      );
-      deliveryCount = deliveryResult.data?.totalDeliveries || 0;
-    }
+  //   if (vendorOrderIds.length > 0) {
+  //     const deliveryResult = await this.serviceClient.delivery.getDeliveriesAnalytics(
+  //       vendorOrderIds,
+  //       periodStart,
+  //       periodEnd,
+  //       userId,
+  //     );
+  //     deliveryCount = deliveryResult.data?.totalDeliveries || 0;
+  //   }
 
-    const { totalRevenue, platformCommission, totalOrders } = ordersResult.data || {};
-    const DELIVERY_FEE = 5; // 5 EGP
-    const totalDeliveryFees = deliveryCount * DELIVERY_FEE;
-    const platformCommissionAmount = platformCommission || 0;
-    // const netRevenue = (totalRevenue || 0) - platformCommissionAmount - totalDeliveryFees;
+  //   const { totalRevenue, platformCommission, totalOrders } = ordersResult.data || {};
+  //   const DELIVERY_FEE = 5; // 5 EGP
+  //   const totalDeliveryFees = deliveryCount * DELIVERY_FEE;
+  //   const platformCommissionAmount = platformCommission || 0;
+  //   // const netRevenue = (totalRevenue || 0) - platformCommissionAmount - totalDeliveryFees;
 
-    return {
-      totalRevenue: totalRevenue || 0,
-      totalOrders: totalOrders || 0,
-      totalDeliveries: deliveryCount,
-      platformCommission: platformCommissionAmount,
-      totalDeliveryFees,
-      // netRevenue
-    };
-  }
+  //   return {
+  //     totalRevenue: totalRevenue || 0,
+  //     totalOrders: totalOrders || 0,
+  //     totalDeliveries: deliveryCount,
+  //     platformCommission: platformCommissionAmount,
+  //     totalDeliveryFees,
+  //     // netRevenue
+  //   };
+  // }
 
-  async getRevenue(userId?: string) {
-    return Promise.resolve({
-      totalRevenue: 25000,
-      platformCommission: 2500,
-      payouts: [
-        { id: "P-001", vendorName: "The Corner Store", amount: 1200, status: "completed", date: "2026-01-14" },
-        { id: "P-002", vendorName: "Fresh Market", amount: 850, status: "pending", date: "2026-01-14" },
-        { id: "P-003", vendorName: "Tech Haven", amount: 2100, status: "completed", date: "2026-01-13" },
-      ],
-    });
-  }
+  // async getRevenue(userId?: string) {
+  //   return Promise.resolve({
+  //     totalRevenue: 25000,
+  //     platformCommission: 2500,
+  //     payouts: [
+  //       { id: "P-001", vendorName: "The Corner Store", amount: 1200, status: "completed", date: "2026-01-14" },
+  //       { id: "P-002", vendorName: "Fresh Market", amount: 850, status: "pending", date: "2026-01-14" },
+  //       { id: "P-003", vendorName: "Tech Haven", amount: 2100, status: "completed", date: "2026-01-13" },
+  //     ],
+  //   });
+  // }
 
-  async getPayouts(userId?: string) {
-    return Promise.resolve({ payouts: 5000, date: new Date() });
-  }
+  // async getPayouts(userId?: string) {
+  //   return Promise.resolve({ payouts: 5000, date: new Date() });
+  // }
 
   // Creation Management
   async registerUser(data: any, userId?: string) {
@@ -311,5 +304,43 @@ export class AdminService {
   async deleteGlobalProduct(id: string, userId?: string) {
     Logger.warn(`Deleting global product ${id}`);
     return this.serviceClient.catalog.deleteGlobalProduct(id, userId);
+  }
+
+  // Commission Tiers Management
+  async getAllCommissionTiers(userId?: string) {
+    return this.serviceClient.order.getCommissionTiers(userId);
+  }
+
+  async createCommissionTier(data: any, userId?: string) {
+    return this.serviceClient.order.createCommissionTier(data, userId);
+  }
+
+  async updateCommissionTier(id: string, data: any, userId?: string) {
+    return this.serviceClient.order.updateCommissionTier(id, data, userId);
+  }
+
+  async deleteCommissionTier(id: string, userId?: string) {
+    return this.serviceClient.order.deleteCommissionTier(id, userId);
+  }
+
+  // Settlement Management
+  async getVendorPendingEarnings(vendorId: string, userId?: string) {
+    return this.serviceClient.order.getVendorPendingEarnings(vendorId, userId);
+  }
+
+  async getSettlements(vendorId?: string, page: number = 1, limit: number = 20, userId?: string) {
+    return this.serviceClient.order.getSettlements(vendorId, page, limit, userId);
+  }
+
+  async createSettlement(data: any, userId?: string) {
+    return this.serviceClient.order.createSettlement(data, userId);
+  }
+
+  async markSettlementPaid(id: string, userId?: string) {
+    return this.serviceClient.order.markSettlementPaid(id, userId);
+  }
+
+  async getPlatformFinancialOverview(userId?: string) {
+    return this.serviceClient.order.getPlatformFinancialOverview(userId);
   }
 }

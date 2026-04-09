@@ -27,6 +27,7 @@ import { OrderCreationManager } from "./order-creation.manager";
 import { ProposalManager } from "./proposal.manager";
 import { VendorOrderManager } from "./vendor-order.manager";
 import { OrderMapper } from "../mappers/order.mapper";
+import { CommissionTierService } from "./commission-tier.service";
 
 export class OrderService {
   private stateManager: OrderStateManager;
@@ -43,6 +44,7 @@ export class OrderService {
     private catalogClient: CatalogHttpClient,
     private vendorClient: VendorHttpClient,
     private publisher: OrderPublisher,
+    private commissionTierService: CommissionTierService,
     private db: Database,
   ) {
     this.stateManager = new OrderStateManager(
@@ -61,6 +63,7 @@ export class OrderService {
       vendorClient,
       publisher,
       this.stateManager,
+      this.commissionTierService,
     );
     this.creationManager = new OrderCreationManager(
       customerOrderRepo,
@@ -70,6 +73,7 @@ export class OrderService {
       vendorClient,
       publisher,
       this.stateManager,
+      this.commissionTierService,
     );
     this.vendorOrderManager = new VendorOrderManager(
       vendorOrderRepo,

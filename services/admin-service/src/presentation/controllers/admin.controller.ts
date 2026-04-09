@@ -5,7 +5,7 @@ import { AuthenticatedRequest } from "@city-market/shared/node";
 import FormData from "form-data";
 
 export class AdminController {
-  constructor(private adminService: AdminService) { }
+  constructor(private adminService: AdminService) {}
 
   getDashboard = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
@@ -33,17 +33,6 @@ export class AdminController {
       const limit = parseInt(req.query.limit as string) || 50;
       const vendors = await this.adminService.getAllVendors(page, limit, req.user!.userId);
       res.json(vendors);
-    } catch (error) {
-      next(error);
-    }
-  };
-
-  updateVendorCommission = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
-    try {
-      const { vendorId } = req.params;
-      const { rate } = req.body;
-      const result = await this.adminService.updateVendorCommission(vendorId, rate, req.user!.userId);
-      res.json(result);
     } catch (error) {
       next(error);
     }
@@ -202,36 +191,36 @@ export class AdminController {
     }
   };
 
-  getFinancialAnalytics = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
-    try {
-      const { vendorId } = req.params;
-      const periodStart = req.query.periodStart as string;
-      const periodEnd = req.query.periodEnd as string;
+  // getFinancialAnalytics = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  //   try {
+  //     const { vendorId } = req.params;
+  //     const periodStart = req.query.periodStart as string;
+  //     const periodEnd = req.query.periodEnd as string;
 
-      const result = await this.adminService.getFinancialAnalytics(vendorId, periodStart, periodEnd, req.user!.userId);
-      res.json(ApiResponse.success(result));
-    } catch (error) {
-      next(error);
-    }
-  };
+  //     const result = await this.adminService.getFinancialAnalytics(vendorId, periodStart, periodEnd, req.user!.userId);
+  //     res.json(ApiResponse.success(result));
+  //   } catch (error) {
+  //     next(error);
+  //   }
+  // };
 
-  getRevenue = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
-    try {
-      const revenue = await this.adminService.getRevenue(req.user!.userId);
-      res.json(revenue);
-    } catch (error) {
-      next(error);
-    }
-  };
+  // getRevenue = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  //   try {
+  //     const revenue = await this.adminService.getRevenue(req.user!.userId);
+  //     res.json(revenue);
+  //   } catch (error) {
+  //     next(error);
+  //   }
+  // };
 
-  getPayouts = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
-    try {
-      const payouts = await this.adminService.getPayouts(req.user!.userId);
-      res.json(payouts);
-    } catch (error) {
-      next(error);
-    }
-  };
+  // getPayouts = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  //   try {
+  //     const payouts = await this.adminService.getPayouts(req.user!.userId);
+  //     res.json(payouts);
+  //   } catch (error) {
+  //     next(error);
+  //   }
+  // };
 
   // Creation Management
   registerUser = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
@@ -322,11 +311,18 @@ export class AdminController {
     try {
       const page = parseInt(req.query.page as string) || 1;
       const limit = parseInt(req.query.limit as string) || 20;
-      const globalCategoryId = req.query.globalCategoryId as string || req.query.categoryId as string;
+      const globalCategoryId = (req.query.globalCategoryId as string) || (req.query.categoryId as string);
       const vendorCategoryId = req.query.vendorCategoryId as string;
       const vendorId = req.query.vendorId as string;
 
-      const result = await this.adminService.getAllProducts(page, limit, req.user!.userId, globalCategoryId, vendorCategoryId, vendorId);
+      const result = await this.adminService.getAllProducts(
+        page,
+        limit,
+        req.user!.userId,
+        globalCategoryId,
+        vendorCategoryId,
+        vendorId,
+      );
       res.json(result);
     } catch (error) {
       next(error);
@@ -412,6 +408,92 @@ export class AdminController {
   deleteGlobalProduct = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
       const result = await this.adminService.deleteGlobalProduct(req.params.id, req.user!.userId);
+      res.json(result);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  // Commission Tiers Management
+  getAllCommissionTiers = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      const result = await this.adminService.getAllCommissionTiers(req.user!.userId);
+      res.json(result);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  createCommissionTier = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      const result = await this.adminService.createCommissionTier(req.body, req.user!.userId);
+      res.json(result);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  updateCommissionTier = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      const result = await this.adminService.updateCommissionTier(req.params.id, req.body, req.user!.userId);
+      res.json(result);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  deleteCommissionTier = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      const result = await this.adminService.deleteCommissionTier(req.params.id, req.user!.userId);
+      res.json(result);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  // Settlement Management
+  getVendorPendingEarnings = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      const result = await this.adminService.getVendorPendingEarnings(req.params.vendorId, req.user!.userId);
+      res.json(result);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  getSettlements = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      const vendorId = req.query.vendorId as string;
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 20;
+      const result = await this.adminService.getSettlements(vendorId, page, limit, req.user!.userId);
+      res.json(result);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  createSettlement = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      const result = await this.adminService.createSettlement(req.body, req.user!.userId);
+      res.json(result);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  markSettlementPaid = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      const result = await this.adminService.markSettlementPaid(req.params.id, req.user!.userId);
+      res.json(result);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  getPlatformFinancialOverview = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      const result = await this.adminService.getPlatformFinancialOverview(req.user!.userId);
       res.json(result);
     } catch (error) {
       next(error);

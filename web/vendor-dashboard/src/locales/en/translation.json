@@ -26,7 +26,7 @@
     "status": "Status",
     "date": "Date",
     "actions": "Actions",
-    "currency": "SAR",
+    "currency": "EGP",
     "email": "Email",
     "phone": "Phone",
     "address": "Address",
@@ -51,7 +51,8 @@
     "no_working_hours": "No working hours set.",
     "profile_updated": "Profile updated successfully",
     "image_uploaded": "Store image uploaded successfully",
-    "upload_failed": "Failed to upload image"
+    "upload_failed": "Failed to upload image",
+    "no_payout_history": "No payout history found."
   },
   "orders": {
     "title": "Orders",

@@ -38,11 +38,8 @@ const VendorsManagement: React.FC = () => {
 
   const updateVendorMutation = useMutation({
     mutationFn: async (data: any) => {
-      const { id, commissionRate, ...rest } = data;
+      const { id, ...rest } = data;
       await adminApi.updateVendor(id, rest);
-      if (commissionRate !== undefined) {
-        await adminApi.updateVendorCommission(id, Number(commissionRate));
-      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["adminVendors"] });
@@ -93,7 +90,7 @@ const VendorsManagement: React.FC = () => {
   if (isLoading) return <div className="p-8 text-center">{t("common.loading")}</div>;
 
   return (
-    <div className="space-y-6 animate-in fade-in zoom-in duration-500">
+    <div className="">
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold text-gray-800">{t("common.vendors")}</h2>
         <Button className="gap-2" onClick={() => setIsCreateDialogOpen(true)}>

@@ -47,14 +47,12 @@ const VendorFormDialog: React.FC<VendorFormDialogProps> = ({
     phone: "",
     address: "",
     type: "Supermarket",
-    commissionRate: 10,
   });
 
   useEffect(() => {
     if (vendor) {
       setFormData({
         ...vendor,
-        commissionRate: vendor.commissionRate ?? 10,
       });
     } else if (isCreate) {
       setFormData({
@@ -67,7 +65,6 @@ const VendorFormDialog: React.FC<VendorFormDialogProps> = ({
         phone: "",
         address: "",
         type: "Supermarket",
-        commissionRate: 10,
       });
     }
   }, [vendor, open, isCreate]);
@@ -155,8 +152,8 @@ const VendorFormDialog: React.FC<VendorFormDialogProps> = ({
             </div>
             <div className="space-y-2">
               <Label htmlFor="type">{t("vendors.type")}</Label>
-              <Select 
-                value={formData.type} 
+              <Select
+                value={formData.type}
                 onValueChange={(val) => setFormData({ ...formData, type: val })}
               >
                 <SelectTrigger>
@@ -173,18 +170,7 @@ const VendorFormDialog: React.FC<VendorFormDialogProps> = ({
             </div>
           </div>
 
-          {!isCreate && (
-            <div className="space-y-2">
-              <Label htmlFor="commission">{t("vendors.commission_rate")}</Label>
-              <Input
-                id="commission"
-                type="number"
-                step="0.01"
-                value={formData.commissionRate}
-                onChange={(e) => setFormData({ ...formData, commissionRate: e.target.value })}
-              />
-            </div>
-          )}
+
 
           <div className="space-y-2">
             <Label htmlFor="address">{t("vendors.address")}</Label>

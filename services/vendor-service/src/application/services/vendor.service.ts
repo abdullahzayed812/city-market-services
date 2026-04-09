@@ -36,7 +36,6 @@ export class VendorService {
       latitude: dto.latitude,
       longitude: dto.longitude,
       status: ShopStatus.CLOSED,
-      commissionRate: 10.0,
       averageRating: 0.0,
       totalRatings: 0,
       isActive: true,
@@ -91,10 +90,7 @@ export class VendorService {
     await this.vendorRepo.updateStatus(id, status);
   }
 
-  async updateCommission(id: string, rate: number): Promise<void> {
-    const vendor = await this.getVendorById(id);
-    await this.vendorRepo.updateCommission(id, rate);
-  }
+
 
   async setWorkingHours(vendorId: string, dto: SetWorkingHoursDto): Promise<void> {
     const vendor = await this.getVendorById(vendorId);

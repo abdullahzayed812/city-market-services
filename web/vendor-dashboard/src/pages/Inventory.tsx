@@ -53,7 +53,7 @@ const Inventory = () => {
   const lowStockProducts = products.filter(isLowStock);
 
   return (
-    <div className="space-y-6 animate-in fade-in zoom-in duration-500">
+    <div className="">
       <div>
         <h1 className="text-3xl font-bold tracking-tight">{t("inventory.title")}</h1>
         <p className="text-muted-foreground">{t("inventory.subtitle")}</p>

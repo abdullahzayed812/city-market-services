@@ -78,14 +78,7 @@ export class VendorController {
     }
   };
 
-  updateCommission = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
-    try {
-      await this.vendorService.updateCommission(req.params.id, req.body.rate);
-      res.json(ApiResponse.success(null, "commission_updated"));
-    } catch (error) {
-      next(error);
-    }
-  };
+
 
   updateStatus = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {

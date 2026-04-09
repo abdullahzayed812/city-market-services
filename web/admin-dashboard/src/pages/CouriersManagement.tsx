@@ -33,7 +33,7 @@ const CouriersManagement: React.FC = () => {
     onError: (error: any) => {
       toast({
         variant: "destructive",
-        description: error.response?.data?.message || t("common.error")
+        description: error.response?.data?.message || t("common.error"),
       });
     },
   });
@@ -49,7 +49,7 @@ const CouriersManagement: React.FC = () => {
   if (isLoading) return <div className="p-8 text-center">{t("common.loading")}</div>;
 
   return (
-    <div className="space-y-6 animate-in fade-in zoom-in duration-500">
+    <div className="">
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold text-gray-800">{t("common.couriers")}</h2>
         <div className="flex gap-4 items-center">
@@ -60,7 +60,7 @@ const CouriersManagement: React.FC = () => {
             <Plus size={16} />
             {t("couriers.add_new")}
           </Button>
-          
+
           <CreateCourierDialog
             open={isCreateDialogOpen}
             onOpenChange={setIsCreateDialogOpen}

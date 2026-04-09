@@ -4,47 +4,38 @@ import { config } from "../../config/env";
 import { randomUUID } from "crypto";
 
 const seedDb = async () => {
-    const db = Database.getInstance({
-        host: config.dbHost,
-        port: config.dbPort,
-        user: config.dbUser,
-        password: config.dbPassword,
-        database: config.dbName,
-    });
-    const connection = db.getPool();
+  const db = Database.getInstance({
+    host: config.dbHost,
+    port: config.dbPort,
+    user: config.dbUser,
+    password: config.dbPassword,
+    database: config.dbName,
+  });
+  const connection = db.getPool();
 
-    try {
-        const orderId = SEED_DATA.ORDERS.ORDER_1;
-        const customerId = SEED_DATA.CUSTOMERS.JOHN_DOE;
-        const vendorId = SEED_DATA.VENDORS.SUPER_MARKET_1;
+  try {
+    // Commission Tiers Seeds
+    const tiers = [
+      { min: 0, max: 200, percentage: 1.0 },
+      { min: 200, max: 500, percentage: 2.0 },
+      { min: 500, max: 1000, percentage: 3.0 },
+      { min: 1000, max: 2000, percentage: 4.0 },
+    ];
 
-        await connection.execute(
-            "INSERT IGNORE INTO orders (id, customer_id, vendor_id, status, subtotal, delivery_fee, commission_amount, total_amount, delivery_address, delivery_latitude, delivery_longitude) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-            [orderId, customerId, vendorId, "CREATED", 70.00, 10.00, 7.00, 80.00, "123 Main St", 30.9123, 29.6789]
-        );
-
-        await connection.execute(
-            "INSERT IGNORE INTO order_items (id, order_id, product_id, product_name, quantity, unit_price, total_price) VALUES (?, ?, ?, ?, ?, ?, ?)",
-            [randomUUID(), orderId, randomUUID(), "Cheeseburger", 1, 50.00, 50.00]
-        );
-
-        await connection.execute(
-            "INSERT IGNORE INTO order_items (id, order_id, product_id, product_name, quantity, unit_price, total_price) VALUES (?, ?, ?, ?, ?, ?, ?)",
-            [randomUUID(), orderId, randomUUID(), "Fries", 1, 20.00, 20.00]
-        );
-
-        await connection.execute(
-            "INSERT IGNORE INTO order_status_history (id, order_id, status, notes) VALUES (?, ?, ?, ?)",
-            [randomUUID(), orderId, "CREATED", "Order placed by customer"]
-        );
-
-        console.log("Database seeded successfully");
-    } catch (error) {
-        console.error("Error seeding database:", error);
-        process.exit(1);
-    } finally {
-        await connection.end();
+    for (const tier of tiers) {
+      await connection.execute(
+        "INSERT IGNORE INTO commission_tiers (id, min_amount, max_amount, percentage) VALUES (?, ?, ?, ?)",
+        [randomUUID(), tier.min, tier.max, tier.percentage],
+      );
     }
+
+    console.log("Database seeded successfully");
+  } catch (error) {
+    console.error("Error seeding database:", error);
+    process.exit(1);
+  } finally {
+    await connection.end();
+  }
 };
 
 seedDb();

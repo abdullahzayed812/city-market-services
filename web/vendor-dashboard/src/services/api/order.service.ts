@@ -27,13 +27,34 @@ export const orderService = {
     const response = await apiClient.post<ApiResponse<null>>(`/orders/vendor-orders/${id}/propose`, { proposals });
     return response.data?.data;
   },
-  updateOrderStatus: async (id: string, status: VendorOrderStatus, itemWeights?: { itemId: string; actualWeight?: number; actualWeightGrams?: number }[], notes?: string) => {
-    const response = await apiClient.patch<ApiResponse<null>>(`/orders/vendor-orders/${id}/status`, { status, notes, itemWeights });
+  updateOrderStatus: async (
+    id: string,
+    status: VendorOrderStatus,
+    itemWeights?: { itemId: string; actualWeight?: number; actualWeightGrams?: number }[],
+    notes?: string,
+  ) => {
+    const response = await apiClient.patch<ApiResponse<null>>(`/orders/vendor-orders/${id}/status`, {
+      status,
+      notes,
+      itemWeights,
+    });
     return response.data?.data;
   },
   cancelOrder: async (id: string) => {
     const response = await apiClient.patch<ApiResponse<null>>(`/orders/vendor-orders/${id}/status`, {
       status: VendorOrderStatus.CANCELLED,
+    });
+    return response.data?.data;
+  },
+  getPendingEarnings: async (vendorId: string) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const response = await apiClient.get<ApiResponse<any>>(`/orders/settlements/vendor/${vendorId}/pending`);
+    return response.data?.data;
+  },
+  getSettlements: async (vendorId: string, page: number = 1, limit: number = 20) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const response = await apiClient.get<ApiResponse<any>>(`/orders/settlements`, {
+      params: { vendorId, page, limit },
     });
     return response.data?.data;
   },

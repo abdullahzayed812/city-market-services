@@ -11,5 +11,7 @@ export interface IVendorOrderRepository {
     findByStatus(status: string, connection?: any): Promise<VendorOrder[]>;
     updateStatus(id: string, status: string, connection?: any): Promise<void>;
     update(id: string, data: Partial<VendorOrder>, connection?: any): Promise<void>;
+    markOrdersAsSettled(orderIds: string[], settlementId: string, connection?: any): Promise<void>;
     getVendorFinancials(vendorId: string, periodStart?: Date, periodEnd?: Date, connection?: any): Promise<{ totalRevenue: number; platformCommission: number; totalOrders: number; vendorOrderIds: string[] }>;
+    mapToEntity(row: any): VendorOrder;
 }

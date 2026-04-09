@@ -10,8 +10,9 @@ export interface VendorInfo {
   status: string;
   latitude: number;
   longitude: number;
-  commissionRate: number;
 }
+
+
 
 export class VendorHttpClient {
   private axiosInstance: AxiosInstance;
@@ -45,4 +46,6 @@ export class VendorHttpClient {
       return null;
     }
   }
+
+
 }

@@ -4,11 +4,11 @@ import Dashboard from "./pages/Dashboard.tsx";
 import UsersManagement from "./pages/UsersManagement.tsx";
 import OrdersManagement from "./pages/OrdersManagement.tsx";
 import CouriersManagement from "./pages/CouriersManagement.tsx";
-import FinancialOverview from "./pages/FinancialOverview.tsx";
 import CategoriesManagement from "./pages/CategoriesManagement.tsx";
 import VendorsManagement from "./pages/VendorsManagement.tsx";
 import ProductsManagement from "./pages/ProductsManagement.tsx";
 import FinancialAnalytics from "./pages/FinancialAnalytics.tsx";
+import CommissionTiers from "./pages/CommissionTiers.tsx";
 import LoginPage from "./pages/LoginPage.tsx";
 import ProtectedRoute from "./components/ProtectedRoute.tsx";
 import { AuthProvider } from "./components/AuthProvider.tsx";
@@ -36,8 +36,8 @@ function App() {
               <Route path="products" element={<ProductsManagement />} />
               <Route path="orders" element={<OrdersManagement />} />
               <Route path="couriers" element={<CouriersManagement />} />
-              {/* <Route path="revenue" element={<FinancialOverview />} /> */}
               <Route path="financial-analytics" element={<FinancialAnalytics />} />
+              <Route path="commission-tiers" element={<CommissionTiers />} />
               <Route path="categories" element={<CategoriesManagement />} />
               <Route path="settings" element={<div>Settings Page (Coming Soon)</div>} />
             </Route>

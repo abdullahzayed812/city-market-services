@@ -26,14 +26,34 @@ CREATE TABLE vendor_orders (
   subtotal DECIMAL(10, 2) NOT NULL,
   commission_amount DECIMAL(10, 2) DEFAULT 0,
   total_amount DECIMAL(10, 2) NOT NULL,
+  commission_percentage DECIMAL(5, 2) DEFAULT NULL,
   delivery_id VARCHAR(36),
+  settlement_id VARCHAR(36) DEFAULT NULL,
   cancellation_reason TEXT,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   INDEX idx_customer_order_id (customer_order_id),
   INDEX idx_vendor_id (vendor_id),
   INDEX idx_status (status),
+  INDEX idx_settlement_id (settlement_id),
   FOREIGN KEY (customer_order_id) REFERENCES customer_orders(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE settlements (
+  id VARCHAR(36) PRIMARY KEY,
+  vendor_id VARCHAR(36) NOT NULL,
+  status ENUM('PENDING', 'PAID') DEFAULT 'PENDING',
+  period_start TIMESTAMP NOT NULL,
+  period_end TIMESTAMP NOT NULL,
+  total_vendor_revenue DECIMAL(10, 2) NOT NULL,
+  total_commission DECIMAL(10, 2) NOT NULL,
+  net_payout DECIMAL(10, 2) NOT NULL,
+  order_count INT NOT NULL,
+  notes TEXT,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  settled_at TIMESTAMP DEFAULT NULL,
+  INDEX idx_vendor_id (vendor_id),
+  INDEX idx_status (status)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE vendor_order_items (
@@ -77,4 +97,14 @@ CREATE TABLE order_status_history (
   INDEX idx_vendor_order_id (vendor_order_id),
   FOREIGN KEY (customer_order_id) REFERENCES customer_orders(id) ON DELETE CASCADE,
   FOREIGN KEY (vendor_order_id) REFERENCES vendor_orders(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE commission_tiers (
+  id VARCHAR(36) PRIMARY KEY,
+  min_amount DECIMAL(10, 2) NOT NULL,
+  max_amount DECIMAL(10, 2),
+  percentage DECIMAL(5, 2) NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  UNIQUE INDEX idx_min_amount (min_amount)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

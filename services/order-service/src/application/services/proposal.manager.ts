@@ -19,6 +19,8 @@ import {
   PricingStrategyFactory,
 } from "@city-market/shared";
 import { randomUUID } from "crypto";
+import { CommissionCalculator } from "../utils/CommissionCalculator";
+import { CommissionTierService } from "./commission-tier.service";
 
 const WEIGHT_TOLERANCE_GRAMS = 100;
 const MAX_WEIGHT_DIFFERENCE_THRESHOLD = 0.3;
@@ -33,6 +35,7 @@ export class ProposalManager {
     private vendorClient: VendorHttpClient,
     private publisher: OrderPublisher,
     private stateManager: OrderStateManager,
+    private commissionTierService: CommissionTierService,
   ) { }
 
   async propose(vendorOrderId: string, dto: ProposeChangesDto[], connection: PoolConnection): Promise<void> {
@@ -260,12 +263,11 @@ export class ProposalManager {
     const vo = await this.vendorOrderRepo.findById(vendorOrderId, connection);
     if (!vo) return;
 
-    const vendorInfo = await this.vendorClient.getVendor(vo.vendorId);
-    const commissionRate = vendorInfo?.commissionRate ?? 10.0;
+    const tiers = await this.commissionTierService.getAllTiers();
 
     const items = await this.vendorOrderItemRepo.findByVendorOrder(vendorOrderId, connection);
     const newSubtotal = items.reduce((sum, item) => sum + item.totalPrice, 0);
-    const commissionAmount = newSubtotal * (commissionRate / 100);
+    const { amount: commissionAmount, percentage: commissionPercentage } = CommissionCalculator.calculate(newSubtotal, tiers);
 
     await this.vendorOrderRepo.update(
       vendorOrderId,
@@ -273,6 +275,7 @@ export class ProposalManager {
         subtotal: newSubtotal,
         totalAmount: newSubtotal,
         commissionAmount,
+        commissionPercentage,
       },
       connection,
     );

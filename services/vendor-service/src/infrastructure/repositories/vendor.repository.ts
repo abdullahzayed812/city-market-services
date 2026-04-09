@@ -14,8 +14,8 @@ export class VendorRepository implements IVendorRepository {
     const query = `
       INSERT INTO vendors (
         id, user_id, shop_name, shop_description, phone, address,
-        latitude, longitude, store_image, type, status, commission_rate, is_active
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        latitude, longitude, store_image, type, status, is_active
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
     await this.pool.execute(query, [
       vendor.id,
@@ -29,7 +29,6 @@ export class VendorRepository implements IVendorRepository {
       vendor.storeImage || null,
       vendor.type || null,
       vendor.status,
-      vendor.commissionRate,
       vendor.isActive,
     ]);
     return vendor;
@@ -115,10 +114,7 @@ export class VendorRepository implements IVendorRepository {
     await this.pool.execute(query, [status, id]);
   }
 
-  async updateCommission(id: string, rate: number): Promise<void> {
-    const query = "UPDATE vendors SET commission_rate = ? WHERE id = ?";
-    await this.pool.execute(query, [rate, id]);
-  }
+
 
   async updateRating(id: string, averageRating: number, totalRatings: number): Promise<void> {
     const query = "UPDATE vendors SET average_rating = ?, total_ratings = ? WHERE id = ?";
@@ -138,7 +134,6 @@ export class VendorRepository implements IVendorRepository {
       storeImage: row.store_image,
       type: row.type,
       status: row.status,
-      commissionRate: parseFloat(row.commission_rate),
       averageRating: row.average_rating ? parseFloat(row.average_rating) : 0,
       totalRatings: row.total_ratings || 0,
       isActive: row.is_active,

@@ -74,7 +74,7 @@ const Profile = () => {
   };
 
   return (
-    <div className="space-y-6 animate-in fade-in zoom-in duration-500">
+    <div className="">
       <div>
         <h1 className="text-3xl font-bold tracking-tight">{t("common.profile")}</h1>
         <p className="text-muted-foreground">{t("common.profile_subtitle")}</p>
@@ -118,16 +118,13 @@ const Profile = () => {
                   <div>
                     <h3 className="font-medium">{t("common.store_image")}</h3>
                     <p className="text-sm text-muted-foreground">{t("common.store_image_desc")}</p>
-                    {uploadImageMutation.isPending && <p className="text-sm text-primary animate-pulse">{t("common.loading")}</p>}
+                    {uploadImageMutation.isPending && (
+                      <p className="text-sm text-primary animate-pulse">{t("common.loading")}</p>
+                    )}
                   </div>
                   <div className="flex gap-2 justify-center sm:justify-start">
                     {vendor?.storeImage && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="gap-2"
-                        onClick={() => setIsImageModalOpen(true)}
-                      >
+                      <Button variant="outline" size="sm" className="gap-2" onClick={() => setIsImageModalOpen(true)}>
                         <Eye className="h-4 w-4" />
                         {t("common.view_image")}
                       </Button>
@@ -217,7 +214,9 @@ const Profile = () => {
               <div className="space-y-4">
                 {workingHoursQuery.data?.map((hour: any) => (
                   <div key={hour.dayOfWeek} className="flex items-center justify-between py-2 border-b last:border-0">
-                    <span className="font-medium">{t("common.day")} {hour.dayOfWeek}</span>
+                    <span className="font-medium">
+                      {t("common.day")} {hour.dayOfWeek}
+                    </span>
                     <div className="flex items-center gap-4">
                       <span>{hour.openTime}</span>
                       <span>-</span>

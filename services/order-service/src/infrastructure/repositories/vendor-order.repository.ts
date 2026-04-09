@@ -16,8 +16,9 @@ export class VendorOrderRepository implements IVendorOrderRepository {
     const query = `
         INSERT INTO vendor_orders (
           id, customer_order_id, vendor_id, status, subtotal,
-          commission_amount, total_amount, delivery_id
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+          commission_amount, commission_percentage, total_amount, 
+          delivery_id, settlement_id
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `;
     await conn.query(query, [
       order.id,
@@ -25,9 +26,11 @@ export class VendorOrderRepository implements IVendorOrderRepository {
       order.vendorId,
       order.status,
       order.subtotal,
-      order.commissionAmount,
+      order.commissionAmount || 0,
+      order.commissionPercentage || null,
       order.totalAmount,
       order.deliveryId || null,
+      order.settlementId || null,
     ]);
     return order;
   }
@@ -152,6 +155,14 @@ export class VendorOrderRepository implements IVendorOrderRepository {
     const query = "UPDATE vendor_orders SET status = ? WHERE id = ?";
     await conn.execute(query, [status, id]);
   }
+
+  async markOrdersAsSettled(orderIds: string[], settlementId: string, connection?: PoolConnection): Promise<void> {
+    const conn = connection || this.pool;
+    if (orderIds.length === 0) return;
+    const query = `UPDATE vendor_orders SET settlement_id = ? WHERE id IN (?)`;
+    await conn.query(query, [settlementId, orderIds]);
+  }
+
   async update(id: string, data: Partial<VendorOrder>, connection?: PoolConnection): Promise<void> {
     const conn = connection || this.pool;
     const fields: string[] = [];
@@ -180,6 +191,14 @@ export class VendorOrderRepository implements IVendorOrderRepository {
     if (data.totalAmount !== undefined) {
       fields.push("total_amount = ?");
       values.push(data.totalAmount);
+    }
+    if (data.commissionPercentage !== undefined) {
+      fields.push("commission_percentage = ?");
+      values.push(data.commissionPercentage);
+    }
+    if (data.settlementId !== undefined) {
+      fields.push("settlement_id = ?");
+      values.push(data.settlementId);
     }
 
     if (fields.length === 0) return;
@@ -232,16 +251,18 @@ export class VendorOrderRepository implements IVendorOrderRepository {
     };
   }
 
-  private mapToEntity(row: any): VendorOrder {
+  public mapToEntity(row: any): VendorOrder {
     return {
       id: row.id,
       customerOrderId: row.customer_order_id,
       vendorId: row.vendor_id,
       status: row.status,
       subtotal: parseFloat(row.subtotal),
-      commissionAmount: parseFloat(row.commission_amount),
+      commissionAmount: parseFloat(row.commission_amount || 0),
+      commissionPercentage: row.commission_percentage ? parseFloat(row.commission_percentage) : undefined,
       totalAmount: parseFloat(row.total_amount),
       deliveryId: row.delivery_id,
+      settlementId: row.settlement_id,
       cancellationReason: row.cancellation_reason,
       createdAt: row.created_at,
       updatedAt: row.updated_at,

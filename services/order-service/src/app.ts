@@ -15,6 +15,14 @@ import { EventType } from "@city-market/shared";
 import { errorHandler, Database, rabbitMQBus, authenticate } from "@city-market/shared/node";
 import { DeliveryUpdatedConsumer } from "./application/events/delivery-updated.consumer";
 import { config } from "./config/env";
+import { CommissionTierRepository } from "./infrastructure/repositories/commission-tier.repository";
+import { CommissionTierService } from "./application/services/commission-tier.service";
+import { CommissionTierController } from "./presentation/controllers/commission-tier.controller";
+import { createCommissionTierRoutes } from "./presentation/routes/commission-tier.routes";
+import { SettlementRepository } from "./infrastructure/repositories/settlement.repository";
+import { SettlementService } from "./application/services/settlement.service";
+import { SettlementController } from "./presentation/controllers/settlement.controller";
+import { createSettlementRoutes } from "./presentation/routes/settlement.routes";
 
 export const createApp = () => {
   const app = express();
@@ -39,6 +47,14 @@ export const createApp = () => {
   const vendorClient = new VendorHttpClient(config.vendorServiceUrl);
   const publisher = new OrderPublisher(rabbitMQBus);
 
+  const commissionTierRepo = new CommissionTierRepository(db);
+  const commissionTierService = new CommissionTierService(commissionTierRepo);
+  const commissionTierController = new CommissionTierController(commissionTierService);
+
+  const settlementRepo = new SettlementRepository(db);
+  const settlementService = new SettlementService(settlementRepo, vendorOrderRepo, db);
+  const settlementController = new SettlementController(settlementService);
+
   const orderService = new OrderService(
     customerOrderRepo,
     vendorOrderRepo,
@@ -48,6 +64,7 @@ export const createApp = () => {
     catalogClient,
     vendorClient,
     publisher,
+    commissionTierService,
     db
   );
 
@@ -67,6 +84,8 @@ export const createApp = () => {
   app.use(authenticate);
 
   app.use("/", createOrderRoutes(orderController));
+  app.use("/commission-tiers", createCommissionTierRoutes(commissionTierController));
+  app.use("/settlements", createSettlementRoutes(settlementController));
 
   app.get("/health", (req, res) => {
     res.json({ status: "healthy", service: "order-service" });

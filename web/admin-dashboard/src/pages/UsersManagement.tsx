@@ -42,7 +42,7 @@ const UsersManagement: React.FC = () => {
     onError: (error: any) => {
       toast({
         variant: "destructive",
-        description: error.response?.data?.message || t("common.error")
+        description: error.response?.data?.message || t("common.error"),
       });
     },
   });
@@ -50,7 +50,7 @@ const UsersManagement: React.FC = () => {
   if (isLoading) return <div className="p-8 text-center">{t("common.loading")}</div>;
 
   return (
-    <div className="space-y-6 animate-in fade-in zoom-in duration-500">
+    <div className="">
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold text-gray-800">{t("common.users")}</h2>
         <Button className="gap-2" onClick={() => setIsCreateDialogOpen(true)}>

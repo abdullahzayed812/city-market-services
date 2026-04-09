@@ -44,10 +44,6 @@ export class ServiceClient {
     return this.vendor.getAllVendors(page, limit, userId);
   }
 
-  async updateVendorCommission(vendorId: string, rate: number, userId?: string) {
-    return this.vendor.updateVendorCommission(vendorId, rate, userId);
-  }
-
   async suspendVendor(vendorId: string, userId?: string) {
     return this.vendor.suspendVendor(vendorId, userId);
   }
@@ -158,5 +154,21 @@ export class ServiceClient {
 
   async deleteGlobalProduct(id: string, userId?: string) {
     return this.catalog.deleteGlobalProduct(id, userId);
+  }
+
+  async getAllCommissionTiers(userId?: string) {
+    return this.order.getCommissionTiers(userId);
+  }
+
+  async createCommissionTier(data: any, userId?: string) {
+    return this.order.createCommissionTier(data, userId);
+  }
+
+  async updateCommissionTier(id: string, data: any, userId?: string) {
+    return this.order.updateCommissionTier(id, data, userId);
+  }
+
+  async deleteCommissionTier(id: string, userId?: string) {
+    return this.order.deleteCommissionTier(id, userId);
   }
 }

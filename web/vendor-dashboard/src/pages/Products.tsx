@@ -77,7 +77,7 @@ const Products = () => {
   };
 
   return (
-    <div className="space-y-6 animate-in fade-in zoom-in duration-500">
+    <div className="">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">{t("products.title")}</h1>
@@ -176,14 +176,26 @@ const Products = () => {
                 <TableCell>{product.globalCategoryName || t("common.none")}</TableCell>
                 <TableCell>{product.vendorCategoryName || t("common.none")}</TableCell>
                 <TableCell>
-                  ${product.price}
+                  {t("common.currency")} {product.price}
                   <span className="text-[10px] text-muted-foreground block">
-                    {product.measurementType === MeasurementType.WEIGHT ? `/${t("inventory.units.kg")}` : `/${t("products.unit_short") || "unit"}`}
+                    {product.measurementType === MeasurementType.WEIGHT
+                      ? `/${t("inventory.units.kg")}`
+                      : `/${t("products.unit_short") || "unit"}`}
                   </span>
                 </TableCell>
                 <TableCell>
-                  <span className={(product.measurementType === MeasurementType.UNIT ? product.stockQuantity : product.stockWeightGrams) < 10 ? "text-destructive font-bold" : ""}>
-                    {product.measurementType === MeasurementType.UNIT ? product.stockQuantity : `${((product.stockWeightGrams || 0) / 1000).toFixed(2)} ${t("inventory.units.kg")}`}
+                  <span
+                    className={
+                      (product.measurementType === MeasurementType.UNIT
+                        ? product.stockQuantity
+                        : product.stockWeightGrams) < 10
+                        ? "text-destructive font-bold"
+                        : ""
+                    }
+                  >
+                    {product.measurementType === MeasurementType.UNIT
+                      ? product.stockQuantity
+                      : `${((product.stockWeightGrams || 0) / 1000).toFixed(2)} ${t("inventory.units.kg")}`}
                   </span>
                 </TableCell>
                 <TableCell>
@@ -199,13 +211,19 @@ const Products = () => {
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <DropdownMenuItem className="gap-2" onClick={() => {
-                        setEditingProduct(product);
-                        setIsEditDialogOpen(true);
-                      }}>
+                      <DropdownMenuItem
+                        className="gap-2"
+                        onClick={() => {
+                          setEditingProduct(product);
+                          setIsEditDialogOpen(true);
+                        }}
+                      >
                         <Pencil className="h-4 w-4" /> {t("products.edit_product")}
                       </DropdownMenuItem>
-                      <DropdownMenuItem className="gap-2 text-destructive" onClick={() => deleteVendorProduct(product.id)}>
+                      <DropdownMenuItem
+                        className="gap-2 text-destructive"
+                        onClick={() => deleteVendorProduct(product.id)}
+                      >
                         <Trash2 className="h-4 w-4" /> {t("products.delete_product")}
                       </DropdownMenuItem>
                     </DropdownMenuContent>
@@ -226,11 +244,7 @@ const Products = () => {
 
       {hasMoreProducts && (
         <div className="flex justify-center pt-4">
-          <Button
-            variant="outline"
-            onClick={() => loadMoreProducts()}
-            disabled={isFetchingNextProductsPage}
-          >
+          <Button variant="outline" onClick={() => loadMoreProducts()} disabled={isFetchingNextProductsPage}>
             {isFetchingNextProductsPage ? t("common.loading", "Loading...") : t("common.load_more", "Load More")}
           </Button>
         </div>
@@ -245,7 +259,7 @@ const Products = () => {
         imageUrl={selectedProduct?.imageUrl || null}
         productName={selectedProduct?.name || t("products.table.product")}
       />
-    </div >
+    </div>
   );
 };
 

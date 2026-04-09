@@ -106,7 +106,7 @@ const Deliveries = () => {
   }
 
   return (
-    <div className="space-y-6 animate-in fade-in zoom-in duration-500">
+    <div className="">
       <h1 className="text-3xl font-bold">{t("common.deliveries")}</h1>
 
       <div className="grid lg:grid-cols-2 gap-6">

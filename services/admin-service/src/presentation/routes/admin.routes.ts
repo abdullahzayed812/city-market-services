@@ -13,7 +13,7 @@ export const createAdminRoutes = (controller: AdminController): Router => {
   router.get("/dashboard", authorize(UserRole.ADMIN), controller.getDashboard);
   router.get("/orders", authorize(UserRole.ADMIN), controller.getAllOrders);
   router.get("/vendors", authorize(UserRole.ADMIN), controller.getAllVendors);
-  router.patch("/vendors/:vendorId/commission", authorize(UserRole.ADMIN), controller.updateVendorCommission);
+
   router.post("/vendors/:vendorId/suspend", authorize(UserRole.ADMIN), controller.suspendVendor);
   router.get("/couriers", authorize(UserRole.ADMIN), controller.getAllCouriers);
   router.post("/couriers/:courierId/deactivate", authorize(UserRole.ADMIN), controller.deactivateCourier);
@@ -28,9 +28,9 @@ export const createAdminRoutes = (controller: AdminController): Router => {
   router.patch("/orders/:id/status", authorize(UserRole.ADMIN), controller.updateOrderStatus);
   router.get("/deliveries", authorize(UserRole.ADMIN), controller.getDeliveries);
   router.get("/couriers/available", authorize(UserRole.ADMIN), controller.getAvailableCouriers);
-  router.get("/vendors/:vendorId/financial-analytics", authorize(UserRole.ADMIN), controller.getFinancialAnalytics);
-  router.get("/revenue", authorize(UserRole.ADMIN), controller.getRevenue);
-  router.get("/payouts", authorize(UserRole.ADMIN), controller.getPayouts);
+  // router.get("/vendors/:vendorId/financial-analytics", authorize(UserRole.ADMIN), controller.getFinancialAnalytics);
+  // router.get("/revenue", authorize(UserRole.ADMIN), controller.getRevenue);
+  // router.get("/payouts", authorize(UserRole.ADMIN), controller.getPayouts);
 
   // Creation Management
   router.post("/users/register", authorize(UserRole.ADMIN), controller.registerUser);
@@ -56,5 +56,18 @@ export const createAdminRoutes = (controller: AdminController): Router => {
   router.patch("/global-products/:id", authorize(UserRole.ADMIN), controller.updateGlobalProduct);
   router.delete("/global-products/:id", authorize(UserRole.ADMIN), controller.deleteGlobalProduct);
 
+  // Commission Tiers Management
+  router.get("/commission-tiers", authorize(UserRole.ADMIN), controller.getAllCommissionTiers);
+  router.post("/commission-tiers", authorize(UserRole.ADMIN), controller.createCommissionTier);
+  router.patch("/commission-tiers/:id", authorize(UserRole.ADMIN), controller.updateCommissionTier);
+  router.delete("/commission-tiers/:id", authorize(UserRole.ADMIN), controller.deleteCommissionTier);
+
+  // Settlement Management
+  router.get("/settlements/vendor/:vendorId/pending", authorize(UserRole.ADMIN), controller.getVendorPendingEarnings);
+  router.get("/settlements", authorize(UserRole.ADMIN), controller.getSettlements);
+  router.post("/settlements", authorize(UserRole.ADMIN), controller.createSettlement);
+  router.patch("/settlements/:id/mark-paid", authorize(UserRole.ADMIN), controller.markSettlementPaid);
+  router.get("/settlements/overview", authorize(UserRole.ADMIN), controller.getPlatformFinancialOverview);
+
   return router;
-}
+};

@@ -187,7 +187,7 @@ const seedDb = async () => {
 
     for (const v of vendors) {
       await connection.execute(
-        "INSERT IGNORE INTO vendors (id, user_id, shop_name, shop_description, phone, address, type, status, commission_rate) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        "INSERT IGNORE INTO vendors (id, user_id, shop_name, shop_description, phone, address, type, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
         [
           v.id,
           v.user_id,
@@ -197,7 +197,6 @@ const seedDb = async () => {
           v.address,
           v.type,
           ShopStatus.OPEN,
-          10.0,
         ],
       );
 

@@ -61,4 +61,7 @@ export class VendorClient extends BaseClient {
     });
     return response.data;
   }
+
+  // Commission Tiers Management
+
 }

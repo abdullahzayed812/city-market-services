@@ -9,6 +9,5 @@ export interface IVendorRepository {
   findByStatus(status: string): Promise<Vendor[]>;
   update(id: string, data: Partial<Vendor>): Promise<void>;
   updateStatus(id: string, status: string): Promise<void>;
-  updateCommission(id: string, rate: number): Promise<void>;
   updateRating(id: string, averageRating: number, totalRatings: number): Promise<void>;
 }

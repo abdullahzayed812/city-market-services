@@ -7,8 +7,10 @@ export interface VendorOrder {
     status: VendorOrderStatus;
     subtotal: number;
     commissionAmount: number;
+    commissionPercentage?: number;
     totalAmount: number;
     deliveryId?: string;
+    settlementId?: string;
     cancellationReason?: string;
     createdAt: Date;
     updatedAt: Date;

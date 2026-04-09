@@ -7,7 +7,7 @@ export const config = {
   dbName: process.env.DB_NAME || "notification_db",
   firebase: {
     // Can be a JSON string (starts with '{') or a file path (e.g. "./firebase.json")
-    serviceAccountJson: process.env.FIREBASE_SERVICE_ACCOUNT_JSON || "./firebase-adminsdk.json", 
+    serviceAccountJson: process.env.FIREBASE_SERVICE_ACCOUNT_JSON,
     serviceAccountPath: process.env.FIREBASE_SERVICE_ACCOUNT_PATH,
   },
 };

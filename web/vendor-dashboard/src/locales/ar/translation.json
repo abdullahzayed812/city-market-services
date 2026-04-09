@@ -26,7 +26,7 @@
     "status": "الحالة",
     "date": "التاريخ",
     "actions": "الإجراءات",
-    "currency": "ر.س",
+    "currency": "ج.م",
     "email": "البريد الإلكتروني",
     "phone": "رقم الهاتف",
     "address": "العنوان",
@@ -51,7 +51,8 @@
     "no_working_hours": "لم يتم تعيين ساعات عمل.",
     "profile_updated": "تم تحديث الملف الشخصي بنجاح",
     "image_uploaded": "تم تحميل صورة المتجر بنجاح",
-    "upload_failed": "فشل تحميل الصورة"
+    "upload_failed": "فشل تحميل الصورة",
+    "no_payout_history": "لم يتم العثور على سجل مدفوعات."
   },
   "orders": {
     "title": "الطلبات",
@@ -181,8 +182,8 @@
     "select_global_category": "اختر الفئة العامة",
     "store_category": "فئة المتجر",
     "select_store_category": "اختر فئة المتجر",
-    "price": "السعر ($)",
-    "price_per_kg": "السعر لكل كجم ($)",
+    "price": "السعر",
+    "price_per_kg": "السعر لكل كجم",
     "stock": "المخزون (وحدات)",
     "stock_grams": "المخزون (جرام)",
     "description": "الوصف",

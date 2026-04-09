@@ -19,6 +19,9 @@ import { CustomerOrder } from "../../core/entities/customer-order.entity";
 import { VendorOrder } from "../../core/entities/vendor-order.entity";
 import { VendorOrderItem } from "../../core/entities/vendor-order-item.entity";
 
+import { CommissionCalculator } from "../utils/CommissionCalculator";
+import { CommissionTierService } from "./commission-tier.service";
+
 const DELIVERY_FEE = 15.0;
 
 export class OrderCreationManager {
@@ -30,7 +33,8 @@ export class OrderCreationManager {
     private vendorClient: VendorHttpClient,
     private publisher: OrderPublisher,
     private stateManager: OrderStateManager,
-  ) { }
+    private commissionTierService: CommissionTierService,
+  ) {}
 
   async create(
     dto: CreateOrderDto,
@@ -48,13 +52,16 @@ export class OrderCreationManager {
     const vendorCommissionsMap = new Map<string, number>();
 
     const vendorIds = Array.from(vendorItemsMap.keys());
-    await Promise.all(vendorIds.map(async (vendorId) => {
-      const vendorInfo = await this.vendorClient.getVendor(vendorId, userId);
-      vendorInfosMap.set(vendorId, vendorInfo);
-      vendorCommissionsMap.set(vendorId, vendorInfo?.commissionRate ?? 10.0);
-    }));
+    await Promise.all(
+      vendorIds.map(async (vendorId) => {
+        const vendorInfo = await this.vendorClient.getVendor(vendorId, userId);
+        vendorInfosMap.set(vendorId, vendorInfo);
+      }),
+    );
 
-    const { totalSubtotal, totalCommissionAmount, vendorOrdersData } = this.calculateTotals(vendorItemsMap, vendorCommissionsMap);
+    const tiers = await this.commissionTierService.getAllTiers();
+
+    const { totalSubtotal, totalCommissionAmount, vendorOrdersData } = this.calculateTotals(vendorItemsMap, tiers);
 
     const customerOrder = await this.createCustomerOrderRecord(dto, totalSubtotal, totalCommissionAmount, connection!);
     const createdVendorOrders = await this.createVendorOrderRecords(
@@ -123,14 +130,13 @@ export class OrderCreationManager {
     return vendorItemsMap;
   }
 
-  private calculateTotals(vendorItemsMap: Map<string, { product: ProductInfo; amount: number }[]>, vendorCommissionsMap: Map<string, number>) {
+  private calculateTotals(vendorItemsMap: Map<string, { product: ProductInfo; amount: number }[]>, tiers: any[]) {
     let totalSubtotal = 0;
     let totalCommissionAmount = 0;
     const vendorOrdersData: any[] = [];
 
     for (const [vendorId, items] of vendorItemsMap.entries()) {
       let vendorSubtotal = 0;
-      const commissionRate = vendorCommissionsMap.get(vendorId) ?? 10.0;
       const vendorItemsData: VendorOrderItem[] = [];
 
       for (const item of items) {
@@ -150,7 +156,10 @@ export class OrderCreationManager {
         } as any);
       }
 
-      const commissionAmount = vendorSubtotal * (commissionRate / 100);
+      const { amount: commissionAmount, percentage: commissionPercentage } = CommissionCalculator.calculate(
+        vendorSubtotal,
+        tiers,
+      );
       totalSubtotal += vendorSubtotal;
       totalCommissionAmount += commissionAmount;
       vendorOrdersData.push({
@@ -158,6 +167,7 @@ export class OrderCreationManager {
         vendorId,
         subtotal: vendorSubtotal,
         commissionAmount,
+        commissionPercentage,
         totalAmount: vendorSubtotal,
         items: vendorItemsData,
       });
@@ -216,6 +226,7 @@ export class OrderCreationManager {
         status: VendorOrderStatus.PENDING,
         subtotal: voData.subtotal,
         commissionAmount: voData.commissionAmount,
+        commissionPercentage: voData.commissionPercentage,
         totalAmount: voData.totalAmount,
         createdAt: new Date(),
         updatedAt: new Date(),
