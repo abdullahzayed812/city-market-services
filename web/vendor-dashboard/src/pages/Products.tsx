@@ -69,12 +69,14 @@ const Products = () => {
     );
   };
 
+  /*
   const handleImageUpload = (productId: string, e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       uploadVendorProductImage({ id: productId, file });
     }
   };
+  */
 
   return (
     <div className="">
@@ -147,6 +149,7 @@ const Products = () => {
                         </div>
                       )}
                     </div>
+                    {/* 
                     <div className="flex gap-1">
                       <Label htmlFor={`img-${product.id}`} className="cursor-pointer">
                         <Button
@@ -170,6 +173,7 @@ const Products = () => {
                         onChange={(e) => handleImageUpload(product.id, e)}
                       />
                     </div>
+                    */}
                   </div>
                 </TableCell>
                 <TableCell className="font-medium">{product.name}</TableCell>

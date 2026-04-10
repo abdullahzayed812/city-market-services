@@ -10,7 +10,8 @@ export class DeliveryController {
   // Courier management
   registerCourier = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
-      const dto = { ...req.body, userId: req.user!.userId };
+      const userId = req.body.userId || req.user?.userId;
+      const dto = { ...req.body, userId };
       const courier = await this.deliveryService.registerCourier(dto);
       Logger.info("Courier registered", { courierId: courier.id });
       res.status(201).json(ApiResponse.success(courier, "courier_registered"));

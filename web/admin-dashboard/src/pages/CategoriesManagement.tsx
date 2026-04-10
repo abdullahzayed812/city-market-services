@@ -6,8 +6,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Pencil, Trash2, Upload, Search } from "lucide-react";
+import { Plus, Pencil, Trash2, Upload, Search, RotateCcw } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { type Category, CategoryType } from "@city-market/shared";
 import { useAdminProducts } from "@/hooks/useAdminProducts";
 import CategoryFormDialog from "../features/categories/components/CategoryFormDialog";
@@ -20,6 +21,7 @@ const CategoriesManagement: React.FC = () => {
   const [uploadingId, setUploadingId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedVendorId, setSelectedVendorId] = useState<string>("all");
+  const [activeTab, setActiveTab] = useState<string>("all");
 
   const { categories, vendors, isLoadingCategories, isLoadingVendors } = useAdminProducts();
 
@@ -29,12 +31,28 @@ const CategoriesManagement: React.FC = () => {
       const matchesSearch =
         category.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         category.description?.toLowerCase().includes(searchTerm.toLowerCase());
-      
+
       const matchesVendor = selectedVendorId === "all" || category.vendorId === selectedVendorId;
-      
-      return matchesSearch && matchesVendor;
+
+      const matchesTab =
+        activeTab === "all" ||
+        (activeTab === "global" && category.type === CategoryType.GLOBAL) ||
+        (activeTab === "vendor" && category.type === CategoryType.VENDOR);
+
+      return matchesSearch && matchesVendor && matchesTab;
     });
-  }, [categories, searchTerm, selectedVendorId]);
+  }, [categories, searchTerm, selectedVendorId, activeTab]);
+
+  const groupedCategories = useMemo(() => {
+    if (activeTab !== "vendor") return { "all": filteredCategories };
+
+    return filteredCategories.reduce((acc: Record<string, Category[]>, category) => {
+      const vId = category.vendorId || "unknown";
+      if (!acc[vId]) acc[vId] = [];
+      acc[vId].push(category);
+      return acc;
+    }, {});
+  }, [filteredCategories, activeTab]);
 
   const createMutation = useMutation({
     mutationFn: adminApi.createCategory,
@@ -89,6 +107,12 @@ const CategoriesManagement: React.FC = () => {
     }
   };
 
+  const handleReset = () => {
+    setSearchTerm("");
+    setSelectedVendorId("all");
+    setActiveTab("all");
+  };
+
   const getVendorName = useCallback((vendorId?: string | null) => {
     if (!vendorId) return "-";
     const vendor = vendors?.find(v => v.id === vendorId);
@@ -115,8 +139,16 @@ const CategoriesManagement: React.FC = () => {
         </Button>
       </div>
 
-      <div className="flex items-center gap-4 bg-white p-4 rounded-lg border shadow-sm">
-        <div className="relative flex-1 max-w-sm">
+      <div className="flex flex-col sm:flex-row items-center gap-4 bg-white p-4 rounded-lg border shadow-sm">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full sm:w-auto">
+          <TabsList className="grid grid-cols-3 w-full sm:w-[300px]">
+            <TabsTrigger value="all">{t("common.all")}</TabsTrigger>
+            <TabsTrigger value="global">{t("categories.global")}</TabsTrigger>
+            <TabsTrigger value="vendor">{t("categories.vendor")}</TabsTrigger>
+          </TabsList>
+        </Tabs>
+
+        <div className="relative flex-1 w-full max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
           <Input
             placeholder={t("categories.search_categories")}
@@ -144,6 +176,10 @@ const CategoriesManagement: React.FC = () => {
             </SelectContent>
           </Select>
         </div>
+
+        <Button variant="ghost" size="icon" onClick={handleReset} title={t("common.reset", "Reset Filters")}>
+          <RotateCcw className="h-4 w-4" />
+        </Button>
       </div>
 
       <CategoryFormDialog
@@ -168,69 +204,79 @@ const CategoriesManagement: React.FC = () => {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredCategories.map((category) => (
-              <TableRow key={category.id}>
-                <TableCell>
-                  <div className="flex items-center space-x-2">
-                    <div className="relative group">
-                      {category.iconUrl ? (
-                        <img
-                          src={`${
-                            import.meta.env.VITE_API_URL ||
-                            `${window.location.protocol}//${window.location.hostname}:3000/api/v1`
-                          }${category.iconUrl}`}
-                          alt={category.name}
-                          className="h-10 w-10 object-contain rounded border p-1"
-                          onError={(e) => {
-                            e.currentTarget.style.display = "none";
-                          }}
-                        />
-                      ) : (
-                        <div className="h-10 w-10 bg-gray-100 rounded flex items-center justify-center text-gray-400 border">
-                          <Upload size={16} />
+            {Object.entries(groupedCategories).map(([vendorId, items]) => (
+              <React.Fragment key={vendorId}>
+                {activeTab === "vendor" && (
+                  <TableRow className="bg-gray-50/50 hover:bg-gray-50/50">
+                    <TableCell colSpan={6} className="py-2 px-4 text-[10px] font-bold text-gray-500 uppercase tracking-widest bg-gray-50/80">
+                      {getVendorName(vendorId === "unknown" ? null : vendorId)}
+                    </TableCell>
+                  </TableRow>
+                )}
+                {items.map((category) => (
+                  <TableRow key={category.id}>
+                    <TableCell>
+                      <div className="flex items-center space-x-2">
+                        <div className="relative group">
+                          {category.iconUrl ? (
+                            <img
+                              src={`${import.meta.env.VITE_API_URL ||
+                                `${window.location.protocol}//${window.location.hostname}:3000/api/v1`
+                                }${category.iconUrl}`}
+                              alt={category.name}
+                              className="h-10 w-10 object-contain rounded border p-1"
+                              onError={(e) => {
+                                e.currentTarget.style.display = "none";
+                              }}
+                            />
+                          ) : (
+                            <div className="h-10 w-10 bg-gray-100 rounded flex items-center justify-center text-gray-400 border">
+                              <Upload size={16} />
+                            </div>
+                          )}
+                          <label className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer rounded">
+                            <Input
+                              type="file"
+                              accept=".svg,.png,.jpg,.jpeg"
+                              className="hidden"
+                              onChange={(e) => handleFileChange(category.id, e)}
+                              disabled={uploadingId === category.id}
+                            />
+                            <Upload size={14} className="text-white" />
+                          </label>
                         </div>
-                      )}
-                      <label className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer rounded">
-                        <Input
-                          type="file"
-                          accept=".svg,.png,.jpg,.jpeg"
-                          className="hidden"
-                          onChange={(e) => handleFileChange(category.id, e)}
-                          disabled={uploadingId === category.id}
-                        />
-                        <Upload size={14} className="text-white" />
-                      </label>
-                    </div>
-                  </div>
-                </TableCell>
-                <TableCell className="font-medium">{category.name}</TableCell>
-                <TableCell>
-                  <Badge variant={category.type === CategoryType.GLOBAL ? "default" : "secondary"}>
-                    {category.type === CategoryType.GLOBAL ? t("categories.global") : t("categories.vendor")}
-                  </Badge>
-                </TableCell>
-                <TableCell className="text-sm text-gray-600">
-                  {getVendorName(category.vendorId)}
-                </TableCell>
-                <TableCell className="text-gray-500 max-w-[200px] truncate">{category.description}</TableCell>
-                <TableCell className="text-end space-x-1">
-                  <Button variant="ghost" size="icon" onClick={() => handleEdit(category)}>
-                    <Pencil className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="text-destructive"
-                    onClick={() => {
-                      if (confirm(t("common.confirm_delete"))) {
-                        deleteMutation.mutate(category.id);
-                      }
-                    }}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </TableCell>
-              </TableRow>
+                      </div>
+                    </TableCell>
+                    <TableCell className="font-medium">{category.name}</TableCell>
+                    <TableCell>
+                      <Badge variant={category.type === CategoryType.GLOBAL ? "default" : "secondary"}>
+                        {category.type === CategoryType.GLOBAL ? t("categories.global") : t("categories.vendor")}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-sm text-gray-600">
+                      {getVendorName(category.vendorId)}
+                    </TableCell>
+                    <TableCell className="text-gray-500 max-w-[200px] truncate">{category.description}</TableCell>
+                    <TableCell className="text-end space-x-1">
+                      <Button variant="ghost" size="icon" onClick={() => handleEdit(category)}>
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="text-destructive"
+                        onClick={() => {
+                          if (confirm(t("common.confirm_delete"))) {
+                            deleteMutation.mutate(category.id);
+                          }
+                        }}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </React.Fragment>
             ))}
             {filteredCategories.length === 0 && (
               <TableRow>

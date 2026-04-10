@@ -54,6 +54,11 @@ export const config = {
       clientSecret: process.env.NOTIFICATION_SERVICE_CLIENT_SECRET || "notification-service-secret",
       scope: "notification",
     },
+    {
+      clientId: process.env.VENDOR_SERVICE_CLIENT_ID || "vendor-service-id",
+      clientSecret: process.env.VENDOR_SERVICE_CLIENT_SECRET || "vendor-service-secret",
+      scope: "vendor",
+    },
     // Add other services as they are configured
   ],
   // --- End Service Client Configuration ---

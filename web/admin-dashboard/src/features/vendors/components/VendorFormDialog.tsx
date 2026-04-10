@@ -82,9 +82,7 @@ const VendorFormDialog: React.FC<VendorFormDialogProps> = ({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
-          <DialogTitle>
-            {isCreate ? t("vendors.add_new_title") : t("common.edit")}
-          </DialogTitle>
+          <DialogTitle>{isCreate ? t("vendors.add_new_title") : t("common.edit")}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4 py-4 max-h-[70vh] overflow-y-auto px-1">
           {isCreate && (
@@ -156,10 +154,7 @@ const VendorFormDialog: React.FC<VendorFormDialogProps> = ({
             </div>
             <div className="space-y-2">
               <Label htmlFor="type">{t("vendors.type")}</Label>
-              <Select
-                value={formData.type}
-                onValueChange={(val) => setFormData({ ...formData, type: val })}
-              >
+              <Select value={formData.type} onValueChange={(val) => setFormData({ ...formData, type: val })}>
                 <SelectTrigger>
                   <SelectValue placeholder={t("categories.select_type")} />
                 </SelectTrigger>
@@ -173,8 +168,6 @@ const VendorFormDialog: React.FC<VendorFormDialogProps> = ({
               </Select>
             </div>
           </div>
-
-
 
           <div className="space-y-2">
             <Label htmlFor="address">{t("vendors.address")}</Label>
@@ -225,7 +218,7 @@ const VendorFormDialog: React.FC<VendorFormDialogProps> = ({
               {t("common.cancel")}
             </Button>
             <Button type="submit" disabled={isPending}>
-              {isPending ? t("common.loading") : (isCreate ? t("common.create") : t("common.save"))}
+              {isPending ? t("common.loading") : isCreate ? t("common.create") : t("common.save")}
             </Button>
           </DialogFooter>
         </form>

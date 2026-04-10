@@ -5,11 +5,12 @@ import { Logger } from "@city-market/shared/node";
 import { AuthenticatedRequest } from "@city-market/shared/node";
 
 export class VendorController {
-  constructor(private vendorService: VendorService) { }
+  constructor(private vendorService: VendorService) {}
 
   create = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
-      const dto = { ...req.body, userId: req.user!.userId };
+      const userId = req.body.userId || req.user?.userId;
+      const dto = { ...req.body, userId };
       const vendor = await this.vendorService.createVendor(dto);
       Logger.info("Vendor created", { vendorId: vendor.id });
       res.status(201).json(ApiResponse.success(vendor, "vendor_created"));
@@ -77,8 +78,6 @@ export class VendorController {
       next(error);
     }
   };
-
-
 
   updateStatus = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
