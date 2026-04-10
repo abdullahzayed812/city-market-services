@@ -1,6 +1,6 @@
 import { Response, NextFunction } from "express";
 import { OrderService } from "../../application/services/order.service";
-import { ApiResponse, ProposeChangesDto } from "@city-market/shared";
+import { ApiResponse, ProposeChangesDto, ValidationError } from "@city-market/shared";
 import { Logger } from "@city-market/shared/node";
 import { AuthenticatedRequest } from "@city-market/shared/node";
 
@@ -140,6 +140,26 @@ export class OrderController {
       const { status, notes } = req.body;
       await this.orderService.updateCustomerOrderStatus(req.params.id, status, notes);
       res.json(ApiResponse.success(null, "customer_order_status_updated"));
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  getDeliveryFeePreview = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      const { lat, lng, vendorIds } = req.query;
+      if (!lat || !lng || !vendorIds) {
+        throw new ValidationError("missing_required_params");
+      }
+
+      const vendorIdArray = (vendorIds as string).split(",");
+      const fee = await this.orderService.calculateDeliveryFee(
+        parseFloat(lat as string),
+        parseFloat(lng as string),
+        vendorIdArray,
+      );
+
+      res.json(ApiResponse.success({ deliveryFee: fee }));
     } catch (error) {
       next(error);
     }

@@ -47,6 +47,8 @@ const VendorFormDialog: React.FC<VendorFormDialogProps> = ({
     phone: "",
     address: "",
     type: "Supermarket",
+    latitude: "",
+    longitude: "",
   });
 
   useEffect(() => {
@@ -65,6 +67,8 @@ const VendorFormDialog: React.FC<VendorFormDialogProps> = ({
         phone: "",
         address: "",
         type: "Supermarket",
+        latitude: "",
+        longitude: "",
       });
     }
   }, [vendor, open, isCreate]);
@@ -180,6 +184,31 @@ const VendorFormDialog: React.FC<VendorFormDialogProps> = ({
               onChange={(e) => setFormData({ ...formData, address: e.target.value })}
               required
             />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="latitude">{t("vendors.latitude") || "Latitude"}</Label>
+              <Input
+                id="latitude"
+                type="number"
+                step="any"
+                value={formData.latitude}
+                onChange={(e) => setFormData({ ...formData, latitude: e.target.value })}
+                placeholder="e.g. 24.7136"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="longitude">{t("vendors.longitude") || "Longitude"}</Label>
+              <Input
+                id="longitude"
+                type="number"
+                step="any"
+                value={formData.longitude}
+                onChange={(e) => setFormData({ ...formData, longitude: e.target.value })}
+                placeholder="e.g. 46.6753"
+              />
+            </div>
           </div>
 
           <div className="space-y-2">

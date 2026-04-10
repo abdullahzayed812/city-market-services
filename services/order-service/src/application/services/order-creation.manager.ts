@@ -21,8 +21,7 @@ import { VendorOrderItem } from "../../core/entities/vendor-order-item.entity";
 
 import { CommissionCalculator } from "../utils/CommissionCalculator";
 import { CommissionTierService } from "./commission-tier.service";
-
-const DELIVERY_FEE = 15.0;
+import { DeliveryFeeCalculator } from "../utils/DeliveryFeeCalculator";
 
 export class OrderCreationManager {
   constructor(
@@ -34,7 +33,7 @@ export class OrderCreationManager {
     private publisher: OrderPublisher,
     private stateManager: OrderStateManager,
     private commissionTierService: CommissionTierService,
-  ) {}
+  ) { }
 
   async create(
     dto: CreateOrderDto,
@@ -63,7 +62,13 @@ export class OrderCreationManager {
 
     const { totalSubtotal, totalCommissionAmount, vendorOrdersData } = this.calculateTotals(vendorItemsMap, tiers);
 
-    const customerOrder = await this.createCustomerOrderRecord(dto, totalSubtotal, totalCommissionAmount, connection!);
+    const customerOrder = await this.createCustomerOrderRecord(
+      dto,
+      totalSubtotal,
+      totalCommissionAmount,
+      vendorInfosMap,
+      connection!,
+    );
     const createdVendorOrders = await this.createVendorOrderRecords(
       customerOrder,
       vendorOrdersData,
@@ -179,9 +184,19 @@ export class OrderCreationManager {
     dto: CreateOrderDto,
     totalSubtotal: number,
     totalCommissionAmount: number,
+    vendorInfosMap: Map<string, any>,
     connection: PoolConnection,
   ): Promise<CustomerOrder> {
-    const deliveryFee = DELIVERY_FEE;
+    const vendorLocations = Array.from(vendorInfosMap.values()).map((v) => ({
+      latitude: v.latitude,
+      longitude: v.longitude,
+    }));
+
+    const deliveryFee = DeliveryFeeCalculator.calculate(
+      dto.deliveryLatitude,
+      dto.deliveryLongitude,
+      vendorLocations,
+    );
     const totalAmount = totalSubtotal + deliveryFee;
 
     const customerOrder: CustomerOrder = {

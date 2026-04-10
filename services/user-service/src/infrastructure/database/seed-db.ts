@@ -52,6 +52,15 @@ const seedDb = async () => {
         longitude: 29.6834,
         is_default: false,
       },
+      {
+        id: randomUUID(),
+        customer_id: customerId,
+        label: "النادي",
+        address: "نادي سموحة برج العرب، الحي الأول",
+        latitude: 30.9145,
+        longitude: 29.6123,
+        is_default: false,
+      },
     ];
 
     for (const addr of addresses) {

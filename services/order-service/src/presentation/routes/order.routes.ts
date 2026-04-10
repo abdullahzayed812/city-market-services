@@ -5,6 +5,7 @@ export const createOrderRoutes = (controller: OrderController): Router => {
   const router = Router();
 
   // Customer Routes
+  router.get("/delivery-fee", controller.getDeliveryFeePreview);
   router.post("/", controller.create);
   router.get("/customer-orders", controller.getMyOrders);
   router.get("/customer-orders/:id", controller.getCustomerOrderById);

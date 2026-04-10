@@ -28,6 +28,7 @@ import { ProposalManager } from "./proposal.manager";
 import { VendorOrderManager } from "./vendor-order.manager";
 import { OrderMapper } from "../mappers/order.mapper";
 import { CommissionTierService } from "./commission-tier.service";
+import { DeliveryFeeCalculator } from "../utils/DeliveryFeeCalculator";
 
 export class OrderService {
   private stateManager: OrderStateManager;
@@ -313,5 +314,16 @@ export class OrderService {
       if (connection) await this.db.rollback(connection);
       throw error;
     }
+  }
+
+  async calculateDeliveryFee(customerLat: number, customerLng: number, vendorIds: string[]): Promise<number> {
+    const vendorDetailsArray = await Promise.all(
+      vendorIds.map((vid) => this.vendorClient.getVendor(vid)),
+    );
+    const vendorLocations = vendorDetailsArray
+      .filter((v) => v !== null)
+      .map((v) => ({ latitude: v!.latitude, longitude: v!.longitude }));
+
+    return DeliveryFeeCalculator.calculate(customerLat, customerLng, vendorLocations);
   }
 }
