@@ -7,13 +7,21 @@ import { VendorService } from "./application/services/vendor.service";
 import { VendorRepository } from "./infrastructure/repositories/vendor.repository";
 import { WorkingHoursRepository } from "./infrastructure/repositories/working-hours.repository";
 import { VendorPublisher } from "./infrastructure/messaging/VendorPublisher";
-import { errorHandler, Database, authenticate, rabbitMQBus } from "@city-market/shared/node";
+import { errorHandler, Database, authenticate, rabbitMQBus, correlation } from "@city-market/shared/node";
 import { EventType } from "@city-market/shared";
 import { RatingConsumer } from "./application/events/rating.consumer";
 import { config } from "./config/env";
 
 export const createApp = () => {
   const app = express();
+
+  // 1. Correlation ID for distributed tracing
+  app.use(correlation);
+
+  // Initialize Messaging
+  rabbitMQBus.connect(config.rabbitMqUrl).catch((err) => {
+    console.error("Failed to connect to RabbitMQ", err);
+  });
 
   app.use(cors());
   app.use(express.json());

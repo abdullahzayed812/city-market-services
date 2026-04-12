@@ -35,6 +35,7 @@ export interface ProposeChangesDto {
   itemId: string;
   type: "QUANTITY_REDUCTION" | "WEIGHT_ADJUSTMENT" | "UNAVAILABLE";
   proposedQuantity?: number;
+  actualQuantity?: number;
   proposedWeight?: number;
   requestedWeightGrams?: number;
   proposedWeightGrams?: number;

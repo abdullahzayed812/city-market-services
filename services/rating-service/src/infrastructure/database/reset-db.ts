@@ -1,7 +1,7 @@
 import { Database } from "@city-market/shared/node";
 import { config } from "../../config/env";
-import fs from "fs";
-import path from "path";
+import * as fs from "fs";
+import * as path from "path";
 
 const resetDb = async () => {
   const db = new Database({
@@ -12,15 +12,16 @@ const resetDb = async () => {
     database: "mysql", // Connect to mysql system DB to drop/create target DB
   });
 
+  let targetDb: Database | undefined;
+
   try {
     await db.getPool().execute(`DROP DATABASE IF EXISTS \`${config.dbName}\``);
     console.log(`Database ${config.dbName} dropped.`);
 
     await db.getPool().execute(`CREATE DATABASE \`${config.dbName}\``);
     console.log(`Database ${config.dbName} created.`);
-    await db.close();
 
-    const targetDb = new Database({
+    targetDb = new Database({
       host: config.dbHost,
       port: config.dbPort,
       user: config.dbUser,
@@ -42,11 +43,23 @@ const resetDb = async () => {
     }
 
     console.log("Schema initialized successfully.");
-    await targetDb.close();
   } catch (error) {
     console.error("Failed to reset database:", error);
-    process.exit(1);
+    throw error;
+  } finally {
+    await db.close();
+    if (targetDb) {
+      await targetDb.close();
+    }
   }
 };
 
-resetDb();
+resetDb()
+  .then(() => {
+    console.log("Reset script finished.");
+    process.exit(0);
+  })
+  .catch((err) => {
+    console.error("Reset script failed:", err);
+    process.exit(1);
+  });

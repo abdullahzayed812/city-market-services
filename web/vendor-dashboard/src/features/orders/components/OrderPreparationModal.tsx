@@ -47,17 +47,14 @@ export const OrderPreparationModal = ({ order, isOpen, onClose, onSubmit }: Orde
           itemId: originalItem.id,
           type: ProposalType.UNAVAILABLE,
         });
-      } else if (
-        originalItem.quantity !== undefined &&
-        item.newQuantity !== undefined &&
-        item.newQuantity < originalItem.quantity
-      ) {
+      } else if (originalItem.quantity && item.newQuantity && item.newQuantity < originalItem.quantity) {
         proposals.push({
           itemId: originalItem.id,
           type: ProposalType.QUANTITY_REDUCTION,
           proposedQuantity: Number(item.newQuantity),
+          actualQuantity: Number(originalItem.quantity),
         });
-      } else if (originalItem.requestedWeightGrams !== undefined && item.newWeightKg !== undefined) {
+      } else if (originalItem.requestedWeightGrams && item.newWeightKg) {
         const newWeightGrams = Math.round(Number(item.newWeightKg) * 1000);
         if (newWeightGrams !== originalItem.requestedWeightGrams) {
           proposals.push({

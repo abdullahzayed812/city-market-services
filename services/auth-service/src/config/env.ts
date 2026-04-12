@@ -1,38 +1,55 @@
-export const config = {
-  port: process.env.PORT || 3001,
-  dbHost: process.env.DB_HOST || "localhost",
-  dbPort: parseInt(process.env.DB_PORT || "3306"),
-  dbUser: process.env.DB_USER || "abdo",
-  dbPassword: process.env.DB_PASSWORD || "password",
-  dbName: process.env.DB_NAME || "auth_db",
-  jwtAccessSecret: process.env.JWT_ACCESS_SECRET || "access_secret_key",
-  jwtRefreshSecret: process.env.JWT_REFRESH_SECRET || "refresh_secret_key",
-  jwtAccessExpiry: "7d",
-  jwtRefreshExpiry: "7d",
-  jwtServiceAccessSecret: process.env.JWT_SERVICE_ACCESS_SECRET || "service_access_secret_key", // New secret for service tokens
-  jwtServiceAccessExpiry: "15m", // New: Short expiry for service tokens
+import { ConfigLoader } from "@city-market/shared/node";
 
-  // --- Service Client Configuration ---
+const loadedConfig = ConfigLoader.load<{
+  port: number;
+  dbHost: string;
+  dbPort: number;
+  dbUser: string;
+  dbPassword: string;
+  dbName: string;
+  jwtAccessSecret: string;
+  jwtRefreshSecret: string;
+  jwtServiceAccessSecret: string;
+  jwtAccessExpiry: string;
+  jwtRefreshExpiry: string;
+  jwtServiceAccessExpiry: string;
+}>({
+  port: { env: "PORT", default: 3001 },
+  dbHost: { env: "DB_HOST", default: "localhost" },
+  dbPort: { env: "DB_PORT", default: 3306 },
+  dbUser: { env: "DB_USER", required: true },
+  dbPassword: { env: "DB_PASSWORD", required: true, sensitive: true },
+  dbName: { env: "DB_NAME", default: "auth_db" },
+  jwtAccessSecret: { env: "JWT_ACCESS_SECRET", required: true, sensitive: true },
+  jwtRefreshSecret: { env: "JWT_REFRESH_SECRET", required: true, sensitive: true },
+  jwtServiceAccessSecret: { env: "JWT_SERVICE_ACCESS_SECRET", required: true, sensitive: true },
+  jwtAccessExpiry: { env: "JWT_ACCESS_EXPIRY", default: "7d" },
+  jwtRefreshExpiry: { env: "JWT_REFRESH_EXPIRY", default: "7d" },
+  jwtServiceAccessExpiry: { env: "JWT_SERVICE_ACCESS_EXPIRY", default: "15m" },
+});
+
+export const config = {
+  ...loadedConfig,
   registeredServiceClients: [
     {
       clientId: process.env.ADMIN_SERVICE_CLIENT_ID || "admin-service-id",
       clientSecret: process.env.ADMIN_SERVICE_CLIENT_SECRET || "admin-service-secret",
-      scope: "admin", // Define what this service can access/do
+      scope: "admin",
     },
     {
       clientId: process.env.ORDER_SERVICE_CLIENT_ID || "order-service-id",
       clientSecret: process.env.ORDER_SERVICE_CLIENT_SECRET || "order-service-secret",
-      scope: "order", // Example scope
+      scope: "order",
     },
     {
       clientId: process.env.DELIVERY_SERVICE_CLIENT_ID || "delivery-service-id",
       clientSecret: process.env.DELIVERY_SERVICE_CLIENT_SECRET || "delivery-service-secret",
-      scope: "delivery", // Example scope
+      scope: "delivery",
     },
     {
       clientId: process.env.WEBSOCKET_GATEWAY_CLIENT_ID || "websocket-gateway-id",
       clientSecret: process.env.WEBSOCKET_GATEWAY_CLIENT_SECRET || "websocket-gateway-secret",
-      scope: "websocket", // Example scope
+      scope: "websocket",
     },
     {
       clientId: process.env.RATING_SERVICE_CLIENT_ID || "rating-service-id",
@@ -59,7 +76,5 @@ export const config = {
       clientSecret: process.env.VENDOR_SERVICE_CLIENT_SECRET || "vendor-service-secret",
       scope: "vendor",
     },
-    // Add other services as they are configured
   ],
-  // --- End Service Client Configuration ---
 };

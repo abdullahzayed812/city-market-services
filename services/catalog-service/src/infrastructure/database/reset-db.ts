@@ -32,15 +32,21 @@ const resetDb = async () => {
       await connection.query(stmt);
     }
 
-    // await connection.query(schema);
-
     console.log("Database reset and re-initialized successfully");
   } catch (error) {
     console.error("Error resetting database:", error);
-    process.exit(1);
+    throw error;
   } finally {
-    await connection.end();
+    await db.close();
   }
 };
 
-resetDb();
+resetDb()
+  .then(() => {
+    console.log("Reset script finished.");
+    process.exit(0);
+  })
+  .catch((err) => {
+    console.error("Reset script failed:", err);
+    process.exit(1);
+  });

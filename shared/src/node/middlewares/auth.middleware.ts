@@ -52,6 +52,9 @@ export const authenticate = (req: AuthenticatedRequest, res: Response, next: Nex
 
     if (isServiceToken) {
       const serviceSecret = process.env.JWT_SERVICE_ACCESS_SECRET || "service_access_secret_key";
+      if (!serviceSecret) {
+        throw new Error("JWT_SERVICE_ACCESS_SECRET is not defined");
+      }
       const servicePayload = jwt.verify(token, serviceSecret) as ServiceTokenPayload;
 
       req.service = {
@@ -62,6 +65,9 @@ export const authenticate = (req: AuthenticatedRequest, res: Response, next: Nex
       req.authType = "service";
     } else if (isUserToken) {
       const userSecret = process.env.JWT_SECRET || "access_secret_key";
+      if (!userSecret) {
+        throw new Error("JWT_SECRET is not defined");
+      }
 
       const userPayload = jwt.verify(token, userSecret) as UserTokenPayload;
 

@@ -1,6 +1,6 @@
 import { Database } from "@city-market/shared/node";
-import fs from "fs";
-import path from "path";
+import * as fs from "fs";
+import * as path from "path";
 import { config } from "../../config/env";
 
 const initDb = async () => {
@@ -18,25 +18,26 @@ const initDb = async () => {
     await connection.query(`USE \`${config.dbName}\`;`);
 
     const schemaPath = path.join(__dirname, "schema.sql");
-    const schema = fs.readFileSync(schemaPath, "utf8");
+    if (fs.existsSync(schemaPath)) {
+      const schema = fs.readFileSync(schemaPath, "utf8");
+      const statements = schema
+        .split(/;\s*$/m)
+        .map((s) => s.trim())
+        .filter(Boolean);
 
-    const statements = schema
-      .split(/;\s*$/m) // split on semicolon line endings
-      .map((s) => s.trim())
-      .filter(Boolean);
-
-    for (const stmt of statements) {
-      await connection.query(stmt);
+      for (const stmt of statements) {
+        await connection.query(stmt);
+      }
+      console.log("Database initialized successfully with schema.sql");
+    } else {
+      console.log("Database initialized (no schema.sql found)");
     }
-
-    // await connection.query(schema);
-    console.log("Database initialized successfully");
   } catch (error) {
     console.error("Error initializing database:", error);
     process.exit(1);
   } finally {
-    await connection.end();
+    await db.close();
   }
 };
 
-initDb();
+initDb().then(() => process.exit(0));

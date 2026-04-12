@@ -15,8 +15,8 @@ export class OrderItemProposalRepository implements IOrderItemProposalRepository
         const query = `
       INSERT INTO order_item_proposals (
         id, vendor_order_item_id, type, proposed_quantity, 
-        requested_weight_grams, proposed_weight_grams, status
-      ) VALUES (?, ?, ?, ?, ?, ?, ?)
+        requested_weight_grams, proposed_weight_grams, status, actual_quantity
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     `;
         await conn.query(query, [
             proposal.id,
@@ -26,6 +26,7 @@ export class OrderItemProposalRepository implements IOrderItemProposalRepository
             proposal.requestedWeightGrams || null,
             proposal.proposedWeightGrams || null,
             proposal.status,
+            proposal.actualQuantity || null,
         ]);
         return proposal;
     }
@@ -90,6 +91,7 @@ export class OrderItemProposalRepository implements IOrderItemProposalRepository
             proposedQuantity: row.proposed_quantity,
             requestedWeightGrams: row.requested_weight_grams,
             proposedWeightGrams: row.proposed_weight_grams,
+            actualQuantity: row.actual_quantity,
             status: row.status as ProposalStatus,
             createdAt: row.created_at,
             updatedAt: row.updated_at,

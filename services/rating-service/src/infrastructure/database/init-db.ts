@@ -1,7 +1,7 @@
 import { Database } from "@city-market/shared/node";
 import { config } from "../../config/env";
-import fs from "fs";
-import path from "path";
+import * as fs from "fs";
+import * as path from "path";
 
 const initDb = async () => {
   const db = new Database({
@@ -12,12 +12,14 @@ const initDb = async () => {
     database: "mysql", // Connect to mysql system DB to create the target DB if not exists
   });
 
+  let targetDb: Database | undefined;
+
   try {
-    await db.getPool().execute(`CREATE DATABASE IF NOT EXISTS ${config.dbName}`);
+    await db.getPool().execute(`CREATE DATABASE IF NOT EXISTS \`${config.dbName}\``);
     console.log(`Database ${config.dbName} ensured.`);
     await db.close();
 
-    const targetDb = new Database({
+    targetDb = new Database({
       host: config.dbHost,
       port: config.dbPort,
       user: config.dbUser,
@@ -30,7 +32,7 @@ const initDb = async () => {
 
     // Split by semicolon and filter out empty statements
     const statements = schema
-      .split(";")
+      .split(/;\s*$/m) // split on semicolon line endings
       .map((s) => s.trim())
       .filter((s) => s.length > 0);
 
@@ -39,11 +41,23 @@ const initDb = async () => {
     }
 
     console.log("Schema initialized successfully.");
-    await targetDb.close();
   } catch (error) {
     console.error("Failed to initialize database:", error);
-    process.exit(1);
+    throw error;
+  } finally {
+    await db.close();
+    if (targetDb) {
+      await targetDb.close();
+    }
   }
 };
 
-initDb();
+initDb()
+  .then(() => {
+    console.log("Initialization script finished.");
+    process.exit(0);
+  })
+  .catch((err) => {
+    console.error("Initialization script failed:", err);
+    process.exit(1);
+  });

@@ -33,7 +33,7 @@ export class OrderCreationManager {
     private publisher: OrderPublisher,
     private stateManager: OrderStateManager,
     private commissionTierService: CommissionTierService,
-  ) { }
+  ) {}
 
   async create(
     dto: CreateOrderDto,
@@ -48,7 +48,7 @@ export class OrderCreationManager {
     const vendorItemsMap = this.groupByVendor(dto, productInfos);
 
     const vendorInfosMap = new Map<string, any>();
-    const vendorCommissionsMap = new Map<string, number>();
+    // const vendorCommissionsMap = new Map<string, number>();
 
     const vendorIds = Array.from(vendorItemsMap.keys());
     await Promise.all(
@@ -76,8 +76,15 @@ export class OrderCreationManager {
       connection!,
     );
 
-    await this.handleStockOperations(dto, productInfos, userId);
-    await this.publisher.publishOrderCreated(customerOrder.id, customerOrder.customerId);
+    // Synchronous stock operations are removed in favor of the Saga pattern
+    // await this.handleStockOperations(dto, productInfos, userId);
+
+    // Publish event for Catalog Service to reserve stock
+    await this.publisher.publishOrderCreated({
+      orderId: customerOrder.id,
+      customerId: customerOrder.customerId,
+      items: dto.items,
+    });
 
     return { order: customerOrder, vendorOrders: createdVendorOrders };
   }
@@ -192,11 +199,7 @@ export class OrderCreationManager {
       longitude: v.longitude,
     }));
 
-    const deliveryFee = DeliveryFeeCalculator.calculate(
-      dto.deliveryLatitude,
-      dto.deliveryLongitude,
-      vendorLocations,
-    );
+    const deliveryFee = DeliveryFeeCalculator.calculate(dto.deliveryLatitude, dto.deliveryLongitude, vendorLocations);
     const totalAmount = totalSubtotal + deliveryFee;
 
     const customerOrder: CustomerOrder = {
@@ -292,19 +295,19 @@ export class OrderCreationManager {
     return Array.from(mergedItems.values());
   }
 
-  private async handleStockOperations(dto: CreateOrderDto, productInfos: ProductInfo[], userId?: string) {
-    for (const item of dto.items) {
-      const product = productInfos.find((p) => p?.id === item.vendorProductId);
-      if (product?.measurementType === MeasurementType.UNIT) {
-        await this.catalogClient.checkAndDecrementStock(
-          item.vendorProductId,
-          item.quantity!,
-          userId,
-          product.measurementType,
-        );
-      } else if (product?.measurementType === MeasurementType.WEIGHT) {
-        await this.catalogClient.reserveWeightStock(item.vendorProductId, item.weightGrams!, userId);
-      }
-    }
-  }
+  // private async handleStockOperations(dto: CreateOrderDto, productInfos: ProductInfo[], userId?: string) {
+  //   for (const item of dto.items) {
+  //     const product = productInfos.find((p) => p?.id === item.vendorProductId);
+  //     if (product?.measurementType === MeasurementType.UNIT) {
+  //       await this.catalogClient.checkAndDecrementStock(
+  //         item.vendorProductId,
+  //         item.quantity!,
+  //         userId,
+  //         product.measurementType,
+  //       );
+  //     } else if (product?.measurementType === MeasurementType.WEIGHT) {
+  //       await this.catalogClient.reserveWeightStock(item.vendorProductId, item.weightGrams!, userId);
+  //     }
+  //   }
+  // }
 }

@@ -114,8 +114,6 @@ export class VendorRepository implements IVendorRepository {
     await this.pool.execute(query, [status, id]);
   }
 
-
-
   async updateRating(id: string, averageRating: number, totalRatings: number): Promise<void> {
     const query = "UPDATE vendors SET average_rating = ?, total_ratings = ? WHERE id = ?";
     await this.pool.execute(query, [averageRating, totalRatings, id]);

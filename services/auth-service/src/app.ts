@@ -1,5 +1,6 @@
 import express from "express";
 import cors from "cors";
+import cookieParser from "cookie-parser";
 import { createAuthRoutes } from "./presentation/routes/auth.routes";
 import { AuthController } from "./presentation/controllers/auth.controller";
 import { AuthService } from "./application/services/auth.service";
@@ -14,6 +15,7 @@ export const createApp = () => {
   app.use(cors());
   app.use(express.json());
   app.use(express.urlencoded({ extended: true })); // Add this line for form-urlencoded bodies
+  app.use(cookieParser());
 
   const db = new Database({
     host: config.dbHost,

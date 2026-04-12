@@ -1,4 +1,3 @@
-import { SEED_DATA } from "@city-market/shared";
 import { Database } from "@city-market/shared/node";
 import { config } from "../../config/env";
 import { randomUUID } from "crypto";
@@ -32,10 +31,18 @@ const seedDb = async () => {
     console.log("Database seeded successfully");
   } catch (error) {
     console.error("Error seeding database:", error);
-    process.exit(1);
+    throw error;
   } finally {
-    await connection.end();
+    await db.close();
   }
 };
 
-seedDb();
+seedDb()
+  .then(() => {
+    console.log("Seed script finished.");
+    process.exit(0);
+  })
+  .catch((err) => {
+    console.error("Seed script failed:", err);
+    process.exit(1);
+  });

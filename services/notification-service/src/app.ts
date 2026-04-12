@@ -2,11 +2,13 @@ import express from "express";
 import cors from "cors";
 import { NotificationService } from "./application/services/notification.service";
 import { NotificationController } from "./presentation/controllers/notification.controller";
-import { errorHandler, authorize, authenticate } from "@city-market/shared/node";
+import { errorHandler, authorize, authenticate, correlation } from "@city-market/shared/node";
 import { UserRole } from "@city-market/shared";
 
 export const createApp = (service: NotificationService) => {
   const app = express();
+  
+  app.use(correlation);
   const controller = new NotificationController(service);
 
   app.use(cors());

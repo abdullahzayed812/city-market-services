@@ -16,8 +16,8 @@ export class VendorOrderItemRepository implements IVendorOrderItemRepository {
       INSERT INTO vendor_order_items (
         id, vendor_order_id, product_id, product_name,
         quantity, requested_weight_grams, actual_weight_grams,
-        unit_price, total_price
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        unit_price, total_price, proposed_quantity
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
         await conn.query(query, [
             item.id,
@@ -29,6 +29,7 @@ export class VendorOrderItemRepository implements IVendorOrderItemRepository {
             item.actualWeightGrams,
             item.unitPrice,
             item.totalPrice,
+            item.proposedQuantity || null,
         ]);
         return item;
     }
@@ -78,6 +79,10 @@ export class VendorOrderItemRepository implements IVendorOrderItemRepository {
             fields.push("total_price = ?");
             values.push(data.totalPrice);
         }
+        if (data.proposedQuantity !== undefined) {
+            fields.push("proposed_quantity = ?");
+            values.push(data.proposedQuantity);
+        }
 
         if (fields.length === 0) return;
 
@@ -97,6 +102,7 @@ export class VendorOrderItemRepository implements IVendorOrderItemRepository {
             actualWeightGrams: row.actual_weight_grams,
             unitPrice: parseFloat(row.unit_price),
             totalPrice: parseFloat(row.total_price),
+            proposedQuantity: row.proposed_quantity,
         };
     }
 }

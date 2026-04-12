@@ -1,20 +1,32 @@
-import { Logger, ServiceAuthenticator } from "@city-market/shared/node";
+import { ConfigLoader, ServiceAuthenticator } from "@city-market/shared/node";
 
-export const config = {
-  port: process.env.PORT || 3006,
-  dbHost: process.env.DB_HOST || "localhost",
-  dbPort: parseInt(process.env.DB_PORT || "3306"),
-  dbUser: process.env.DB_USER || "abdo",
-  dbPassword: process.env.DB_PASSWORD || "password",
-  dbName: process.env.DB_NAME || "delivery_db",
-  orderServiceUrl: process.env.ORDER_SERVICE_URL || "http://localhost:3005",
-  vendorServiceUrl: process.env.VENDOR_SERVICE_URL || "http://localhost:3003",
-  authServiceUrl: process.env.AUTH_SERVICE_URL || "http://localhost:3001", // Added auth service URL
-  deliveryServiceClientId: process.env.DELIVERY_SERVICE_CLIENT_ID || "delivery-service-id",
-  deliveryServiceClientSecret: process.env.DELIVERY_SERVICE_CLIENT_SECRET || "delivery-service-secret",
-  authServiceTokenUrl:
-    process.env.AUTH_SERVICE_TOKEN_URL || `${process.env.AUTH_SERVICE_URL || "http://localhost:3001"}/oauth/token`,
-};
+export const config = ConfigLoader.load<{
+  port: number;
+  dbHost: string;
+  dbPort: number;
+  dbUser: string;
+  dbPassword: string;
+  dbName: string;
+  orderServiceUrl: string;
+  vendorServiceUrl: string;
+  authServiceUrl: string;
+  deliveryServiceClientId: string;
+  deliveryServiceClientSecret: string;
+  authServiceTokenUrl: string;
+}>({
+  port: { env: "PORT", default: 3006 },
+  dbHost: { env: "DB_HOST", default: "localhost" },
+  dbPort: { env: "DB_PORT", default: 3306 },
+  dbUser: { env: "DB_USER", required: true },
+  dbPassword: { env: "DB_PASSWORD", required: true, sensitive: true },
+  dbName: { env: "DB_NAME", default: "delivery_db" },
+  orderServiceUrl: { env: "ORDER_SERVICE_URL", default: "http://localhost:3005" },
+  vendorServiceUrl: { env: "VENDOR_SERVICE_URL", default: "http://localhost:3003" },
+  authServiceUrl: { env: "AUTH_SERVICE_URL", default: "http://localhost:3001" },
+  deliveryServiceClientId: { env: "DELIVERY_SERVICE_CLIENT_ID", default: "delivery-service-id" },
+  deliveryServiceClientSecret: { env: "DELIVERY_SERVICE_CLIENT_SECRET", required: true, sensitive: true },
+  authServiceTokenUrl: { env: "AUTH_SERVICE_TOKEN_URL", default: "http://localhost:3001/oauth/token" },
+});
 
 export const deliveryServiceAuthenticator = new ServiceAuthenticator(
   config.deliveryServiceClientId,

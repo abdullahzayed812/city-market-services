@@ -15,8 +15,8 @@ export class OrderPublisher {
     await this.eventBus.publish(event);
   }
 
-  async publishOrderCreated(customerOrderId: string, customerId: string): Promise<void> {
-    await this.publish(EventType.ORDER_CREATED, { customerOrderId, customerId });
+  async publishOrderCreated(payload: { orderId: string; customerId: string; items: any[] }): Promise<void> {
+    await this.publish(EventType.ORDER_CREATED, payload);
   }
 
   async publishVendorOrderCreated(data: {

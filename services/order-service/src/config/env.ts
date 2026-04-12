@@ -1,20 +1,34 @@
-import { Logger, ServiceAuthenticator } from "@city-market/shared/node";
+import { ConfigLoader, ServiceAuthenticator } from "@city-market/shared/node";
 
-export const config = {
-  port: process.env.PORT || 3005,
-  dbHost: process.env.DB_HOST || "localhost",
-  dbPort: parseInt(process.env.DB_PORT || "3306"),
-  dbUser: process.env.DB_USER || "abdo",
-  dbPassword: process.env.DB_PASSWORD || "password",
-  dbName: process.env.DB_NAME || "order_db",
-  catalogServiceUrl: process.env.CATALOG_SERVICE_URL || "http://localhost:3004",
-  vendorServiceUrl: process.env.VENDOR_SERVICE_URL || "http://localhost:3003",
-  authServiceUrl: process.env.AUTH_SERVICE_URL || "http://localhost:3001",
-  orderServiceClientId: process.env.ORDER_SERVICE_CLIENT_ID || "order-service-id",
-  orderServiceClientSecret: process.env.ORDER_SERVICE_CLIENT_SECRET || "order-service-secret",
-  authServiceTokenUrl:
-    process.env.AUTH_SERVICE_TOKEN_URL || `${process.env.AUTH_SERVICE_URL || "http://localhost:3001"}/oauth/token`,
-};
+export const config = ConfigLoader.load<{
+  port: number;
+  dbHost: string;
+  dbPort: number;
+  dbUser: string;
+  dbPassword: string;
+  dbName: string;
+  catalogServiceUrl: string;
+  vendorServiceUrl: string;
+  authServiceUrl: string;
+  orderServiceClientId: string;
+  orderServiceClientSecret: string;
+  authServiceTokenUrl: string;
+  rabbitMqUrl: string;
+}>({
+  port: { env: "PORT", default: 3005 },
+  dbHost: { env: "DB_HOST", default: "localhost" },
+  dbPort: { env: "DB_PORT", default: 3306 },
+  dbUser: { env: "DB_USER", required: true },
+  dbPassword: { env: "DB_PASSWORD", required: true, sensitive: true },
+  dbName: { env: "DB_NAME", default: "order_db" },
+  catalogServiceUrl: { env: "CATALOG_SERVICE_URL", default: "http://localhost:3004" },
+  vendorServiceUrl: { env: "VENDOR_SERVICE_URL", default: "http://localhost:3003" },
+  authServiceUrl: { env: "AUTH_SERVICE_URL", default: "http://localhost:3001" },
+  orderServiceClientId: { env: "ORDER_SERVICE_CLIENT_ID", default: "order-service-id" },
+  orderServiceClientSecret: { env: "ORDER_SERVICE_CLIENT_SECRET", required: true, sensitive: true },
+  authServiceTokenUrl: { env: "AUTH_SERVICE_TOKEN_URL", default: "http://localhost:3001/oauth/token" },
+  rabbitMqUrl: { env: "RABBITMQ_URL", default: "amqp://localhost" },
+});
 
 export const orderServiceAuthenticator = new ServiceAuthenticator(
   config.orderServiceClientId,

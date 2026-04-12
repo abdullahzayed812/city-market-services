@@ -10,4 +10,5 @@ export interface VendorOrderItem {
     actualWeight?: number; // Computed for API (KG)
     unitPrice: number;
     totalPrice: number;
+    proposedQuantity?: number;
 }

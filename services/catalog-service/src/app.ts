@@ -12,8 +12,10 @@ import { CategoryService } from "./application/services/category.service";
 import { VendorProductRepository } from "./infrastructure/repositories/vendor-product.repository";
 import { GlobalProductRepository } from "./infrastructure/repositories/global-product.repository";
 import { CategoryRepository } from "./infrastructure/repositories/category.repository";
-import { errorHandler, Database, authenticate } from "@city-market/shared/node";
+import { errorHandler, Database, authenticate, rabbitMQBus } from "@city-market/shared/node";
+import { EventType } from "@city-market/shared";
 import { config } from "./config/env";
+import { OrderDeliveredConsumer } from "./application/events/order-delivered.consumer";
 
 export const createApp = () => {
   const app = express();
@@ -40,6 +42,12 @@ export const createApp = () => {
   const vendorProductController = new VendorProductController(catalogService);
   const categoryController = new CategoryController(categoryService);
   const globalProductController = new GlobalProductController(catalogService);
+
+  const orderDeliveredConsumer = new OrderDeliveredConsumer(catalogService);
+
+  rabbitMQBus.subscribe(EventType.ORDER_DELIVERED, "catalog_service_order_created", (event) =>
+    orderDeliveredConsumer.handle(event),
+  );
 
   app.use(authenticate);
 

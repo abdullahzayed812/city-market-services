@@ -7,6 +7,7 @@ CREATE TABLE categories (
   icon_url VARCHAR(500),
   color VARCHAR(16),
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  deleted_at TIMESTAMP NULL,
   INDEX idx_name (name),
   INDEX idx_type_vendor (type, vendor_id),
   CONSTRAINT chk_category_vendor CHECK (
@@ -25,7 +26,9 @@ CREATE TABLE global_products (
   weight_unit ENUM('KG', 'GRAM') NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  deleted_at TIMESTAMP NULL,
   INDEX idx_name (name),
+  INDEX idx_deleted_at (deleted_at),
   INDEX idx_global_category (global_category_id),
   FOREIGN KEY (global_category_id) REFERENCES categories(id) ON DELETE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
@@ -42,10 +45,12 @@ CREATE TABLE vendor_products (
   is_available BOOLEAN DEFAULT TRUE,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  deleted_at TIMESTAMP NULL,
   INDEX idx_vendor_id (vendor_id),
   INDEX idx_global_product (global_product_id),
   INDEX idx_vendor_category (vendor_category_id),
   INDEX idx_availability (is_available),
+  INDEX idx_deleted_at (deleted_at),
   FOREIGN KEY (global_product_id) REFERENCES global_products(id) ON DELETE CASCADE,
   FOREIGN KEY (vendor_category_id) REFERENCES categories(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

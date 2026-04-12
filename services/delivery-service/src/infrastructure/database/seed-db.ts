@@ -28,10 +28,18 @@ const seedDb = async () => {
     console.log("Database seeded successfully");
   } catch (error) {
     console.error("Error seeding database:", error);
-    process.exit(1);
+    throw error;
   } finally {
-    await connection.end();
+    await db.close();
   }
 };
 
-seedDb();
+seedDb()
+  .then(() => {
+    console.log("Seeding script finished.");
+    process.exit(0);
+  })
+  .catch((err) => {
+    console.error("Seeding script failed:", err);
+    process.exit(1);
+  });

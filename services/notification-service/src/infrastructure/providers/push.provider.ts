@@ -28,7 +28,7 @@ export class PushNotificationProvider {
       let credential: admin.ServiceAccount | string | undefined;
 
       // 1. Check for stringified JSON or path in environment variable
-      const saJson = config.firebase.serviceAccountJson;
+      const saJson = config.firebaseServiceAccountJson;
       if (saJson) {
         if (saJson.trim().startsWith('{')) {
           try {
@@ -50,12 +50,12 @@ export class PushNotificationProvider {
       }
 
       // 2. Check for path in environment variable (dedicated path var)
-      else if (config.firebase.serviceAccountPath) {
-        if (fs.existsSync(config.firebase.serviceAccountPath)) {
-          credential = config.firebase.serviceAccountPath;
-          Logger.info(`Firebase: Using credentials from path: ${config.firebase.serviceAccountPath}`);
+      else if (config.firebaseServiceAccountPath) {
+        if (fs.existsSync(config.firebaseServiceAccountPath)) {
+          credential = config.firebaseServiceAccountPath;
+          Logger.info(`Firebase: Using credentials from path: ${config.firebaseServiceAccountPath}`);
         } else {
-          Logger.warn(`Firebase: Path provided in FIREBASE_SERVICE_ACCOUNT_PATH does not exist: ${config.firebase.serviceAccountPath}`);
+          Logger.warn(`Firebase: Path provided in FIREBASE_SERVICE_ACCOUNT_PATH does not exist: ${config.firebaseServiceAccountPath}`);
         }
       }
 

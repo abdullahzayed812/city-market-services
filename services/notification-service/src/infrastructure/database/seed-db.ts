@@ -11,9 +11,9 @@ const seedDb = async () => {
         password: config.dbPassword,
         database: config.dbName,
     });
-    const connection = db.getPool();
 
     try {
+        const connection = db.getPool();
         const userId = SEED_DATA.USERS.CUSTOMER;
 
         await connection.execute(
@@ -31,8 +31,8 @@ const seedDb = async () => {
         console.error("Error seeding database:", error);
         process.exit(1);
     } finally {
-        await connection.end();
+        await db.close();
     }
 };
 
-seedDb();
+seedDb().then(() => process.exit(0));

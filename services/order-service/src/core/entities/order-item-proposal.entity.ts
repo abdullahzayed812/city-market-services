@@ -15,6 +15,7 @@ export interface OrderItemProposal {
     vendorOrderItemId: string;
     type: ProposalType;
     proposedQuantity?: number;
+    actualQuantity?: number;
     requestedWeightGrams?: number;
     proposedWeightGrams?: number;
     requestedWeight?: number; // Computed for API (KG)

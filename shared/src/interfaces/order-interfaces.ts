@@ -40,7 +40,8 @@ export interface VendorOrderItem {
   unitPrice: number;
   totalPrice: number;
   quantity?: number;
-  measurementType?: MeasurementType,
+  proposedQuantity?: number;
+  measurementType?: MeasurementType;
   requestedWeightGrams?: number;
   actualWeightGrams?: number;
   requestedWeight?: number; // Computed for API (KG)
@@ -51,6 +52,7 @@ export interface OrderItemProposal {
   id: string;
   vendorOrderItemId: string;
   type: ProposalType;
+  actualQuantity?: number;
   proposedQuantity?: number;
   requestedWeightGrams?: number;
   proposedWeightGrams?: number;
@@ -97,6 +99,7 @@ export interface UpdateVendorOrderStatusDto {
 export interface ProposeChangesDto {
   itemId: string;
   type: ProposalType;
+  actualQuantity?: number;
   proposedQuantity?: number;
   requestedWeightGrams?: number;
   proposedWeightGrams?: number;

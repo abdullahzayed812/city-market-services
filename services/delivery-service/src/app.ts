@@ -5,9 +5,8 @@ import { DeliveryController } from "./presentation/controllers/delivery.controll
 import { DeliveryService } from "./application/services/delivery.service";
 import { CourierRepository } from "./infrastructure/repositories/courier.repository";
 import { DeliveryRepository } from "./infrastructure/repositories/delivery.repository";
-import { errorHandler, Database, authenticate } from "@city-market/shared/node";
+import { errorHandler, Database, authenticate, rabbitMQBus, correlation } from "@city-market/shared/node";
 import { EventType } from "@city-market/shared";
-import { rabbitMQBus } from "@city-market/shared/node";
 import { OrderReadyConsumer } from "./application/events/order-ready.consumer";
 import { OrderHttpClient } from "./infrastructure/http/order-http-client";
 import { VendorHttpClient } from "./infrastructure/http/vendor-http-client";
@@ -17,6 +16,7 @@ import { config } from "./config/env";
 export const createApp = () => {
   const app = express();
 
+  app.use(correlation);
   app.use(cors());
   app.use(express.json());
 

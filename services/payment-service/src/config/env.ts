@@ -1,8 +1,23 @@
-export const config = {
-    port: process.env.PORT || 3006,
-    dbHost: process.env.DB_HOST || "localhost",
-    dbPort: parseInt(process.env.DB_PORT || "3306"),
-    dbUser: process.env.DB_USER || "abdo",
-    dbPassword: process.env.DB_PASSWORD || "password",
-    dbName: process.env.DB_NAME || "payment_db",
-};
+import { ConfigLoader } from "@city-market/shared/node";
+
+export const config = ConfigLoader.load<{
+    port: number;
+    dbHost: string;
+    dbPort: number;
+    dbUser: string;
+    dbPassword: string;
+    dbName: string;
+    paymentServiceClientId: string;
+    paymentServiceClientSecret: string;
+    authServiceTokenUrl: string;
+}>({
+    port: { env: "PORT", default: 3006 },
+    dbHost: { env: "DB_HOST", default: "localhost" },
+    dbPort: { env: "DB_PORT", default: 3306 },
+    dbUser: { env: "DB_USER", required: true },
+    dbPassword: { env: "DB_PASSWORD", required: true, sensitive: true },
+    dbName: { env: "DB_NAME", default: "payment_db" },
+    paymentServiceClientId: { env: "PAYMENT_SERVICE_CLIENT_ID", default: "payment-service-id" },
+    paymentServiceClientSecret: { env: "PAYMENT_SERVICE_CLIENT_SECRET", required: true, sensitive: true },
+    authServiceTokenUrl: { env: "AUTH_SERVICE_TOKEN_URL", default: "http://localhost:3001/oauth/token" },
+});

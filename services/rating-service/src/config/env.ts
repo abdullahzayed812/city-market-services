@@ -1,22 +1,36 @@
-import { ServiceAuthenticator } from "@city-market/shared/node";
+import { ConfigLoader, ServiceAuthenticator } from "@city-market/shared/node";
 
-export const config = {
-    port: process.env.PORT || 3010,
-    dbHost: process.env.DB_HOST || "localhost",
-    dbPort: parseInt(process.env.DB_PORT || "3306"),
-    dbUser: process.env.DB_USER || "abdo",
-    dbPassword: process.env.DB_PASSWORD || "password",
-    dbName: process.env.DB_NAME || "rating_db",
-    orderServiceUrl: process.env.ORDER_SERVICE_URL || "http://localhost:3005",
-    userServiceUrl: process.env.USER_SERVICE_URL || "http://localhost:3002",
-    vendorServiceUrl: process.env.VENDOR_SERVICE_URL || "http://localhost:3003",
-    authServiceUrl: process.env.AUTH_SERVICE_URL || "http://localhost:3001",
-    ratingServiceClientId: process.env.RATING_SERVICE_CLIENT_ID || "rating-service-id",
-    ratingServiceClientSecret: process.env.RATING_SERVICE_CLIENT_SECRET || "rating-service-secret",
-    authServiceTokenUrl:
-        process.env.AUTH_SERVICE_TOKEN_URL || `${process.env.AUTH_SERVICE_URL || "http://localhost:3001"}/oauth/token`,
-    rabbitMQUrl: process.env.RABBITMQ_URL || "amqp://localhost",
-};
+export const config = ConfigLoader.load<{
+    port: number;
+    dbHost: string;
+    dbPort: number;
+    dbUser: string;
+    dbPassword: string;
+    dbName: string;
+    orderServiceUrl: string;
+    userServiceUrl: string;
+    vendorServiceUrl: string;
+    authServiceUrl: string;
+    ratingServiceClientId: string;
+    ratingServiceClientSecret: string;
+    authServiceTokenUrl: string;
+    rabbitMQUrl: string;
+}>({
+    port: { env: "PORT", default: 3010 },
+    dbHost: { env: "DB_HOST", default: "localhost" },
+    dbPort: { env: "DB_PORT", default: 3306 },
+    dbUser: { env: "DB_USER", required: true },
+    dbPassword: { env: "DB_PASSWORD", required: true, sensitive: true },
+    dbName: { env: "DB_NAME", default: "rating_db" },
+    orderServiceUrl: { env: "ORDER_SERVICE_URL", default: "http://localhost:3005" },
+    userServiceUrl: { env: "USER_SERVICE_URL", default: "http://localhost:3002" },
+    vendorServiceUrl: { env: "VENDOR_SERVICE_URL", default: "http://localhost:3003" },
+    authServiceUrl: { env: "AUTH_SERVICE_URL", default: "http://localhost:3001" },
+    ratingServiceClientId: { env: "RATING_SERVICE_CLIENT_ID", default: "rating-service-id" },
+    ratingServiceClientSecret: { env: "RATING_SERVICE_CLIENT_SECRET", required: true, sensitive: true },
+    authServiceTokenUrl: { env: "AUTH_SERVICE_TOKEN_URL", default: "http://localhost:3001/oauth/token" },
+    rabbitMQUrl: { env: "RABBITMQ_URL", default: "amqp://localhost" },
+});
 
 export const ratingServiceAuthenticator = new ServiceAuthenticator(
     config.ratingServiceClientId,

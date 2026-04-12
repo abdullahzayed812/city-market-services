@@ -10,7 +10,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Label } from "@/components/ui/label";
+// import { Label } from "@/components/ui/label";
 import { Image as ImageIcon, MoreHorizontal, Plus, Pencil, Trash2, Upload } from "lucide-react";
 import VendorProductImageModal from "@/components/ProductImageModal";
 import { MeasurementType } from "@city-market/shared";
@@ -27,7 +27,7 @@ const Products = () => {
     createVendorProduct,
     updateVendorProduct,
     deleteVendorProduct,
-    uploadVendorProductImage,
+    // uploadVendorProductImage,
     hasMoreProducts,
     isFetchingNextProductsPage,
     loadMoreProducts,
@@ -235,7 +235,7 @@ const Products = () => {
                 </TableCell>
               </TableRow>
             ))}
-            {products.length === 0 && (
+            {products?.length === 0 && (
               <TableRow>
                 <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
                   {t("products.no_products_found")}

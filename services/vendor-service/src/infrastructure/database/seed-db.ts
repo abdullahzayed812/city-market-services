@@ -263,8 +263,8 @@ const seedDb = async () => {
     console.error("Seeding error:", error);
     process.exit(1);
   } finally {
-    await connection.end();
+    await db.close();
   }
 };
 
-seedDb();
+seedDb().then(() => process.exit(0));

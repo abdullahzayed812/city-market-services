@@ -36,7 +36,7 @@ export class VendorProductRepository implements IVendorProductRepository {
       JOIN global_products gp ON vp.global_product_id = gp.id
       LEFT JOIN categories gc ON gp.global_category_id = gc.id
       LEFT JOIN categories vc ON vp.vendor_category_id = vc.id
-      WHERE vp.id = ?`;
+      WHERE vp.id = ? AND vp.deleted_at IS NULL`;
     const [rows] = await this.pool.execute<RowDataPacket[]>(query, [id]);
     return rows.length > 0 ? this.mapToEntity(rows[0]) : null;
   }
@@ -49,6 +49,7 @@ export class VendorProductRepository implements IVendorProductRepository {
       JOIN global_products gp ON vp.global_product_id = gp.id
       LEFT JOIN categories gc ON gp.global_category_id = gc.id
       LEFT JOIN categories vc ON vp.vendor_category_id = vc.id
+      WHERE vp.deleted_at IS NULL
       ORDER BY vp.created_at DESC, vp.id DESC
       LIMIT ? OFFSET ?`;
     const [rows] = await this.pool.execute<RowDataPacket[]>(query, [limit, offset]);
@@ -56,7 +57,7 @@ export class VendorProductRepository implements IVendorProductRepository {
   }
 
   async countAll(): Promise<number> {
-    const query = "SELECT COUNT(*) as count FROM vendor_products";
+    const query = "SELECT COUNT(*) as count FROM vendor_products WHERE deleted_at IS NULL";
     const [rows] = await this.pool.execute<RowDataPacket[]>(query);
     return rows[0].count;
   }
@@ -80,7 +81,7 @@ export class VendorProductRepository implements IVendorProductRepository {
       JOIN global_products gp ON vp.global_product_id = gp.id
       LEFT JOIN categories gc ON gp.global_category_id = gc.id
       LEFT JOIN categories vc ON vp.vendor_category_id = vc.id
-      WHERE vp.vendor_id = ?
+      WHERE vp.vendor_id = ? AND vp.deleted_at IS NULL
       ORDER BY vp.created_at DESC, vp.id DESC
       LIMIT ? OFFSET ?`;
     const [rows] = await this.pool.query<RowDataPacket[]>(query, [vendorId, limit, offset]);
@@ -95,7 +96,7 @@ export class VendorProductRepository implements IVendorProductRepository {
       JOIN global_products gp ON vp.global_product_id = gp.id
       LEFT JOIN categories gc ON gp.global_category_id = gc.id
       LEFT JOIN categories vc ON vp.vendor_category_id = vc.id
-      WHERE gp.global_category_id = ? OR vp.vendor_category_id = ?
+      WHERE (gp.global_category_id = ? OR vp.vendor_category_id = ?) AND vp.deleted_at IS NULL
       ORDER BY vp.created_at DESC, vp.id DESC 
       LIMIT ? OFFSET ?`;
     const [rows] = await this.pool.query<RowDataPacket[]>(query, [categoryId, categoryId, limit, offset]);
@@ -212,12 +213,12 @@ export class VendorProductRepository implements IVendorProductRepository {
   }
 
   async delete(id: string): Promise<void> {
-    const query = "DELETE FROM vendor_products WHERE id = ?";
+    const query = "UPDATE vendor_products SET deleted_at = NOW() WHERE id = ?";
     await this.pool.execute(query, [id]);
   }
 
   private buildFilterQuery(filter: VendorProductFilter): { whereClause: string; values: any[] } {
-    const conditions: string[] = ["1=1"];
+    const conditions: string[] = ["vp.deleted_at IS NULL"];
     const values: any[] = [];
 
     if (filter.vendorId) {

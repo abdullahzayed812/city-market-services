@@ -2,6 +2,7 @@ import { Server, Socket } from "socket.io";
 import * as jwt from "jsonwebtoken";
 import axios from "axios";
 import { UserRole } from "@city-market/shared";
+import { Logger } from "@city-market/shared/node";
 
 const JWT_SECRET = process.env.JWT_SECRET || "access_secret_key";
 const VENDOR_SERVICE_URL = process.env.VENDOR_SERVICE_URL || "http://localhost:3003";

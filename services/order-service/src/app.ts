@@ -65,20 +65,20 @@ export const createApp = () => {
     vendorClient,
     publisher,
     commissionTierService,
-    db
+    db,
   );
 
   const orderController = new OrderController(orderService);
 
   const deliveryUpdatedConsumer = new DeliveryUpdatedConsumer(orderService);
   rabbitMQBus.subscribe(EventType.ORDER_PICKED_UP, "order_service_pickup", (event) =>
-    deliveryUpdatedConsumer.handle(event)
+    deliveryUpdatedConsumer.handle(event),
   );
   rabbitMQBus.subscribe(EventType.ORDER_ON_THE_WAY, "order_service_ontheway", (event) =>
-    deliveryUpdatedConsumer.handle(event)
+    deliveryUpdatedConsumer.handle(event),
   );
   rabbitMQBus.subscribe(EventType.ORDER_DELIVERED, "order_service_delivered", (event) =>
-    deliveryUpdatedConsumer.handle(event)
+    deliveryUpdatedConsumer.handle(event),
   );
 
   app.use(authenticate);

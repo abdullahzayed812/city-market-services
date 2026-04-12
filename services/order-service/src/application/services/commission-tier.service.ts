@@ -1,6 +1,6 @@
 import { v4 as uuidv4 } from "uuid";
-import { CommissionTier } from "../core/entities/commission-tier.entity";
-import { ICommissionTierRepository } from "../core/interfaces/commission-tier.repository";
+import { CommissionTier } from "../../core/entities/commission-tier.entity";
+import { ICommissionTierRepository } from "../../core/interfaces/commission-tier.repository";
 
 export class CommissionTierService {
     constructor(private tierRepository: ICommissionTierRepository) { }

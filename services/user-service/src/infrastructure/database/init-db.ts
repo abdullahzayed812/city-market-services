@@ -1,6 +1,6 @@
 import { Database } from "@city-market/shared/node";
-import fs from "fs";
-import path from "path";
+import * as fs from "fs";
+import * as path from "path";
 import { config } from "../../config/env";
 
 const initDb = async () => {
@@ -29,14 +29,21 @@ const initDb = async () => {
       await connection.query(stmt);
     }
 
-    // await connection.query(schema);
     console.log("Database initialized successfully");
   } catch (error) {
     console.error("Error initializing database:", error);
-    process.exit(1);
+    throw error;
   } finally {
-    await connection.end();
+    await db.close();
   }
 };
 
-initDb();
+initDb()
+  .then(() => {
+    console.log("Initialization script finished.");
+    process.exit(0);
+  })
+  .catch((err) => {
+    console.error("Initialization script failed:", err);
+    process.exit(1);
+  });

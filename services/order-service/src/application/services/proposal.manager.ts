@@ -89,6 +89,7 @@ export class ProposalManager {
         vendorOrderItemId: item.itemId,
         type: item.type as ProposalType,
         proposedQuantity: item.proposedQuantity,
+        actualQuantity: item.actualQuantity,
         requestedWeightGrams: item.requestedWeightGrams,
         proposedWeightGrams: item.proposedWeightGrams,
         status: ProposalStatus.PENDING,
@@ -97,6 +98,11 @@ export class ProposalManager {
       };
 
       await this.proposalRepo.create(proposal, connection);
+
+      if (item.type === ProposalType.QUANTITY_REDUCTION && item.proposedQuantity !== undefined) {
+        await this.vendorOrderItemRepo.update(item.itemId, { proposedQuantity: item.proposedQuantity }, connection);
+      }
+
       statusChangedToProposal = true;
     }
 
@@ -151,6 +157,7 @@ export class ProposalManager {
         {
           quantity: proposal.proposedQuantity,
           totalPrice: item.unitPrice * proposal.proposedQuantity,
+          proposedQuantity: null as any, // Clear proposed quantity
         },
         connection,
       );
@@ -174,7 +181,7 @@ export class ProposalManager {
       }
       await this.vendorOrderItemRepo.update(
         item.id,
-        { quantity: 0, requestedWeightGrams: 0, totalPrice: 0 },
+        { quantity: 0, requestedWeightGrams: 0, totalPrice: 0, proposedQuantity: null as any },
         connection,
       );
     }

@@ -1,0 +1,202 @@
+version: '3.8'
+
+services:
+  # Infrastructure
+  mysql:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: root_password
+      MYSQL_DATABASE: citymarket
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+  # API Gateway
+  api-gateway:
+    build:
+      context: .
+      dockerfile: api-gateway/Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+      - PORT=3000
+      - AUTH_SERVICE_URL=http://auth-service:3001
+      - USER_SERVICE_URL=http://user-service:3002
+      - VENDOR_SERVICE_URL=http://vendor-service:3003
+      - CATALOG_SERVICE_URL=http://catalog-service:3004
+      - ORDER_SERVICE_URL=http://order-service:3005
+      - DELIVERY_SERVICE_URL=http://delivery-service:3006
+      - ADMIN_SERVICE_URL=http://admin-service:3007
+      - NOTIFICATIONS_SERVICE_URL=http://notification-service:3008
+      - RATING_SERVICE_URL=http://rating-service:3010
+      - JWT_SECRET=your_jwt_secret_here
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      - auth-service
+      - redis
+
+  # Auth Service
+  auth-service:
+    build:
+      context: .
+      dockerfile: services/auth-service/Dockerfile
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=development
+      - PORT=3001
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_USER=root
+      - DB_PASSWORD=root_password
+      - DB_NAME=auth_db
+      - JWT_ACCESS_SECRET=access_secret_key
+      - JWT_REFRESH_SECRET=refresh_secret_key
+      - JWT_SERVICE_ACCESS_SECRET=service_access_secret_key
+    depends_on:
+      - mysql
+
+  # User Service
+  user-service:
+    build:
+      context: .
+      dockerfile: services/user-service/Dockerfile
+    environment:
+      - NODE_ENV=development
+      - PORT=3002
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_USER=root
+      - DB_PASSWORD=root_password
+      - DB_NAME=user_db
+    depends_on:
+      - mysql
+
+  # Vendor Service
+  vendor-service:
+    build:
+      context: .
+      dockerfile: services/vendor-service/Dockerfile
+    environment:
+      - NODE_ENV=development
+      - PORT=3003
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_USER=root
+      - DB_PASSWORD=root_password
+      - DB_NAME=vendor_db
+      - RABBITMQ_URL=amqp://rabbitmq
+      - VENDOR_SERVICE_CLIENT_SECRET=vendor-service-secret
+    depends_on:
+      - mysql
+      - rabbitmq
+
+  # Catalog Service
+  catalog-service:
+    build:
+      context: .
+      dockerfile: services/catalog-service/Dockerfile
+    environment:
+      - NODE_ENV=development
+      - PORT=3004
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_USER=root
+      - DB_PASSWORD=root_password
+      - DB_NAME=catalog_db
+      - RABBITMQ_URL=amqp://rabbitmq
+    depends_on:
+      - mysql
+      - rabbitmq
+
+  # Order Service
+  order-service:
+    build:
+      context: .
+      dockerfile: services/order-service/Dockerfile
+    environment:
+      - NODE_ENV=development
+      - PORT=3005
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_USER=root
+      - DB_PASSWORD=root_password
+      - DB_NAME=order_db
+      - RABBITMQ_URL=amqp://rabbitmq
+      - ORDER_SERVICE_CLIENT_SECRET=order-service-secret
+      - CATALOG_SERVICE_URL=http://catalog-service:3004
+      - VENDOR_SERVICE_URL=http://vendor-service:3003
+      - AUTH_SERVICE_URL=http://auth-service:3001
+    depends_on:
+      - mysql
+      - rabbitmq
+
+  # Delivery Service
+  delivery-service:
+    build:
+      context: .
+      dockerfile: services/delivery-service/Dockerfile
+    environment:
+      - NODE_ENV=development
+      - PORT=3006
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_USER=root
+      - DB_PASSWORD=root_password
+      - DB_NAME=delivery_db
+      - RABBITMQ_URL=amqp://rabbitmq
+      - DELIVERY_SERVICE_CLIENT_SECRET=delivery-service-secret
+    depends_on:
+      - mysql
+      - rabbitmq
+
+  # Notification Service
+  notification-service:
+    build:
+      context: .
+      dockerfile: services/notification-service/Dockerfile
+    environment:
+      - NODE_ENV=development
+      - PORT=3008
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_USER=root
+      - DB_PASSWORD=root_password
+      - DB_NAME=notification_db
+      - RABBITMQ_URL=amqp://rabbitmq
+    depends_on:
+      - rabbitmq
+      - mysql
+
+  # WebSocket Gateway
+  websocket-gateway:
+    build:
+      context: .
+      dockerfile: services/websocket-gateway/Dockerfile
+    ports:
+      - "3009:3009"
+    environment:
+      - NODE_ENV=development
+      - PORT=3009
+      - RABBITMQ_URL=amqp://rabbitmq
+      - WEBSOCKET_GATEWAY_CLIENT_SECRET=websocket-gateway-secret
+      - ORDER_SERVICE_URL=http://order-service:3005
+      - AUTH_SERVICE_URL=http://auth-service:3001
+    depends_on:
+      - rabbitmq
+
+volumes:
+  mysql_data:
