@@ -23,7 +23,7 @@ export class DeliveryService {
     private publisher: DeliveryPublisher,
     private orderClient: OrderHttpClient,
     private vendorClient: VendorHttpClient,
-    private db: Database // Added
+    private db: Database, // Added
   ) { }
 
   // Courier management
@@ -132,13 +132,13 @@ export class DeliveryService {
       // Concurrent batch fetch of unique vendors to prevent N+1 HTTP calls
       const uniqueVendorIds = Array.from(new Set(vendorOrders.map((vo: any) => vo.vendorId)));
       const vendorDetailsArray = await Promise.all(
-        uniqueVendorIds.map(id => this.vendorClient.getVendor(id as string, userId))
+        uniqueVendorIds.map((id) => this.vendorClient.getVendor(id as string, userId)),
       );
       const vendorMap = new Map(uniqueVendorIds.map((id, index) => [id, vendorDetailsArray[index]]));
 
       const vendors = vendorOrders.map((vo: any) => ({
         ...vo,
-        vendorInfo: vendorMap.get(vo.vendorId)
+        vendorInfo: vendorMap.get(vo.vendorId),
       }));
 
       // Calculate pairwise distances between vendors
@@ -160,17 +160,19 @@ export class DeliveryService {
           vendors,
           customerOrderId,
           undefined,
-          connection
+          connection,
         ); // Pass connection
         createdDeliveries.push(delivery);
 
         // Link all vendor orders to this delivery
         // for (const vo of vendorOrders) {
-        eventsToPublish.push(() => this.publisher.publishDeliveryCreated({
-          deliveryId: delivery.id,
-          customerId: customerOrder.customerId,
-          customerOrderId,
-        }));
+        eventsToPublish.push(() =>
+          this.publisher.publishDeliveryCreated({
+            deliveryId: delivery.id,
+            customerId: customerOrder.customerId,
+            customerOrderId,
+          }),
+        );
         // }
       } else {
         let lastDeliveryId = "";
@@ -180,11 +182,11 @@ export class DeliveryService {
           const existingDelivery = await this.deliveryRepo.findByCustomerOrderAndVendorOrder(
             customerOrderId,
             v.id,
-            connection
+            connection,
           ); // Pass connection
           if (existingDelivery) {
             Logger.info(
-              `Delivery already exists for Customer Order ${customerOrderId} and Vendor Order ${v.id}. Skipping creation.`
+              `Delivery already exists for Customer Order ${customerOrderId} and Vendor Order ${v.id}. Skipping creation.`,
             );
             createdDeliveries.push(existingDelivery); // Add existing delivery to the list
             continue; // Skip creating new delivery
@@ -194,11 +196,13 @@ export class DeliveryService {
           createdDeliveries.push(delivery);
           lastDeliveryId = delivery.id;
 
-          eventsToPublish.push(() => this.publisher.publishDeliveryCreated({
-            deliveryId: delivery.id,
-            customerId: customerOrder.customerId,
-            customerOrderId,
-          }));
+          eventsToPublish.push(() =>
+            this.publisher.publishDeliveryCreated({
+              deliveryId: delivery.id,
+              customerId: customerOrder.customerId,
+              customerOrderId,
+            }),
+          );
         }
       }
 
@@ -209,7 +213,7 @@ export class DeliveryService {
       }
 
       // Check if the error is a MySQL unique constraint violation
-      if (error.code === 'ER_DUP_ENTRY') {
+      if (error.code === "ER_DUP_ENTRY") {
         Logger.warn(`Duplicate delivery insertion attempt for Order ${customerOrderId} blocked. Resuming gracefully.`);
         // Fetch and return the deliveries that were successfully created by the concurrent request
         return this.deliveryRepo.findByCustomerOrderId(customerOrderId);
@@ -230,7 +234,7 @@ export class DeliveryService {
     vendors: any[],
     customerOrderId: string,
     vendorOrder?: any,
-    connection?: PoolConnection
+    connection?: PoolConnection,
   ): Promise<Delivery> {
     // Add connection
     const itemsCount = vendors.reduce((sum, v) => sum + (v.items?.length || 0), 0);
@@ -269,7 +273,7 @@ export class DeliveryService {
           vendors[i].vendorInfo.latitude,
           vendors[i].vendorInfo.longitude,
           vendors[j].vendorInfo.latitude,
-          vendors[j].vendorInfo.longitude
+          vendors[j].vendorInfo.longitude,
         );
         if (dist > DISTANCE_THRESHOLD_KM) return true; // At least one pair is far apart
       }
@@ -297,10 +301,8 @@ export class DeliveryService {
     try {
       const orderData = await this.orderClient.getOrder(delivery.customerOrderId, userId);
       if (orderData && orderData.vendorOrders) {
-        const deliveryVendorOrderIds = delivery.pickupLocations.map(pl => pl.vendorOrderId);
-        delivery.vendorOrders = orderData.vendorOrders.filter((vo: any) =>
-          deliveryVendorOrderIds.includes(vo.id)
-        );
+        const deliveryVendorOrderIds = delivery.pickupLocations.map((pl) => pl.vendorOrderId);
+        delivery.vendorOrders = orderData.vendorOrders.filter((vo: any) => deliveryVendorOrderIds.includes(vo.id));
       }
       return delivery;
     } catch (error: any) {
@@ -314,7 +316,12 @@ export class DeliveryService {
     return this.enrichDeliveriesWithOrderData(deliveries, userId);
   }
 
-  async getCourierDeliveries(courierId: string, page: number = 1, limit: number = 20, userId?: string): Promise<Delivery[]> {
+  async getCourierDeliveries(
+    courierId: string,
+    page: number = 1,
+    limit: number = 20,
+    userId?: string,
+  ): Promise<Delivery[]> {
     const offset = (page - 1) * limit;
     const deliveries = await this.deliveryRepo.findByCourier(courierId, limit, offset);
     return this.enrichDeliveriesWithOrderData(deliveries, userId);
@@ -335,16 +342,14 @@ export class DeliveryService {
           const orderData = await this.orderClient.getOrder(delivery.customerOrderId, userId);
           if (orderData && orderData.vendorOrders) {
             const deliveryVendorOrderIds = delivery.pickupLocations.map((pl) => pl.vendorOrderId);
-            delivery.vendorOrders = orderData.vendorOrders.filter((vo: any) =>
-              deliveryVendorOrderIds.includes(vo.id)
-            );
+            delivery.vendorOrders = orderData.vendorOrders.filter((vo: any) => deliveryVendorOrderIds.includes(vo.id));
           }
           return delivery;
         } catch (error: any) {
           Logger.warn(`Failed to fetch order details for delivery ${delivery.id}:`, error.message);
           return delivery;
         }
-      })
+      }),
     );
   }
 
@@ -366,19 +371,23 @@ export class DeliveryService {
 
     if (dto.status === DeliveryStatus.PICKED_UP) {
       updates.pickedUpAt = new Date();
-      eventsToPublish.push(() => this.publisher.publishOrderPickedUp({
-        deliveryId,
-        customerOrderId: delivery.customerOrderId,
-        customerId: delivery.customerId,
-        vendorOrdersIds
-      }));
+      eventsToPublish.push(() =>
+        this.publisher.publishOrderPickedUp({
+          deliveryId,
+          customerOrderId: delivery.customerOrderId,
+          customerId: delivery.customerId,
+          vendorOrdersIds,
+        }),
+      );
     } else if (dto.status === DeliveryStatus.ON_THE_WAY) {
-      eventsToPublish.push(() => this.publisher.publishOrderOnTheWay({
-        deliveryId,
-        customerOrderId: delivery.customerOrderId,
-        customerId: delivery.customerId,
-        vendorOrdersIds
-      }));
+      eventsToPublish.push(() =>
+        this.publisher.publishOrderOnTheWay({
+          deliveryId,
+          customerOrderId: delivery.customerOrderId,
+          customerId: delivery.customerId,
+          vendorOrdersIds,
+        }),
+      );
     } else if (dto.status === DeliveryStatus.DELIVERED) {
       updates.deliveredAt = new Date();
       if (delivery.courierId) {
@@ -387,12 +396,21 @@ export class DeliveryService {
         await this.courierRepo.updateAvailability(delivery.courierId, true);
         await this.courierRepo.incrementDeliveries(delivery.courierId);
       }
-      eventsToPublish.push(() => this.publisher.publishOrderDelivered({
-        deliveryId,
-        customerOrderId: delivery.customerOrderId,
-        customerId: delivery.customerId,
-        vendorOrdersIds
-      }));
+      const items = delivery.vendorOrders?.flatMap((vo: any) => vo.items?.map((item: any) => ({
+        vendorProductId: item.vendorProductId,
+        quantity: item.quantity,
+        actualWeightGrams: item.actualWeightGrams
+      })) || []) || [];
+
+      eventsToPublish.push(() =>
+        this.publisher.publishOrderDelivered({
+          deliveryId,
+          customerOrderId: delivery.customerOrderId,
+          customerId: delivery.customerId,
+          items,
+          vendorOrdersIds,
+        }),
+      );
     }
 
     await this.deliveryRepo.update(deliveryId, updates); // DB update happens here
@@ -420,13 +438,15 @@ export class DeliveryService {
       await this.deliveryRepo.assignCourier(deliveryId, dto.courierId, connection); // Pass connection
       await this.courierRepo.updateAvailability(dto.courierId, false, connection); // Pass connection // Courier becomes unavailable when assigned
 
-      eventsToPublish.push(() => this.publisher.publishCourierAssigned({
-        deliveryId: delivery.id,
-        courierId: dto.courierId,
-        courierUserId: courier.userId,
-        customerId: delivery.customerId,
-        customerOrderId: delivery.customerOrderId
-      }));
+      eventsToPublish.push(() =>
+        this.publisher.publishCourierAssigned({
+          deliveryId: delivery.id,
+          courierId: dto.courierId,
+          courierUserId: courier.userId,
+          customerId: delivery.customerId,
+          customerOrderId: delivery.customerOrderId,
+        }),
+      );
 
       await this.db.commit(connection);
 

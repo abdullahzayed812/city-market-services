@@ -36,7 +36,7 @@ export class ProposalManager {
     private publisher: OrderPublisher,
     private stateManager: OrderStateManager,
     private commissionTierService: CommissionTierService,
-  ) { }
+  ) {}
 
   async propose(vendorOrderId: string, dto: ProposeChangesDto[], connection: PoolConnection): Promise<void> {
     const vo = await this.vendorOrderRepo.findByIdWithLock(vendorOrderId, connection);
@@ -162,8 +162,8 @@ export class ProposalManager {
         connection,
       );
     } else if (proposal.type === ProposalType.WEIGHT_ADJUSTMENT && proposal.proposedWeightGrams !== undefined) {
-      const diff = item.requestedWeightGrams! - proposal.proposedWeightGrams;
-      await this.catalogClient.releaseWeightStock(item.vendorProductId, diff);
+      // const diff = item.requestedWeightGrams! - proposal.proposedWeightGrams;
+      // await this.catalogClient.releaseWeightStock(item.vendorProductId, diff);
 
       const strategy = PricingStrategyFactory.getStrategy(MeasurementType.WEIGHT);
       const newTotalPrice = strategy.calculateTotal(item.unitPrice, proposal.proposedWeightGrams);
@@ -177,7 +177,7 @@ export class ProposalManager {
       );
     } else if (proposal.type === ProposalType.UNAVAILABLE) {
       if (item.requestedWeightGrams) {
-        await this.catalogClient.releaseWeightStock(item.vendorProductId, item.requestedWeightGrams);
+        // await this.catalogClient.releaseWeightStock(item.vendorProductId, item.requestedWeightGrams);
       }
       await this.vendorOrderItemRepo.update(
         item.id,
@@ -212,7 +212,7 @@ export class ProposalManager {
     if (!item) throw new NotFoundError("vendor_order_item_not_found");
 
     if (item.requestedWeightGrams) {
-      await this.catalogClient.releaseWeightStock(item.vendorProductId, item.requestedWeightGrams);
+      // await this.catalogClient.releaseWeightStock(item.vendorProductId, item.requestedWeightGrams);
     }
 
     await this.proposalRepo.updateStatus(proposalId, ProposalStatus.REJECTED, connection);
@@ -274,7 +274,10 @@ export class ProposalManager {
 
     const items = await this.vendorOrderItemRepo.findByVendorOrder(vendorOrderId, connection);
     const newSubtotal = items.reduce((sum, item) => sum + item.totalPrice, 0);
-    const { amount: commissionAmount, percentage: commissionPercentage } = CommissionCalculator.calculate(newSubtotal, tiers);
+    const { amount: commissionAmount, percentage: commissionPercentage } = CommissionCalculator.calculate(
+      newSubtotal,
+      tiers,
+    );
 
     await this.vendorOrderRepo.update(
       vendorOrderId,

@@ -3,7 +3,7 @@ import { RabbitMQBus } from "@city-market/shared/node";
 import { randomUUID } from "crypto";
 
 export class DeliveryPublisher {
-  constructor(private eventBus: RabbitMQBus) {}
+  constructor(private eventBus: RabbitMQBus) { }
 
   private async publish(type: EventType, payload: any): Promise<void> {
     const event: BaseEvent = {
@@ -46,6 +46,7 @@ export class DeliveryPublisher {
     customerOrderId: string;
     customerId: string;
     vendorOrdersIds?: string[];
+    items?: any[];
   }): Promise<void> {
     await this.publish(EventType.ORDER_DELIVERED, data);
   }
