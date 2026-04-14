@@ -200,7 +200,27 @@ export class EventConsumer {
       },
     );
 
-    // 4. User Events
+    // 4. Inventory Events
+    await rabbitMQBus.subscribe(
+      EventType.LOW_STOCK,
+      "notification_low_stock",
+      async (event: BaseEvent) => {
+        const { vendorUserId, vendorId, productName, remaining } = event.payload;
+        if (vendorUserId) {
+          await this.notificationService.sendNotification(
+            vendorUserId,
+            "LOW_STOCK",
+            "notification_low_stock_title",
+            "notification_low_stock_message",
+            { vendorId, productName, remaining, type: "LOW_STOCK", role: "VENDOR" },
+          );
+        } else {
+          Logger.warn(`[EventConsumer] No vendorUserId provided for LOW_STOCK event on product ${productName} (vendor: ${vendorId})`);
+        }
+      },
+    );
+
+    // 5. User Events
     await rabbitMQBus.subscribe(EventType.USER_REGISTERED, "notification_user_registered", async (event: BaseEvent) => {
       const { userId, name } = event.payload;
       await this.notificationService.sendNotification(

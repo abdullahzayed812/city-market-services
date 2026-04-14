@@ -4,6 +4,7 @@ export interface VendorOrder {
     id: string;
     customerOrderId: string;
     vendorId: string;
+    vendorUserId?: string;
     status: VendorOrderStatus;
     subtotal: number;
     commissionAmount: number;

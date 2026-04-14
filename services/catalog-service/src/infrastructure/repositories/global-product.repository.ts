@@ -31,9 +31,16 @@ export class GlobalProductRepository implements IGlobalProductRepository {
     return rows.length > 0 ? this.mapToEntity(rows[0]) : null;
   }
 
-  async findAll(limit: number, offset: number): Promise<GlobalProduct[]> {
-    const query = "SELECT * FROM global_products LIMIT ? OFFSET ?";
-    const [rows] = await this.pool.query<RowDataPacket[]>(query, [limit, offset]);
+  async findAll(limit: number, offset: number, search?: string): Promise<GlobalProduct[]> {
+    let query = "SELECT * FROM global_products";
+    const params: any[] = [];
+    if (search) {
+      query += " WHERE name LIKE ?";
+      params.push(`%${search}%`);
+    }
+    query += " LIMIT ? OFFSET ?";
+    params.push(limit, offset);
+    const [rows] = await this.pool.query<RowDataPacket[]>(query, params);
     return rows.map((row) => this.mapToEntity(row));
   }
 
@@ -69,9 +76,14 @@ export class GlobalProductRepository implements IGlobalProductRepository {
     await this.pool.execute(query, [id]);
   }
 
-  async count(): Promise<number> {
-    const query = "SELECT COUNT(*) as count FROM global_products";
-    const [rows] = await this.pool.execute<RowDataPacket[]>(query);
+  async count(search?: string): Promise<number> {
+    let query = "SELECT COUNT(*) as count FROM global_products";
+    const params: any[] = [];
+    if (search) {
+      query += " WHERE name LIKE ?";
+      params.push(`%${search}%`);
+    }
+    const [rows] = await this.pool.execute<RowDataPacket[]>(query, params);
     return rows[0].count;
   }
 

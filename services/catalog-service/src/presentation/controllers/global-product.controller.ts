@@ -9,7 +9,8 @@ export class GlobalProductController {
         try {
             const page = parseInt(req.query.page as string) || 1;
             const limit = parseInt(req.query.limit as string) || 20;
-            const result = await this.catalogService.getAllGlobalProducts(page, limit);
+            const search = req.query.search as string | undefined;
+            const result = await this.catalogService.getAllGlobalProducts(page, limit, search);
             res.json(ApiResponse.success(result));
         } catch (error) {
             next(error);

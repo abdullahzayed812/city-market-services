@@ -7,15 +7,18 @@ import { IGlobalProductRepository } from "../../core/interfaces/global-product.r
 import { VendorProduct } from "../../core/entities/vendor-product.entity";
 import { GlobalProduct } from "../../core/entities/global-product.entity";
 import { CreateVendorProductDto, UpdateVendorProductDto, VendorProductFilter } from "../../core/dto/vendor-product.dto";
-import { NotFoundError, CategoryType, MeasurementType, WeightUnit } from "@city-market/shared";
-import { Logger } from "@city-market/shared/node";
+import { NotFoundError, CategoryType, MeasurementType, WeightUnit, EventType } from "@city-market/shared";
+import { Logger, rabbitMQBus } from "@city-market/shared/node";
+
+const LOW_STOCK_THRESHOLD_UNITS = 10;
+const LOW_STOCK_THRESHOLD_GRAMS = 1000;
 
 export class CatalogService {
   constructor(
     private vendorProductRepo: IVendorProductRepository,
     private categoryRepo: ICategoryRepository,
     private globalProductRepo: IGlobalProductRepository,
-  ) {}
+  ) { }
 
   async createVendorProduct(dto: CreateVendorProductDto): Promise<VendorProduct> {
     const globalCat = await this.categoryRepo.findById(dto.globalCategoryId);
@@ -185,12 +188,55 @@ export class CatalogService {
     await this.vendorProductRepo.updatePrice(id, price);
   }
 
-  async decrementVendorStock(id: string, amount: number, type: MeasurementType = MeasurementType.UNIT): Promise<void> {
+  async decrementVendorStock(
+    id: string,
+    amount: number,
+    type: MeasurementType = MeasurementType.UNIT,
+    vendorUserId?: string,
+  ): Promise<void> {
     // await this.getVendorProductById(id);
     if (type === MeasurementType.UNIT) {
       await this.vendorProductRepo.decrementStock(id, amount);
     } else {
       await this.vendorProductRepo.decrementWeightStock(id, amount);
+    }
+
+    // Check for low stock after decrement
+    try {
+      const product = await this.getVendorProductById(id);
+      await this.checkLowStock(product, vendorUserId);
+    } catch (error) {
+      Logger.error(`Failed to check low stock for product ${id}`, error);
+    }
+  }
+
+  private async checkLowStock(product: VendorProduct, vendorUserId?: string): Promise<void> {
+    let isLow = false;
+    let remaining = 0;
+
+    if (product.measurementType === MeasurementType.UNIT) {
+      isLow = product.stockQuantity <= LOW_STOCK_THRESHOLD_UNITS;
+      remaining = product.stockQuantity;
+    } else {
+      isLow = (product.stockWeightGrams || 0) <= LOW_STOCK_THRESHOLD_GRAMS;
+      remaining = product.stockWeightGrams || 0;
+    }
+
+    if (isLow && product.isAvailable) {
+      Logger.info(`[CatalogService] Low stock detected for product ${product.name} (${product.id}). Remaining: ${remaining}`);
+
+      await rabbitMQBus.publish({
+        type: EventType.LOW_STOCK,
+        payload: {
+          vendorProductId: product.id,
+          vendorId: product.vendorId,
+          vendorUserId,
+          productName: product.name,
+          remaining,
+          measurementType: product.measurementType,
+        },
+        createdAt: new Date(),
+      });
     }
   }
 
@@ -247,11 +293,11 @@ export class CatalogService {
     return this.globalProductRepo.create(globalProduct);
   }
 
-  async getAllGlobalProducts(page: number, limit: number): Promise<{ data: GlobalProduct[]; total: number }> {
+  async getAllGlobalProducts(page: number, limit: number, search?: string): Promise<{ data: GlobalProduct[]; total: number }> {
     const offset = (page - 1) * limit;
     const [items, total] = await Promise.all([
-      this.globalProductRepo.findAll(limit, offset),
-      this.globalProductRepo.count(),
+      this.globalProductRepo.findAll(limit, offset, search),
+      this.globalProductRepo.count(search),
     ]);
     return { data: items, total };
   }

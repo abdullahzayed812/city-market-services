@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useProducts } from "@/hooks/useProducts";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -11,16 +11,27 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 // import { Label } from "@/components/ui/label";
-import { Image as ImageIcon, MoreHorizontal, Plus, Pencil, Trash2, Upload } from "lucide-react";
+import { Image as ImageIcon, MoreHorizontal, Plus, Pencil, Trash2 } from "lucide-react";
 import VendorProductImageModal from "@/components/ProductImageModal";
 import { MeasurementType } from "@city-market/shared";
 import ProductFormDialog from "@/features/products/components/ProductFormDialog";
 
 const Products = () => {
   const { t } = useTranslation();
+  const [globalProductSearch, setGlobalProductSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      if (globalProductSearch.length === 0 || globalProductSearch.length >= 3) {
+        setDebouncedSearch(globalProductSearch);
+      }
+    }, 500);
+    return () => clearTimeout(handler);
+  }, [globalProductSearch]);
+
   const {
     products,
-    globalCategories,
     vendorCategories,
     globalProducts,
     isLoading,
@@ -31,7 +42,8 @@ const Products = () => {
     hasMoreProducts,
     isFetchingNextProductsPage,
     loadMoreProducts,
-  } = useProducts();
+    isGlobalProductsLoading,
+  } = useProducts(debouncedSearch);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isImageModalOpen, setIsImageModalOpen] = useState(false);
@@ -96,10 +108,11 @@ const Products = () => {
         isCreate={true}
         product={null}
         globalProducts={globalProducts}
-        globalCategories={globalCategories}
         vendorCategories={vendorCategories}
         onSubmit={handleCreateProduct}
         isPending={false} // Hook handles loading
+        onSearchGlobal={setGlobalProductSearch}
+        isGlobalProductsLoading={isGlobalProductsLoading}
       />
 
       <ProductFormDialog
@@ -107,7 +120,6 @@ const Products = () => {
         onOpenChange={setIsEditDialogOpen}
         product={editingProduct}
         globalProducts={globalProducts}
-        globalCategories={globalCategories}
         vendorCategories={vendorCategories}
         onSubmit={handleUpdateProduct}
         isPending={false}

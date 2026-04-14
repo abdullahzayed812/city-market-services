@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from "@tansta
 import { productService } from "@/services/api/product.service";
 import { useAuth } from "@/components/AuthProvider";
 
-export const useProducts = () => {
+export const useProducts = (globalProductSearch?: string) => {
   const { vendor } = useAuth();
   const vendorId = vendor?.id;
   const queryClient = useQueryClient();
@@ -70,8 +70,8 @@ export const useProducts = () => {
   });
 
   const globalProductsQuery = useQuery({
-    queryKey: ["global-products"],
-    queryFn: () => productService.getGlobalProducts(1, 100),
+    queryKey: ["global-products", globalProductSearch],
+    queryFn: () => productService.getGlobalProducts(1, 100, globalProductSearch),
   });
 
   return {
@@ -85,8 +85,8 @@ export const useProducts = () => {
     isLoading:
       productsQuery.isLoading ||
       globalCategoriesQuery.isLoading ||
-      vendorCategoriesQuery.isLoading ||
-      globalProductsQuery.isLoading,
+      vendorCategoriesQuery.isLoading,
+    isGlobalProductsLoading: globalProductsQuery.isLoading || globalProductsQuery.isFetching,
     createVendorProduct: createVendorProductMutation.mutate,
     updateVendorProduct: updateVendorProductMutation.mutate,
     updateStock: updateStockMutation.mutate,

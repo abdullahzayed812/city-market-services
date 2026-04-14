@@ -51,9 +51,9 @@ export const productService = {
     );
     return response.data?.data;
   },
-  getGlobalProducts: async (page: number, limit: number) => {
+  getGlobalProducts: async (page: number, limit: number, search?: string) => {
     const response = await apiClient.get<ApiResponse<{ data: any[]; total: number }>>("/catalog/global-products", {
-      params: { page, limit },
+      params: { page, limit, search },
     });
     return response.data?.data;
   },

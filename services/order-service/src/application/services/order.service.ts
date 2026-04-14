@@ -116,6 +116,7 @@ export class OrderService {
         return {
           ...vo,
           vendorName: vendor?.shopName || "Unknown Vendor",
+          vendorUserId: vendor?.userId,
           items,
           // proposals: [], // No proposals in response
         };

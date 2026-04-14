@@ -109,7 +109,7 @@ export const adminApi = {
   getVendorProducts: async (
     page: number,
     limit: number,
-    filters?: { globalCategoryId?: string; vendorCategoryId?: string; vendorId?: string },
+    filters?: { globalCategoryId?: string; vendorCategoryId?: string; vendorId?: string; search?: string },
   ): Promise<{ data: VendorProduct[]; hasMore: boolean }> => {
     const response = await axiosInstance.get<
       ApiResponse<{ data: VendorProduct[]; total: number; page: number; limit: number }>
@@ -134,11 +134,11 @@ export const adminApi = {
   },
 
   // Global Products management
-  getGlobalProducts: async (page: number, limit: number): Promise<{ data: GlobalProduct[]; total: number }> => {
+  getGlobalProducts: async (page: number, limit: number, search?: string): Promise<{ data: GlobalProduct[]; total: number }> => {
     const response = await axiosInstance.get<ApiResponse<{ data: GlobalProduct[]; total: number }>>(
       "/admin/global-products",
       {
-        params: { page, limit },
+        params: { page, limit, search },
       },
     );
     return response.data.data!;

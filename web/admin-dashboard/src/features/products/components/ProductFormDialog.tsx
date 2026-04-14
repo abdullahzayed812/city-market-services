@@ -30,7 +30,7 @@ const ProductFormDialog: React.FC<ProductFormDialogProps> = memo(({
   const [productType, setProductType] = useState<"global" | "vendor">("vendor");
   const [availableGlobalProducts, setAvailableGlobalProducts] = useState<GlobalProduct[]>([]);
   const [isLoadingGlobal, setIsLoadingGlobal] = useState(false);
-  const [formData, setFormData] = useState<CreateVendorProductDto & { globalProductId?: string }>({
+  const [formData, setFormData] = useState<CreateVendorProductDto & { globalProductId?: string; measurementType?: MeasurementType; weightUnit?: WeightUnit }>({
     name: "",
     description: "",
     price: 0,
@@ -161,74 +161,103 @@ const ProductFormDialog: React.FC<ProductFormDialogProps> = memo(({
 
         <form onSubmit={handleSubmit} className="space-y-4 py-4 max-h-[80vh] overflow-y-auto pr-2">
           {productType === "vendor" && !product && (
-            <div className="space-y-2">
-              <Label htmlFor="global-product-select">{t("products.link_to_global")}</Label>
-              <Select
-                value={formData.globalProductId || "none"}
-                onValueChange={handleGlobalProductSelect}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder={isLoadingGlobal ? t("common.loading") : t("products.select_existing")} />
-                </SelectTrigger>
-                <SelectContent className="max-h-[200px] overflow-y-auto">
-                  <SelectItem value="none">{t("products.none_create_new")}</SelectItem>
-                  {availableGlobalProducts.map((p) => (
-                    <SelectItem key={p.id} value={p.id}>
-                      {p.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            <div className="space-y-4 border rounded-md p-4 bg-muted/20 relative z-50">
+              <div className="space-y-2 relative">
+                <Label htmlFor="global-search" className="flex items-center gap-2">
+                  {t("products.link_to_global")}
+                  {isLoadingGlobal && <span className="text-xs text-muted-foreground animate-pulse">(Loading...)</span>}
+                </Label>
+                <div className="relative">
+                  <Input
+                    id="global-search"
+                    autoComplete="off"
+                    value={formData.name || ""}
+                    placeholder={t("products.search_global_placeholder", "Search for products...")}
+                    onChange={(e) => {
+                      setFormData({ ...formData, name: e.target.value, globalProductId: "" });
+                      // Add debounced search call if Admin implements it later
+                    }}
+                    onFocus={() => {
+                      document.getElementById('admin-autocomplete-dropdown')?.classList.remove('hidden')
+                    }}
+                    onBlur={() => {
+                      setTimeout(() => {
+                        document.getElementById('admin-autocomplete-dropdown')?.classList.add('hidden')
+                      }, 200);
+                    }}
+                  />
+                  {!formData.globalProductId && availableGlobalProducts.length > 0 && (
+                    <div id="admin-autocomplete-dropdown" className="absolute top-11 left-0 z-50 w-full bg-white border border-gray-200 shadow-md max-h-48 overflow-y-auto rounded-md">
+                      {availableGlobalProducts
+                        // Filtering locally since backend search isn't triggered here continuously
+                        .filter(p => p.name.toLowerCase().includes((formData.name || "").toLowerCase()))
+                        .map((p: any) => (
+                          <div
+                            key={p.id}
+                            className="px-3 py-2 cursor-pointer hover:bg-slate-100 text-sm"
+                            onClick={() => {
+                              handleGlobalProductSelect(p.id);
+                            }}
+                          >
+                            {p.name}
+                          </div>
+                        ))}
+                    </div>
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground mt-2">{t("products.global_catalog_info")}</p>
+              </div>
             </div>
           )}
 
-          <div className="space-y-2">
-            <Label htmlFor="name">{t("common.name")}</Label>
-            <Input
-              id="name"
-              value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              required
-              disabled={!!formData.globalProductId && formData.globalProductId !== "none"}
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
+          {productType === "global" && (
             <div className="space-y-2">
-              <Label>{t("products.measurement_type")}</Label>
-              <Select
-                value={formData.measurementType}
-                onValueChange={(val) => setFormData({ ...formData, measurementType: val as MeasurementType })}
-                disabled={!!formData.globalProductId && formData.globalProductId !== "none"}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={MeasurementType.UNIT}>{t("products.unit")}</SelectItem>
-                  <SelectItem value={MeasurementType.WEIGHT}>{t("products.weight")}</SelectItem>
-                </SelectContent>
-              </Select>
+              <Label htmlFor="name">{t("common.name")}</Label>
+              <Input
+                id="name"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                required
+              />
             </div>
-            {formData.measurementType === MeasurementType.WEIGHT && (
+          )}
+
+          {productType === "global" && (
+            <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>{t("products.weight_unit")}</Label>
+                <Label>{t("products.measurement_type")}</Label>
                 <Select
-                  value={formData.weightUnit}
-                  onValueChange={(val) => setFormData({ ...formData, weightUnit: val as WeightUnit })}
-                  disabled={!!formData.globalProductId && formData.globalProductId !== "none"}
+                  value={formData.measurementType}
+                  onValueChange={(val) => setFormData({ ...formData, measurementType: val as MeasurementType })}
                 >
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value={WeightUnit.KG}>{t("products.kg")}</SelectItem>
-                    <SelectItem value={WeightUnit.GRAM}>{t("products.gram")}</SelectItem>
+                    <SelectItem value={MeasurementType.UNIT}>{t("products.unit")}</SelectItem>
+                    <SelectItem value={MeasurementType.WEIGHT}>{t("products.weight")}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
-            )}
-          </div>
+              {formData.measurementType === MeasurementType.WEIGHT && (
+                <div className="space-y-2">
+                  <Label>{t("products.weight_unit")}</Label>
+                  <Select
+                    value={formData.weightUnit}
+                    onValueChange={(val) => setFormData({ ...formData, weightUnit: val as WeightUnit })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={WeightUnit.KG}>{t("products.kg")}</SelectItem>
+                      <SelectItem value={WeightUnit.GRAM}>{t("products.gram")}</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+            </div>
+          )}
 
           {productType === "vendor" && (
             <div className="space-y-2">
@@ -252,14 +281,13 @@ const ProductFormDialog: React.FC<ProductFormDialogProps> = memo(({
             </div>
           )}
 
-          <div className="grid grid-cols-2 gap-4">
+          {productType === "global" && (
             <div className="space-y-2">
               <Label htmlFor="global-category">{t("common.global_category")}</Label>
               <Select
                 value={formData.globalCategoryId}
                 onValueChange={(val) => setFormData({ ...formData, globalCategoryId: val })}
                 required
-                disabled={!!formData.globalProductId && formData.globalProductId !== "none"}
               >
                 <SelectTrigger>
                   <SelectValue placeholder={t("products.select_global_category")} />
@@ -273,30 +301,30 @@ const ProductFormDialog: React.FC<ProductFormDialogProps> = memo(({
                 </SelectContent>
               </Select>
             </div>
+          )}
 
-            {productType === "vendor" && (
-              <div className="space-y-2">
-                <Label htmlFor="vendor-category">{t("common.vendor_category")}</Label>
-                <Select
-                  value={formData.vendorCategoryId}
-                  onValueChange={(val) => setFormData({ ...formData, vendorCategoryId: val })}
-                  required
-                  disabled={!formData.vendorId}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder={formData.vendorId ? t("products.select_store_category") : t("products.select_vendor_first")} />
-                  </SelectTrigger>
-                  <SelectContent className="max-h-[200px] overflow-y-auto">
-                    {vendorCategories.map((cat) => (
-                      <SelectItem key={cat.id} value={cat.id}>
-                        {cat.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-          </div>
+          {productType === "vendor" && (
+            <div className="space-y-2">
+              <Label htmlFor="vendor-category">{t("common.vendor_category")}</Label>
+              <Select
+                value={formData.vendorCategoryId}
+                onValueChange={(val) => setFormData({ ...formData, vendorCategoryId: val })}
+                required
+                disabled={!formData.vendorId}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder={formData.vendorId ? t("products.select_store_category") : t("products.select_vendor_first")} />
+                </SelectTrigger>
+                <SelectContent className="max-h-[200px] overflow-y-auto">
+                  {vendorCategories.map((cat) => (
+                    <SelectItem key={cat.id} value={cat.id}>
+                      {cat.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
 
           {productType === "vendor" && (
             <div className="grid grid-cols-2 gap-4">
@@ -318,12 +346,12 @@ const ProductFormDialog: React.FC<ProductFormDialogProps> = memo(({
                   type="number"
                   value={formData.measurementType === MeasurementType.WEIGHT ? formData.stockWeightGrams : formData.stockQuantity}
                   onChange={(e) => {
-                      const val = parseInt(e.target.value);
-                      if (formData.measurementType === MeasurementType.WEIGHT) {
-                          setFormData({ ...formData, stockWeightGrams: val });
-                      } else {
-                          setFormData({ ...formData, stockQuantity: val });
-                      }
+                    const val = parseInt(e.target.value);
+                    if (formData.measurementType === MeasurementType.WEIGHT) {
+                      setFormData({ ...formData, stockWeightGrams: val });
+                    } else {
+                      setFormData({ ...formData, stockQuantity: val });
+                    }
                   }}
                   required
                 />
@@ -331,15 +359,16 @@ const ProductFormDialog: React.FC<ProductFormDialogProps> = memo(({
             </div>
           )}
 
-          <div className="space-y-2">
-            <Label htmlFor="description">{t("common.description")}</Label>
-            <Input
-              id="description"
-              value={formData.description || ""}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              disabled={!!formData.globalProductId && formData.globalProductId !== "none"}
-            />
-          </div>
+          {productType === "global" && (
+            <div className="space-y-2">
+              <Label htmlFor="description">{t("common.description")}</Label>
+              <Input
+                id="description"
+                value={formData.description || ""}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              />
+            </div>
+          )}
 
           <DialogFooter className="pt-4">
             <Button type="submit" className="w-full">

@@ -9,6 +9,7 @@ interface UseAdminProductsOptions {
   globalCategoryId?: string;
   vendorCategoryId?: string;
   vendorId?: string;
+  search?: string;
 }
 
 export const useAdminProducts = ({
@@ -16,6 +17,7 @@ export const useAdminProducts = ({
   globalCategoryId,
   vendorCategoryId,
   vendorId,
+  search,
 }: UseAdminProductsOptions = {}) => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -23,9 +25,9 @@ export const useAdminProducts = ({
 
   // --- Fetching Vendor Products ---
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading, error } = useInfiniteQuery({
-    queryKey: ["adminProducts", { globalCategoryId, vendorCategoryId, vendorId }],
+    queryKey: ["adminProducts", { globalCategoryId, vendorCategoryId, vendorId, search }],
     queryFn: async ({ pageParam = 1 }) => {
-      const response = await adminApi.getVendorProducts(pageParam, limit, { globalCategoryId, vendorCategoryId, vendorId });
+      const response = await adminApi.getVendorProducts(pageParam, limit, { globalCategoryId, vendorCategoryId, vendorId, search });
       return {
         products: response.data,
         currentPage: pageParam,

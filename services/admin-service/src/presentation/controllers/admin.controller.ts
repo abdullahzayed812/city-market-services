@@ -5,7 +5,7 @@ import { AuthenticatedRequest } from "@city-market/shared/node";
 import FormData from "form-data";
 
 export class AdminController {
-  constructor(private adminService: AdminService) {}
+  constructor(private adminService: AdminService) { }
 
   getDashboard = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
@@ -380,7 +380,8 @@ export class AdminController {
     try {
       const page = parseInt(req.query.page as string) || 1;
       const limit = parseInt(req.query.limit as string) || 20;
-      const result = await this.adminService.getGlobalProducts(page, limit, req.user!.userId);
+      const search = req.query.search as string | undefined;
+      const result = await this.adminService.getGlobalProducts(page, limit, search, req.user!.userId);
       res.json(result);
     } catch (error) {
       next(error);

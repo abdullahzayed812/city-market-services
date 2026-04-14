@@ -12,11 +12,12 @@ interface ProductFormDialogProps {
   onOpenChange: (open: boolean) => void;
   product: any | null;
   globalProducts: any[];
-  globalCategories: any[];
   vendorCategories: any[];
   onSubmit: (data: any) => void;
   isPending: boolean;
   isCreate?: boolean;
+  onSearchGlobal?: (search: string) => void;
+  isGlobalProductsLoading?: boolean;
 }
 
 const ProductFormDialog: React.FC<ProductFormDialogProps> = ({
@@ -24,11 +25,12 @@ const ProductFormDialog: React.FC<ProductFormDialogProps> = ({
   onOpenChange,
   product,
   globalProducts,
-  globalCategories,
   vendorCategories,
   onSubmit,
   isPending,
   isCreate = false,
+  onSearchGlobal,
+  isGlobalProductsLoading,
 }) => {
   const { t } = useTranslation();
   const [formData, setFormData] = useState<any>({
@@ -102,76 +104,54 @@ const ProductFormDialog: React.FC<ProductFormDialogProps> = ({
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4 py-4 max-h-[80vh] overflow-y-auto">
           {isCreate && (
-            <div className="space-y-2">
-              <Label htmlFor="global-product-select">{t("products.link_to_global")}</Label>
-              <Select
-                value={formData.globalProductId}
-                onValueChange={handleGlobalProductSelect}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder={t("products.select_existing")} />
-                </SelectTrigger>
-                <SelectContent className="max-h-[200px] overflow-y-auto">
-                  {globalProducts.map((p: any) => (
-                    <SelectItem key={p.id} value={p.id}>
-                      {p.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <p className="text-xs text-muted-foreground">{t("products.global_catalog_info")}</p>
+            <div className="space-y-4 border rounded-md p-4 bg-muted/20 relative z-50">
+              <div className="space-y-2 relative">
+                <Label htmlFor="global-search" className="flex items-center gap-2">
+                  {t("products.link_to_global")}
+                  {isGlobalProductsLoading && <span className="text-xs text-muted-foreground animate-pulse">(Loading...)</span>}
+                </Label>
+                <div className="relative">
+                  <Input
+                    id="global-search"
+                    autoComplete="off"
+                    value={formData.name || ""}
+                    placeholder={t("products.search_global_placeholder", "Search for products...")}
+                    onChange={(e) => {
+                      setFormData({ ...formData, name: e.target.value, globalProductId: "" });
+                      onSearchGlobal?.(e.target.value);
+                    }}
+                    onFocus={() => {
+                      // Keep dropdown active when typing
+                      document.getElementById('autocomplete-dropdown')?.classList.remove('hidden')
+                    }}
+                    onBlur={() => {
+                      setTimeout(() => {
+                        document.getElementById('autocomplete-dropdown')?.classList.add('hidden')
+                      }, 200);
+                    }}
+                  />
+                  {!formData.globalProductId && globalProducts.length > 0 && (
+                    <div id="autocomplete-dropdown" className="absolute top-11 left-0 z-50 w-full bg-white border border-gray-200 shadow-md max-h-48 overflow-y-auto rounded-md">
+                      {globalProducts.map((p: any) => (
+                        <div
+                          key={p.id}
+                          className="px-3 py-2 cursor-pointer hover:bg-slate-100 text-sm"
+                          onClick={() => {
+                            handleGlobalProductSelect(p.id);
+                          }}
+                        >
+                          {p.name}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground mt-2">{t("products.global_catalog_info")}</p>
+              </div>
             </div>
           )}
 
-          <div className="space-y-2">
-            <Label htmlFor="name">{t("products.product_name")}</Label>
-            <Input
-              id="name"
-              value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              disabled={true}
-            />
-          </div>
-
           <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>{t("products.measurement_type")}</Label>
-              <Select
-                value={formData.measurementType}
-                onValueChange={(val) => setFormData({ ...formData, measurementType: val as MeasurementType })}
-                disabled={true}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={MeasurementType.UNIT}>{t("products.unit")}</SelectItem>
-                  <SelectItem value={MeasurementType.WEIGHT}>{t("products.weight")}</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="global-category">{t("products.global_category")}</Label>
-              <Select
-                value={formData.globalCategoryId}
-                onValueChange={(val) => setFormData({ ...formData, globalCategoryId: val })}
-                disabled={true}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder={t("products.select_global_category")} />
-                </SelectTrigger>
-                <SelectContent>
-                  {globalCategories.map((cat: any) => (
-                    <SelectItem key={cat.id} value={cat.id}>
-                      {cat.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
             <div className="space-y-2">
               <Label htmlFor="vendor-category">{t("products.store_category")}</Label>
               <Select
@@ -219,14 +199,6 @@ const ProductFormDialog: React.FC<ProductFormDialogProps> = ({
               />
             </div>
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="description">{t("products.description")}</Label>
-            <Input
-              id="description"
-              value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-            />
-          </div>
           <DialogFooter>
             <Button variant="outline" type="button" onClick={() => onOpenChange(false)}>
               {t("common.cancel")}
@@ -237,7 +209,7 @@ const ProductFormDialog: React.FC<ProductFormDialogProps> = ({
           </DialogFooter>
         </form>
       </DialogContent>
-    </Dialog>
+    </Dialog >
   );
 };
 

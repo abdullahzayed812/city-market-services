@@ -11,7 +11,7 @@ export interface DashboardStats {
 }
 
 export class AdminService {
-  constructor(private serviceClient: ServiceClient) {}
+  constructor(private serviceClient: ServiceClient) { }
 
   async getDashboardStats(userId?: string): Promise<DashboardStats> {
     Logger.info("Fetching dashboard statistics");
@@ -286,9 +286,9 @@ export class AdminService {
   }
 
   // Global Product Management
-  async getGlobalProducts(page: number = 1, limit: number = 20, userId?: string) {
+  async getGlobalProducts(page: number = 1, limit: number = 20, search?: string, userId?: string) {
     Logger.info("Fetching global products");
-    return this.serviceClient.catalog.getGlobalProducts(page, limit, userId);
+    return this.serviceClient.catalog.getGlobalProducts(page, limit, search, userId);
   }
 
   async createGlobalProduct(data: any, userId?: string) {

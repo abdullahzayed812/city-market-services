@@ -21,7 +21,7 @@ export class OrderDeliveredConsumer {
         // Deduct based on quantity or weight
         const amount = item.actualWeightGrams || item.quantity || 0;
         if (amount > 0) {
-          await this.catalogService.decrementVendorStock(item.vendorProductId, amount, product.measurementType);
+          await this.catalogService.decrementVendorStock(item.vendorProductId, amount, product.measurementType, item.vendorUserId);
         }
       }
 

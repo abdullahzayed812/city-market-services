@@ -121,6 +121,8 @@
   "notification_user_registered_message": "أهلاً بك في سيتي ماركت، {{name}}!",
   "notification_vendor_review_created_title": "تم استلام تقييم جديد",
   "notification_vendor_review_created_message": "لقد استلمت تقييماً جديداً بـ {{stars}} نجوم من {{customerName}} للطلب رقم #{{orderId}}.",
+  "notification_low_stock_title": "تنبيه: مخزون منخفض",
+  "notification_low_stock_message": "المنتج {{productName}} قارب على النفاد (المتبقي {{remaining}}).",
   "// RATING SERVICE": "",
   "rating_created": "تم إضافة التقييم بنجاح",
   "order_not_delivered": "لا يمكن تقييم الطلب قبل توصيله",

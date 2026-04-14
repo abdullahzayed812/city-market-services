@@ -3,6 +3,8 @@ import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import { useEffect } from "react";
 
 import { useAdminProducts } from "@/hooks/useAdminProducts";
 import { type VendorProduct, type CreateVendorProductDto, CategoryType } from "@city-market/shared";
@@ -19,6 +21,18 @@ const ProductsManagement: React.FC = () => {
   const [editingProduct, setEditingProduct] = useState<VendorProduct | null>(null);
   const [isImageModalOpen, setIsImageModalOpen] = useState(false);
   const [selectedProductForImage, setSelectedProductForImage] = useState<VendorProduct | null>(null);
+
+  const [searchInput, setSearchInput] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      if (searchInput.length === 0 || searchInput.length >= 3) {
+        setDebouncedSearch(searchInput);
+      }
+    }, 500);
+    return () => clearTimeout(handler);
+  }, [searchInput]);
 
   // We filter by both if provided. Note: our repo implementation uses a unified ProductFilter.
   const {
@@ -39,6 +53,7 @@ const ProductsManagement: React.FC = () => {
     globalCategoryId: selectedGlobalCategoryId,
     vendorCategoryId: selectedVendorCategoryId,
     vendorId: selectedVendorId,
+    search: debouncedSearch,
   });
 
   const globalCategories = useMemo(
@@ -127,6 +142,15 @@ const ProductsManagement: React.FC = () => {
       </div>
 
       <div className="flex flex-wrap gap-4 items-center bg-white p-4 rounded-lg border shadow-sm">
+        <div className="w-full sm:w-[220px] space-y-1.5">
+          <label className="text-xs font-medium text-gray-500">{t("common.search", "Search")}</label>
+          <Input
+            placeholder={t("products.search_placeholder", "Search products...")}
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
+          />
+        </div>
+
         <div className="w-full sm:w-[220px] space-y-1.5">
           <label className="text-xs font-medium text-gray-500">{t("common.vendor")}</label>
           <Select

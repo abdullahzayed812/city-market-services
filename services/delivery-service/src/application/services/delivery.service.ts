@@ -399,7 +399,8 @@ export class DeliveryService {
       const items = delivery.vendorOrders?.flatMap((vo: any) => vo.items?.map((item: any) => ({
         vendorProductId: item.vendorProductId,
         quantity: item.quantity,
-        actualWeightGrams: item.actualWeightGrams
+        actualWeightGrams: item.actualWeightGrams,
+        vendorUserId: vo.vendorUserId, // Added
       })) || []) || [];
 
       eventsToPublish.push(() =>

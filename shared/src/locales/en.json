@@ -121,6 +121,8 @@
   "notification_user_registered_message": "Welcome to CityMarket, {{name}}!",
   "notification_vendor_review_created_title": "New Review Received",
   "notification_vendor_review_created_message": "You received a new {{stars}}-star review from {{customerName}} for order #{{orderId}}.",
+  "notification_low_stock_title": "Low Stock Alert",
+  "notification_low_stock_message": "Your product {{productName}} is running low on stock ({{remaining}} remaining).",
   "// RATING SERVICE": "",
   "rating_created": "Rating added successfully",
   "order_not_delivered": "Order cannot be rated before delivery",

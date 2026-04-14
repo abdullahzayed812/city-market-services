@@ -92,10 +92,10 @@ export class CatalogClient extends BaseClient {
   }
 
   // Global Product Management
-  async getGlobalProducts(page: number = 1, limit: number = 20, userId?: string) {
+  async getGlobalProducts(page: number = 1, limit: number = 20, search?: string, userId?: string) {
     const config = await this.getRequestConfig(userId);
     const response = await this.axiosInstance.get(`/global-products`, {
-      params: { page, limit },
+      params: { page, limit, search },
       ...config,
     });
     return response.data;

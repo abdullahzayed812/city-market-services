@@ -1,6 +1,6 @@
 import { INotificationRepository } from "../../core/interfaces/notification.repository";
 import { PushNotificationProvider } from "../../infrastructure/providers/push.provider";
-import { Notification, NotificationPreference } from "../../core/entities/notification.entity";
+import { Notification } from "../../core/entities/notification.entity";
 import { randomUUID } from "crypto";
 import { Logger } from "@city-market/shared/node";
 import { AppType, PlatformType, translate } from "@city-market/shared";
