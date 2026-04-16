@@ -11,7 +11,7 @@ export const useProducts = (globalProductSearch?: string) => {
     queryKey: ["vendor-products", vendorId],
     queryFn: ({ pageParam = 1 }) => productService.getVendorProducts(vendorId!, pageParam, 20),
     getNextPageParam: (lastPage) => {
-      if (!lastPage || typeof lastPage.total !== 'number') return undefined;
+      if (!lastPage || !lastPage.data || typeof lastPage.total !== "number") return undefined;
       const { page, limit, total } = lastPage;
       if (page * limit < total) {
         return page + 1;
@@ -82,10 +82,7 @@ export const useProducts = (globalProductSearch?: string) => {
     globalCategories: globalCategoriesQuery.data || [],
     vendorCategories: vendorCategoriesQuery.data || [],
     globalProducts: globalProductsQuery.data?.data || [],
-    isLoading:
-      productsQuery.isLoading ||
-      globalCategoriesQuery.isLoading ||
-      vendorCategoriesQuery.isLoading,
+    isLoading: productsQuery.isLoading || globalCategoriesQuery.isLoading || vendorCategoriesQuery.isLoading,
     isGlobalProductsLoading: globalProductsQuery.isLoading || globalProductsQuery.isFetching,
     createVendorProduct: createVendorProductMutation.mutate,
     updateVendorProduct: updateVendorProductMutation.mutate,

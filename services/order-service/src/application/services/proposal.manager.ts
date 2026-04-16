@@ -152,6 +152,9 @@ export class ProposalManager {
     const co = await this.customerOrderRepo.findByIdWithLock(vo!.customerOrderId, connection);
 
     if (proposal.type === ProposalType.QUANTITY_REDUCTION && proposal.proposedQuantity !== undefined) {
+      const diff = item.quantity! - proposal.proposedQuantity;
+      await this.catalogClient.releaseStock(item.vendorProductId, diff, 0);
+
       await this.vendorOrderItemRepo.update(
         item.id,
         {
@@ -162,8 +165,8 @@ export class ProposalManager {
         connection,
       );
     } else if (proposal.type === ProposalType.WEIGHT_ADJUSTMENT && proposal.proposedWeightGrams !== undefined) {
-      // const diff = item.requestedWeightGrams! - proposal.proposedWeightGrams;
-      // await this.catalogClient.releaseWeightStock(item.vendorProductId, diff);
+      // Release entire original reservation; it will be committed with actual weight at completion
+      await this.catalogClient.releaseStock(item.vendorProductId, 0, item.requestedWeightGrams!);
 
       const strategy = PricingStrategyFactory.getStrategy(MeasurementType.WEIGHT);
       const newTotalPrice = strategy.calculateTotal(item.unitPrice, proposal.proposedWeightGrams);
@@ -176,9 +179,12 @@ export class ProposalManager {
         connection,
       );
     } else if (proposal.type === ProposalType.UNAVAILABLE) {
-      if (item.requestedWeightGrams) {
-        // await this.catalogClient.releaseWeightStock(item.vendorProductId, item.requestedWeightGrams);
-      }
+      await this.catalogClient.releaseStock(
+        item.vendorProductId,
+        item.quantity || 0,
+        item.requestedWeightGrams || 0,
+      );
+
       await this.vendorOrderItemRepo.update(
         item.id,
         { quantity: 0, requestedWeightGrams: 0, totalPrice: 0, proposedQuantity: null as any },
@@ -211,9 +217,11 @@ export class ProposalManager {
     const item = await this.vendorOrderItemRepo.findByIdWithLock(proposal.vendorOrderItemId, connection);
     if (!item) throw new NotFoundError("vendor_order_item_not_found");
 
-    if (item.requestedWeightGrams) {
-      // await this.catalogClient.releaseWeightStock(item.vendorProductId, item.requestedWeightGrams);
-    }
+    await this.catalogClient.releaseStock(
+      item.vendorProductId,
+      item.quantity || 0,
+      item.requestedWeightGrams || 0,
+    );
 
     await this.proposalRepo.updateStatus(proposalId, ProposalStatus.REJECTED, connection);
     const vo = await this.vendorOrderRepo.findByIdWithLock(item.vendorOrderId, connection);
@@ -250,6 +258,16 @@ export class ProposalManager {
     const relatedVendorOrders = await this.vendorOrderRepo.findByCustomerOrder(co.id, connection);
     for (const rvo of relatedVendorOrders) {
       if (rvo.status !== VendorOrderStatus.CANCELLED) {
+        // Release reservations for all items in this vendor order
+        const items = await this.vendorOrderItemRepo.findByVendorOrder(rvo.id, connection);
+        for (const item of items) {
+          await this.catalogClient.releaseStock(
+            item.vendorProductId,
+            item.quantity || 0,
+            item.requestedWeightGrams || 0,
+          );
+        }
+
         await this.vendorOrderRepo.updateStatus(rvo.id, VendorOrderStatus.CANCELLED, connection);
         await this.stateManager.recordStatusChange(
           { vendorOrderId: rvo.id },

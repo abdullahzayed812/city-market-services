@@ -76,13 +76,9 @@ export class OrderCreationManager {
       connection!,
     );
 
-    // Synchronous stock operations are removed in favor of the Saga pattern
-    // await this.handleStockOperations(dto, productInfos, userId);
-
     // Publish event for Catalog Service to reserve stock
-    await this.publisher.publishOrderCreated({
+    await this.publisher.publishOrderStockCheckRequested({
       orderId: customerOrder.id,
-      customerId: customerOrder.customerId,
       items: dto.items,
     });
 
@@ -205,7 +201,7 @@ export class OrderCreationManager {
     const customerOrder: CustomerOrder = {
       id: randomUUID(),
       customerId: dto.customerId!,
-      status: CustomerOrderStatus.PENDING_VENDOR_CONFIRMATION,
+      status: CustomerOrderStatus.DRAFT,
       subtotal: totalSubtotal,
       deliveryFee,
       totalAmount,
@@ -221,7 +217,7 @@ export class OrderCreationManager {
     const created = await this.customerOrderRepo.create(customerOrder, connection);
     await this.stateManager.recordStatusChange(
       { customerOrderId: customerOrder.id },
-      CustomerOrderStatus.PENDING_VENDOR_CONFIRMATION,
+      CustomerOrderStatus.DRAFT,
       undefined,
       connection,
     );
@@ -241,7 +237,7 @@ export class OrderCreationManager {
         id: voData.id,
         customerOrderId: customerOrder.id,
         vendorId: voData.vendorId,
-        status: VendorOrderStatus.PENDING,
+        status: VendorOrderStatus.DRAFT,
         subtotal: voData.subtotal,
         commissionAmount: voData.commissionAmount,
         commissionPercentage: voData.commissionPercentage,
@@ -253,7 +249,7 @@ export class OrderCreationManager {
       await this.vendorOrderRepo.create(vendorOrder, connection);
       await this.stateManager.recordStatusChange(
         { vendorOrderId: vendorOrder.id },
-        VendorOrderStatus.PENDING,
+        VendorOrderStatus.DRAFT,
         undefined,
         connection,
       );
@@ -265,6 +261,8 @@ export class OrderCreationManager {
 
       createdVendorOrders.push({ ...vendorOrder, items: uniqueItems });
 
+      // Vendor order event will be published after stock is reserved
+      /*
       const vendorInfo = vendorInfosMap.get(vendorOrder.vendorId);
       await this.publisher.publishVendorOrderCreated({
         vendorOrderId: vendorOrder.id,
@@ -273,6 +271,7 @@ export class OrderCreationManager {
         customerOrderId: customerOrder.id,
         customerId: customerOrder.customerId,
       });
+      */
     }
     return createdVendorOrders;
   }

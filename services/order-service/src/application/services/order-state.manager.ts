@@ -15,7 +15,7 @@ export class OrderStateManager {
     private proposalRepo: IOrderItemProposalRepository,
     private statusHistoryRepo: IOrderStatusHistoryRepository,
     private publisher: OrderPublisher,
-  ) { }
+  ) {}
 
   async recordStatusChange(
     ids: { customerOrderId?: string; vendorOrderId?: string },
@@ -112,6 +112,7 @@ export class OrderStateManager {
 
   isValidVendorStatusTransition(currentStatus: VendorOrderStatus, newStatus: VendorOrderStatus): boolean {
     const transitions: Record<VendorOrderStatus, VendorOrderStatus[]> = {
+      [VendorOrderStatus.DRAFT]: [VendorOrderStatus.PENDING, VendorOrderStatus.CANCELLED],
       [VendorOrderStatus.PENDING]: [
         VendorOrderStatus.PREPARING,
         VendorOrderStatus.PROPOSAL_SENT,
@@ -135,7 +136,7 @@ export class OrderStateManager {
 
   isValidCustomerStatusTransition(currentStatus: CustomerOrderStatus, newStatus: CustomerOrderStatus): boolean {
     const transitions: Record<CustomerOrderStatus, CustomerOrderStatus[]> = {
-      [CustomerOrderStatus.PENDING_STOCK]: [CustomerOrderStatus.PENDING_VENDOR_CONFIRMATION, CustomerOrderStatus.CANCELLED],
+      [CustomerOrderStatus.DRAFT]: [CustomerOrderStatus.PENDING_VENDOR_CONFIRMATION, CustomerOrderStatus.CANCELLED],
       [CustomerOrderStatus.PENDING_VENDOR_CONFIRMATION]: [
         CustomerOrderStatus.PREPARING,
         CustomerOrderStatus.WAITING_CUSTOMER_DECISION,

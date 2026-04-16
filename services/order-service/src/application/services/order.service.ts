@@ -15,6 +15,7 @@ import {
   ValidationError,
   NotFoundError,
   ProposalStatus,
+  EventType,
 } from "@city-market/shared";
 import { Database } from "@city-market/shared/node";
 import { CatalogHttpClient } from "../../infrastructure/http/catalog-http-client";
@@ -31,7 +32,7 @@ import { CommissionTierService } from "./commission-tier.service";
 import { DeliveryFeeCalculator } from "../utils/DeliveryFeeCalculator";
 
 export class OrderService {
-  private stateManager: OrderStateManager;
+  public stateManager: OrderStateManager;
   private creationManager: OrderCreationManager;
   private proposalManager: ProposalManager;
   private vendorOrderManager: VendorOrderManager;
@@ -142,19 +143,17 @@ export class OrderService {
     const proposals = await this.proposalRepo.findByCustomerOrder(orderId);
 
     // Enrich with vendor shop names
-    const uniqueVendorIds = Array.from(new Set(proposals.map(p => p.vendorId).filter(Boolean) as string[]));
-    const vendorDetailsArray = await Promise.all(
-      uniqueVendorIds.map((vid) => this.vendorClient.getVendor(vid)),
-    );
+    const uniqueVendorIds = Array.from(new Set(proposals.map((p) => p.vendorId).filter(Boolean) as string[]));
+    const vendorDetailsArray = await Promise.all(uniqueVendorIds.map((vid) => this.vendorClient.getVendor(vid)));
     const vendorMap = new Map(uniqueVendorIds.map((vid, i) => [vid, vendorDetailsArray[i]]));
 
     return proposals
       .filter((p) => p.status === ProposalStatus.PENDING)
-      .map(p => {
+      .map((p) => {
         const vendor = p.vendorId ? vendorMap.get(p.vendorId) : null;
         return OrderMapper.mapProposal({
           ...p,
-          vendorName: vendor?.shopName || "Unknown Vendor"
+          vendorName: vendor?.shopName || "Unknown Vendor",
         });
       });
   }
@@ -291,6 +290,13 @@ export class OrderService {
       connection = await this.db.beginTransaction();
       const co = await this.customerOrderRepo.findByIdWithLock(customerOrderId, connection);
       if (!co) throw new NotFoundError("customer_order_not_found");
+
+      // Idempotency: If already in target status, just return success
+      if (co.status === status) {
+        await this.db.commit(connection);
+        return;
+      }
+
       if (!this.stateManager.isValidCustomerStatusTransition(co.status, status))
         throw new ValidationError("invalid_customer_order_status_transition");
 
@@ -299,15 +305,26 @@ export class OrderService {
 
       if (status === CustomerOrderStatus.COMPLETED) {
         const vendorOrders = await this.vendorOrderRepo.findByCustomerOrder(customerOrderId, connection);
+        const allItems: any[] = [];
+
         for (const vo of vendorOrders) {
           const items = await this.vendorOrderItemRepo.findByVendorOrder(vo.id, connection);
           for (const item of items) {
-            if (item.requestedWeightGrams) {
-              const actualWeight = item.actualWeightGrams || item.requestedWeightGrams;
-              await this.catalogClient.commitWeightStock(item.vendorProductId, actualWeight, item.requestedWeightGrams);
-            }
+            allItems.push({
+              vendorProductId: item.vendorProductId,
+              quantity: item.quantity,
+              requestedWeightGrams: item.requestedWeightGrams,
+              actualWeightGrams: item.actualWeightGrams,
+              vendorId: vo.vendorId,
+            });
           }
         }
+
+        await this.publisher.publishGenericEvent(EventType.ORDER_DELIVERED, {
+          customerOrderId,
+          customerId: co.customerId,
+          items: allItems,
+        });
       }
 
       await this.db.commit(connection);
@@ -318,9 +335,7 @@ export class OrderService {
   }
 
   async calculateDeliveryFee(customerLat: number, customerLng: number, vendorIds: string[]): Promise<number> {
-    const vendorDetailsArray = await Promise.all(
-      vendorIds.map((vid) => this.vendorClient.getVendor(vid)),
-    );
+    const vendorDetailsArray = await Promise.all(vendorIds.map((vid) => this.vendorClient.getVendor(vid)));
     const vendorLocations = vendorDetailsArray
       .filter((v) => v !== null)
       .map((v) => ({ latitude: v!.latitude, longitude: v!.longitude }));

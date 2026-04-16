@@ -7,7 +7,7 @@ import { IGlobalProductRepository } from "../../core/interfaces/global-product.r
 import { VendorProduct } from "../../core/entities/vendor-product.entity";
 import { GlobalProduct } from "../../core/entities/global-product.entity";
 import { CreateVendorProductDto, UpdateVendorProductDto, VendorProductFilter } from "../../core/dto/vendor-product.dto";
-import { NotFoundError, CategoryType, MeasurementType, WeightUnit, EventType } from "@city-market/shared";
+import { NotFoundError, CategoryType, MeasurementType, EventType } from "@city-market/shared";
 import { Logger, rabbitMQBus } from "@city-market/shared/node";
 
 const LOW_STOCK_THRESHOLD_UNITS = 10;
@@ -18,7 +18,7 @@ export class CatalogService {
     private vendorProductRepo: IVendorProductRepository,
     private categoryRepo: ICategoryRepository,
     private globalProductRepo: IGlobalProductRepository,
-  ) { }
+  ) {}
 
   async createVendorProduct(dto: CreateVendorProductDto): Promise<VendorProduct> {
     const globalCat = await this.categoryRepo.findById(dto.globalCategoryId);
@@ -223,7 +223,9 @@ export class CatalogService {
     }
 
     if (isLow && product.isAvailable) {
-      Logger.info(`[CatalogService] Low stock detected for product ${product.name} (${product.id}). Remaining: ${remaining}`);
+      Logger.info(
+        `[CatalogService] Low stock detected for product ${product.name} (${product.id}). Remaining: ${remaining}`,
+      );
 
       await rabbitMQBus.publish({
         type: EventType.LOW_STOCK,
@@ -271,6 +273,54 @@ export class CatalogService {
     await this.globalProductRepo.update(product.globalProductId, { imageUrl });
   }
 
+  async reserveStock(id: string, quantity: number, weightGrams: number): Promise<boolean> {
+    const success = await this.vendorProductRepo.reserveStock(id, quantity, weightGrams);
+    if (success) {
+      await this.checkAndSyncAvailability(id);
+    }
+    return success;
+  }
+
+  async releaseStock(id: string, quantity: number, weightGrams: number): Promise<void> {
+    await this.vendorProductRepo.releaseStock(id, quantity, weightGrams);
+    await this.checkAndSyncAvailability(id);
+  }
+
+  async commitStock(id: string, quantity: number, weightGrams: number): Promise<void> {
+    await this.vendorProductRepo.commitStock(id, quantity, weightGrams);
+    await this.checkAndSyncAvailability(id);
+  }
+
+  private async checkAndSyncAvailability(id: string): Promise<void> {
+    const product = await this.vendorProductRepo.findById(id);
+    if (!product) return;
+
+    const available =
+      product.measurementType === MeasurementType.UNIT
+        ? product.stockQuantity - product.reservedQuantity
+        : (product.stockWeightGrams || 0) - (product.reservedWeightGrams || 0);
+
+    const shouldBeAvailable = available > 0;
+
+    if (product.isAvailable !== shouldBeAvailable) {
+      Logger.info(
+        `[CatalogService] Toggling availability for product ${product.id} to ${shouldBeAvailable} (available: ${available})`,
+      );
+      await this.vendorProductRepo.update(id, { isAvailable: shouldBeAvailable });
+
+      await rabbitMQBus.publish({
+        type: EventType.PRODUCT_AVAILABILITY_CHANGED,
+        payload: {
+          vendorProductId: product.id,
+          vendorId: product.vendorId,
+          isAvailable: shouldBeAvailable,
+          availableAmount: available,
+        },
+        createdAt: new Date(),
+      });
+    }
+  }
+
   async deleteVendorProduct(id: string): Promise<void> {
     await this.getVendorProductById(id);
     await this.vendorProductRepo.delete(id);
@@ -293,7 +343,11 @@ export class CatalogService {
     return this.globalProductRepo.create(globalProduct);
   }
 
-  async getAllGlobalProducts(page: number, limit: number, search?: string): Promise<{ data: GlobalProduct[]; total: number }> {
+  async getAllGlobalProducts(
+    page: number,
+    limit: number,
+    search?: string,
+  ): Promise<{ data: GlobalProduct[]; total: number }> {
     const offset = (page - 1) * limit;
     const [items, total] = await Promise.all([
       this.globalProductRepo.findAll(limit, offset, search),

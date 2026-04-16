@@ -41,6 +41,7 @@ CREATE TABLE vendor_products (
   price DECIMAL(10, 2) NOT NULL,
   stock_quantity INT DEFAULT 0,
   stock_weight_grams INT DEFAULT 0,
+  reserved_quantity INT DEFAULT 0,
   reserved_weight_grams INT DEFAULT 0,
   is_available BOOLEAN DEFAULT TRUE,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

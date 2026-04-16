@@ -123,6 +123,28 @@ const Orders = () => {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
+                          {order.status === VendorOrderStatus.DRAFT && (
+                            <>
+                              <DropdownMenuItem
+                                className="gap-2 text-orange-600"
+                                onClick={() =>
+                                  updateStatus({
+                                    id: order.id,
+                                    status: VendorOrderStatus.PENDING,
+                                  })
+                                }
+                              >
+                                <CheckCircle className="h-4 w-4" /> {t("orders.pendingOrder")}
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                className="gap-2 text-destructive"
+                                onClick={() => cancelOrder(order.id)}
+                              >
+                                <XCircle className="h-4 w-4" /> {t("orders.cancelOrder")}
+                              </DropdownMenuItem>
+                            </>
+                          )}
+
                           {order.status === VendorOrderStatus.PENDING && (
                             <>
                               <DropdownMenuItem

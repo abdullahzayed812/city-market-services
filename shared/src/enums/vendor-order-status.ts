@@ -1,4 +1,5 @@
 export enum VendorOrderStatus {
+  DRAFT = "DRAFT",
   PENDING = "PENDING",
   PREPARING = "PREPARING",
   PROPOSAL_SENT = "PROPOSAL_SENT",

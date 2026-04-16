@@ -176,11 +176,10 @@ export class VendorProductController {
 
   reserveStock = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
-      const { weightGrams } = req.body;
-      if (weightGrams !== undefined) {
-        await this.catalogService.reserveVendorWeightStock(req.params.id, weightGrams);
-      } else {
-        throw new ValidationError("weightGrams_must_be_provided");
+      const { quantity, weightGrams } = req.body;
+      const success = await this.catalogService.reserveStock(req.params.id, quantity || 0, weightGrams || 0);
+      if (!success) {
+        throw new ValidationError("insufficient_stock_for_reservation");
       }
       res.json(ApiResponse.success(null, "vendor_stock_reserved"));
     } catch (error) {
@@ -190,12 +189,8 @@ export class VendorProductController {
 
   releaseStock = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
-      const { weightGrams } = req.body;
-      if (weightGrams !== undefined) {
-        await this.catalogService.releaseVendorWeightStock(req.params.id, weightGrams);
-      } else {
-        throw new ValidationError("weightGrams_must_be_provided");
-      }
+      const { quantity, weightGrams } = req.body;
+      await this.catalogService.releaseStock(req.params.id, quantity || 0, weightGrams || 0);
       res.json(ApiResponse.success(null, "vendor_stock_released"));
     } catch (error) {
       next(error);
@@ -204,12 +199,8 @@ export class VendorProductController {
 
   commitStock = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
-      const { actualWeightGrams, reservedWeightGrams } = req.body;
-      if (actualWeightGrams !== undefined && reservedWeightGrams !== undefined) {
-        await this.catalogService.commitVendorWeightStock(req.params.id, actualWeightGrams, reservedWeightGrams);
-      } else {
-        throw new ValidationError("actualWeightGrams_and_reservedWeightGrams_must_be_provided");
-      }
+      const { quantity, weightGrams } = req.body;
+      await this.catalogService.commitStock(req.params.id, quantity || 0, weightGrams || 0);
       res.json(ApiResponse.success(null, "vendor_stock_committed"));
     } catch (error) {
       next(error);

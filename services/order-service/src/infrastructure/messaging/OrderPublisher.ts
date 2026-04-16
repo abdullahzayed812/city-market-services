@@ -19,6 +19,10 @@ export class OrderPublisher {
     await this.publish(EventType.ORDER_CREATED, payload);
   }
 
+  async publishOrderStockCheckRequested(payload: { orderId: string; items: any[] }): Promise<void> {
+    await this.publish(EventType.ORDER_STOCK_CHECK_REQUESTED, payload);
+  }
+
   async publishVendorOrderCreated(data: {
     vendorOrderId: string;
     vendorId: string;

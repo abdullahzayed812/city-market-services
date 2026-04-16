@@ -61,7 +61,8 @@
     "total": "Total",
     "view": "View",
     "to": "to",
-    "currency": "EGP"
+    "currency": "EGP",
+    "units": "`Unit`"
   },
   "auth": {
     "sign_in": "Sign in",

@@ -14,6 +14,8 @@ import { OrderPublisher } from "./infrastructure/messaging/OrderPublisher";
 import { EventType } from "@city-market/shared";
 import { errorHandler, Database, rabbitMQBus, authenticate } from "@city-market/shared/node";
 import { DeliveryUpdatedConsumer } from "./application/events/delivery-updated.consumer";
+import { StockReservedConsumer } from "./application/events/stock-reserved.consumer";
+import { StockRejectedConsumer } from "./application/events/stock-rejected.consumer";
 import { config } from "./config/env";
 import { CommissionTierRepository } from "./infrastructure/repositories/commission-tier.repository";
 import { CommissionTierService } from "./application/services/commission-tier.service";
@@ -71,6 +73,16 @@ export const createApp = () => {
   const orderController = new OrderController(orderService);
 
   const deliveryUpdatedConsumer = new DeliveryUpdatedConsumer(orderService);
+  const stockReservedConsumer = new StockReservedConsumer(
+    db,
+    customerOrderRepo,
+    vendorOrderRepo,
+    orderService.stateManager,
+    publisher,
+    vendorClient,
+  );
+  const stockRejectedConsumer = new StockRejectedConsumer(db, customerOrderRepo, vendorOrderRepo, orderService.stateManager);
+
   rabbitMQBus.subscribe(EventType.ORDER_PICKED_UP, "order_service_pickup", (event) =>
     deliveryUpdatedConsumer.handle(event),
   );
@@ -79,6 +91,13 @@ export const createApp = () => {
   );
   rabbitMQBus.subscribe(EventType.ORDER_DELIVERED, "order_service_delivered", (event) =>
     deliveryUpdatedConsumer.handle(event),
+  );
+
+  rabbitMQBus.subscribe(EventType.STOCK_RESERVED, "order_service_stock_reserved", (event) =>
+    stockReservedConsumer.handle(event),
+  );
+  rabbitMQBus.subscribe(EventType.STOCK_REJECTED, "order_service_stock_rejected", (event) =>
+    stockRejectedConsumer.handle(event),
   );
 
   app.use(authenticate);

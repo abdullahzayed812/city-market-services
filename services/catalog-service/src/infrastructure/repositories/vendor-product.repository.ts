@@ -125,10 +125,12 @@ export class VendorProductRepository implements IVendorProductRepository {
 
     const fieldMap: Record<string, string> = {
       price: "price",
-      stockQuantity: "stock_quantity",
-      stockWeightGrams: "stock_weight_grams",
+      stock_quantity: "stock_quantity",
+      stock_weight_grams: "stock_weight_grams",
+      reservedQuantity: "reserved_quantity",
       reservedWeightGrams: "reserved_weight_grams",
       isAvailable: "is_available",
+
       vendorCategoryId: "vendor_category_id",
       globalProductId: "global_product_id",
     };
@@ -212,6 +214,51 @@ export class VendorProductRepository implements IVendorProductRepository {
     }
   }
 
+  async reserveStock(id: string, quantity: number, weightGrams: number): Promise<boolean> {
+    const query = `
+      UPDATE vendor_products
+      SET 
+        reserved_quantity = reserved_quantity + ?,
+        reserved_weight_grams = reserved_weight_grams + ?
+      WHERE 
+        id = ?
+        AND is_available = TRUE 
+        AND (stock_quantity - reserved_quantity) >= ?
+        AND (stock_weight_grams - reserved_weight_grams) >= ?`;
+
+    const [result] = await this.pool.execute<ResultSetHeader>(query, [
+      quantity,
+      weightGrams,
+      id,
+      quantity,
+      weightGrams,
+    ]);
+
+    return result.affectedRows > 0;
+  }
+
+  async releaseStock(id: string, quantity: number, weightGrams: number): Promise<void> {
+    const query = `
+      UPDATE vendor_products
+      SET 
+        reserved_quantity = GREATEST(0, reserved_quantity - ?),
+        reserved_weight_grams = GREATEST(0, reserved_weight_grams - ?)
+      WHERE id = ?`;
+    await this.pool.execute(query, [quantity, weightGrams, id]);
+  }
+
+  async commitStock(id: string, quantity: number, weightGrams: number): Promise<void> {
+    const query = `
+      UPDATE vendor_products
+      SET 
+        stock_quantity = GREATEST(0, stock_quantity - ?),
+        stock_weight_grams = GREATEST(0, stock_weight_grams - ?),
+        reserved_quantity = GREATEST(0, reserved_quantity - ?),
+        reserved_weight_grams = GREATEST(0, reserved_weight_grams - ?)
+      WHERE id = ?`;
+    await this.pool.execute(query, [quantity, weightGrams, quantity, weightGrams, id]);
+  }
+
   async delete(id: string): Promise<void> {
     const query = "UPDATE vendor_products SET deleted_at = NOW() WHERE id = ?";
     await this.pool.execute(query, [id]);
@@ -270,6 +317,7 @@ export class VendorProductRepository implements IVendorProductRepository {
       price: Number(row.price),
       stockQuantity: row.stock_quantity,
       stockWeightGrams: row.stock_weight_grams,
+      reservedQuantity: row.reserved_quantity,
       reservedWeightGrams: row.reserved_weight_grams,
       measurementType: row.measurement_type,
       weightUnit: row.weight_unit,

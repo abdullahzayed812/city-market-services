@@ -89,6 +89,7 @@
     "originalQty": "Original Qty",
     "newQty": "New Qty",
     "unavailable": "Unavailable",
+    "pendingOrder": "Pending Order",
     "statuses": {
       "pending": "Pending",
       "preparing": "Preparing",

@@ -13,6 +13,7 @@ export interface VendorProduct {
   price: number;
   stockQuantity: number;
   stockWeightGrams?: number;
+  reservedQuantity: number;
   reservedWeightGrams?: number;
   measurementType: MeasurementType;
   weightUnit?: WeightUnit;

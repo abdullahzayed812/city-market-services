@@ -16,6 +16,7 @@ import { errorHandler, Database, authenticate, rabbitMQBus } from "@city-market/
 import { EventType } from "@city-market/shared";
 import { config } from "./config/env";
 import { OrderDeliveredConsumer } from "./application/events/order-delivered.consumer";
+import { OrderStockCheckConsumer } from "./application/events/order-stock-check.consumer";
 
 export const createApp = () => {
   const app = express();
@@ -44,9 +45,14 @@ export const createApp = () => {
   const globalProductController = new GlobalProductController(catalogService);
 
   const orderDeliveredConsumer = new OrderDeliveredConsumer(catalogService);
+  const orderStockCheckConsumer = new OrderStockCheckConsumer(catalogService);
 
-  rabbitMQBus.subscribe(EventType.ORDER_DELIVERED, "catalog_service_order_created", (event) =>
+  rabbitMQBus.subscribe(EventType.ORDER_DELIVERED, "catalog_service_order_delivered", (event) =>
     orderDeliveredConsumer.handle(event),
+  );
+
+  rabbitMQBus.subscribe(EventType.ORDER_STOCK_CHECK_REQUESTED, "catalog_service_stock_check", (event) =>
+    orderStockCheckConsumer.handle(event),
   );
 
   app.use(authenticate);

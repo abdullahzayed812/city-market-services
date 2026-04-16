@@ -84,12 +84,12 @@ export class CatalogHttpClient {
     }
   }
 
-  async releaseWeightStock(vendorProductId: string, weightGrams: number, userId?: string): Promise<void> {
+  async releaseStock(vendorProductId: string, quantity: number, weightGrams: number, userId?: string): Promise<void> {
     try {
       const config = await this.getRequestConfig(userId);
       const response = await this.axiosInstance.patch(
         `${this.baseUrl}/products/${vendorProductId}/release`,
-        { weightGrams },
+        { quantity, weightGrams },
         config
       );
       if (!response.data?.success) {
@@ -100,12 +100,12 @@ export class CatalogHttpClient {
     }
   }
 
-  async commitWeightStock(vendorProductId: string, actualWeightGrams: number, reservedWeightGrams: number, userId?: string): Promise<void> {
+  async commitStock(vendorProductId: string, quantity: number, weightGrams: number, userId?: string): Promise<void> {
     try {
       const config = await this.getRequestConfig(userId);
       const response = await this.axiosInstance.patch(
         `${this.baseUrl}/products/${vendorProductId}/commit`,
-        { actualWeightGrams, reservedWeightGrams },
+        { quantity, weightGrams },
         config
       );
       if (!response.data?.success) {

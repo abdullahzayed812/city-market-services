@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Image as ImageIcon, MoreHorizontal, Trash, Power, PowerOff, Eye, Upload, Pencil } from "lucide-react";
-import { type VendorProduct } from "@city-market/shared";
+import { MeasurementType, type VendorProduct } from "@city-market/shared";
 
 interface ProductTableProps {
   products: VendorProduct[];
@@ -141,9 +141,39 @@ const ProductTable: React.FC<ProductTableProps> = memo(
                   </TableCell>
                   <TableCell>${product.price.toFixed(2)}</TableCell>
                   <TableCell>
-                    <span className={product.stockQuantity < 10 ? "text-destructive font-bold" : ""}>
-                      {product.stockQuantity}
-                    </span>
+                    {product.measurementType === MeasurementType.WEIGHT ? (
+                      <div className="flex flex-col">
+                        <span
+                          className={
+                            (product.stockWeightGrams || 0) - (product.reservedWeightGrams || 0) < 5000
+                              ? "text-destructive font-bold"
+                              : ""
+                          }
+                        >
+                          {((product.stockWeightGrams || 0) / 1000).toFixed(2)} كجم
+                        </span>
+                        {product.reservedWeightGrams ? (
+                          <span className="text-[10px] text-muted-foreground whitespace-nowrap">
+                            ({(product.reservedWeightGrams / 1000).toFixed(2)} كجم محجوز)
+                          </span>
+                        ) : null}
+                      </div>
+                    ) : (
+                      <div className="flex flex-col">
+                        <span
+                          className={
+                            product.stockQuantity - product.reservedQuantity < 10 ? "text-destructive font-bold" : ""
+                          }
+                        >
+                          {product.stockQuantity}
+                        </span>
+                        {product.reservedQuantity ? (
+                          <span className="text-[10px] text-muted-foreground whitespace-nowrap">
+                            ({product.reservedQuantity} reserved)
+                          </span>
+                        ) : null}
+                      </div>
+                    )}
                   </TableCell>
                   <TableCell>
                     <Badge variant={product.isAvailable ? "default" : "secondary"}>

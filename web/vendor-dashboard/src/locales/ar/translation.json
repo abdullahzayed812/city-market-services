@@ -89,6 +89,7 @@
     "originalQty": "الكمية الأصلية",
     "newQty": "الكمية الجديدة",
     "unavailable": "غير متوفر",
+    "pendingOrder": "قبول",
     "statuses": {
       "pending": "قيد الانتظار",
       "preparing": "جاري التجهيز",
