@@ -30,6 +30,7 @@
     "@types/amqplib": "^0.10.8",
     "@types/jsonwebtoken": "^9.0.10",
     "amqplib": "^0.10.9",
+    "axios": "^1.6.0",
     "dotenv": "^17.4.1",
     "ioredis": "^5.10.1",
     "jsonwebtoken": "^9.0.3",

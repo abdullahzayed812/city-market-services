@@ -14,14 +14,13 @@ export class StockReservedConsumer {
     private stateManager: OrderStateManager,
     private publisher: OrderPublisher,
     private vendorClient: VendorHttpClient,
-  ) {}
+  ) { }
 
   async handle(event: any): Promise<void> {
     const { orderId } = event.payload;
     Logger.info(`[OrderService] Handling stock reserved for order ${orderId}`);
 
-    const connection = await this.db.beginTransaction();
-    try {
+    await this.db.withTransaction(async (connection) => {
       const customerOrder = await this.customerOrderRepo.findByIdWithLock(orderId, connection);
       if (!customerOrder) {
         throw new Error(`Order ${orderId} not found`);
@@ -29,7 +28,6 @@ export class StockReservedConsumer {
 
       if (customerOrder.status !== CustomerOrderStatus.DRAFT) {
         Logger.warn(`[OrderService] Order ${orderId} is not in DRAFT status, skipping StockReserved handling`);
-        await connection.rollback();
         return;
       }
 
@@ -65,14 +63,7 @@ export class StockReservedConsumer {
           });
         }
       }
-
-      await connection.commit();
       Logger.info(`[OrderService] Order ${orderId} moved to PENDING_VENDOR_CONFIRMATION`);
-    } catch (error: any) {
-      await connection.rollback();
-      Logger.error(`[OrderService] Error handling stock reserved for order ${orderId}`, error);
-    } finally {
-      connection.release();
-    }
+    });
   }
 }

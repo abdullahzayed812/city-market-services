@@ -36,11 +36,20 @@ export class ProposalManager {
     private publisher: OrderPublisher,
     private stateManager: OrderStateManager,
     private commissionTierService: CommissionTierService,
-  ) {}
+  ) { }
 
   async propose(vendorOrderId: string, dto: ProposeChangesDto[], connection: PoolConnection): Promise<void> {
-    const vo = await this.vendorOrderRepo.findByIdWithLock(vendorOrderId, connection);
+    // 1. Fetch vendor order without lock to get customerOrderId
+    const vo = await this.vendorOrderRepo.findById(vendorOrderId, connection);
     if (!vo) throw new NotFoundError("vendor_order_not_found");
+
+    // 2. Lock Parent (CustomerOrder) FIRST
+    const co = await this.customerOrderRepo.findByIdWithLock(vo.customerOrderId, connection);
+    if (!co) throw new NotFoundError("customer_order_not_found");
+
+    // 3. Lock Child (VendorOrder) SECOND
+    const lockedVo = await this.vendorOrderRepo.findByIdWithLock(vendorOrderId, connection);
+    if (!lockedVo) throw new NotFoundError("vendor_order_not_found");
 
     let statusChangedToProposal = false;
     let autoAcceptedAny = false;
@@ -119,21 +128,20 @@ export class ProposalManager {
         connection,
       );
 
-      const co = await this.customerOrderRepo.findByIdWithLock(vo.customerOrderId, connection);
       await this.publisher.publishVendorOrderProposed({
         vendorOrderId,
-        customerOrderId: vo.customerOrderId,
-        vendorId: vo.vendorId,
-        customerId: co?.customerId,
+        customerOrderId: lockedVo.customerOrderId,
+        vendorId: lockedVo.vendorId,
+        customerId: co.customerId,
       });
 
       await this.customerOrderRepo.updateStatus(
-        vo.customerOrderId,
+        lockedVo.customerOrderId,
         CustomerOrderStatus.WAITING_CUSTOMER_DECISION,
         connection,
       );
       await this.stateManager.recordStatusChange(
-        { customerOrderId: vo.customerOrderId },
+        { customerOrderId: lockedVo.customerOrderId },
         CustomerOrderStatus.WAITING_CUSTOMER_DECISION,
         `Waiting customer decision`,
         connection,
@@ -146,32 +154,42 @@ export class ProposalManager {
     if (!proposal) throw new NotFoundError("proposal_not_found");
     if (proposal.status !== ProposalStatus.PENDING) throw new ValidationError("proposal_already_processed");
 
-    const item = await this.vendorOrderItemRepo.findByIdWithLock(proposal.vendorOrderItemId, connection);
+    const item = await this.vendorOrderItemRepo.findById(proposal.vendorOrderItemId, connection); // Non-locking to find IDs
     if (!item) throw new NotFoundError("vendor_order_item_not_found");
-    const vo = await this.vendorOrderRepo.findByIdWithLock(item.vendorOrderId, connection);
-    const co = await this.customerOrderRepo.findByIdWithLock(vo!.customerOrderId, connection);
+    const vo = await this.vendorOrderRepo.findById(item.vendorOrderId, connection); // Non-locking to find IDs
+    if (!vo) throw new NotFoundError("vendor_order_not_found");
+
+    // 1. Lock Parent (CustomerOrder) FIRST
+    const co = await this.customerOrderRepo.findByIdWithLock(vo.customerOrderId, connection);
+    if (!co) throw new NotFoundError("customer_order_not_found");
+
+    // 2. Lock Child (VendorOrder) SECOND
+    const lockedVo = await this.vendorOrderRepo.findByIdWithLock(vo.id, connection);
+    if (!lockedVo) throw new NotFoundError("vendor_order_not_found");
+
+    // 3. Lock Item
+    const lockedItem = await this.vendorOrderItemRepo.findByIdWithLock(item.id, connection);
+    if (!lockedItem) throw new NotFoundError("vendor_order_item_not_found");
 
     if (proposal.type === ProposalType.QUANTITY_REDUCTION && proposal.proposedQuantity !== undefined) {
-      const diff = item.quantity! - proposal.proposedQuantity;
-      await this.catalogClient.releaseStock(item.vendorProductId, diff, 0);
+      const diff = lockedItem.quantity! - proposal.proposedQuantity;
+      await this.catalogClient.releaseStock(lockedItem.vendorProductId, diff, 0);
 
       await this.vendorOrderItemRepo.update(
-        item.id,
+        lockedItem.id,
         {
           quantity: proposal.proposedQuantity,
-          totalPrice: item.unitPrice * proposal.proposedQuantity,
-          proposedQuantity: null as any, // Clear proposed quantity
+          totalPrice: lockedItem.unitPrice * proposal.proposedQuantity,
+          proposedQuantity: null as any,
         },
         connection,
       );
     } else if (proposal.type === ProposalType.WEIGHT_ADJUSTMENT && proposal.proposedWeightGrams !== undefined) {
-      // Release entire original reservation; it will be committed with actual weight at completion
-      await this.catalogClient.releaseStock(item.vendorProductId, 0, item.requestedWeightGrams!);
-
+      await this.catalogClient.releaseStock(lockedItem.vendorProductId, 0, lockedItem.requestedWeightGrams!);
       const strategy = PricingStrategyFactory.getStrategy(MeasurementType.WEIGHT);
-      const newTotalPrice = strategy.calculateTotal(item.unitPrice, proposal.proposedWeightGrams);
+      const newTotalPrice = strategy.calculateTotal(lockedItem.unitPrice, proposal.proposedWeightGrams);
       await this.vendorOrderItemRepo.update(
-        item.id,
+        lockedItem.id,
         {
           actualWeightGrams: proposal.proposedWeightGrams,
           totalPrice: newTotalPrice,
@@ -180,33 +198,32 @@ export class ProposalManager {
       );
     } else if (proposal.type === ProposalType.UNAVAILABLE) {
       await this.catalogClient.releaseStock(
-        item.vendorProductId,
-        item.quantity || 0,
-        item.requestedWeightGrams || 0,
+        lockedItem.vendorProductId,
+        lockedItem.quantity || 0,
+        lockedItem.requestedWeightGrams || 0,
       );
-
       await this.vendorOrderItemRepo.update(
-        item.id,
+        lockedItem.id,
         { quantity: 0, requestedWeightGrams: 0, totalPrice: 0, proposedQuantity: null as any },
         connection,
       );
     }
 
-    await this.recalculateTotals(vo!.id, connection);
+    await this.recalculateTotals(lockedVo.id, connection);
     await this.proposalRepo.updateStatus(proposalId, ProposalStatus.ACCEPTED, connection);
 
-    const vendor = await this.vendorClient.getVendor(vo!.vendorId);
+    const vendor = await this.vendorClient.getVendor(lockedVo.vendorId);
     await this.publisher.publishProposalAccepted({
       proposalId,
-      vendorOrderId: vo!.id,
-      customerOrderId: co!.id,
-      vendorId: vo!.vendorId,
-      customerId: co!.customerId,
+      vendorOrderId: lockedVo.id,
+      customerOrderId: co.id,
+      vendorId: lockedVo.vendorId,
+      customerId: co.customerId,
       vendorUserId: vendor?.userId,
     });
 
-    await this.stateManager.syncVendorOrderStatus(vo!.id, connection);
-    await this.stateManager.syncCustomerOrderStatus(co!.id, connection);
+    await this.stateManager.syncVendorOrderStatus(lockedVo.id, connection);
+    await this.stateManager.syncCustomerOrderStatus(co.id, connection);
   }
 
   async reject(proposalId: string, cancelEntireOrder: boolean, connection: PoolConnection): Promise<void> {
@@ -214,8 +231,18 @@ export class ProposalManager {
     if (!proposal) throw new NotFoundError("proposal_not_found");
     if (proposal.status !== ProposalStatus.PENDING) throw new ValidationError("proposal_already_processed");
 
-    const item = await this.vendorOrderItemRepo.findByIdWithLock(proposal.vendorOrderItemId, connection);
+    const item = await this.vendorOrderItemRepo.findById(proposal.vendorOrderItemId, connection);
     if (!item) throw new NotFoundError("vendor_order_item_not_found");
+    const vo = await this.vendorOrderRepo.findById(item.vendorOrderId, connection);
+    if (!vo) throw new NotFoundError("vendor_order_not_found");
+
+    // 1. Lock Parent (CustomerOrder) FIRST
+    const co = await this.customerOrderRepo.findByIdWithLock(vo.customerOrderId, connection);
+    if (!co) throw new NotFoundError("customer_order_not_found");
+
+    // 2. Lock Child (VendorOrder) SECOND
+    const lockedVo = await this.vendorOrderRepo.findByIdWithLock(vo.id, connection);
+    if (!lockedVo) throw new NotFoundError("vendor_order_not_found");
 
     await this.catalogClient.releaseStock(
       item.vendorProductId,
@@ -224,24 +251,22 @@ export class ProposalManager {
     );
 
     await this.proposalRepo.updateStatus(proposalId, ProposalStatus.REJECTED, connection);
-    const vo = await this.vendorOrderRepo.findByIdWithLock(item.vendorOrderId, connection);
-    const co = await this.customerOrderRepo.findByIdWithLock(vo!.customerOrderId, connection);
 
-    const vendor = await this.vendorClient.getVendor(vo!.vendorId);
+    const vendor = await this.vendorClient.getVendor(lockedVo.vendorId);
     await this.publisher.publishProposalRejected({
       proposalId,
-      vendorOrderId: vo!.id,
-      customerOrderId: co!.id,
-      vendorId: vo!.vendorId,
-      customerId: co!.customerId,
+      vendorOrderId: lockedVo.id,
+      customerOrderId: co.id,
+      vendorId: lockedVo.vendorId,
+      customerId: co.customerId,
       vendorUserId: vendor?.userId,
     });
 
     if (cancelEntireOrder) {
-      await this.cancelOrder(co!, connection);
+      await this.cancelOrder(co, connection);
     } else {
-      await this.stateManager.syncVendorOrderStatus(vo!.id, connection);
-      await this.stateManager.syncCustomerOrderStatus(co!.id, connection);
+      await this.stateManager.syncVendorOrderStatus(lockedVo.id, connection);
+      await this.stateManager.syncCustomerOrderStatus(co.id, connection);
     }
   }
 
@@ -288,6 +313,14 @@ export class ProposalManager {
     const vo = await this.vendorOrderRepo.findById(vendorOrderId, connection);
     if (!vo) return;
 
+    // 1. Lock Parent FIRST
+    const co = await this.customerOrderRepo.findByIdWithLock(vo.customerOrderId, connection);
+    if (!co) return;
+
+    // 2. Lock Child SECOND
+    const lockedVo = await this.vendorOrderRepo.findByIdWithLock(vendorOrderId, connection);
+    if (!lockedVo) return;
+
     const tiers = await this.commissionTierService.getAllTiers();
 
     const items = await this.vendorOrderItemRepo.findByVendorOrder(vendorOrderId, connection);
@@ -308,27 +341,24 @@ export class ProposalManager {
       connection,
     );
 
-    const co = await this.customerOrderRepo.findByIdWithLock(vo.customerOrderId, connection);
-    if (co) {
-      const allVo = await this.vendorOrderRepo.findByCustomerOrder(co.id, connection);
-      const customerSubtotal = allVo.reduce(
-        (sum, v) => sum + (v.status !== VendorOrderStatus.CANCELLED ? v.subtotal : 0),
-        0,
-      );
-      const customerCommissionAmount = allVo.reduce(
-        (sum, v) => sum + (v.status !== VendorOrderStatus.CANCELLED ? v.commissionAmount : 0),
-        0,
-      );
+    const allVo = await this.vendorOrderRepo.findByCustomerOrder(co.id, connection);
+    const customerSubtotal = allVo.reduce(
+      (sum, v) => sum + (v.status !== VendorOrderStatus.CANCELLED ? v.subtotal : 0),
+      0,
+    );
+    const customerCommissionAmount = allVo.reduce(
+      (sum, v) => sum + (v.status !== VendorOrderStatus.CANCELLED ? v.commissionAmount : 0),
+      0,
+    );
 
-      await this.customerOrderRepo.update(
-        co.id,
-        {
-          subtotal: customerSubtotal,
-          totalAmount: customerSubtotal + co.deliveryFee,
-          commissionAmount: customerCommissionAmount,
-        },
-        connection,
-      );
-    }
+    await this.customerOrderRepo.update(
+      co.id,
+      {
+        subtotal: customerSubtotal,
+        totalAmount: customerSubtotal + co.deliveryFee,
+        commissionAmount: customerCommissionAmount,
+      },
+      connection,
+    );
   }
 }

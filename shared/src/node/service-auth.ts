@@ -43,7 +43,7 @@ export class ServiceAuthenticator {
       this.expiryTime = Date.now() + response.data.expires_in * 1000 - 60 * 1000; // 1 minute before expiry
       this.scheduleRefresh();
       Logger.info(`[${this.serviceName}] Service token fetched successfully.`);
-      return this.token;
+      return this.token as string;
     } catch (error: any) {
       Logger.error(`[${this.serviceName}] Failed to fetch service token: ${error.message}`);
       throw new Error(`Failed to obtain service token for ${this.serviceName}`);
@@ -78,6 +78,6 @@ export class ServiceAuthenticator {
       this.fetchingPromise = null;
     });
 
-    return this.fetchingPromise;
+    return this.fetchingPromise!;
   }
 }

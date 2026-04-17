@@ -8,20 +8,20 @@ services:
       MYSQL_ROOT_PASSWORD: root_password
       MYSQL_DATABASE: citymarket
     ports:
-      - "3306:3306"
+      - "3307:3306"
     volumes:
       - mysql_data:/var/lib/mysql
 
   rabbitmq:
     image: rabbitmq:3-management
     ports:
-      - "5672:5672"
-      - "15672:15672"
+      - "5673:5672"
+      - "15673:15672"
 
   redis:
     image: redis:7-alpine
     ports:
-      - "6379:6379"
+      - "6380:6379"
 
   # API Gateway
   api-gateway:

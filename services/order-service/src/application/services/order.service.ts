@@ -86,16 +86,10 @@ export class OrderService {
   }
 
   async createOrder(dto: CreateOrderDto, userId?: string): Promise<OrderWithItems> {
-    let connection: PoolConnection | undefined;
-    try {
-      connection = await this.db.beginTransaction();
+    return this.db.withTransaction(async (connection) => {
       const result = await this.creationManager.create(dto, userId, connection);
-      await this.db.commit(connection);
       return OrderMapper.mapOrderWithItems(result.order, result.vendorOrders);
-    } catch (error) {
-      if (connection) await this.db.rollback(connection);
-      throw error;
-    }
+    });
   }
 
   async getCustomerOrderById(id: string, userId?: string): Promise<OrderWithItems> {
@@ -196,43 +190,40 @@ export class OrderService {
     };
   }
   async proposeChanges(vendorOrderId: string, dto: ProposeChangesDto[]): Promise<void> {
-    let connection: PoolConnection | undefined;
-    try {
-      connection = await this.db.beginTransaction();
+    return this.db.withTransaction(async (connection) => {
       await this.proposalManager.propose(vendorOrderId, dto, connection);
-      await this.db.commit(connection);
-    } catch (error) {
-      if (connection) await this.db.rollback(connection);
-      throw error;
-    }
+    });
   }
 
   async acceptVendorOrder(vendorOrderId: string): Promise<void> {
-    let connection: PoolConnection | undefined;
-    try {
-      connection = await this.db.beginTransaction();
-      const vo = await this.vendorOrderRepo.findByIdWithLock(vendorOrderId, connection);
+    return this.db.withTransaction(async (connection) => {
+      // 1. Fetch vendor order without lock to get the parent customerOrderId
+      const vo = await this.vendorOrderRepo.findById(vendorOrderId, connection);
       if (!vo) throw new NotFoundError("vendor_order_not_found");
+
+      // 2. Lock Parent (CustomerOrder) FIRST
       const co = await this.customerOrderRepo.findByIdWithLock(vo.customerOrderId, connection);
       if (!co) throw new NotFoundError("customer_order_not_found");
-      if (vo.status !== VendorOrderStatus.PENDING) throw new ValidationError("vendor_can_only_confirm_pending_orders");
+
+      // 3. Lock Child (VendorOrder) SECOND
+      const lockedVo = await this.vendorOrderRepo.findByIdWithLock(vendorOrderId, connection);
+      if (!lockedVo) throw new NotFoundError("vendor_order_not_found");
+
+      if (lockedVo.status !== VendorOrderStatus.PENDING)
+        throw new ValidationError("vendor_can_only_confirm_pending_orders");
 
       await this.vendorOrderRepo.updateStatus(vendorOrderId, VendorOrderStatus.PREPARING, connection);
       await this.stateManager.recordStatusChange({ vendorOrderId }, VendorOrderStatus.PREPARING, undefined, connection);
 
       await this.publisher.publishVendorOrderConfirmed({
         vendorOrderId,
-        customerOrderId: vo.customerOrderId,
-        vendorId: vo.vendorId,
+        customerOrderId: lockedVo.customerOrderId,
+        vendorId: lockedVo.vendorId,
         customerId: co.customerId,
       });
 
-      await this.stateManager.syncCustomerOrderStatus(vo.customerOrderId, connection);
-      await this.db.commit(connection);
-    } catch (error) {
-      if (connection) await this.db.rollback(connection);
-      throw error;
-    }
+      await this.stateManager.syncCustomerOrderStatus(lockedVo.customerOrderId, connection);
+    });
   }
 
   async updateVendorOrderStatus(
@@ -240,62 +231,36 @@ export class OrderService {
     status: VendorOrderStatus,
     notes?: string,
     skipCustomerSync: boolean = false,
-    // itemWeights?: { itemId: string; actualWeight?: number; actualWeightGrams?: number }[],
   ): Promise<void> {
-    let connection: PoolConnection | undefined;
-    try {
-      connection = await this.db.beginTransaction();
-      await this.vendorOrderManager.updateStatus(
-        vendorOrderId,
-        status,
-        // itemWeights,
-        notes,
-        skipCustomerSync,
-        connection,
-      );
-      await this.db.commit(connection);
-    } catch (error) {
-      if (connection) await this.db.rollback(connection);
-      throw error;
-    }
+    return this.db.withTransaction(async (connection: PoolConnection) => {
+      if (!skipCustomerSync) {
+        const vo = await this.vendorOrderRepo.findById(vendorOrderId, connection);
+        if (vo) {
+          await this.customerOrderRepo.findByIdWithLock(vo.customerOrderId, connection);
+        }
+      }
+      await this.vendorOrderManager.updateStatus(vendorOrderId, status, notes, skipCustomerSync, connection);
+    });
   }
 
   async acceptProposal(proposalId: string): Promise<void> {
-    let connection: PoolConnection | undefined;
-    try {
-      connection = await this.db.beginTransaction();
+    return this.db.withTransaction(async (connection: PoolConnection) => {
       await this.proposalManager.accept(proposalId, connection);
-      await this.db.commit(connection);
-    } catch (error) {
-      if (connection) await this.db.rollback(connection);
-      throw error;
-    }
+    });
   }
 
   async rejectProposal(proposalId: string, cancelEntireOrder: boolean = false): Promise<void> {
-    let connection: PoolConnection | undefined;
-    try {
-      connection = await this.db.beginTransaction();
+    return this.db.withTransaction(async (connection: PoolConnection) => {
       await this.proposalManager.reject(proposalId, cancelEntireOrder, connection);
-      await this.db.commit(connection);
-    } catch (error) {
-      if (connection) await this.db.rollback(connection);
-      throw error;
-    }
+    });
   }
 
   async updateCustomerOrderStatus(customerOrderId: string, status: CustomerOrderStatus, notes?: string): Promise<void> {
-    let connection: PoolConnection | undefined;
-    try {
-      connection = await this.db.beginTransaction();
+    return this.db.withTransaction(async (connection: PoolConnection) => {
       const co = await this.customerOrderRepo.findByIdWithLock(customerOrderId, connection);
       if (!co) throw new NotFoundError("customer_order_not_found");
 
-      // Idempotency: If already in target status, just return success
-      if (co.status === status) {
-        await this.db.commit(connection);
-        return;
-      }
+      if (co.status === status) return;
 
       if (!this.stateManager.isValidCustomerStatusTransition(co.status, status))
         throw new ValidationError("invalid_customer_order_status_transition");
@@ -326,12 +291,7 @@ export class OrderService {
           items: allItems,
         });
       }
-
-      await this.db.commit(connection);
-    } catch (error) {
-      if (connection) await this.db.rollback(connection);
-      throw error;
-    }
+    });
   }
 
   async calculateDeliveryFee(customerLat: number, customerLng: number, vendorIds: string[]): Promise<number> {

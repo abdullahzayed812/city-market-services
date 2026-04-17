@@ -10,16 +10,13 @@ export class StockRejectedConsumer {
     private customerOrderRepo: ICustomerOrderRepository,
     private vendorOrderRepo: IVendorOrderRepository,
     private stateManager: OrderStateManager,
-  ) {}
+  ) { }
 
   async handle(event: any): Promise<void> {
     const { orderId, reason } = event.payload;
     Logger.info(`[OrderService] Handling stock rejected for order ${orderId}, reason: ${reason}`);
 
-    const connection = await this.db.getConnection();
-    try {
-      await connection.beginTransaction();
-
+    await this.db.withTransaction(async (connection) => {
       const customerOrder = await this.customerOrderRepo.findByIdWithLock(orderId, connection);
       if (!customerOrder) {
         throw new Error(`Order ${orderId} not found`);
@@ -27,7 +24,6 @@ export class StockRejectedConsumer {
 
       if (customerOrder.status !== CustomerOrderStatus.DRAFT) {
         Logger.warn(`[OrderService] Order ${orderId} is not in DRAFT status, skipping StockRejected handling`);
-        await connection.rollback();
         return;
       }
 
@@ -53,14 +49,7 @@ export class StockRejectedConsumer {
           );
         }
       }
-
-      await connection.commit();
       Logger.info(`[OrderService] Order ${orderId} cancelled due to stock rejection`);
-    } catch (error: any) {
-      await connection.rollback();
-      Logger.error(`[OrderService] Error handling stock rejected for order ${orderId}`, error);
-    } finally {
-      connection.release();
-    }
+    });
   }
 }

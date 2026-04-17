@@ -16,6 +16,7 @@ export interface IDatabase {
   beginTransaction(): Promise<PoolConnection>; // New method
   commit(connection: PoolConnection): Promise<void>; // New method
   rollback(connection: PoolConnection): Promise<void>; // New method
+  withTransaction<T>(fn: (connection: PoolConnection) => Promise<T>, maxRetries?: number): Promise<T>;
 }
 
 export class Database implements IDatabase {
@@ -68,5 +69,36 @@ export class Database implements IDatabase {
   public async rollback(connection: PoolConnection): Promise<void> {
     await connection.rollback();
     connection.release(); // Release the connection back to the pool
+  }
+
+  /**
+   * Executes a function within a transaction with automatic retry on deadlocks.
+   */
+  public async withTransaction<T>(
+    fn: (connection: PoolConnection) => Promise<T>,
+    maxRetries: number = 3,
+  ): Promise<T> {
+    let lastError: any;
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      const connection = await this.beginTransaction();
+      try {
+        const result = await fn(connection);
+        await this.commit(connection);
+        return result;
+      } catch (error: any) {
+        await this.rollback(connection);
+        lastError = error;
+
+        // Check for MySQL Deadlock error (1213)
+        const isDeadlock = error.code === "ER_LOCK_DEADLOCK" || error.errno === 1213;
+        if (isDeadlock && attempt < maxRetries) {
+          const delay = Math.pow(2, attempt) * 100; // Exponential backoff
+          await new Promise((resolve) => setTimeout(resolve, delay));
+          continue;
+        }
+        throw error;
+      }
+    }
+    throw lastError;
   }
 }
