@@ -19,7 +19,7 @@ export const createApp = () => {
   app.use(correlation);
 
   // Initialize Messaging
-  rabbitMQBus.connect(config.rabbitMqUrl).catch((err) => {
+  rabbitMQBus.connect().catch((err) => {
     console.error("Failed to connect to RabbitMQ", err);
   });
 

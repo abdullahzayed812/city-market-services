@@ -18,6 +18,9 @@ out/
 
 # TypeScript
 *.tsbuildinfo
+shared/src/**/*.js
+shared/src/**/*.d.ts
+shared/src/**/*.d.ts.map
 
 
 # Environment variables

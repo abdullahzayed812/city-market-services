@@ -29,6 +29,7 @@ export interface VendorProduct {
   stockQuantity: number;
   stockWeightGrams?: number;
   reservedWeightGrams?: number;
+  reservedQuantity?: number;
   measurementType: MeasurementType; // Fetched from GlobalProduct, but needed in interface for UI
   weightUnit?: WeightUnit; // Fetched from GlobalProduct, but needed in interface for UI
   imageUrl?: string;

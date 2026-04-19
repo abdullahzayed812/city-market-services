@@ -112,13 +112,13 @@ export const adminApi = {
     filters?: { globalCategoryId?: string; vendorCategoryId?: string; vendorId?: string; search?: string },
   ): Promise<{ data: VendorProduct[]; hasMore: boolean }> => {
     const response = await axiosInstance.get<
-      ApiResponse<{ data: VendorProduct[]; total: number; page: number; limit: number }>
+      ApiResponse<{ items: VendorProduct[]; total: number }>
     >("/admin/products", {
       params: { page, limit, ...filters },
     });
-    const { data, total } = response.data.data!;
+    const { items, total } = response.data.data!;
     const hasMore = page * limit < total;
-    return { data, hasMore };
+    return { data: items, hasMore };
   },
   createVendorProduct: (body: CreateVendorProductDto) =>
     axiosInstance.post<ApiResponse<VendorProduct>>("/admin/products", body),

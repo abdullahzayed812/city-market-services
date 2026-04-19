@@ -56,10 +56,7 @@ const ProductsManagement: React.FC = () => {
     search: debouncedSearch,
   });
 
-  const globalCategories = useMemo(
-    () => categories?.filter((c) => c.type === CategoryType.GLOBAL || !c.type) || [],
-    [categories],
-  );
+  const globalCategories = useMemo(() => categories?.filter((c) => c.type === CategoryType.GLOBAL || !c.type) || [], [categories]);
 
   const vendorCategories = useMemo(() => {
     let filtered = categories?.filter((c) => c.type === CategoryType.VENDOR) || [];
@@ -144,11 +141,7 @@ const ProductsManagement: React.FC = () => {
       <div className="flex flex-wrap gap-4 items-center bg-white p-4 rounded-lg border shadow-sm">
         <div className="w-full sm:w-[220px] space-y-1.5">
           <label className="text-xs font-medium text-gray-500">{t("common.search", "Search")}</label>
-          <Input
-            placeholder={t("products.search_placeholder", "Search products...")}
-            value={searchInput}
-            onChange={(e) => setSearchInput(e.target.value)}
-          />
+          <Input placeholder={t("products.search_placeholder", "Search products...")} value={searchInput} onChange={(e) => setSearchInput(e.target.value)} />
         </div>
 
         <div className="w-full sm:w-[220px] space-y-1.5">
@@ -184,10 +177,7 @@ const ProductsManagement: React.FC = () => {
 
         <div className="w-full sm:w-[220px] space-y-1.5">
           <label className="text-xs font-medium text-gray-500">{t("common.global_category")}</label>
-          <Select
-            value={selectedGlobalCategoryId || "all"}
-            onValueChange={(val) => setSelectedGlobalCategoryId(val === "all" ? undefined : val)}
-          >
+          <Select value={selectedGlobalCategoryId || "all"} onValueChange={(val) => setSelectedGlobalCategoryId(val === "all" ? undefined : val)}>
             <SelectTrigger>
               <SelectValue placeholder={t("products.filter_by_global", "Filter by Global Category")} />
             </SelectTrigger>
@@ -228,9 +218,7 @@ const ProductsManagement: React.FC = () => {
                 <SelectItem key={cat.id} value={cat.id}>
                   <div className="flex flex-col">
                     <span>{cat.name}</span>
-                    <span className="text-[10px] text-gray-400">
-                      {vendors?.find((v) => v.id === cat.vendorId)?.shopName || cat.vendorId}
-                    </span>
+                    <span className="text-[10px] text-gray-400">{vendors?.find((v) => v.id === cat.vendorId)?.shopName || cat.vendorId}</span>
                   </div>
                 </SelectItem>
               ))}

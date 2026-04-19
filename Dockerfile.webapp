@@ -1,0 +1,53 @@
+ARG WEB_APP=admin-dashboard
+
+# ─── Stage 1: Build ──────────────────────────────────────────────────────────
+FROM node:20-alpine AS builder
+ARG WEB_APP
+ARG VITE_API_URL=http://localhost/api/v1
+ARG VITE_API_BASE_URL=http://localhost/api/v1
+ARG VITE_WEBSOCKET_URL=http://localhost
+
+WORKDIR /app
+
+# ── Install dependencies (workspace-aware) ───────────────────────────────────
+COPY package.json package-lock.json ./
+
+COPY shared/package.json                            ./shared/
+COPY api-gateway/package.json                       ./api-gateway/
+COPY services/auth-service/package.json             ./services/auth-service/
+COPY services/user-service/package.json             ./services/user-service/
+COPY services/vendor-service/package.json           ./services/vendor-service/
+COPY services/catalog-service/package.json          ./services/catalog-service/
+COPY services/order-service/package.json            ./services/order-service/
+COPY services/delivery-service/package.json         ./services/delivery-service/
+COPY services/admin-service/package.json            ./services/admin-service/
+COPY services/notification-service/package.json     ./services/notification-service/
+COPY services/payment-service/package.json          ./services/payment-service/
+COPY services/rating-service/package.json           ./services/rating-service/
+COPY services/websocket-gateway/package.json        ./services/websocket-gateway/
+COPY web/admin-dashboard/package.json               ./web/admin-dashboard/
+COPY web/vendor-dashboard/package.json              ./web/vendor-dashboard/
+COPY web/delivery-dashboard/package.json            ./web/delivery-dashboard/
+
+RUN npm ci
+
+# ── Build @city-market/shared so the symlink resolves ────────────────────────
+COPY shared/ ./shared/
+RUN cd shared && npm run build
+
+# ── Build the web app ────────────────────────────────────────────────────────
+COPY web/${WEB_APP}/ ./web/${WEB_APP}/
+
+ENV VITE_API_URL=${VITE_API_URL}
+ENV VITE_API_BASE_URL=${VITE_API_BASE_URL}
+ENV VITE_WEBSOCKET_URL=${VITE_WEBSOCKET_URL}
+
+WORKDIR /app/web/${WEB_APP}
+RUN npm run build
+
+# ─── Stage 2: Runtime (nginx) ─────────────────────────────────────────────────
+FROM nginx:1.27-alpine
+ARG WEB_APP
+COPY --from=builder /app/web/${WEB_APP}/dist /usr/share/nginx/html
+COPY web/${WEB_APP}/nginx.conf /etc/nginx/conf.d/default.conf
+EXPOSE 80

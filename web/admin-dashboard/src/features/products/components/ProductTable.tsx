@@ -1,12 +1,7 @@
 import React, { memo, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
@@ -26,17 +21,7 @@ interface ProductTableProps {
 }
 
 const ProductTable: React.FC<ProductTableProps> = memo(
-  ({
-    products,
-    onEdit,
-    onDelete,
-    onToggleAvailability,
-    onUploadImage,
-    onViewImage,
-    hasMore,
-    onLoadMore,
-    isFetchingNextPage,
-  }) => {
+  ({ products, onEdit, onDelete, onToggleAvailability, onUploadImage, onViewImage, hasMore, onLoadMore, isFetchingNextPage }) => {
     const { t } = useTranslation();
 
     const handleImageUpload = (productId: string, e: React.ChangeEvent<HTMLInputElement>) => {
@@ -47,8 +32,7 @@ const ProductTable: React.FC<ProductTableProps> = memo(
     };
 
     const getImageUrl = useCallback((path: string) => {
-      const baseUrl =
-        import.meta.env.VITE_API_URL || `${window.location.protocol}//${window.location.hostname}:3000/api/v1`;
+      const baseUrl = import.meta.env.VITE_API_URL || `${window.location.protocol}//${window.location.hostname}:3000/api/v1`;
       return `${baseUrl}${path}`;
     }, []);
 
@@ -70,17 +54,13 @@ const ProductTable: React.FC<ProductTableProps> = memo(
               </TableRow>
             </TableHeader>
             <TableBody>
-              {products.map((product) => (
-                <TableRow key={product.id}>
+              {products?.map((product) => (
+                <TableRow key={product?.id}>
                   <TableCell>
                     <div className="flex items-center gap-2">
                       <div className="relative h-12 w-12 overflow-hidden rounded bg-muted flex-shrink-0">
-                        {product.imageUrl ? (
-                          <img
-                            src={getImageUrl(product.imageUrl)}
-                            alt={product.name}
-                            className="h-full w-full object-cover"
-                          />
+                        {product?.imageUrl ? (
+                          <img src={getImageUrl(product.imageUrl)} alt={product.name} className="h-full w-full object-cover" />
                         ) : (
                           <div className="flex h-full w-full items-center justify-center">
                             <ImageIcon className="h-6 w-6 text-muted-foreground" />
@@ -88,46 +68,25 @@ const ProductTable: React.FC<ProductTableProps> = memo(
                         )}
                       </div>
                       <div className="flex gap-1">
-                        {product.imageUrl && (
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8"
-                            onClick={() => onViewImage(product)}
-                            title={t("products.view_image")}
-                          >
+                        {product?.imageUrl && (
+                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onViewImage(product)} title={t("products.view_image")}>
                             <Eye className="h-4 w-4" />
                           </Button>
                         )}
-                        <Label htmlFor={`img-${product.id}`} className="cursor-pointer">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8"
-                            type="button"
-                            title={t("products.upload_image")}
-                            asChild
-                          >
+                        <Label htmlFor={`img-${product?.id}`} className="cursor-pointer">
+                          <Button variant="ghost" size="icon" className="h-8 w-8" type="button" title={t("products.upload_image")} asChild>
                             <span>
                               <Upload className="h-4 w-4" />
                             </span>
                           </Button>
                         </Label>
-                        <input
-                          id={`img-${product.id}`}
-                          type="file"
-                          className="hidden"
-                          accept="image/*"
-                          onChange={(e) => handleImageUpload(product.id, e)}
-                        />
+                        <input id={`img-${product?.id}`} type="file" className="hidden" accept="image/*" onChange={(e) => handleImageUpload(product?.id, e)} />
                       </div>
                     </div>
                   </TableCell>
                   <TableCell className="font-medium">{product.name}</TableCell>
                   <TableCell>
-                    <span className="text-sm font-medium text-slate-600">
-                      {(product as any).vendorShopName || t("common.none")}
-                    </span>
+                    <span className="text-sm font-medium text-slate-600">{(product as any).vendorShopName || t("common.none")}</span>
                   </TableCell>
                   <TableCell>
                     <Badge variant="outline" className="font-normal">
@@ -143,13 +102,7 @@ const ProductTable: React.FC<ProductTableProps> = memo(
                   <TableCell>
                     {product.measurementType === MeasurementType.WEIGHT ? (
                       <div className="flex flex-col">
-                        <span
-                          className={
-                            (product.stockWeightGrams || 0) - (product.reservedWeightGrams || 0) < 5000
-                              ? "text-destructive font-bold"
-                              : ""
-                          }
-                        >
+                        <span className={(product.stockWeightGrams || 0) - (product.reservedWeightGrams || 0) < 5000 ? "text-destructive font-bold" : ""}>
                           {((product.stockWeightGrams || 0) / 1000).toFixed(2)} كجم
                         </span>
                         {product.reservedWeightGrams ? (
@@ -160,17 +113,11 @@ const ProductTable: React.FC<ProductTableProps> = memo(
                       </div>
                     ) : (
                       <div className="flex flex-col">
-                        <span
-                          className={
-                            product.stockQuantity - product.reservedQuantity < 10 ? "text-destructive font-bold" : ""
-                          }
-                        >
+                        <span className={(product.stockQuantity - (product.reservedQuantity ?? 0)) < 10 ? "text-destructive font-bold" : ""}>
                           {product.stockQuantity}
                         </span>
                         {product.reservedQuantity ? (
-                          <span className="text-[10px] text-muted-foreground whitespace-nowrap">
-                            ({product.reservedQuantity} reserved)
-                          </span>
+                          <span className="text-[10px] text-muted-foreground whitespace-nowrap">({product.reservedQuantity} reserved)</span>
                         ) : null}
                       </div>
                     )}

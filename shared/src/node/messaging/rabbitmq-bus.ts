@@ -12,7 +12,7 @@ export class RabbitMQBus {
   private isConnected = false;
   private handlers: Map<string, EventHandler[]> = new Map();
 
-  constructor(private url: string = "amqp://localhost") { }
+  constructor(private url: string = process.env.RABBITMQ_URL || "amqp://localhost") { }
 
   async connect(): Promise<void> {
     if (this.isConnected) return;

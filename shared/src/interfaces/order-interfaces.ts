@@ -107,4 +107,5 @@ export interface ProposeChangesDto {
 
 export interface VendorOrderWithItemsDto extends VendorOrder {
   items: VendorOrderItem[];
+  customerName?: string;
 }

@@ -12,13 +12,7 @@ interface UseAdminProductsOptions {
   search?: string;
 }
 
-export const useAdminProducts = ({
-  initialLimit = 20,
-  globalCategoryId,
-  vendorCategoryId,
-  vendorId,
-  search,
-}: UseAdminProductsOptions = {}) => {
+export const useAdminProducts = ({ initialLimit = 20, globalCategoryId, vendorCategoryId, vendorId, search }: UseAdminProductsOptions = {}) => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [limit] = useState(initialLimit);
@@ -28,6 +22,7 @@ export const useAdminProducts = ({
     queryKey: ["adminProducts", { globalCategoryId, vendorCategoryId, vendorId, search }],
     queryFn: async ({ pageParam = 1 }) => {
       const response = await adminApi.getVendorProducts(pageParam, limit, { globalCategoryId, vendorCategoryId, vendorId, search });
+      console.log(response);
       return {
         products: response.data,
         currentPage: pageParam,
@@ -88,8 +83,7 @@ export const useAdminProducts = ({
 
   // --- Update Vendor Product ---
   const updateVendorProductMutation = useMutation({
-    mutationFn: ({ id, data: updatedData }: { id: string; data: Partial<VendorProduct> }) =>
-      adminApi.updateVendorProduct(id, updatedData),
+    mutationFn: ({ id, data: updatedData }: { id: string; data: Partial<VendorProduct> }) => adminApi.updateVendorProduct(id, updatedData),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["adminProducts"] });
       toast({ title: "Success", description: "Vendor product updated successfully." });

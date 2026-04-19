@@ -1,0 +1,65 @@
+ARG SERVICE_PATH=services/auth-service
+ARG SERVICE_MAIN=dist/server.js
+
+# ─── Stage 1: Install dependencies ───────────────────────────────────────────
+FROM node:20-alpine AS deps
+WORKDIR /app
+
+COPY package.json package-lock.json ./
+
+# Copy all workspace package.json files so npm can resolve the workspace graph
+COPY shared/package.json                            ./shared/
+COPY api-gateway/package.json                       ./api-gateway/
+COPY services/auth-service/package.json             ./services/auth-service/
+COPY services/user-service/package.json             ./services/user-service/
+COPY services/vendor-service/package.json           ./services/vendor-service/
+COPY services/catalog-service/package.json          ./services/catalog-service/
+COPY services/order-service/package.json            ./services/order-service/
+COPY services/delivery-service/package.json         ./services/delivery-service/
+COPY services/admin-service/package.json            ./services/admin-service/
+COPY services/notification-service/package.json     ./services/notification-service/
+COPY services/payment-service/package.json          ./services/payment-service/
+COPY services/rating-service/package.json           ./services/rating-service/
+COPY services/websocket-gateway/package.json        ./services/websocket-gateway/
+COPY web/admin-dashboard/package.json               ./web/admin-dashboard/
+COPY web/vendor-dashboard/package.json              ./web/vendor-dashboard/
+COPY web/delivery-dashboard/package.json            ./web/delivery-dashboard/
+
+# monolith workspace entry exists in root package.json but directory may not exist
+RUN npm ci
+
+# ─── Stage 2: Build ──────────────────────────────────────────────────────────
+FROM node:20-alpine AS builder
+ARG SERVICE_PATH
+WORKDIR /app
+
+COPY --from=deps /app/node_modules ./node_modules
+
+# Build shared package first, then remove source so downstream services
+# only resolve to compiled dist/ (prevents rootDir leakage via workspace symlink)
+COPY shared/ ./shared/
+RUN cd shared && npm run build && rm -rf src tsconfig.json
+
+# Build target service
+COPY ${SERVICE_PATH}/ ./${SERVICE_PATH}/
+RUN cd ${SERVICE_PATH} && npm run build
+
+# ─── Stage 3: Runtime ────────────────────────────────────────────────────────
+FROM node:20-alpine
+ARG SERVICE_PATH
+ARG SERVICE_MAIN=dist/server.js
+WORKDIR /app
+
+ENV NODE_ENV=production
+# Promote ARG to ENV so it is available at container start time
+ENV SERVICE_MAIN=${SERVICE_MAIN}
+
+# node_modules includes @city-market/shared symlink resolved to shared/
+COPY --from=builder /app/node_modules       ./node_modules
+COPY --from=builder /app/shared             ./shared
+COPY --from=builder /app/${SERVICE_PATH}/dist       ./${SERVICE_PATH}/dist
+COPY --from=builder /app/${SERVICE_PATH}/package.json ./${SERVICE_PATH}/
+
+WORKDIR /app/${SERVICE_PATH}
+
+CMD node $SERVICE_MAIN

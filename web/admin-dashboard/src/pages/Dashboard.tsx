@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
 import { adminApi } from "@/services/api/admin-api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users, ShoppingBag, Store, Truck, DollarSign } from "lucide-react";
+import { Users, ShoppingBag, Store, Truck } from "lucide-react";
 
 const Dashboard: React.FC = () => {
   const { t } = useTranslation();
