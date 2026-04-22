@@ -241,6 +241,7 @@ export class AdminService {
     globalCategoryId?: string,
     vendorCategoryId?: string,
     vendorId?: string,
+    search?: string,
   ) {
     const productsData = await this.serviceClient.catalog.getAllProducts(
       page,
@@ -249,6 +250,7 @@ export class AdminService {
       globalCategoryId,
       vendorCategoryId,
       vendorId,
+      search,
     );
 
     if (productsData.data?.data && productsData.data.data.length > 0) {

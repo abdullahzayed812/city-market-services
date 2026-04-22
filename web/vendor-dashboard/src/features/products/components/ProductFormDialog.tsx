@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, memo } from "react";
 import { useTranslation } from "react-i18next";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -20,7 +20,7 @@ interface ProductFormDialogProps {
   isGlobalProductsLoading?: boolean;
 }
 
-const ProductFormDialog: React.FC<ProductFormDialogProps> = ({
+const ProductFormDialog: React.FC<ProductFormDialogProps> = memo(({
   open,
   onOpenChange,
   product,
@@ -74,6 +74,19 @@ const ProductFormDialog: React.FC<ProductFormDialogProps> = ({
     }
   }, [product, open, isCreate]);
 
+  // Debounced parent notification for search
+  useEffect(() => {
+    if (!onSearchGlobal || !formData.name || formData.globalProductId || !isCreate) return;
+
+    const handler = setTimeout(() => {
+      if (formData.name.length >= 3) {
+        onSearchGlobal(formData.name);
+      }
+    }, 400);
+
+    return () => clearTimeout(handler);
+  }, [formData.name, onSearchGlobal, formData.globalProductId, isCreate]);
+
   const handleGlobalProductSelect = (id: string) => {
     const selected = globalProducts.find((p: any) => p.id === id);
     if (selected) {
@@ -118,10 +131,8 @@ const ProductFormDialog: React.FC<ProductFormDialogProps> = ({
                     placeholder={t("products.search_global_placeholder", "Search for products...")}
                     onChange={(e) => {
                       setFormData({ ...formData, name: e.target.value, globalProductId: "" });
-                      onSearchGlobal?.(e.target.value);
                     }}
                     onFocus={() => {
-                      // Keep dropdown active when typing
                       document.getElementById('autocomplete-dropdown')?.classList.remove('hidden')
                     }}
                     onBlur={() => {
@@ -211,6 +222,6 @@ const ProductFormDialog: React.FC<ProductFormDialogProps> = ({
       </DialogContent>
     </Dialog >
   );
-};
+});
 
 export default ProductFormDialog;

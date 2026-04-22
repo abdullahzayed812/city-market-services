@@ -1,16 +1,68 @@
-import React, { useState, useMemo, useCallback } from "react";
+import React, { useState, useMemo, useCallback, useEffect, useDeferredValue, memo } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
+import { Plus, Loader2, X, Search } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import { useEffect } from "react";
 
 import { useAdminProducts } from "@/hooks/useAdminProducts";
 import { type VendorProduct, type CreateVendorProductDto, CategoryType } from "@city-market/shared";
 import ProductImageModal from "@/components/ProductImageModal";
 import ProductTable from "../features/products/components/ProductTable";
 import ProductFormDialog from "../features/products/components/ProductFormDialog";
+
+// 1. Isolate the Search Input to prevent parent re-renders while typing
+const SearchFilter = memo(
+  ({ initialValue, onDebouncedChange, isFetching }: { initialValue: string; onDebouncedChange: (val: string) => void; isFetching: boolean }) => {
+    const { t } = useTranslation();
+    const [value, setValue] = useState(initialValue);
+
+    useEffect(() => {
+      setValue(initialValue);
+    }, [initialValue]);
+
+    useEffect(() => {
+      if (value === initialValue) return;
+
+      const handler = setTimeout(() => {
+        if (value === "" || value.length >= 3) {
+          onDebouncedChange(value);
+        }
+      }, 400);
+
+      return () => clearTimeout(handler);
+    }, [value, onDebouncedChange, initialValue]);
+
+    return (
+      <div className="w-full sm:w-[240px] space-y-1.5">
+        <label className="text-xs font-medium text-gray-500 flex items-center justify-between">
+          {t("common.search", "Search")}
+          {isFetching && <Loader2 className="h-3 w-3 animate-spin text-primary" />}
+        </label>
+        <div className="relative">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+          <Input
+            placeholder={t("products.search_placeholder", "Search products...")}
+            value={value}
+            onChange={(e) => setValue(e.target.value)}
+            className="pl-9 pr-8"
+          />
+          {value && (
+            <button
+              onClick={() => {
+                setValue("");
+                onDebouncedChange("");
+              }}
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          )}
+        </div>
+      </div>
+    );
+  },
+);
 
 const ProductsManagement: React.FC = () => {
   const { t } = useTranslation();
@@ -22,24 +74,17 @@ const ProductsManagement: React.FC = () => {
   const [isImageModalOpen, setIsImageModalOpen] = useState(false);
   const [selectedProductForImage, setSelectedProductForImage] = useState<VendorProduct | null>(null);
 
-  const [searchInput, setSearchInput] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
+  // Use deferred value for smoother transitions during heavy updates
+  const deferredSearch = useDeferredValue(debouncedSearch);
 
-  useEffect(() => {
-    const handler = setTimeout(() => {
-      if (searchInput.length === 0 || searchInput.length >= 3) {
-        setDebouncedSearch(searchInput);
-      }
-    }, 500);
-    return () => clearTimeout(handler);
-  }, [searchInput]);
-
-  // We filter by both if provided. Note: our repo implementation uses a unified ProductFilter.
   const {
     products,
     categories,
     vendors,
     isLoadingProducts,
+    isFetching,
+    isPlaceholderData,
     isFetchingNextProductsPage,
     hasMoreProducts,
     loadMoreProducts,
@@ -49,11 +94,10 @@ const ProductsManagement: React.FC = () => {
     uploadVendorProductImage,
   } = useAdminProducts({
     initialLimit: 20,
-    // Pass both category IDs and vendor ID to the hook
     globalCategoryId: selectedGlobalCategoryId,
     vendorCategoryId: selectedVendorCategoryId,
     vendorId: selectedVendorId,
-    search: debouncedSearch,
+    search: deferredSearch,
   });
 
   const globalCategories = useMemo(() => categories?.filter((c) => c.type === CategoryType.GLOBAL || !c.type) || [], [categories]);
@@ -118,16 +162,19 @@ const ProductsManagement: React.FC = () => {
     loadMoreProducts();
   }, [loadMoreProducts]);
 
-  if (isLoadingProducts && !isFetchingNextProductsPage) {
+  if (isLoadingProducts && !isPlaceholderData) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <div className="text-muted-foreground">{t("common.loading")}</div>
+        <div className="flex flex-col items-center gap-2">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <div className="text-muted-foreground">{t("common.loading")}</div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="">
+    <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">{t("common.products")}</h1>
@@ -139,10 +186,7 @@ const ProductsManagement: React.FC = () => {
       </div>
 
       <div className="flex flex-wrap gap-4 items-center bg-white p-4 rounded-lg border shadow-sm">
-        <div className="w-full sm:w-[220px] space-y-1.5">
-          <label className="text-xs font-medium text-gray-500">{t("common.search", "Search")}</label>
-          <Input placeholder={t("products.search_placeholder", "Search products...")} value={searchInput} onChange={(e) => setSearchInput(e.target.value)} />
-        </div>
+        <SearchFilter initialValue={debouncedSearch} onDebouncedChange={setDebouncedSearch} isFetching={isFetching && !isFetchingNextProductsPage} />
 
         <div className="w-full sm:w-[220px] space-y-1.5">
           <label className="text-xs font-medium text-gray-500">{t("common.vendor")}</label>
@@ -152,7 +196,6 @@ const ProductsManagement: React.FC = () => {
               const newVendorId = val === "all" ? undefined : val;
               setSelectedVendorId(newVendorId);
 
-              // Reset vendor category if it doesn't belong to the new vendor
               if (selectedVendorCategoryId) {
                 const category = categories?.find((c) => c.id === selectedVendorCategoryId);
                 if (newVendorId && category?.vendorId !== newVendorId) {
@@ -201,7 +244,6 @@ const ProductsManagement: React.FC = () => {
                 setSelectedVendorCategoryId(undefined);
               } else {
                 setSelectedVendorCategoryId(val);
-                // Also set vendor if not set or different
                 const cat = categories?.find((c) => c.id === val);
                 if (cat && cat.vendorId && cat.vendorId !== selectedVendorId) {
                   setSelectedVendorId(cat.vendorId);
@@ -234,6 +276,7 @@ const ProductsManagement: React.FC = () => {
             setSelectedGlobalCategoryId(undefined);
             setSelectedVendorCategoryId(undefined);
             setSelectedVendorId(undefined);
+            setDebouncedSearch("");
           }}
         >
           {t("common.reset", "Reset")}
@@ -274,4 +317,4 @@ const ProductsManagement: React.FC = () => {
   );
 };
 
-export default ProductsManagement;
+export default memo(ProductsManagement);

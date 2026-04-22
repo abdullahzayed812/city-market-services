@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useMemo, useCallback, memo, useDeferredValue } from "react";
 import { useTranslation } from "react-i18next";
 import { useProducts } from "@/hooks/useProducts";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -10,7 +10,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-// import { Label } from "@/components/ui/label";
 import { Image as ImageIcon, MoreHorizontal, Plus, Pencil, Trash2 } from "lucide-react";
 import VendorProductImageModal from "@/components/ProductImageModal";
 import { MeasurementType } from "@city-market/shared";
@@ -19,16 +18,9 @@ import ProductFormDialog from "@/features/products/components/ProductFormDialog"
 const Products = () => {
   const { t } = useTranslation();
   const [globalProductSearch, setGlobalProductSearch] = useState("");
-  const [debouncedSearch, setDebouncedSearch] = useState("");
-
-  useEffect(() => {
-    const handler = setTimeout(() => {
-      if (globalProductSearch.length === 0 || globalProductSearch.length >= 3) {
-        setDebouncedSearch(globalProductSearch);
-      }
-    }, 500);
-    return () => clearTimeout(handler);
-  }, [globalProductSearch]);
+  
+  // Use deferred value for the search results fetch
+  const deferredSearch = useDeferredValue(globalProductSearch);
 
   const {
     products,
@@ -38,34 +30,28 @@ const Products = () => {
     createVendorProduct,
     updateVendorProduct,
     deleteVendorProduct,
-    // uploadVendorProductImage,
     hasMoreProducts,
     isFetchingNextProductsPage,
     loadMoreProducts,
     isGlobalProductsLoading,
-  } = useProducts(debouncedSearch);
+  } = useProducts(deferredSearch);
+
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isImageModalOpen, setIsImageModalOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
   const [editingProduct, setEditingProduct] = useState<any>(null);
 
-  if (isLoading) {
-    return <div className="flex items-center justify-center h-full">{t("common.loading")}</div>;
-  }
-
-  const handleCreateProduct = (data: any) => {
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const handleCreateProduct = useCallback((data: any) => {
     const { measurementType, ...dto } = data;
     createVendorProduct(dto, {
       onSuccess: () => {
         setIsAddDialogOpen(false);
       },
     });
-  };
+  }, [createVendorProduct]);
 
-  const handleUpdateProduct = (data: any) => {
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const handleUpdateProduct = useCallback((data: any) => {
     const { id, measurementType, ...rest } = data;
     updateVendorProduct(
       {
@@ -79,68 +65,28 @@ const Products = () => {
         },
       },
     );
-  };
+  }, [updateVendorProduct]);
 
-  /*
-  const handleImageUpload = (productId: string, e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      uploadVendorProductImage({ id: productId, file });
-    }
-  };
-  */
-
-  return (
-    <div className="">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">{t("products.title")}</h1>
-          <p className="text-muted-foreground">{t("products.subtitle")}</p>
-        </div>
-        <Button className="gap-2" onClick={() => setIsAddDialogOpen(true)}>
-          <Plus className="h-4 w-4" /> {t("products.add_product")}
-        </Button>
-      </div>
-
-      <ProductFormDialog
-        open={isAddDialogOpen}
-        onOpenChange={setIsAddDialogOpen}
-        isCreate={true}
-        product={null}
-        globalProducts={globalProducts}
-        vendorCategories={vendorCategories}
-        onSubmit={handleCreateProduct}
-        isPending={false} // Hook handles loading
-        onSearchGlobal={setGlobalProductSearch}
-        isGlobalProductsLoading={isGlobalProductsLoading}
-      />
-
-      <ProductFormDialog
-        open={isEditDialogOpen}
-        onOpenChange={setIsEditDialogOpen}
-        product={editingProduct}
-        globalProducts={globalProducts}
-        vendorCategories={vendorCategories}
-        onSubmit={handleUpdateProduct}
-        isPending={false}
-      />
-
-      <div className="border rounded-lg bg-card">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-[80px]">{t("products.table.image")}</TableHead>
-              <TableHead>{t("products.table.product")}</TableHead>
-              <TableHead>{t("products.table.global_category")}</TableHead>
-              <TableHead>{t("products.table.store_category")}</TableHead>
-              <TableHead>{t("products.table.price")}</TableHead>
-              <TableHead>{t("products.table.stock")}</TableHead>
-              <TableHead>{t("products.table.status")}</TableHead>
-              <TableHead className="w-[100px]"></TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {products?.map((product: any) => (
+  // Memoize the Table to prevent re-renders on every keystroke in the dialog
+  const productList = useMemo(() => (
+    <div className="border rounded-lg bg-card">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead className="w-[80px]">{t("products.table.image")}</TableHead>
+            <TableHead>{t("products.table.product")}</TableHead>
+            <TableHead>{t("products.table.global_category")}</TableHead>
+            <TableHead>{t("products.table.store_category")}</TableHead>
+            <TableHead>{t("products.table.price")}</TableHead>
+            <TableHead>{t("products.table.stock")}</TableHead>
+            <TableHead>{t("products.table.status")}</TableHead>
+            <TableHead className="w-[100px]"></TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {products?.map((product: any) => {
+            if (!product) return null;
+            return (
               <TableRow key={product.id}>
                 <TableCell>
                   <div className="flex items-center gap-2">
@@ -161,31 +107,6 @@ const Products = () => {
                         </div>
                       )}
                     </div>
-                    {/* 
-                    <div className="flex gap-1">
-                      <Label htmlFor={`img-${product.id}`} className="cursor-pointer">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8"
-                          type="button"
-                          title={t("products.upload_image")}
-                          asChild
-                        >
-                          <span>
-                            <Upload className="h-4 w-4" />
-                          </span>
-                        </Button>
-                      </Label>
-                      <input
-                        id={`img-${product.id}`}
-                        type="file"
-                        className="hidden"
-                        accept="image/*"
-                        onChange={(e) => handleImageUpload(product.id, e)}
-                      />
-                    </div>
-                    */}
                   </div>
                 </TableCell>
                 <TableCell className="font-medium">{product.name}</TableCell>
@@ -246,17 +167,60 @@ const Products = () => {
                   </DropdownMenu>
                 </TableCell>
               </TableRow>
-            ))}
-            {products?.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
-                  {t("products.no_products_found")}
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
+            );
+          })}
+          {products?.length === 0 && (
+            <TableRow>
+              <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                {t("products.no_products_found")}
+              </TableCell>
+            </TableRow>
+          )}
+        </TableBody>
+      </Table>
+    </div>
+  ), [products, t, deleteVendorProduct]);
+
+  if (isLoading) {
+    return <div className="flex items-center justify-center h-full">{t("common.loading")}</div>;
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">{t("products.title")}</h1>
+          <p className="text-muted-foreground">{t("products.subtitle")}</p>
+        </div>
+        <Button className="gap-2" onClick={() => setIsAddDialogOpen(true)}>
+          <Plus className="h-4 w-4" /> {t("products.add_product")}
+        </Button>
       </div>
+
+      <ProductFormDialog
+        open={isAddDialogOpen}
+        onOpenChange={setIsAddDialogOpen}
+        isCreate={true}
+        product={null}
+        globalProducts={globalProducts}
+        vendorCategories={vendorCategories}
+        onSubmit={handleCreateProduct}
+        isPending={false}
+        onSearchGlobal={setGlobalProductSearch}
+        isGlobalProductsLoading={isGlobalProductsLoading}
+      />
+
+      <ProductFormDialog
+        open={isEditDialogOpen}
+        onOpenChange={setIsEditDialogOpen}
+        product={editingProduct}
+        globalProducts={globalProducts}
+        vendorCategories={vendorCategories}
+        onSubmit={handleUpdateProduct}
+        isPending={false}
+      />
+
+      {productList}
 
       {hasMoreProducts && (
         <div className="flex justify-center pt-4">
@@ -279,4 +243,4 @@ const Products = () => {
   );
 };
 
-export default Products;
+export default memo(Products);

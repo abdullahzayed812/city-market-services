@@ -1,10 +1,20 @@
 # ─────────────────────────────────────────────
+#  Shared log rotation (all services)
+# ─────────────────────────────────────────────
+x-logging: &default-logging
+  driver: "json-file"
+  options:
+    max-size: "20m"
+    max-file: "5"
+
+# ─────────────────────────────────────────────
 #  Shared defaults – DB-dependent services
 # ─────────────────────────────────────────────
 x-service-defaults: &service-defaults
   restart: unless-stopped
   networks:
     - citymarket
+  logging: *default-logging
   depends_on:
     mysql:
       condition: service_healthy
@@ -18,6 +28,7 @@ x-rabbitmq-service: &rabbitmq-service
   restart: unless-stopped
   networks:
     - citymarket
+  logging: *default-logging
   depends_on:
     mysql:
       condition: service_healthy
@@ -57,11 +68,20 @@ services:
     restart: unless-stopped
     networks:
       - citymarket
+    command: >
+      redis-server
+      --save 60 1
+      --loglevel warning
+      ${REDIS_PASSWORD:+--requirepass $REDIS_PASSWORD}
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ["CMD-SHELL", "redis-cli ${REDIS_PASSWORD:+-a $REDIS_PASSWORD} ping | grep PONG"]
       interval: 10s
       timeout: 5s
       retries: 5
+    volumes:
+      - redis_data:/data
     ports:
       - "6380:6379"
 
@@ -275,7 +295,9 @@ services:
       REDIS_URL: redis://redis:6379
       RABBITMQ_URL: amqp://${RABBITMQ_USER:-guest}:${RABBITMQ_PASSWORD:-guest}@rabbitmq:5672
       FIREBASE_SERVICE_ACCOUNT_JSON: ${FIREBASE_SERVICE_ACCOUNT_JSON:-}
-      FIREBASE_SERVICE_ACCOUNT_PATH: ${FIREBASE_SERVICE_ACCOUNT_PATH:-}
+      FIREBASE_SERVICE_ACCOUNT_PATH: ${FIREBASE_SERVICE_ACCOUNT_PATH:-/run/secrets/firebase-service-account.json}
+    volumes:
+      - ${FIREBASE_CREDENTIALS_FILE:-/dev/null}:/run/secrets/firebase-service-account.json:ro
 
   payment-service:
     <<: *service-defaults
@@ -418,6 +440,7 @@ services:
 volumes:
   mysql_data:
   rabbitmq_data:
+  redis_data:
 
 networks:
   citymarket:

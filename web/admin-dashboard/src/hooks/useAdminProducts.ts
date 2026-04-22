@@ -18,13 +18,13 @@ export const useAdminProducts = ({ initialLimit = 20, globalCategoryId, vendorCa
   const [limit] = useState(initialLimit);
 
   // --- Fetching Vendor Products ---
-  const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading, error } = useInfiniteQuery({
+  const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading, isFetching, isPlaceholderData, error } = useInfiniteQuery({
     queryKey: ["adminProducts", { globalCategoryId, vendorCategoryId, vendorId, search }],
     queryFn: async ({ pageParam = 1 }) => {
       const response = await adminApi.getVendorProducts(pageParam, limit, { globalCategoryId, vendorCategoryId, vendorId, search });
-      console.log(response);
+
       return {
-        products: response.data,
+        products: response?.data,
         currentPage: pageParam,
         hasMore: response.hasMore,
       };
@@ -33,6 +33,7 @@ export const useAdminProducts = ({ initialLimit = 20, globalCategoryId, vendorCa
       return lastPage.hasMore ? lastPage.currentPage + 1 : undefined;
     },
     initialPageParam: 1,
+    placeholderData: (previousData) => previousData,
   });
 
   const products = useMemo(() => data?.pages.flatMap((page) => page.products) || [], [data?.pages]);
@@ -143,6 +144,9 @@ export const useAdminProducts = ({ initialLimit = 20, globalCategoryId, vendorCa
     categories,
     vendors,
     isLoadingProducts: isLoading,
+    isFetchingProducts: isFetchingNextPage, // This was already named incorrectly in return
+    isFetching,
+    isPlaceholderData,
     isLoadingCategories,
     isLoadingVendors,
     isFetchingNextProductsPage: isFetchingNextPage,

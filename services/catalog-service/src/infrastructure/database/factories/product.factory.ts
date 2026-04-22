@@ -1,6 +1,5 @@
 import { randomUUID } from "crypto";
 import { MeasurementType, WeightUnit } from "@city-market/shared";
-import { ProductGenerationHelper, BRANDS } from "../helpers/product-generation.helper";
 
 export interface GlobalProductSeed {
   id: string;
@@ -22,151 +21,259 @@ export interface VendorProductSeed {
   is_available: boolean;
 }
 
-const BASE_PRODUCTS: Record<string, { ar: string; en: string; measure: MeasurementType }[]> = {
+// ─────────────────────────────────────────────────────────────────────────────
+//  Fixed global product catalog — no brands, no redundant size variations.
+//  Each entry represents one distinct product in the Egyptian market.
+//  Weight products → 100 kg initial stock.
+//  Unit products  → 100 units initial stock.
+// ─────────────────────────────────────────────────────────────────────────────
+const GLOBAL_PRODUCTS: Record<string, { name: string; measure: MeasurementType }[]> = {
+
   DAIRY: [
-    { ar: "حليب", en: "Milk", measure: MeasurementType.UNIT },
-    { ar: "زبادي", en: "Yogurt", measure: MeasurementType.UNIT },
-    { ar: "لبن رايب", en: "Rayeb Milk", measure: MeasurementType.UNIT },
-    { ar: "قشطة", en: "Cream", measure: MeasurementType.UNIT },
-    { ar: "زبدة", en: "Butter", measure: MeasurementType.UNIT },
-    { ar: "جبنة بيضاء", en: "White Cheese", measure: MeasurementType.UNIT },
-    { ar: "جبنة رومي", en: "Roumy Cheese", measure: MeasurementType.WEIGHT },
-    { ar: "جبنة فلمنك", en: "Flamenco Cheese", measure: MeasurementType.WEIGHT },
+    { name: "حليب طازج كامل الدسم",       measure: MeasurementType.UNIT },
+    { name: "حليب نصف دسم",               measure: MeasurementType.UNIT },
+    { name: "حليب خالي الدسم",            measure: MeasurementType.UNIT },
+    { name: "زبادي طبيعي",                measure: MeasurementType.UNIT },
+    { name: "لبن رايب",                    measure: MeasurementType.UNIT },
+    { name: "قشطة طازجة",                 measure: MeasurementType.UNIT },
+    { name: "زبدة بلدية",                 measure: MeasurementType.UNIT },
+    { name: "جبنة بيضاء قريش",            measure: MeasurementType.WEIGHT },
+    { name: "جبنة رومي",                  measure: MeasurementType.WEIGHT },
+    { name: "جبنة فلمنك",                 measure: MeasurementType.WEIGHT },
+    { name: "جبنة كريم",                  measure: MeasurementType.UNIT },
+    { name: "جبنة مثلثات",               measure: MeasurementType.UNIT },
+    { name: "عيران",                       measure: MeasurementType.UNIT },
   ],
+
   DRINKS: [
-    { ar: "مياه معدنية", en: "Mineral Water", measure: MeasurementType.UNIT },
-    { ar: "عصير برتقال", en: "Orange Juice", measure: MeasurementType.UNIT },
-    { ar: "عصير تفاح", en: "Apple Juice", measure: MeasurementType.UNIT },
-    { ar: "مشروب غازي", en: "Soda", measure: MeasurementType.UNIT },
-    { ar: "شاي", en: "Tea", measure: MeasurementType.UNIT },
-    { ar: "قهوة", en: "Coffee", measure: MeasurementType.UNIT },
-    { ar: "مشروب طاقة", en: "Energy Drink", measure: MeasurementType.UNIT },
+    { name: "مياه معدنية",                 measure: MeasurementType.UNIT },
+    { name: "عصير برتقال طبيعي",           measure: MeasurementType.UNIT },
+    { name: "عصير مانجو",                  measure: MeasurementType.UNIT },
+    { name: "عصير تفاح",                   measure: MeasurementType.UNIT },
+    { name: "عصير جوافة",                  measure: MeasurementType.UNIT },
+    { name: "عصير فراولة",                 measure: MeasurementType.UNIT },
+    { name: "مشروب كولا",                  measure: MeasurementType.UNIT },
+    { name: "مشروب ليمون غازي",            measure: MeasurementType.UNIT },
+    { name: "مشروب تفاح غازي",             measure: MeasurementType.UNIT },
+    { name: "شاي أكياس",                   measure: MeasurementType.UNIT },
+    { name: "نسكافيه سريع التحضير",        measure: MeasurementType.UNIT },
+    { name: "مشروب طاقة",                  measure: MeasurementType.UNIT },
   ],
+
   GROCERY: [
-    { ar: "أرز مصري", en: "Egyptian Rice", measure: MeasurementType.WEIGHT },
-    { ar: "مكرونة قلم", en: "Penne Pasta", measure: MeasurementType.UNIT },
-    { ar: "سكر", en: "Sugar", measure: MeasurementType.WEIGHT },
-    { ar: "زيت عباد شمس", en: "Sunflower Oil", measure: MeasurementType.UNIT },
-    { ar: "سمن نباتي", en: "Vegetable Ghee", measure: MeasurementType.UNIT },
-    { ar: "صلصة طماطم", en: "Tomato Paste", measure: MeasurementType.UNIT },
-    { ar: "دقيق فاخر", en: "Fine Flour", measure: MeasurementType.WEIGHT },
-    { ar: "عدس أصفر", en: "Yellow Lentils", measure: MeasurementType.WEIGHT },
-    { ar: "فول مدمس", en: "Fava Beans", measure: MeasurementType.UNIT },
-    { ar: "تونه قطعة واحدة", en: "Tuna Chunks", measure: MeasurementType.UNIT },
+    { name: "أرز مصري",                    measure: MeasurementType.WEIGHT },
+    { name: "أرز بسمتي",                   measure: MeasurementType.WEIGHT },
+    { name: "سكر ناعم",                    measure: MeasurementType.WEIGHT },
+    { name: "دقيق أبيض",                   measure: MeasurementType.WEIGHT },
+    { name: "عدس أصفر",                    measure: MeasurementType.WEIGHT },
+    { name: "عدس أحمر",                    measure: MeasurementType.WEIGHT },
+    { name: "فول مجفف",                    measure: MeasurementType.WEIGHT },
+    { name: "مكرونة سباغيتي",              measure: MeasurementType.UNIT },
+    { name: "مكرونة قلم",                  measure: MeasurementType.UNIT },
+    { name: "مكرونة فرخة",                 measure: MeasurementType.UNIT },
+    { name: "زيت ذرة",                     measure: MeasurementType.UNIT },
+    { name: "زيت زيتون بكر",               measure: MeasurementType.UNIT },
+    { name: "سمن نباتي",                   measure: MeasurementType.UNIT },
+    { name: "صلصة طماطم معلبة",            measure: MeasurementType.UNIT },
+    { name: "تونة في الزيت",               measure: MeasurementType.UNIT },
+    { name: "فول معلب",                    measure: MeasurementType.UNIT },
+    { name: "بازلاء معلبة",               measure: MeasurementType.UNIT },
+    { name: "ملح طعام",                    measure: MeasurementType.UNIT },
+    { name: "خل أبيض",                    measure: MeasurementType.UNIT },
+    { name: "عسل نحل طبيعي",              measure: MeasurementType.UNIT },
   ],
+
   CLEANING: [
-    { ar: "مسحوق غسيل", en: "Laundry Powder", measure: MeasurementType.UNIT },
-    { ar: "صابون سائل للأطباق", en: "Dish Soap", measure: MeasurementType.UNIT },
-    { ar: "منظف أرضيات", en: "Floor Cleaner", measure: MeasurementType.UNIT },
-    { ar: "كلور مطهر", en: "Chlorine Disinfectant", measure: MeasurementType.UNIT },
-    { ar: "مناديل تواليت", en: "Toilet Tissues", measure: MeasurementType.UNIT },
-    { ar: "معطر جو", en: "Air Freshener", measure: MeasurementType.UNIT },
+    { name: "مسحوق غسيل",                 measure: MeasurementType.UNIT },
+    { name: "سائل غسيل ملابس",            measure: MeasurementType.UNIT },
+    { name: "صابون سائل للأطباق",         measure: MeasurementType.UNIT },
+    { name: "منظف أرضيات",                measure: MeasurementType.UNIT },
+    { name: "كلور مطهر",                  measure: MeasurementType.UNIT },
+    { name: "مناديل تواليت",              measure: MeasurementType.UNIT },
+    { name: "مناديل ورقية",               measure: MeasurementType.UNIT },
+    { name: "معطر جو",                    measure: MeasurementType.UNIT },
+    { name: "مبيد حشرات",                 measure: MeasurementType.UNIT },
+    { name: "كيس قمامة",                  measure: MeasurementType.UNIT },
+    { name: "إسفنجة جلي",                measure: MeasurementType.UNIT },
   ],
+
+  // Pharmacies and personal care shops
   PERSONAL_CARE: [
-    { ar: "شامبو", en: "Shampoo", measure: MeasurementType.UNIT },
-    { ar: "بلسم شعر", en: "Hair Conditioner", measure: MeasurementType.UNIT },
-    { ar: "صابون استحمام", en: "Bath Soap", measure: MeasurementType.UNIT },
-    { ar: "معجون أسنان", en: "Toothpaste", measure: MeasurementType.UNIT },
-    { ar: "مزيل عرق", en: "Deodorant", measure: MeasurementType.UNIT },
-    { ar: "فرشاة أسنان", en: "Toothbrush", measure: MeasurementType.UNIT },
+    { name: "شامبو للشعر العادي",          measure: MeasurementType.UNIT },
+    { name: "شامبو للشعر الجاف",           measure: MeasurementType.UNIT },
+    { name: "بلسم شعر",                    measure: MeasurementType.UNIT },
+    { name: "صابون استحمام",               measure: MeasurementType.UNIT },
+    { name: "جل استحمام",                  measure: MeasurementType.UNIT },
+    { name: "معجون أسنان",                 measure: MeasurementType.UNIT },
+    { name: "فرشاة أسنان",                 measure: MeasurementType.UNIT },
+    { name: "مزيل عرق رول",               measure: MeasurementType.UNIT },
+    { name: "مزيل عرق بخاخ",              measure: MeasurementType.UNIT },
+    { name: "كريم ترطيب للبشرة",           measure: MeasurementType.UNIT },
+    { name: "غسول وجه",                    measure: MeasurementType.UNIT },
+    { name: "قطن طبي",                     measure: MeasurementType.UNIT },
+    { name: "ضمادات طبية",                 measure: MeasurementType.UNIT },
+    { name: "مسكن ألم أقراص",              measure: MeasurementType.UNIT },
+    { name: "فيتامين سي أقراص",           measure: MeasurementType.UNIT },
   ],
+
+  // Packaged snacks — sold in supermarkets
   SNACKS: [
-    { ar: "شيبس بطاطس", en: "Potato Chips", measure: MeasurementType.UNIT },
-    { ar: "بسكويت سادة", en: "Plain Biscuits", measure: MeasurementType.UNIT },
-    { ar: "كيك شوكولاتة", en: "Chocolate Cake", measure: MeasurementType.UNIT },
-    { ar: "شوكولاتة بالحليب", en: "Milk Chocolate", measure: MeasurementType.UNIT },
-    { ar: "كرواسون جبنة", en: "Cheese Croissant", measure: MeasurementType.UNIT },
-    { ar: "لب سوبر", en: "Super Sunflower Seeds", measure: MeasurementType.WEIGHT },
+    { name: "شيبس بطاطس",                  measure: MeasurementType.UNIT },
+    { name: "شيبس جبنة",                   measure: MeasurementType.UNIT },
+    { name: "بسكويت سادة",                 measure: MeasurementType.UNIT },
+    { name: "بسكويت شوكولاتة",             measure: MeasurementType.UNIT },
+    { name: "ويفر شوكولاتة",               measure: MeasurementType.UNIT },
+    { name: "كيك شوكولاتة",                measure: MeasurementType.UNIT },
+    { name: "حلاوة طحينية",               measure: MeasurementType.WEIGHT },
+    { name: "تمر مجدول",                   measure: MeasurementType.WEIGHT },
+    { name: "جيلي ملون",                   measure: MeasurementType.UNIT },
+    { name: "حلويات صابلية",               measure: MeasurementType.UNIT },
   ],
+
+  // Loose nuts, seeds, roasted items — sold in roasteries (محامص)
+  ROASTERY: [
+    { name: "لب سوبر محمص",               measure: MeasurementType.WEIGHT },
+    { name: "لب أبيض بلدي",               measure: MeasurementType.WEIGHT },
+    { name: "فستق حلبي محمص",             measure: MeasurementType.WEIGHT },
+    { name: "لوز محمص",                   measure: MeasurementType.WEIGHT },
+    { name: "فول سوداني محمص",            measure: MeasurementType.WEIGHT },
+    { name: "كاجو محمص",                  measure: MeasurementType.WEIGHT },
+    { name: "بندق محمص",                  measure: MeasurementType.WEIGHT },
+    { name: "عين جمل",                    measure: MeasurementType.WEIGHT },
+    { name: "بسلة مقلية",                 measure: MeasurementType.WEIGHT },
+    { name: "قهوة عربية مطحونة",          measure: MeasurementType.WEIGHT },
+    { name: "قهوة تركية مطحونة",          measure: MeasurementType.WEIGHT },
+    { name: "قهوة سادة مطحونة",           measure: MeasurementType.WEIGHT },
+  ],
+
   MEAT: [
-    { ar: "لحم بقري موزة", en: "Beef Shank", measure: MeasurementType.WEIGHT },
-    { ar: "مفروم بقري", en: "Minced Beef", measure: MeasurementType.WEIGHT },
-    { ar: "كبدة بقري", en: "Beef Liver", measure: MeasurementType.WEIGHT },
-    { ar: "سجق بلدي", en: "Baladi Sausage", measure: MeasurementType.WEIGHT },
-    { ar: "كفتة حياتي", en: "Kofta", measure: MeasurementType.WEIGHT },
-    { ar: "لحم ضاني", en: "Lamb Meat", measure: MeasurementType.WEIGHT },
+    { name: "لحم بقري موزة",              measure: MeasurementType.WEIGHT },
+    { name: "لحم بقري مفروم",             measure: MeasurementType.WEIGHT },
+    { name: "لحم بقري كتف",               measure: MeasurementType.WEIGHT },
+    { name: "لحم بقري ريش",               measure: MeasurementType.WEIGHT },
+    { name: "كبدة بقري",                  measure: MeasurementType.WEIGHT },
+    { name: "لسان بقري",                  measure: MeasurementType.WEIGHT },
+    { name: "لحم ضاني مشكل",             measure: MeasurementType.WEIGHT },
+    { name: "لحم ضاني مفروم",            measure: MeasurementType.WEIGHT },
+    { name: "ضلوع ضاني",                  measure: MeasurementType.WEIGHT },
+    { name: "سجق بلدي",                   measure: MeasurementType.WEIGHT },
+    { name: "كفتة طازجة",                 measure: MeasurementType.WEIGHT },
   ],
+
   POULTRY: [
-    { ar: "فراخ بيضاء كاملة", en: "Whole White Chicken", measure: MeasurementType.WEIGHT },
-    { ar: "بانية دجاج", en: "Chicken Paneer", measure: MeasurementType.WEIGHT },
-    { ar: "شيش طاووق", en: "Shish Tawook", measure: MeasurementType.WEIGHT },
-    { ar: "أوراك دجاج", en: "Chicken Thighs", measure: MeasurementType.WEIGHT },
-    { ar: "دبابيس دجاج", en: "Chicken Drumsticks", measure: MeasurementType.WEIGHT },
-    { ar: "كبد وقوانص", en: "Gizzard & Liver", measure: MeasurementType.WEIGHT },
+    { name: "فراخ بيضاء كاملة",           measure: MeasurementType.WEIGHT },
+    { name: "صدور دجاج",                  measure: MeasurementType.WEIGHT },
+    { name: "أوراك دجاج",                 measure: MeasurementType.WEIGHT },
+    { name: "دبابيس دجاج",                measure: MeasurementType.WEIGHT },
+    { name: "أجنحة دجاج",                 measure: MeasurementType.WEIGHT },
+    { name: "كبد وقوانص دجاج",            measure: MeasurementType.WEIGHT },
+    { name: "شيش طاووق طازج",            measure: MeasurementType.WEIGHT },
+    { name: "مفروم دجاج",                 measure: MeasurementType.WEIGHT },
+    { name: "دجاج بلدي كامل",             measure: MeasurementType.WEIGHT },
   ],
+
   VEG_FRUIT: [
-    { ar: "طماطم", en: "Tomatoes", measure: MeasurementType.WEIGHT },
-    { ar: "خيار", en: "Cucumber", measure: MeasurementType.WEIGHT },
-    { ar: "بطاطس تحمير", en: "Frying Potatoes", measure: MeasurementType.WEIGHT },
-    { ar: "بصل أحمر", en: "Red Onion", measure: MeasurementType.WEIGHT },
-    { ar: "تفاح أحمر", en: "Red Apple", measure: MeasurementType.WEIGHT },
-    { ar: "موز بلدي", en: "Baladi Banana", measure: MeasurementType.WEIGHT },
-    { ar: "برتقال عصير", en: "Juice Orange", measure: MeasurementType.WEIGHT },
-    { ar: "فراولة", en: "Strawberry", measure: MeasurementType.WEIGHT },
+    // Vegetables
+    { name: "طماطم",                       measure: MeasurementType.WEIGHT },
+    { name: "خيار بلدي",                   measure: MeasurementType.WEIGHT },
+    { name: "بطاطس",                       measure: MeasurementType.WEIGHT },
+    { name: "بصل أحمر",                    measure: MeasurementType.WEIGHT },
+    { name: "ثوم بلدي",                    measure: MeasurementType.WEIGHT },
+    { name: "جزر",                         measure: MeasurementType.WEIGHT },
+    { name: "كوسة",                        measure: MeasurementType.WEIGHT },
+    { name: "فلفل أخضر",                   measure: MeasurementType.WEIGHT },
+    { name: "فلفل رومي أحمر",              measure: MeasurementType.WEIGHT },
+    { name: "ملوخية طازجة",               measure: MeasurementType.WEIGHT },
+    { name: "كراث",                        measure: MeasurementType.WEIGHT },
+    { name: "سبانخ",                       measure: MeasurementType.WEIGHT },
+    { name: "خس أخضر",                    measure: MeasurementType.WEIGHT },
+    // Fruits
+    { name: "موز",                         measure: MeasurementType.WEIGHT },
+    { name: "برتقال",                      measure: MeasurementType.WEIGHT },
+    { name: "تفاح أحمر",                   measure: MeasurementType.WEIGHT },
+    { name: "عنب أحمر",                    measure: MeasurementType.WEIGHT },
+    { name: "فراولة",                      measure: MeasurementType.WEIGHT },
+    { name: "مانجو",                       measure: MeasurementType.WEIGHT },
+    { name: "بطيخ",                        measure: MeasurementType.WEIGHT },
+    { name: "جوافة",                       measure: MeasurementType.WEIGHT },
+    { name: "خوخ",                         measure: MeasurementType.WEIGHT },
+    { name: "كمثرى",                       measure: MeasurementType.WEIGHT },
   ],
+
+  // Fresh bread — sold in bakeries (مخابز)
   BAKERY: [
-    { ar: "عيش بلدي", en: "Baladi Bread", measure: MeasurementType.UNIT },
-    { ar: "عيش فينو", en: "Fino Bread", measure: MeasurementType.UNIT },
-    { ar: "بقسماط مطحون", en: "Breadcrumbs", measure: MeasurementType.UNIT },
-    { ar: "قرص سادة", en: "Plain Pastry", measure: MeasurementType.UNIT },
-    { ar: "توست أبيض", en: "White Toast", measure: MeasurementType.UNIT },
+    { name: "عيش بلدي",                    measure: MeasurementType.UNIT },
+    { name: "عيش فينو",                    measure: MeasurementType.UNIT },
+    { name: "توست أبيض",                   measure: MeasurementType.UNIT },
+    { name: "توست أسمر",                   measure: MeasurementType.UNIT },
+    { name: "خبز صاج",                     measure: MeasurementType.UNIT },
+    { name: "بقسماط مطحون",               measure: MeasurementType.UNIT },
   ],
+
+  // Oriental sweets — sold in pastry shops (حلوانيات)
+  PASTRY: [
+    { name: "بقلاوة",                      measure: MeasurementType.WEIGHT },
+    { name: "كنافة طازجة",                 measure: MeasurementType.WEIGHT },
+    { name: "بسبوسة",                      measure: MeasurementType.WEIGHT },
+    { name: "قطايف",                       measure: MeasurementType.WEIGHT },
+    { name: "حلاوة الشعيبية",             measure: MeasurementType.WEIGHT },
+    { name: "مبروم",                       measure: MeasurementType.WEIGHT },
+    { name: "لقيمات",                      measure: MeasurementType.UNIT },
+    { name: "عوامة",                       measure: MeasurementType.UNIT },
+    { name: "مهلبية",                      measure: MeasurementType.UNIT },
+    { name: "أم علي",                      measure: MeasurementType.UNIT },
+  ],
+
   FISH: [
-    { ar: "سمك بلطي", en: "Tilapia Fish", measure: MeasurementType.WEIGHT },
-    { ar: "سمك بوري", en: "Mullet Fish", measure: MeasurementType.WEIGHT },
-    { ar: "جمبري وسط", en: "Medium Shrimp", measure: MeasurementType.WEIGHT },
-    { ar: "سبيط", en: "Calamari", measure: MeasurementType.WEIGHT },
+    { name: "سمك بلطي طازج",              measure: MeasurementType.WEIGHT },
+    { name: "سمك بوري طازج",              measure: MeasurementType.WEIGHT },
+    { name: "سمك دنيس",                   measure: MeasurementType.WEIGHT },
+    { name: "سمك قاروص",                  measure: MeasurementType.WEIGHT },
+    { name: "سمك موسى",                   measure: MeasurementType.WEIGHT },
+    { name: "سمك اسكمبري",               measure: MeasurementType.WEIGHT },
+    { name: "جمبري وسط",                  measure: MeasurementType.WEIGHT },
+    { name: "جمبري كبير",                 measure: MeasurementType.WEIGHT },
+    { name: "سبيط",                        measure: MeasurementType.WEIGHT },
+    { name: "أخطبوط",                      measure: MeasurementType.WEIGHT },
+    { name: "سلطعون",                      measure: MeasurementType.WEIGHT },
   ],
+
   STATIONERY: [
-    { ar: "كشكول سلك", en: "Wire Notebook", measure: MeasurementType.UNIT },
-    { ar: "قلم جاف", en: "Ballpoint Pen", measure: MeasurementType.UNIT },
-    { ar: "ألوان خشب", en: "Colored Pencils", measure: MeasurementType.UNIT },
-    { ar: "براية", en: "Sharpener", measure: MeasurementType.UNIT },
+    { name: "كشكول سلك A4",               measure: MeasurementType.UNIT },
+    { name: "كشكول عادي A5",              measure: MeasurementType.UNIT },
+    { name: "دفتر مذكرات",                measure: MeasurementType.UNIT },
+    { name: "قلم جاف أزرق",               measure: MeasurementType.UNIT },
+    { name: "قلم جاف أحمر",               measure: MeasurementType.UNIT },
+    { name: "قلم رصاص HB",               measure: MeasurementType.UNIT },
+    { name: "أقلام ملونة خشب 12 لون",     measure: MeasurementType.UNIT },
+    { name: "أقلام فلوماستر 12 لون",      measure: MeasurementType.UNIT },
+    { name: "براية معدنية",               measure: MeasurementType.UNIT },
+    { name: "ممحاة بيضاء",               measure: MeasurementType.UNIT },
+    { name: "مسطرة 30 سم",               measure: MeasurementType.UNIT },
+    { name: "ورق A4 رزمة 500 ورقة",       measure: MeasurementType.UNIT },
+    { name: "مقص مكتبي",                  measure: MeasurementType.UNIT },
+    { name: "دباسة مكتبية",               measure: MeasurementType.UNIT },
   ],
 };
 
 export class ProductFactory {
-  static generateGlobalProducts(categoryMap: Record<string, string>, targetCount: number = 5000): GlobalProductSeed[] {
+  static generateGlobalProducts(categoryMap: Record<string, string>): GlobalProductSeed[] {
     const products: GlobalProductSeed[] = [];
-    const usedNames = new Set<string>();
 
-    const categories = Object.keys(BASE_PRODUCTS);
-    let count = 0;
-
-    while (count < targetCount) {
-      if (count % 500 === 0 && count > 0) {
-        console.log(`Generated ${count} / ${targetCount} unique products...`);
-      }
-
-      const categoryKey = ProductGenerationHelper.getRandomItem(categories);
+    for (const [categoryKey, productList] of Object.entries(GLOBAL_PRODUCTS)) {
       const categoryId = categoryMap[categoryKey];
-      const baseProducts = BASE_PRODUCTS[categoryKey];
+      if (!categoryId) continue;
 
-      if (!categoryId || !baseProducts || baseProducts.length === 0) continue;
-
-      const baseProduct = ProductGenerationHelper.getRandomItem(baseProducts);
-      const brand = ProductGenerationHelper.getRandomItem(BRANDS[categoryKey as keyof typeof BRANDS] || ["محلي"]);
-
-      const variations = ProductGenerationHelper.generateVariations(baseProduct.ar, baseProduct.en, brand, categoryKey);
-
-      for (const variation of variations) {
-        const sku = Math.floor(Math.random() * 90000) + 10000;
-        const uniqueKey = `${variation.nameAr}_${categoryId}_${sku}`;
-        if (usedNames.has(uniqueKey)) continue;
-
+      for (const product of productList) {
+        const isWeight = product.measure === MeasurementType.WEIGHT;
         products.push({
           id: randomUUID(),
-          name: `${variation.nameAr}`,
-          description: `وصف منتج ${variation.nameAr} - ${variation.nameEn} - SKU: ${sku}`,
+          name: product.name,
+          description: product.name,
           global_category_id: categoryId,
-          measurement_type: baseProduct.measure,
-          weight_unit: variation.weightUnit || (baseProduct.measure === MeasurementType.WEIGHT ? WeightUnit.KG : null),
+          measurement_type: product.measure,
+          weight_unit: isWeight ? WeightUnit.KG : null,
         });
-
-        usedNames.add(uniqueKey);
-        count++;
-
-        if (count >= targetCount) break;
       }
     }
 
@@ -180,26 +287,25 @@ export class ProductFactory {
     const vendorProducts: VendorProductSeed[] = [];
 
     for (const gp of globalProducts) {
-      // Find allowed vendors for this global product's category
       const allowedAssignments = assignmentRules[gp.global_category_id] || [];
       if (allowedAssignments.length === 0) continue;
 
-      // Pick 1-3 vendors from the ALLOWED list
+      // Assign to 1–3 vendors from the allowed set, randomly
       const numVendors = Math.min(Math.floor(Math.random() * 3) + 1, allowedAssignments.length);
-      const shuffledAssignments = [...allowedAssignments].sort(() => 0.5 - Math.random());
-      const selectedAssignments = shuffledAssignments.slice(0, numVendors);
+      const selectedAssignments = [...allowedAssignments]
+        .sort(() => 0.5 - Math.random())
+        .slice(0, numVendors);
 
       for (const assignment of selectedAssignments) {
         const isWeight = gp.measurement_type === MeasurementType.WEIGHT;
-
         vendorProducts.push({
           id: randomUUID(),
           vendor_id: assignment.vendorId,
           global_product_id: gp.id,
           vendor_category_id: assignment.vendorCategoryId,
           price: Number((Math.random() * 490 + 10).toFixed(2)),
-          stock_quantity: isWeight ? 0 : Math.floor(Math.random() * 100) + 10,
-          stock_weight_grams: isWeight ? Math.floor(Math.random() * 50000) + 5000 : 0,
+          stock_quantity: isWeight ? 0 : 100,
+          stock_weight_grams: isWeight ? 100_000 : 0,  // 100 kg
           is_available: true,
         });
       }

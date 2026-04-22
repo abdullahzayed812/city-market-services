@@ -61,9 +61,9 @@ export class ProductSeeder {
 
   logSummary(globalProducts: GlobalProductSeed[], vendorProducts: VendorProductSeed[], categories: string[]): void {
     console.log("\n--- Seeding Summary ---");
-    console.log(`Total Global Products Generated: ${globalProducts.length}`);
-    // console.log(`Total Vendor Product Listings: ${vendorProducts.length}`);
-    console.log(`Categories expanded: ${categories.join(", ")}`);
+    console.log(`Global products : ${globalProducts.length}`);
+    console.log(`Vendor listings : ${vendorProducts.length}`);
+    console.log(`Categories      : ${categories.join(", ")}`);
     console.log("------------------------\n");
   }
 }

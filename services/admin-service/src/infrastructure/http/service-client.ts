@@ -120,8 +120,8 @@ export class ServiceClient {
     return this.catalog.uploadCategoryIcon(id, formData, userId);
   }
 
-  async getAllProducts(page?: number, limit?: number, userId?: string, globalCat?: string, vendorCat?: string, vendorId?: string) {
-    return this.catalog.getAllProducts(page, limit, userId, globalCat, vendorCat, vendorId);
+  async getAllProducts(page?: number, limit?: number, userId?: string, globalCat?: string, vendorCat?: string, vendorId?: string, search?: string) {
+    return this.catalog.getAllProducts(page, limit, userId, globalCat, vendorCat, vendorId, search);
   }
 
   async createProduct(data: any, userId?: string) {

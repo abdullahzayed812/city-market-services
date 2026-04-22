@@ -21,16 +21,21 @@ export class OrderDeliveredConsumer {
 
         // Deduct based on quantity or weight
         let qty = 0;
-        let weight = 0;
+        let actualWeight = 0;
+        let reservedWeight = 0;
 
         if (product.measurementType === MeasurementType.UNIT) {
           qty = item.quantity || 0;
         } else {
-          weight = item.actualWeightGrams || item.requestedWeightGrams || Math.round((item.weight || 0) * 1000);
+          reservedWeight = item.requestedWeightGrams || 0;
+          actualWeight = item.actualWeightGrams || reservedWeight || Math.round((item.weight || 0) * 1000);
+          
+          // If for some reason reservedWeight is still 0 but we have actual weight, 
+          // we should still use actual weight for stock deduction, but reserved decrement will be 0
         }
 
-        if (qty > 0 || weight > 0) {
-          await this.catalogService.commitStock(item.vendorProductId, qty, weight);
+        if (qty > 0 || actualWeight > 0 || reservedWeight > 0) {
+          await this.catalogService.commitStock(item.vendorProductId, qty, actualWeight, reservedWeight);
         }
       }
 

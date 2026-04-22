@@ -19,7 +19,7 @@ export interface IVendorProductRepository {
   decrementWeightStock(id: string, weight: number): Promise<void>;
   reserveStock(id: string, quantity: number, weightGrams: number): Promise<boolean>;
   releaseStock(id: string, quantity: number, weightGrams: number): Promise<void>;
-  commitStock(id: string, quantity: number, weightGrams: number): Promise<void>;
+  commitStock(id: string, quantity: number, actualWeightGrams: number, reservedWeightGrams: number): Promise<void>;
   reserveWeightStock(id: string, weight: number): Promise<void>;
   releaseWeightStock(id: string, weight: number): Promise<void>;
   commitWeightStock(id: string, actualWeight: number, reservedWeight: number): Promise<void>;

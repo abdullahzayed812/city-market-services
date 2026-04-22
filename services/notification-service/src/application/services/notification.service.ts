@@ -12,6 +12,11 @@ export class NotificationService {
   ) { }
 
   async sendNotification(userId: string, type: string, titleKey: string, messageKey: string, metadata?: Record<string, any>) {
+    if (!userId) {
+      Logger.error(`[NotificationService] Cannot send notification: userId is ${userId}. TitleKey: ${titleKey}`);
+      return;
+    }
+
     // 1. Check Preferences
     let prefs = await this.repo.getPreferences(userId);
     if (!prefs) {

@@ -314,6 +314,7 @@ export class AdminController {
       const globalCategoryId = (req.query.globalCategoryId as string) || (req.query.categoryId as string);
       const vendorCategoryId = req.query.vendorCategoryId as string;
       const vendorId = req.query.vendorId as string;
+      const search = req.query.search as string;
 
       const result = await this.adminService.getAllProducts(
         page,
@@ -322,6 +323,7 @@ export class AdminController {
         globalCategoryId,
         vendorCategoryId,
         vendorId,
+        search,
       );
       res.json(result);
     } catch (error) {

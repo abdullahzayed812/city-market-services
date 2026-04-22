@@ -36,7 +36,7 @@ export class ProposalManager {
     private publisher: OrderPublisher,
     private stateManager: OrderStateManager,
     private commissionTierService: CommissionTierService,
-  ) { }
+  ) {}
 
   async propose(vendorOrderId: string, dto: ProposeChangesDto[], connection: PoolConnection): Promise<void> {
     // 1. Fetch vendor order without lock to get customerOrderId
@@ -63,9 +63,8 @@ export class ProposalManager {
       const orderItem = await this.vendorOrderItemRepo.findByIdWithLock(item.itemId, connection);
       if (!orderItem) throw new NotFoundError(`order_item_${item.itemId}_not_found`);
 
-      if (item.type === ProposalType.WEIGHT_ADJUSTMENT && item.proposedWeightGrams !== undefined) {
-        if (orderItem.requestedWeightGrams === undefined)
-          throw new ValidationError(`item_${item.itemId}_is_not_weight_based`);
+      if (item.type === ProposalType.WEIGHT_ADJUSTMENT && item.proposedWeightGrams) {
+        if (!orderItem.requestedWeightGrams) throw new ValidationError(`item_${item.itemId}_is_not_weight_based`);
 
         const diffGrams = Math.abs(item.proposedWeightGrams - orderItem.requestedWeightGrams);
         const diffRatio = diffGrams / orderItem.requestedWeightGrams;
@@ -108,7 +107,7 @@ export class ProposalManager {
 
       await this.proposalRepo.create(proposal, connection);
 
-      if (item.type === ProposalType.QUANTITY_REDUCTION && item.proposedQuantity !== undefined) {
+      if (item.type === ProposalType.QUANTITY_REDUCTION && item.proposedQuantity) {
         await this.vendorOrderItemRepo.update(item.itemId, { proposedQuantity: item.proposedQuantity }, connection);
       }
 
@@ -121,12 +120,7 @@ export class ProposalManager {
 
     if (statusChangedToProposal) {
       await this.vendorOrderRepo.updateStatus(vendorOrderId, VendorOrderStatus.PROPOSAL_SENT, connection);
-      await this.stateManager.recordStatusChange(
-        { vendorOrderId },
-        VendorOrderStatus.PROPOSAL_SENT,
-        `Proposals sent.`,
-        connection,
-      );
+      await this.stateManager.recordStatusChange({ vendorOrderId }, VendorOrderStatus.PROPOSAL_SENT, `Proposals sent.`, connection);
 
       await this.publisher.publishVendorOrderProposed({
         vendorOrderId,
@@ -135,11 +129,7 @@ export class ProposalManager {
         customerId: co.customerId,
       });
 
-      await this.customerOrderRepo.updateStatus(
-        lockedVo.customerOrderId,
-        CustomerOrderStatus.WAITING_CUSTOMER_DECISION,
-        connection,
-      );
+      await this.customerOrderRepo.updateStatus(lockedVo.customerOrderId, CustomerOrderStatus.WAITING_CUSTOMER_DECISION, connection);
       await this.stateManager.recordStatusChange(
         { customerOrderId: lockedVo.customerOrderId },
         CustomerOrderStatus.WAITING_CUSTOMER_DECISION,
@@ -171,7 +161,7 @@ export class ProposalManager {
     const lockedItem = await this.vendorOrderItemRepo.findByIdWithLock(item.id, connection);
     if (!lockedItem) throw new NotFoundError("vendor_order_item_not_found");
 
-    if (proposal.type === ProposalType.QUANTITY_REDUCTION && proposal.proposedQuantity !== undefined) {
+    if (proposal.type === ProposalType.QUANTITY_REDUCTION && proposal.proposedQuantity) {
       const diff = lockedItem.quantity! - proposal.proposedQuantity;
       await this.catalogClient.releaseStock(lockedItem.vendorProductId, diff, 0);
 
@@ -184,7 +174,7 @@ export class ProposalManager {
         },
         connection,
       );
-    } else if (proposal.type === ProposalType.WEIGHT_ADJUSTMENT && proposal.proposedWeightGrams !== undefined) {
+    } else if (proposal.type === ProposalType.WEIGHT_ADJUSTMENT && proposal.proposedWeightGrams) {
       await this.catalogClient.releaseStock(lockedItem.vendorProductId, 0, lockedItem.requestedWeightGrams!);
       const strategy = PricingStrategyFactory.getStrategy(MeasurementType.WEIGHT);
       const newTotalPrice = strategy.calculateTotal(lockedItem.unitPrice, proposal.proposedWeightGrams);
@@ -197,16 +187,8 @@ export class ProposalManager {
         connection,
       );
     } else if (proposal.type === ProposalType.UNAVAILABLE) {
-      await this.catalogClient.releaseStock(
-        lockedItem.vendorProductId,
-        lockedItem.quantity || 0,
-        lockedItem.requestedWeightGrams || 0,
-      );
-      await this.vendorOrderItemRepo.update(
-        lockedItem.id,
-        { quantity: 0, requestedWeightGrams: 0, totalPrice: 0, proposedQuantity: null as any },
-        connection,
-      );
+      await this.catalogClient.releaseStock(lockedItem.vendorProductId, lockedItem.quantity || 0, lockedItem.requestedWeightGrams || 0);
+      await this.vendorOrderItemRepo.update(lockedItem.id, { quantity: 0, requestedWeightGrams: 0, totalPrice: 0, proposedQuantity: null as any }, connection);
     }
 
     await this.recalculateTotals(lockedVo.id, connection);
@@ -244,11 +226,7 @@ export class ProposalManager {
     const lockedVo = await this.vendorOrderRepo.findByIdWithLock(vo.id, connection);
     if (!lockedVo) throw new NotFoundError("vendor_order_not_found");
 
-    await this.catalogClient.releaseStock(
-      item.vendorProductId,
-      item.quantity || 0,
-      item.requestedWeightGrams || 0,
-    );
+    await this.catalogClient.releaseStock(item.vendorProductId, item.quantity || 0, item.requestedWeightGrams || 0);
 
     await this.proposalRepo.updateStatus(proposalId, ProposalStatus.REJECTED, connection);
 
@@ -272,12 +250,7 @@ export class ProposalManager {
 
   private async cancelOrder(co: any, connection: PoolConnection) {
     await this.customerOrderRepo.updateStatus(co.id, CustomerOrderStatus.CANCELLED, connection);
-    await this.stateManager.recordStatusChange(
-      { customerOrderId: co.id },
-      CustomerOrderStatus.CANCELLED,
-      "Order cancelled on proposal rejection",
-      connection,
-    );
+    await this.stateManager.recordStatusChange({ customerOrderId: co.id }, CustomerOrderStatus.CANCELLED, "Order cancelled on proposal rejection", connection);
     await this.publisher.publishOrderCancelled(co.id, co.customerId);
 
     const relatedVendorOrders = await this.vendorOrderRepo.findByCustomerOrder(co.id, connection);
@@ -286,24 +259,16 @@ export class ProposalManager {
         // Release reservations for all items in this vendor order
         const items = await this.vendorOrderItemRepo.findByVendorOrder(rvo.id, connection);
         for (const item of items) {
-          await this.catalogClient.releaseStock(
-            item.vendorProductId,
-            item.quantity || 0,
-            item.requestedWeightGrams || 0,
-          );
+          await this.catalogClient.releaseStock(item.vendorProductId, item.quantity || 0, item.requestedWeightGrams || 0);
         }
 
         await this.vendorOrderRepo.updateStatus(rvo.id, VendorOrderStatus.CANCELLED, connection);
-        await this.stateManager.recordStatusChange(
-          { vendorOrderId: rvo.id },
-          VendorOrderStatus.CANCELLED,
-          "Customer order cancelled",
-          connection,
-        );
+        await this.stateManager.recordStatusChange({ vendorOrderId: rvo.id }, VendorOrderStatus.CANCELLED, "Customer order cancelled", connection);
         await this.publisher.publishVendorOrderCancelled({
           vendorOrderId: rvo.id,
           customerOrderId: co.id,
           vendorId: rvo.vendorId,
+          customerId: co.customerId,
         });
       }
     }
@@ -325,10 +290,7 @@ export class ProposalManager {
 
     const items = await this.vendorOrderItemRepo.findByVendorOrder(vendorOrderId, connection);
     const newSubtotal = items.reduce((sum, item) => sum + item.totalPrice, 0);
-    const { amount: commissionAmount, percentage: commissionPercentage } = CommissionCalculator.calculate(
-      newSubtotal,
-      tiers,
-    );
+    const { amount: commissionAmount, percentage: commissionPercentage } = CommissionCalculator.calculate(newSubtotal, tiers);
 
     await this.vendorOrderRepo.update(
       vendorOrderId,
@@ -342,14 +304,8 @@ export class ProposalManager {
     );
 
     const allVo = await this.vendorOrderRepo.findByCustomerOrder(co.id, connection);
-    const customerSubtotal = allVo.reduce(
-      (sum, v) => sum + (v.status !== VendorOrderStatus.CANCELLED ? v.subtotal : 0),
-      0,
-    );
-    const customerCommissionAmount = allVo.reduce(
-      (sum, v) => sum + (v.status !== VendorOrderStatus.CANCELLED ? v.commissionAmount : 0),
-      0,
-    );
+    const customerSubtotal = allVo.reduce((sum, v) => sum + (v.status !== VendorOrderStatus.CANCELLED ? v.subtotal : 0), 0);
+    const customerCommissionAmount = allVo.reduce((sum, v) => sum + (v.status !== VendorOrderStatus.CANCELLED ? v.commissionAmount : 0), 0);
 
     await this.customerOrderRepo.update(
       co.id,

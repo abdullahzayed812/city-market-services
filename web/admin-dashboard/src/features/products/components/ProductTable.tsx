@@ -54,37 +54,39 @@ const ProductTable: React.FC<ProductTableProps> = memo(
               </TableRow>
             </TableHeader>
             <TableBody>
-              {products?.map((product) => (
-                <TableRow key={product?.id}>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      <div className="relative h-12 w-12 overflow-hidden rounded bg-muted flex-shrink-0">
-                        {product?.imageUrl ? (
-                          <img src={getImageUrl(product.imageUrl)} alt={product.name} className="h-full w-full object-cover" />
-                        ) : (
-                          <div className="flex h-full w-full items-center justify-center">
-                            <ImageIcon className="h-6 w-6 text-muted-foreground" />
-                          </div>
-                        )}
+              {products?.map((product) => {
+                if (!product) return null;
+                return (
+                  <TableRow key={product.id}>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <div className="relative h-12 w-12 overflow-hidden rounded bg-muted flex-shrink-0">
+                          {product.imageUrl ? (
+                            <img src={getImageUrl(product.imageUrl)} alt={product.name} className="h-full w-full object-cover" />
+                          ) : (
+                            <div className="flex h-full w-full items-center justify-center">
+                              <ImageIcon className="h-6 w-6 text-muted-foreground" />
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex gap-1">
+                          {product.imageUrl && (
+                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onViewImage(product)} title={t("products.view_image")}>
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                          )}
+                          <Label htmlFor={`img-${product.id}`} className="cursor-pointer">
+                            <Button variant="ghost" size="icon" className="h-8 w-8" type="button" title={t("products.upload_image")} asChild>
+                              <span>
+                                <Upload className="h-4 w-4" />
+                              </span>
+                            </Button>
+                          </Label>
+                          <input id={`img-${product.id}`} type="file" className="hidden" accept="image/*" onChange={(e) => handleImageUpload(product.id, e)} />
+                        </div>
                       </div>
-                      <div className="flex gap-1">
-                        {product?.imageUrl && (
-                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onViewImage(product)} title={t("products.view_image")}>
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                        )}
-                        <Label htmlFor={`img-${product?.id}`} className="cursor-pointer">
-                          <Button variant="ghost" size="icon" className="h-8 w-8" type="button" title={t("products.upload_image")} asChild>
-                            <span>
-                              <Upload className="h-4 w-4" />
-                            </span>
-                          </Button>
-                        </Label>
-                        <input id={`img-${product?.id}`} type="file" className="hidden" accept="image/*" onChange={(e) => handleImageUpload(product?.id, e)} />
-                      </div>
-                    </div>
-                  </TableCell>
-                  <TableCell className="font-medium">{product.name}</TableCell>
+                    </TableCell>
+                    <TableCell className="font-medium">{product.name}</TableCell>
                   <TableCell>
                     <span className="text-sm font-medium text-slate-600">{(product as any).vendorShopName || t("common.none")}</span>
                   </TableCell>
@@ -113,7 +115,7 @@ const ProductTable: React.FC<ProductTableProps> = memo(
                       </div>
                     ) : (
                       <div className="flex flex-col">
-                        <span className={(product.stockQuantity - (product.reservedQuantity ?? 0)) < 10 ? "text-destructive font-bold" : ""}>
+                        <span className={product.stockQuantity - (product.reservedQuantity ?? 0) < 10 ? "text-destructive font-bold" : ""}>
                           {product.stockQuantity}
                         </span>
                         {product.reservedQuantity ? (
@@ -156,8 +158,9 @@ const ProductTable: React.FC<ProductTableProps> = memo(
                     </DropdownMenu>
                   </TableCell>
                 </TableRow>
-              ))}
-              {products.length === 0 && (
+              );
+            })}
+            {products.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
                     {t("products.no_products_found")}

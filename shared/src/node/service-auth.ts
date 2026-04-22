@@ -20,7 +20,7 @@ export class ServiceAuthenticator {
     private serviceName: string // For logging purposes
   ) { }
 
-  private async fetchToken(): Promise<string> {
+  private async fetchToken(retries = 5, backoff = 1000): Promise<string> {
     try {
       Logger.info(`[${this.serviceName}] Fetching new service token...`);
       const response = await axios.post<ServiceTokenResponse>(
@@ -45,11 +45,18 @@ export class ServiceAuthenticator {
       Logger.info(`[${this.serviceName}] Service token fetched successfully.`);
       return this.token as string;
     } catch (error: any) {
-      Logger.error(`[${this.serviceName}] Failed to fetch service token: ${error.message}`);
+      const isRetryable = error.code === 'ECONNREFUSED' || error.code === 'ETIMEDOUT' || (error.response && error.response.status >= 500);
+
+      if (retries > 0 && isRetryable) {
+        Logger.warn(`[${this.serviceName}] Failed to fetch service token (retrying in ${backoff}ms, ${retries} attempts left): ${error.message}`);
+        await new Promise(resolve => setTimeout(resolve, backoff));
+        return this.fetchToken(retries - 1, backoff * 2);
+      }
+
+      Logger.error(`[${this.serviceName}] Failed to fetch service token after retries: ${error.message}`);
       throw new Error(`Failed to obtain service token for ${this.serviceName}`);
     }
   }
-
   private scheduleRefresh() {
     if (this.refreshTimeout) {
       clearTimeout(this.refreshTimeout);

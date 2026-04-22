@@ -14,7 +14,7 @@ export const useDashboardData = () => {
   });
 
   const productsQuery = useQuery({
-    queryKey: ["vendor-products", vendorId],
+    queryKey: ["vendor-products", "summary", vendorId],
     queryFn: () => productService.getVendorProducts(vendorId!),
     enabled: !!vendorId,
   });

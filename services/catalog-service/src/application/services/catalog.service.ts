@@ -89,9 +89,10 @@ export class CatalogService {
     globalCategoryId?: string,
     vendorCategoryId?: string,
     vendorId?: string,
+    search?: string,
   ): Promise<{ products: VendorProduct[]; total: number }> {
     const offset = (page - 1) * limit;
-    const filters: VendorProductFilter = { globalCategoryId, vendorCategoryId, vendorId };
+    const filters: VendorProductFilter = { globalCategoryId, vendorCategoryId, vendorId, search };
     const [products, total] = await Promise.all([
       this.vendorProductRepo.findByFilter(filters, limit, offset),
       this.vendorProductRepo.countByFilter(filters),
@@ -286,8 +287,8 @@ export class CatalogService {
     await this.checkAndSyncAvailability(id);
   }
 
-  async commitStock(id: string, quantity: number, weightGrams: number): Promise<void> {
-    await this.vendorProductRepo.commitStock(id, quantity, weightGrams);
+  async commitStock(id: string, quantity: number, actualWeightGrams: number, reservedWeightGrams: number): Promise<void> {
+    await this.vendorProductRepo.commitStock(id, quantity, actualWeightGrams, reservedWeightGrams);
     await this.checkAndSyncAvailability(id);
   }
 

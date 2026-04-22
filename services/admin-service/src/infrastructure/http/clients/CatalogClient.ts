@@ -52,10 +52,11 @@ export class CatalogClient extends BaseClient {
     globalCategoryId?: string,
     vendorCategoryId?: string,
     vendorId?: string,
+    search?: string,
   ) {
     const config = await this.getRequestConfig(userId);
     const response = await this.axiosInstance.get(`/products`, {
-      params: { page, limit, globalCategoryId, vendorCategoryId, vendorId },
+      params: { page, limit, globalCategoryId, vendorCategoryId, vendorId, search },
       ...config,
     });
     return response.data;

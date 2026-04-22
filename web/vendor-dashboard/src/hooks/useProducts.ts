@@ -8,7 +8,7 @@ export const useProducts = (globalProductSearch?: string) => {
   const queryClient = useQueryClient();
 
   const productsQuery = useInfiniteQuery({
-    queryKey: ["vendor-products", vendorId],
+    queryKey: ["vendor-products", "infinite", vendorId],
     queryFn: ({ pageParam = 1 }) => productService.getVendorProducts(vendorId!, pageParam, 20),
     getNextPageParam: (lastPage) => {
       if (!lastPage || !lastPage.data || typeof lastPage.total !== "number") return undefined;
@@ -36,14 +36,14 @@ export const useProducts = (globalProductSearch?: string) => {
   const createVendorProductMutation = useMutation({
     mutationFn: (data: any) => productService.createVendorProduct({ ...data, vendorId }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["vendor-products", vendorId] });
+      queryClient.invalidateQueries({ queryKey: ["vendor-products"] });
     },
   });
 
   const updateVendorProductMutation = useMutation({
     mutationFn: ({ id, data }: { id: string; data: any }) => productService.updateVendorProduct(id, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["vendor-products", vendorId] });
+      queryClient.invalidateQueries({ queryKey: ["vendor-products"] });
     },
   });
 
@@ -51,21 +51,21 @@ export const useProducts = (globalProductSearch?: string) => {
     mutationFn: ({ id, stock, weight }: { id: string; stock?: number; weight?: number }) =>
       productService.updateVendorProductStock(id, stock, weight),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["vendor-products", vendorId] });
+      queryClient.invalidateQueries({ queryKey: ["vendor-products"] });
     },
   });
 
   const deleteVendorProductMutation = useMutation({
     mutationFn: (id: string) => productService.deleteVendorProduct(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["vendor-products", vendorId] });
+      queryClient.invalidateQueries({ queryKey: ["vendor-products"] });
     },
   });
 
   const uploadVendorProductImageMutation = useMutation({
     mutationFn: ({ id, file }: { id: string; file: File }) => productService.uploadVendorProductImage(id, file),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["vendor-products", vendorId] });
+      queryClient.invalidateQueries({ queryKey: ["vendor-products"] });
     },
   });
 

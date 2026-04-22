@@ -81,6 +81,7 @@ export class OrderPublisher {
     vendorOrderId: string;
     customerOrderId: string;
     vendorId: string;
+    customerId: string;
   }): Promise<void> {
     await this.publish(EventType.VENDOR_ORDER_CANCELLED, data);
   }

@@ -14,6 +14,7 @@ export class VendorProductController {
       const globalCategoryId = (req.query.globalCategoryId as string) || (req.query.categoryId as string);
       const vendorCategoryId = req.query.vendorCategoryId as string;
       const vendorId = req.query.vendorId as string;
+      const search = req.query.search as string;
 
       const { products, total } = await this.catalogService.getAllVendorProducts(
         page,
@@ -21,6 +22,7 @@ export class VendorProductController {
         globalCategoryId,
         vendorCategoryId,
         vendorId,
+        search,
       );
       res.json(
         ApiResponse.success({

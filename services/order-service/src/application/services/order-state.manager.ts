@@ -98,12 +98,15 @@ export class OrderStateManager {
       await this.vendorOrderRepo.updateStatus(vendorOrderId, newStatus, connection);
       await this.recordStatusChange({ vendorOrderId }, newStatus, `All proposals processed`, connection);
 
+      const customerOrder = await this.customerOrderRepo.findById(vendorOrder.customerOrderId, connection);
+
       const eventType = this.getEventTypeForVendorStatus(newStatus);
       if (eventType) {
         await this.publisher.publishGenericEvent(eventType, {
           vendorOrderId,
           customerOrderId: vendorOrder.customerOrderId,
           vendorId: vendorOrder.vendorId,
+          customerId: customerOrder?.customerId,
           status: newStatus,
         });
       }

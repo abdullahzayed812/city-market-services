@@ -25,17 +25,14 @@ export const adminApi = {
   getStats: () => axiosInstance.get<ApiResponse<DashboardStats>>("/admin/dashboard"),
 
   // Users Management
-  getUsers: (role?: string) =>
-    axiosInstance.get<ApiResponse<{ data: User[]; total: number }>>("/admin/users", { params: { role } }),
+  getUsers: (role?: string) => axiosInstance.get<ApiResponse<{ data: User[]; total: number }>>("/admin/users", { params: { role } }),
   getUserById: (id: string) => axiosInstance.get<ApiResponse<User>>(`/admin/users/${id}`),
-  updateUserStatus: (id: string, body: UpdateUserStatusRequest) =>
-    axiosInstance.patch<ApiResponse<null>>(`/admin/users/${id}/status`, body),
+  updateUserStatus: (id: string, body: UpdateUserStatusRequest) => axiosInstance.patch<ApiResponse<null>>(`/admin/users/${id}/status`, body),
 
   // Vendors Management
   getVendors: () => axiosInstance.get<ApiResponse<Vendor[]>>("/admin/vendors"),
   getVendorById: (id: string) => axiosInstance.get<ApiResponse<Vendor>>(`/admin/vendors/${id}`),
-  updateVendor: (id: string, body: Partial<Vendor>) =>
-    axiosInstance.patch<ApiResponse<null>>(`/admin/vendors/${id}`, body),
+  updateVendor: (id: string, body: Partial<Vendor>) => axiosInstance.patch<ApiResponse<null>>(`/admin/vendors/${id}`, body),
 
   updateVendorStatus: (
     id: string,
@@ -70,10 +67,8 @@ export const adminApi = {
   //   axiosInstance.get<ApiResponse<any>>(`/admin/vendors/${vendorId}/financial-analytics`, { params }),
 
   // Settlements
-  getVendorPendingEarnings: (vendorId: string) =>
-    axiosInstance.get<ApiResponse<any>>(`/admin/settlements/vendor/${vendorId}/pending`),
-  getSettlements: (params?: { vendorId?: string; page?: number; limit?: number }) =>
-    axiosInstance.get<ApiResponse<any>>(`/admin/settlements`, { params }),
+  getVendorPendingEarnings: (vendorId: string) => axiosInstance.get<ApiResponse<any>>(`/admin/settlements/vendor/${vendorId}/pending`),
+  getSettlements: (params?: { vendorId?: string; page?: number; limit?: number }) => axiosInstance.get<ApiResponse<any>>(`/admin/settlements`, { params }),
   createSettlement: (data: { vendorId: string; periodStart: string; periodEnd: string; notes?: string }) =>
     axiosInstance.post<ApiResponse<any>>("/admin/settlements", data),
   markSettlementPaid: (id: string) => axiosInstance.patch<ApiResponse<null>>(`/admin/settlements/${id}/mark-paid`, {}),
@@ -82,8 +77,7 @@ export const adminApi = {
   // Commission Tiers
   getAllCommissionTiers: () => axiosInstance.get<ApiResponse<any>>("/admin/commission-tiers"),
   createCommissionTier: (data: any) => axiosInstance.post<ApiResponse<any>>("/admin/commission-tiers", data),
-  updateCommissionTier: (id: string, data: any) =>
-    axiosInstance.patch<ApiResponse<null>>(`/admin/commission-tiers/${id}`, data),
+  updateCommissionTier: (id: string, data: any) => axiosInstance.patch<ApiResponse<null>>(`/admin/commission-tiers/${id}`, data),
   deleteCommissionTier: (id: string) => axiosInstance.delete<ApiResponse<null>>(`/admin/commission-tiers/${id}`),
 
   // Registration Management
@@ -94,8 +88,7 @@ export const adminApi = {
   // Categories Management
   getCategories: () => axiosInstance.get<ApiResponse<Category[]>>("/admin/categories"),
   createCategory: (body: CreateCategoryDto) => axiosInstance.post<ApiResponse<Category>>("/admin/categories", body),
-  updateCategory: (id: string, body: Partial<Category>) =>
-    axiosInstance.patch<ApiResponse<null>>(`/admin/categories/${id}`, body),
+  updateCategory: (id: string, body: Partial<Category>) => axiosInstance.patch<ApiResponse<null>>(`/admin/categories/${id}`, body),
   deleteCategory: (id: string) => axiosInstance.delete<ApiResponse<null>>(`/admin/categories/${id}`),
   uploadCategoryIcon: (id: string, file: File) => {
     const formData = new FormData();
@@ -111,19 +104,16 @@ export const adminApi = {
     limit: number,
     filters?: { globalCategoryId?: string; vendorCategoryId?: string; vendorId?: string; search?: string },
   ): Promise<{ data: VendorProduct[]; hasMore: boolean }> => {
-    const response = await axiosInstance.get<
-      ApiResponse<{ items: VendorProduct[]; total: number }>
-    >("/admin/products", {
+    const response = await axiosInstance.get<ApiResponse<{ data: VendorProduct[]; total: number }>>("/admin/products", {
       params: { page, limit, ...filters },
     });
-    const { items, total } = response.data.data!;
+
+    const { data: itemsData, total } = response.data.data!;
     const hasMore = page * limit < total;
-    return { data: items, hasMore };
+    return { data: itemsData, hasMore };
   },
-  createVendorProduct: (body: CreateVendorProductDto) =>
-    axiosInstance.post<ApiResponse<VendorProduct>>("/admin/products", body),
-  updateVendorProduct: (id: string, body: Partial<VendorProduct>) =>
-    axiosInstance.put<ApiResponse<null>>(`/admin/products/${id}`, body),
+  createVendorProduct: (body: CreateVendorProductDto) => axiosInstance.post<ApiResponse<VendorProduct>>("/admin/products", body),
+  updateVendorProduct: (id: string, body: Partial<VendorProduct>) => axiosInstance.put<ApiResponse<null>>(`/admin/products/${id}`, body),
   deleteVendorProduct: (id: string) => axiosInstance.delete<ApiResponse<null>>(`/admin/products/${id}`),
   uploadVendorProductImage: (id: string, file: File) => {
     const formData = new FormData();
@@ -135,17 +125,12 @@ export const adminApi = {
 
   // Global Products management
   getGlobalProducts: async (page: number, limit: number, search?: string): Promise<{ data: GlobalProduct[]; total: number }> => {
-    const response = await axiosInstance.get<ApiResponse<{ data: GlobalProduct[]; total: number }>>(
-      "/admin/global-products",
-      {
-        params: { page, limit, search },
-      },
-    );
+    const response = await axiosInstance.get<ApiResponse<{ data: GlobalProduct[]; total: number }>>("/admin/global-products", {
+      params: { page, limit, search },
+    });
     return response.data.data!;
   },
-  createGlobalProduct: (body: Partial<GlobalProduct>) =>
-    axiosInstance.post<ApiResponse<GlobalProduct>>("/admin/global-products", body),
-  updateGlobalProduct: (id: string, body: Partial<GlobalProduct>) =>
-    axiosInstance.patch<ApiResponse<null>>(`/admin/global-products/${id}`, body),
+  createGlobalProduct: (body: Partial<GlobalProduct>) => axiosInstance.post<ApiResponse<GlobalProduct>>("/admin/global-products", body),
+  updateGlobalProduct: (id: string, body: Partial<GlobalProduct>) => axiosInstance.patch<ApiResponse<null>>(`/admin/global-products/${id}`, body),
   deleteGlobalProduct: (id: string) => axiosInstance.delete<ApiResponse<null>>(`/admin/global-products/${id}`),
 };
