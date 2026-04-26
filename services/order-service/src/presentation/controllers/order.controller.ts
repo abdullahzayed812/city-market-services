@@ -145,6 +145,24 @@ export class OrderController {
     }
   };
 
+  confirmOrder = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      await this.orderService.confirmOrder(req.params.id, req.user?.userId || "");
+      res.json(ApiResponse.success(null, "order_confirmed"));
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  cancelOrderByCustomer = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      await this.orderService.cancelOrderByCustomer(req.params.id, req.user?.userId || "");
+      res.json(ApiResponse.success(null, "order_cancelled"));
+    } catch (error) {
+      next(error);
+    }
+  };
+
   getDeliveryFeePreview = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
       const { lat, lng, vendorIds } = req.query;

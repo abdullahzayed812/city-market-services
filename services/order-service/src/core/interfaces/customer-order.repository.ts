@@ -10,4 +10,5 @@ export interface ICustomerOrderRepository {
     updateStatus(id: string, status: string, connection?: any): Promise<void>;
     update(id: string, data: Partial<CustomerOrder>, connection?: any): Promise<void>;
     conditionalUpdateStatusToReady(id: string, connection?: any): Promise<number>;
+    findExpiredAwaitingConfirmation(connection?: any): Promise<CustomerOrder[]>;
 }

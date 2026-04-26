@@ -86,6 +86,10 @@ export class OrderPublisher {
     await this.publish(EventType.VENDOR_ORDER_CANCELLED, data);
   }
 
+  async publishOrderStockReleaseRequested(payload: { orderId: string; items: any[] }): Promise<void> {
+    await this.publish(EventType.ORDER_STOCK_RELEASE_REQUESTED, payload);
+  }
+
   async publishGenericEvent(type: EventType, payload: any): Promise<void> {
     await this.publish(type, payload);
   }

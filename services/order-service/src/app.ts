@@ -14,10 +14,12 @@ import { OrderPublisher } from "./infrastructure/messaging/OrderPublisher";
 import { EventType } from "@city-market/shared";
 import { errorHandler, Database, rabbitMQBus, authenticate } from "@city-market/shared/node";
 import { DeliveryUpdatedConsumer } from "./application/events/delivery-updated.consumer";
+import { DeliveryCancelledByCourierConsumer } from "./application/events/delivery-cancelled-by-courier.consumer";
 import { StockReservedConsumer } from "./application/events/stock-reserved.consumer";
 import { StockRejectedConsumer } from "./application/events/stock-rejected.consumer";
 import { config } from "./config/env";
 import { CommissionTierRepository } from "./infrastructure/repositories/commission-tier.repository";
+import { CustomerPenaltyRepository } from "./infrastructure/repositories/customer-penalty.repository";
 import { CommissionTierService } from "./application/services/commission-tier.service";
 import { CommissionTierController } from "./presentation/controllers/commission-tier.controller";
 import { createCommissionTierRoutes } from "./presentation/routes/commission-tier.routes";
@@ -51,6 +53,7 @@ export const createApp = () => {
 
   const commissionTierRepo = new CommissionTierRepository(db);
   const commissionTierService = new CommissionTierService(commissionTierRepo);
+  const penaltyRepo = new CustomerPenaltyRepository(db);
   const commissionTierController = new CommissionTierController(commissionTierService);
 
   const settlementRepo = new SettlementRepository(db);
@@ -68,18 +71,19 @@ export const createApp = () => {
     publisher,
     commissionTierService,
     db,
+    penaltyRepo,
   );
 
   const orderController = new OrderController(orderService);
 
   const deliveryUpdatedConsumer = new DeliveryUpdatedConsumer(orderService);
+  const deliveryCancelledConsumer = new DeliveryCancelledByCourierConsumer(orderService);
   const stockReservedConsumer = new StockReservedConsumer(
     db,
     customerOrderRepo,
     vendorOrderRepo,
     orderService.stateManager,
     publisher,
-    vendorClient,
   );
   const stockRejectedConsumer = new StockRejectedConsumer(db, customerOrderRepo, vendorOrderRepo, orderService.stateManager);
 
@@ -92,6 +96,12 @@ export const createApp = () => {
   rabbitMQBus.subscribe(EventType.ORDER_DELIVERED, "order_service_delivered", (event) =>
     deliveryUpdatedConsumer.handle(event),
   );
+  rabbitMQBus.subscribe(EventType.DELIVERY_FAILED, "order_service_delivery_failed", (event) =>
+    deliveryUpdatedConsumer.handle(event),
+  );
+  rabbitMQBus.subscribe(EventType.DELIVERY_CANCELLED_BY_COURIER, "order_service_delivery_cancelled_by_courier", (event) =>
+    deliveryCancelledConsumer.handle(event),
+  );
 
   rabbitMQBus.subscribe(EventType.STOCK_RESERVED, "order_service_stock_reserved", (event) =>
     stockReservedConsumer.handle(event),
@@ -99,6 +109,14 @@ export const createApp = () => {
   rabbitMQBus.subscribe(EventType.STOCK_REJECTED, "order_service_stock_rejected", (event) =>
     stockRejectedConsumer.handle(event),
   );
+
+  // Cancel orders that exceeded the customer confirmation window
+  const EXPIRY_CHECK_INTERVAL_MS = 60_000;
+  setInterval(() => {
+    orderService.cancelExpiredOrders().catch((err) =>
+      console.error("[OrderService] Expiry check failed:", err.message),
+    );
+  }, EXPIRY_CHECK_INTERVAL_MS);
 
   app.use(authenticate);
 

@@ -12,6 +12,7 @@ import { EventType } from "@city-market/shared";
 import { RabbitMQBus, Logger, Database } from "@city-market/shared/node";
 import { OrderHttpClient } from "../../infrastructure/http/order-http-client";
 import { VendorHttpClient } from "../../infrastructure/http/vendor-http-client";
+import { UserHttpClient } from "../../infrastructure/http/user-http-client";
 import { DeliveryPublisher } from "../../infrastructure/messaging/DeliveryPublisher";
 
 const DISTANCE_THRESHOLD_KM = 2.0;
@@ -23,7 +24,9 @@ export class DeliveryService {
     private publisher: DeliveryPublisher,
     private orderClient: OrderHttpClient,
     private vendorClient: VendorHttpClient,
-    private db: Database, // Added
+    private userClient: UserHttpClient,
+    private db: Database,
+    private assignedWindowMinutes: number = 15,
   ) { }
 
   // Courier management
@@ -339,10 +342,16 @@ export class DeliveryService {
     return Promise.all(
       deliveries.map(async (delivery) => {
         try {
-          const orderData = await this.orderClient.getOrder(delivery.customerOrderId, userId);
+          const [orderData, customerPhone] = await Promise.all([
+            this.orderClient.getOrder(delivery.customerOrderId, userId),
+            this.userClient.getCustomerPhone(delivery.customerId),
+          ]);
           if (orderData && orderData.vendorOrders) {
             const deliveryVendorOrderIds = delivery.pickupLocations.map((pl) => pl.vendorOrderId);
             delivery.vendorOrders = orderData.vendorOrders.filter((vo: any) => deliveryVendorOrderIds.includes(vo.id));
+          }
+          if (customerPhone) {
+            delivery.customerPhone = customerPhone;
           }
           return delivery;
         } catch (error: any) {
@@ -436,7 +445,7 @@ export class DeliveryService {
       if (!courier) throw new NotFoundError("courier_not_found");
 
       // Check courier availability and proximity if needed
-      await this.deliveryRepo.assignCourier(deliveryId, dto.courierId, connection); // Pass connection
+      await this.deliveryRepo.assignCourier(deliveryId, dto.courierId, this.assignedWindowMinutes, connection);
       await this.courierRepo.updateAvailability(dto.courierId, false, connection); // Pass connection // Courier becomes unavailable when assigned
 
       eventsToPublish.push(() =>
@@ -474,6 +483,57 @@ export class DeliveryService {
     };
 
     return transitions[currentStatus]?.includes(newStatus) || false;
+  }
+
+  async cancelDeliveryByCourier(deliveryId: string, courierId: string, reason: string): Promise<void> {
+    const delivery = await this.deliveryRepo.findById(deliveryId);
+    if (!delivery) throw new NotFoundError("delivery_not_found");
+    if (delivery.courierId !== courierId) throw new ValidationError("not_your_delivery");
+    if (delivery.status !== DeliveryStatus.ASSIGNED) throw new ValidationError("invalid_delivery_status_for_cancellation");
+
+    await this.deliveryRepo.update(deliveryId, { status: DeliveryStatus.FAILED });
+    await this.courierRepo.updateAvailability(courierId, true);
+
+    await this.publisher.publishDeliveryFailedByCourier({
+      deliveryId,
+      customerOrderId: delivery.customerOrderId,
+      customerId: delivery.customerId,
+      reason,
+    });
+  }
+
+  async cancelExpiredAssignedDeliveries(): Promise<void> {
+    const expired = await this.deliveryRepo.findExpiredAssigned();
+    for (const delivery of expired) {
+      let connection: PoolConnection | undefined;
+      try {
+        connection = await this.db.beginTransaction();
+        const locked = await this.deliveryRepo.findById(delivery.id, connection);
+        if (!locked || locked.status !== DeliveryStatus.ASSIGNED) {
+          await this.db.rollback(connection);
+          connection = undefined;
+          continue;
+        }
+
+        await this.deliveryRepo.update(delivery.id, { status: DeliveryStatus.FAILED }, connection);
+
+        if (delivery.courierId) {
+          await this.courierRepo.updateAvailability(delivery.courierId, true, connection);
+        }
+
+        await this.db.commit(connection);
+        connection = undefined;
+
+        await this.publisher.publishDeliveryFailed({
+          deliveryId: delivery.id,
+          customerOrderId: delivery.customerOrderId,
+          customerId: delivery.customerId,
+        });
+      } catch (err: any) {
+        if (connection) await this.db.rollback(connection);
+        Logger.warn(`[DeliveryService] Failed to cancel expired delivery ${delivery.id}: ${err.message}`);
+      }
+    }
   }
 
   async getVendorDeliveriesCount(vendorOrderIds: string[], periodStart?: Date, periodEnd?: Date): Promise<number> {

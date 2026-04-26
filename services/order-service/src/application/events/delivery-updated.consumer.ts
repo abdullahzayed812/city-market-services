@@ -10,6 +10,13 @@ export class DeliveryUpdatedConsumer implements EventSubscriber {
       const { customerOrderId, vendorOrdersIds } = event.payload;
       Logger.info(`Processing delivery update event ${event.type} for order ${customerOrderId}`);
 
+      if (event.type === EventType.DELIVERY_FAILED) {
+        if (customerOrderId) {
+          await this.orderService.cancelOrderDueToDeliveryFailure(customerOrderId);
+        }
+        return;
+      }
+
       if (!customerOrderId && !vendorOrdersIds.length) {
         Logger.warn(`Delivery event ${event.type} received without customerOrderId or vendorOrderId.`);
       }

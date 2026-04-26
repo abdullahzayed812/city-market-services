@@ -60,4 +60,21 @@ export class DeliveryPublisher {
   }): Promise<void> {
     await this.publish(EventType.COURIER_ASSIGNED, data);
   }
+
+  async publishDeliveryFailed(data: {
+    deliveryId: string;
+    customerOrderId: string;
+    customerId: string;
+  }): Promise<void> {
+    await this.publish(EventType.DELIVERY_FAILED, data);
+  }
+
+  async publishDeliveryFailedByCourier(data: {
+    deliveryId: string;
+    customerOrderId: string;
+    customerId: string;
+    reason: string;
+  }): Promise<void> {
+    await this.publish(EventType.DELIVERY_CANCELLED_BY_COURIER, data);
+  }
 }

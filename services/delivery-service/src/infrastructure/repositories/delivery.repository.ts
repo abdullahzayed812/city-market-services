@@ -176,6 +176,10 @@ export class DeliveryRepository implements IDeliveryRepository {
       fields.push("vendor_order_id = ?");
       values.push(data.vendorOrderId);
     }
+    if (data.assignedWindowExpiry !== undefined) {
+      fields.push("assigned_window_expiry = ?");
+      values.push(data.assignedWindowExpiry);
+    }
 
     if (fields.length === 0) return;
 
@@ -184,10 +188,22 @@ export class DeliveryRepository implements IDeliveryRepository {
     await conn.query(query, values);
   }
 
-  async assignCourier(id: string, courierId: string, connection?: PoolConnection): Promise<void> {
+  async assignCourier(id: string, courierId: string, windowMinutes: number, connection?: PoolConnection): Promise<void> {
     const conn = connection || this.pool;
-    const query = `UPDATE deliveries SET courier_id = ?, status = "${DeliveryStatus.ASSIGNED}", assigned_at = NOW() WHERE id = ?`;
-    await conn.execute(query, [courierId, id]);
+    const query = `UPDATE deliveries SET courier_id = ?, status = "${DeliveryStatus.ASSIGNED}", assigned_at = NOW(), assigned_window_expiry = DATE_ADD(NOW(), INTERVAL ? MINUTE) WHERE id = ?`;
+    await conn.execute(query, [courierId, windowMinutes, id]);
+  }
+
+  async findExpiredAssigned(connection?: PoolConnection): Promise<Delivery[]> {
+    const conn = connection || this.pool;
+    const query = `
+      SELECT d.*, c.full_name as courier_name, c.phone as courier_phone
+      FROM deliveries d
+      LEFT JOIN couriers c ON d.courier_id = c.id
+      WHERE d.status = "${DeliveryStatus.ASSIGNED}" AND d.assigned_window_expiry < NOW()
+    `;
+    const [rows] = await conn.execute<RowDataPacket[]>(query);
+    return this.mapRowsToDeliveries(rows, conn);
   }
 
   async countByVendorOrderIds(vendorOrderIds: string[], periodStart?: Date, periodEnd?: Date, connection?: PoolConnection): Promise<number> {
@@ -254,6 +270,7 @@ export class DeliveryRepository implements IDeliveryRepository {
       totalPrice: row.total_price ? parseFloat(row.total_price) : 0,
       itemsCount: row.items_count || 0,
       assignedAt: row.assigned_at,
+      assignedWindowExpiry: row.assigned_window_expiry,
       pickedUpAt: row.picked_up_at,
       deliveredAt: row.delivered_at,
       notes: row.notes,

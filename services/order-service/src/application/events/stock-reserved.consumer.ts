@@ -1,10 +1,11 @@
 import { Logger, Database } from "@city-market/shared/node";
-import { CustomerOrderStatus, VendorOrderStatus } from "@city-market/shared";
+import { CustomerOrderStatus, EventType } from "@city-market/shared";
 import { ICustomerOrderRepository } from "../../core/interfaces/customer-order.repository";
 import { IVendorOrderRepository } from "../../core/interfaces/vendor-order.repository";
 import { OrderStateManager } from "../services/order-state.manager";
 import { OrderPublisher } from "../../infrastructure/messaging/OrderPublisher";
-import { VendorHttpClient } from "../../infrastructure/http/vendor-http-client";
+
+const CONFIRMATION_TIMEOUT_MINUTES = parseInt(process.env.ORDER_CONFIRMATION_TIMEOUT_MINUTES || "15", 10);
 
 export class StockReservedConsumer {
   constructor(
@@ -13,7 +14,6 @@ export class StockReservedConsumer {
     private vendorOrderRepo: IVendorOrderRepository,
     private stateManager: OrderStateManager,
     private publisher: OrderPublisher,
-    private vendorClient: VendorHttpClient,
   ) { }
 
   async handle(event: any): Promise<void> {
@@ -31,39 +31,27 @@ export class StockReservedConsumer {
         return;
       }
 
-      // 1. Update Customer Order status
-      await this.customerOrderRepo.updateStatus(orderId, CustomerOrderStatus.PENDING_VENDOR_CONFIRMATION, connection);
+      const confirmationExpiry = new Date(Date.now() + CONFIRMATION_TIMEOUT_MINUTES * 60 * 1000);
+
+      // Move customer order to AWAITING_CUSTOMER_CONFIRMATION and set expiry
+      await this.customerOrderRepo.updateStatus(orderId, CustomerOrderStatus.AWAITING_CUSTOMER_CONFIRMATION, connection);
+      await this.customerOrderRepo.update(orderId, { confirmationExpiry }, connection);
       await this.stateManager.recordStatusChange(
         { customerOrderId: orderId },
-        CustomerOrderStatus.PENDING_VENDOR_CONFIRMATION,
-        "Stock reserved successfully",
+        CustomerOrderStatus.AWAITING_CUSTOMER_CONFIRMATION,
+        "Stock reserved — awaiting customer confirmation",
         connection,
       );
 
-      // 2. Update Vendor Orders status
-      const vendorOrders = await this.vendorOrderRepo.findByCustomerOrder(orderId, connection);
-      for (const vo of vendorOrders) {
-        if (vo.status === VendorOrderStatus.DRAFT) {
-          await this.vendorOrderRepo.updateStatus(vo.id, VendorOrderStatus.PENDING, connection);
-          await this.stateManager.recordStatusChange(
-            { vendorOrderId: vo.id },
-            VendorOrderStatus.PENDING,
-            "Stock reserved successfully",
-            connection,
-          );
+      // Vendor orders remain in DRAFT until customer confirms
+      // Notify the customer via WebSocket so they see the confirmation card
+      await this.publisher.publishGenericEvent(EventType.ORDER_AWAITING_CUSTOMER_CONFIRMATION, {
+        customerOrderId: orderId,
+        customerId: customerOrder.customerId,
+        confirmationExpiry,
+      });
 
-          // 3. Publish VENDOR_ORDER_CREATED event
-          const vendorInfo = await this.vendorClient.getVendor(vo.vendorId);
-          await this.publisher.publishVendorOrderCreated({
-            vendorOrderId: vo.id,
-            vendorId: vo.vendorId,
-            vendorUserId: vendorInfo?.userId,
-            customerOrderId: orderId,
-            customerId: customerOrder.customerId,
-          });
-        }
-      }
-      Logger.info(`[OrderService] Order ${orderId} moved to PENDING_VENDOR_CONFIRMATION`);
+      Logger.info(`[OrderService] Order ${orderId} moved to AWAITING_CUSTOMER_CONFIRMATION (expires ${confirmationExpiry.toISOString()})`);
     });
   }
 }

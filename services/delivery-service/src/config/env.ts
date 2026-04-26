@@ -9,10 +9,12 @@ export const config = ConfigLoader.load<{
   dbName: string;
   orderServiceUrl: string;
   vendorServiceUrl: string;
+  userServiceUrl: string;
   authServiceUrl: string;
   deliveryServiceClientId: string;
   deliveryServiceClientSecret: string;
   authServiceTokenUrl: string;
+  assignedWindowMinutes: number;
 }>({
   port: { env: "PORT", default: 3006 },
   dbHost: { env: "DB_HOST", default: "localhost" },
@@ -22,6 +24,8 @@ export const config = ConfigLoader.load<{
   dbName: { env: "DB_NAME", default: "delivery_db" },
   orderServiceUrl: { env: "ORDER_SERVICE_URL", default: "http://localhost:3005" },
   vendorServiceUrl: { env: "VENDOR_SERVICE_URL", default: "http://localhost:3003" },
+  userServiceUrl: { env: "USER_SERVICE_URL", default: "http://localhost:3002" },
+  assignedWindowMinutes: { env: "ASSIGNED_WINDOW_MINUTES", default: 15 },
   authServiceUrl: { env: "AUTH_SERVICE_URL", default: "http://localhost:3001" },
   deliveryServiceClientId: { env: "DELIVERY_SERVICE_CLIENT_ID", default: "delivery-service-id" },
   deliveryServiceClientSecret: { env: "DELIVERY_SERVICE_CLIENT_SECRET", required: true, sensitive: true },

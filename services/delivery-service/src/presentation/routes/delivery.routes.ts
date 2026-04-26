@@ -41,6 +41,11 @@ export const createDeliveryRoutes = (controller: DeliveryController): Router => 
     authorize(UserRole.COURIER, UserRole.ADMIN, UserRole.DELIVERY_MANAGER),
     controller.updateDeliveryStatus
   );
+  router.patch(
+    "/deliveries/:id/cancel-by-courier",
+    authorize(UserRole.COURIER),
+    controller.cancelDeliveryByCourier
+  );
   router.get("/deliveries", authorize(UserRole.ADMIN, UserRole.DELIVERY_MANAGER), controller.getAllDeliveries);
   router.get(
     "/deliveries-analytics",

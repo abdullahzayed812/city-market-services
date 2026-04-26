@@ -7,13 +7,7 @@ import { CatalogHttpClient, ProductInfo } from "../../infrastructure/http/catalo
 import { VendorHttpClient } from "../../infrastructure/http/vendor-http-client";
 import { OrderPublisher } from "../../infrastructure/messaging/OrderPublisher";
 import { OrderStateManager } from "./order-state.manager";
-import {
-  CustomerOrderStatus,
-  VendorOrderStatus,
-  ValidationError,
-  MeasurementType,
-  PricingStrategyFactory,
-} from "@city-market/shared";
+import { CustomerOrderStatus, VendorOrderStatus, ValidationError, MeasurementType, PricingStrategyFactory } from "@city-market/shared";
 import { randomUUID } from "crypto";
 import { CustomerOrder } from "../../core/entities/customer-order.entity";
 import { VendorOrder } from "../../core/entities/vendor-order.entity";
@@ -62,19 +56,8 @@ export class OrderCreationManager {
 
     const { totalSubtotal, totalCommissionAmount, vendorOrdersData } = this.calculateTotals(vendorItemsMap, tiers);
 
-    const customerOrder = await this.createCustomerOrderRecord(
-      dto,
-      totalSubtotal,
-      totalCommissionAmount,
-      vendorInfosMap,
-      connection!,
-    );
-    const createdVendorOrders = await this.createVendorOrderRecords(
-      customerOrder,
-      vendorOrdersData,
-      vendorInfosMap,
-      connection!,
-    );
+    const customerOrder = await this.createCustomerOrderRecords(dto, totalSubtotal, totalCommissionAmount, vendorInfosMap, connection!);
+    const createdVendorOrders = await this.createVendorOrderRecords(customerOrder, vendorOrdersData, vendorInfosMap, connection!);
 
     // Publish event for Catalog Service to reserve stock
     await this.publisher.publishOrderStockCheckRequested({
@@ -86,9 +69,7 @@ export class OrderCreationManager {
   }
 
   private async fetchAndValidateProducts(dto: CreateOrderDto, userId?: string) {
-    const productInfos = await Promise.all(
-      dto.items.map((item) => this.catalogClient.getVendorProduct(item.vendorProductId, userId)),
-    );
+    const productInfos = await Promise.all(dto.items.map((item) => this.catalogClient.getVendorProduct(item.vendorProductId, userId)));
 
     for (let i = 0; i < productInfos.length; i++) {
       const product = productInfos[i];
@@ -111,8 +92,7 @@ export class OrderCreationManager {
         if (requestedItem.quantity !== undefined) {
           throw new ValidationError("weight_product_cannot_have_quantity");
         }
-        const weightGrams =
-          requestedItem.weightGrams || (requestedItem.weight ? Math.round(requestedItem.weight * 1000) : undefined);
+        const weightGrams = requestedItem.weightGrams || (requestedItem.weight ? Math.round(requestedItem.weight * 1000) : undefined);
         if (weightGrams === undefined || weightGrams <= 0) throw new ValidationError("invalid_weight");
 
         const availableWeight = (product.stockWeightGrams || 0) - (product.reservedWeightGrams || 0);
@@ -129,8 +109,7 @@ export class OrderCreationManager {
     for (let i = 0; i < productInfos.length; i++) {
       const product = productInfos[i];
       const requestedItem = dto.items[i];
-      const amount =
-        product.measurementType === MeasurementType.UNIT ? requestedItem.quantity! : requestedItem.weightGrams!;
+      const amount = product.measurementType === MeasurementType.UNIT ? requestedItem.quantity! : requestedItem.weightGrams!;
       const vendorItems = vendorItemsMap.get(product.vendorId) || [];
       vendorItems.push({ product, amount });
       vendorItemsMap.set(product.vendorId, vendorItems);
@@ -164,10 +143,7 @@ export class OrderCreationManager {
         } as any);
       }
 
-      const { amount: commissionAmount, percentage: commissionPercentage } = CommissionCalculator.calculate(
-        vendorSubtotal,
-        tiers,
-      );
+      const { amount: commissionAmount, percentage: commissionPercentage } = CommissionCalculator.calculate(vendorSubtotal, tiers);
       totalSubtotal += vendorSubtotal;
       totalCommissionAmount += commissionAmount;
       vendorOrdersData.push({
@@ -183,7 +159,7 @@ export class OrderCreationManager {
     return { totalSubtotal, totalCommissionAmount, vendorOrdersData };
   }
 
-  private async createCustomerOrderRecord(
+  private async createCustomerOrderRecords(
     dto: CreateOrderDto,
     totalSubtotal: number,
     totalCommissionAmount: number,
@@ -215,21 +191,11 @@ export class OrderCreationManager {
     };
 
     const created = await this.customerOrderRepo.create(customerOrder, connection);
-    await this.stateManager.recordStatusChange(
-      { customerOrderId: customerOrder.id },
-      CustomerOrderStatus.DRAFT,
-      undefined,
-      connection,
-    );
+    await this.stateManager.recordStatusChange({ customerOrderId: customerOrder.id }, CustomerOrderStatus.DRAFT, undefined, connection);
     return created;
   }
 
-  private async createVendorOrderRecords(
-    customerOrder: CustomerOrder,
-    vendorOrdersData: any[],
-    vendorInfosMap: Map<string, any>,
-    connection: PoolConnection,
-  ) {
+  private async createVendorOrderRecords(customerOrder: CustomerOrder, vendorOrdersData: any[], vendorInfosMap: Map<string, any>, connection: PoolConnection) {
     const createdVendorOrders: (VendorOrder & { items: VendorOrderItem[] })[] = [];
 
     for (const voData of vendorOrdersData) {
@@ -247,12 +213,7 @@ export class OrderCreationManager {
       };
 
       await this.vendorOrderRepo.create(vendorOrder, connection);
-      await this.stateManager.recordStatusChange(
-        { vendorOrderId: vendorOrder.id },
-        VendorOrderStatus.DRAFT,
-        undefined,
-        connection,
-      );
+      await this.stateManager.recordStatusChange({ vendorOrderId: vendorOrder.id }, VendorOrderStatus.DRAFT, undefined, connection);
 
       const uniqueItems = this.mergeDuplicateItems(voData.items, vendorOrder.id);
       for (const item of uniqueItems) {
@@ -293,20 +254,4 @@ export class OrderCreationManager {
     }
     return Array.from(mergedItems.values());
   }
-
-  // private async handleStockOperations(dto: CreateOrderDto, productInfos: ProductInfo[], userId?: string) {
-  //   for (const item of dto.items) {
-  //     const product = productInfos.find((p) => p?.id === item.vendorProductId);
-  //     if (product?.measurementType === MeasurementType.UNIT) {
-  //       await this.catalogClient.checkAndDecrementStock(
-  //         item.vendorProductId,
-  //         item.quantity!,
-  //         userId,
-  //         product.measurementType,
-  //       );
-  //     } else if (product?.measurementType === MeasurementType.WEIGHT) {
-  //       await this.catalogClient.reserveWeightStock(item.vendorProductId, item.weightGrams!, userId);
-  //     }
-  //   }
-  // }
 }

@@ -36,14 +36,7 @@ const Deliveries = () => {
       queryClient.invalidateQueries({ queryKey: ["deliveries"] });
     };
 
-    const events = [
-      EventType.ORDER_READY,
-      EventType.DELIVERY_CREATED,
-      EventType.COURIER_ASSIGNED,
-      EventType.ORDER_PICKED_UP,
-      EventType.ORDER_ON_THE_WAY,
-      EventType.ORDER_DELIVERED,
-    ];
+    const events = [EventType.DELIVERY_CREATED, EventType.COURIER_ASSIGNED, EventType.ORDER_PICKED_UP, EventType.ORDER_ON_THE_WAY, EventType.ORDER_DELIVERED];
 
     events.forEach((event) => socket.on(event, handleUpdate));
 
@@ -53,8 +46,7 @@ const Deliveries = () => {
   }, [socket, queryClient]);
 
   const assignMutation = useMutation({
-    mutationFn: ({ deliveryId, courierId }: { deliveryId: string; courierId: string }) =>
-      deliveryService.assignCourier(deliveryId, { courierId }),
+    mutationFn: ({ deliveryId, courierId }: { deliveryId: string; courierId: string }) => deliveryService.assignCourier(deliveryId, { courierId }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["deliveries"] });
       queryClient.invalidateQueries({ queryKey: ["available-couriers"] });

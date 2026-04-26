@@ -18,11 +18,13 @@ export interface Delivery {
   totalPrice: number;
   itemsCount: number;
   assignedAt?: Date;
+  assignedWindowExpiry?: Date;
   pickedUpAt?: Date;
   deliveredAt?: Date;
   notes?: string;
   courierName?: string;
   courierPhone?: string;
+  customerPhone?: string;
   vendorOrders?: any[]; // Added to include items
   createdAt: Date;
   updatedAt: Date;

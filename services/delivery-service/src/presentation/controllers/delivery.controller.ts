@@ -125,6 +125,16 @@ export class DeliveryController {
     }
   };
 
+  cancelDeliveryByCourier = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      const courier = await this.deliveryService.getCourierByUserId(req.user!.userId);
+      await this.deliveryService.cancelDeliveryByCourier(req.params.id, courier.id, req.body.reason);
+      res.json(ApiResponse.success(null, "delivery_cancelled"));
+    } catch (error) {
+      next(error);
+    }
+  };
+
   getAllDeliveries = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
       const page = parseInt(req.query.page as string) || 1;

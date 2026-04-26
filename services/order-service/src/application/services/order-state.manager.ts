@@ -139,7 +139,11 @@ export class OrderStateManager {
 
   isValidCustomerStatusTransition(currentStatus: CustomerOrderStatus, newStatus: CustomerOrderStatus): boolean {
     const transitions: Record<CustomerOrderStatus, CustomerOrderStatus[]> = {
-      [CustomerOrderStatus.DRAFT]: [CustomerOrderStatus.PENDING_VENDOR_CONFIRMATION, CustomerOrderStatus.CANCELLED],
+      [CustomerOrderStatus.DRAFT]: [CustomerOrderStatus.AWAITING_CUSTOMER_CONFIRMATION, CustomerOrderStatus.CANCELLED],
+      [CustomerOrderStatus.AWAITING_CUSTOMER_CONFIRMATION]: [
+        CustomerOrderStatus.PENDING_VENDOR_CONFIRMATION,
+        CustomerOrderStatus.CANCELLED_BY_CUSTOMER,
+      ],
       [CustomerOrderStatus.PENDING_VENDOR_CONFIRMATION]: [
         CustomerOrderStatus.PREPARING,
         CustomerOrderStatus.WAITING_CUSTOMER_DECISION,
@@ -157,17 +161,20 @@ export class OrderStateManager {
       [CustomerOrderStatus.IN_DELIVERY]: [CustomerOrderStatus.COMPLETED, CustomerOrderStatus.CANCELLED],
       [CustomerOrderStatus.COMPLETED]: [],
       [CustomerOrderStatus.CANCELLED]: [],
+      [CustomerOrderStatus.CANCELLED_BY_CUSTOMER]: [],
     };
     return transitions[currentStatus]?.includes(newStatus) || false;
   }
 
   private getEventTypeForCustomerStatus(status: CustomerOrderStatus): EventType | null {
     const mapping: Partial<Record<CustomerOrderStatus, EventType>> = {
+      [CustomerOrderStatus.AWAITING_CUSTOMER_CONFIRMATION]: EventType.ORDER_AWAITING_CUSTOMER_CONFIRMATION,
       [CustomerOrderStatus.PREPARING]: EventType.ORDER_PREPARING,
       [CustomerOrderStatus.READY]: EventType.ORDER_READY,
       [CustomerOrderStatus.IN_DELIVERY]: EventType.ORDER_ON_THE_WAY,
       [CustomerOrderStatus.COMPLETED]: EventType.ORDER_DELIVERED,
       [CustomerOrderStatus.CANCELLED]: EventType.ORDER_CANCELLED,
+      [CustomerOrderStatus.CANCELLED_BY_CUSTOMER]: EventType.ORDER_CANCELLED,
     };
     return mapping[status] || null;
   }

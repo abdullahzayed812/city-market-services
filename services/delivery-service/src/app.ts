@@ -10,6 +10,7 @@ import { EventType } from "@city-market/shared";
 import { OrderReadyConsumer } from "./application/events/order-ready.consumer";
 import { OrderHttpClient } from "./infrastructure/http/order-http-client";
 import { VendorHttpClient } from "./infrastructure/http/vendor-http-client";
+import { UserHttpClient } from "./infrastructure/http/user-http-client";
 import { DeliveryPublisher } from "./infrastructure/messaging/DeliveryPublisher";
 import { config } from "./config/env";
 
@@ -33,6 +34,7 @@ export const createApp = () => {
 
   const orderClient = new OrderHttpClient(config.orderServiceUrl);
   const vendorClient = new VendorHttpClient(config.vendorServiceUrl);
+  const userClient = new UserHttpClient(config.userServiceUrl);
   const publisher = new DeliveryPublisher(rabbitMQBus);
 
   const deliveryService = new DeliveryService(
@@ -41,10 +43,20 @@ export const createApp = () => {
     publisher,
     orderClient,
     vendorClient,
-    db // Added
+    userClient,
+    db,
+    config.assignedWindowMinutes,
   );
 
   const deliveryController = new DeliveryController(deliveryService);
+
+  // Cancel deliveries that exceeded the courier assignment window
+  const EXPIRY_CHECK_INTERVAL_MS = 60_000;
+  setInterval(() => {
+    deliveryService.cancelExpiredAssignedDeliveries().catch((err) =>
+      console.error("[DeliveryService] Assignment expiry check failed:", err.message),
+    );
+  }, EXPIRY_CHECK_INTERVAL_MS);
 
   // Register Event Consumers
   const orderReadyConsumer = new OrderReadyConsumer(deliveryService);

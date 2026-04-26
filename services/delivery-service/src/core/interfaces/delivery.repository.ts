@@ -10,6 +10,7 @@ export interface IDeliveryRepository {
   findByStatus(status: string, connection?: any): Promise<Delivery[]>;
   findAll(limit: number, offset: number, connection?: any): Promise<Delivery[]>;
   update(id: string, data: Partial<Delivery>, connection?: any): Promise<void>;
-  assignCourier(id: string, courierId: string, connection?: any): Promise<void>;
+  assignCourier(id: string, courierId: string, windowMinutes: number, connection?: any): Promise<void>;
+  findExpiredAssigned(connection?: any): Promise<Delivery[]>;
   countByVendorOrderIds(vendorOrderIds: string[], periodStart?: Date, periodEnd?: Date, connection?: any): Promise<number>;
 }
