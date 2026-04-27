@@ -115,6 +115,28 @@ const seedDb = async () => {
         role: "DELIVERY_MANAGER",
         is_active: true,
       },
+      {
+        id: SEED_DATA.USERS.DELIVERY_MANAGER_2,
+        email: "deliverymanager2@citymarket.com",
+        password_hash: passwordHash,
+        role: "DELIVERY_MANAGER",
+        is_active: true,
+      },
+      {
+        id: SEED_DATA.USERS.DELIVERY_MANAGER_3,
+        email: "deliverymanager3@citymarket.com",
+        password_hash: passwordHash,
+        role: "DELIVERY_MANAGER",
+        is_active: true,
+      },
+      { id: SEED_DATA.USERS.COURIER_SARA, email: "courier.sara@citymarket.com", password_hash: passwordHash, role: "COURIER", is_active: true },
+      { id: SEED_DATA.USERS.COURIER_OMAR, email: "courier.omar@citymarket.com", password_hash: passwordHash, role: "COURIER", is_active: true },
+      { id: SEED_DATA.USERS.COURIER_LAYLA, email: "courier.layla@citymarket.com", password_hash: passwordHash, role: "COURIER", is_active: true },
+      { id: SEED_DATA.USERS.COURIER_KARIM, email: "courier.karim@citymarket.com", password_hash: passwordHash, role: "COURIER", is_active: true },
+      { id: SEED_DATA.USERS.COURIER_NOUR, email: "courier.nour@citymarket.com", password_hash: passwordHash, role: "COURIER", is_active: true },
+      { id: SEED_DATA.USERS.COURIER_HASSAN, email: "courier.hassan@citymarket.com", password_hash: passwordHash, role: "COURIER", is_active: true },
+      { id: SEED_DATA.USERS.COURIER_DINA, email: "courier.dina@citymarket.com", password_hash: passwordHash, role: "COURIER", is_active: true },
+      { id: SEED_DATA.USERS.COURIER_YASSER, email: "courier.yasser@citymarket.com", password_hash: passwordHash, role: "COURIER", is_active: true },
     ];
 
     for (const user of users) {

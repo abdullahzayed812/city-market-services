@@ -1,0 +1,2 @@
+ALTER TABLE users
+  ADD COLUMN active_session VARCHAR(64) NULL DEFAULT NULL;

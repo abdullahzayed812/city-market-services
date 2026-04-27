@@ -20,6 +20,7 @@ export interface UserTokenPayload {
   userId: string;
   email: string;
   role: UserRole;
+  sessionId?: string;
   iat?: number;
   exp?: number;
 }

@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useSocket } from "@/contexts/SocketContext";
 import { useTranslation } from "react-i18next";
+import { useToast } from "@/hooks/use-toast";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { deliveryService } from "@/services/api/delivery.service";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,6 +14,7 @@ import AssignCourierDialog from "@/features/deliveries/components/AssignCourierD
 
 const Deliveries = () => {
   const { t } = useTranslation();
+  const { toast } = useToast();
   const queryClient = useQueryClient();
   const [assigningDeliveryId, setAssigningDeliveryId] = useState<string | null>(null);
   const [isAssignDialogOpen, setIsAssignDialogOpen] = useState(false);
@@ -25,6 +27,11 @@ const Deliveries = () => {
   const { data: availableCouriers = [] } = useQuery<Courier[] | undefined>({
     queryKey: ["available-couriers"],
     queryFn: deliveryService.getAvailableCouriers,
+  });
+
+  const { data: myOffice } = useQuery({
+    queryKey: ["my-office"],
+    queryFn: deliveryService.getMyOffice,
   });
 
   const { socket } = useSocket();
@@ -44,6 +51,21 @@ const Deliveries = () => {
       events.forEach((event) => socket.off(event, handleUpdate));
     };
   }, [socket, queryClient]);
+
+  const acceptMutation = useMutation({
+    mutationFn: (deliveryId: string) => deliveryService.acceptDelivery(deliveryId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["deliveries"] });
+      toast({ title: t("common.success", "Success"), description: t("deliveries.delivery_accepted", "Delivery accepted") });
+    },
+    onError: (err: any) => {
+      toast({
+        title: t("common.error", "Error"),
+        description: err.response?.data?.message || t("deliveries.failed_accept", "Failed to accept delivery"),
+        variant: "destructive",
+      });
+    },
+  });
 
   const assignMutation = useMutation({
     mutationFn: ({ deliveryId, courierId }: { deliveryId: string; courierId: string }) => deliveryService.assignCourier(deliveryId, { courierId }),
@@ -74,6 +96,8 @@ const Deliveries = () => {
     switch (status) {
       case DeliveryStatus.PENDING:
         return "bg-yellow-100 text-yellow-800";
+      case DeliveryStatus.ACCEPTED:
+        return "bg-sky-100 text-sky-800";
       case DeliveryStatus.ASSIGNED:
         return "bg-blue-100 text-blue-800";
       case DeliveryStatus.PICKED_UP:
@@ -157,13 +181,22 @@ const Deliveries = () => {
 
                     {delivery.status === DeliveryStatus.PENDING && (
                       <Button
+                        className="w-full mt-4 bg-sky-600 hover:bg-sky-700"
+                        onClick={() => acceptMutation.mutate(delivery.id)}
+                        disabled={acceptMutation.isPending}
+                      >
+                        {t("deliveries.accept", "Accept")}
+                      </Button>
+                    )}
+                    {delivery.status === DeliveryStatus.ACCEPTED && myOffice && delivery.deliveryOfficeId === myOffice.id && (
+                      <Button
                         className="w-full mt-4"
                         onClick={() => {
                           setAssigningDeliveryId(delivery.id);
                           setIsAssignDialogOpen(true);
                         }}
                       >
-                        {t("common.assign")}
+                        {t("deliveries.assign_courier", "Assign Courier")}
                       </Button>
                     )}
                   </div>

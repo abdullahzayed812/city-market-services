@@ -1,10 +1,23 @@
 import express from "express";
 import cors from "cors";
 import { createDeliveryRoutes } from "./presentation/routes/delivery.routes";
+import { createCourierSettlementRoutes } from "./presentation/routes/courier-settlement.routes";
+import { createDeliveryOfficeSettlementRoutes } from "./presentation/routes/delivery-office-settlement.routes";
+import { createDeliveryFeeTierRoutes } from "./presentation/routes/delivery-fee-tier.routes";
 import { DeliveryController } from "./presentation/controllers/delivery.controller";
+import { CourierSettlementController } from "./presentation/controllers/courier-settlement.controller";
+import { DeliveryOfficeSettlementController } from "./presentation/controllers/delivery-office-settlement.controller";
+import { DeliveryFeeTierController } from "./presentation/controllers/delivery-fee-tier.controller";
 import { DeliveryService } from "./application/services/delivery.service";
+import { CourierSettlementService } from "./application/services/courier-settlement.service";
+import { DeliveryOfficeSettlementService } from "./application/services/delivery-office-settlement.service";
+import { DeliveryFeeTierService } from "./application/services/delivery-fee-tier.service";
 import { CourierRepository } from "./infrastructure/repositories/courier.repository";
 import { DeliveryRepository } from "./infrastructure/repositories/delivery.repository";
+import { CourierSettlementRepository } from "./infrastructure/repositories/courier-settlement.repository";
+import { DeliveryOfficeSettlementRepository } from "./infrastructure/repositories/delivery-office-settlement.repository";
+import { DeliveryOfficeRepository } from "./infrastructure/repositories/delivery-office.repository";
+import { DeliveryFeeTierRepository } from "./infrastructure/repositories/delivery-fee-tier.repository";
 import { errorHandler, Database, authenticate, rabbitMQBus, correlation } from "@city-market/shared/node";
 import { EventType } from "@city-market/shared";
 import { OrderReadyConsumer } from "./application/events/order-ready.consumer";
@@ -31,6 +44,9 @@ export const createApp = () => {
 
   const courierRepo = new CourierRepository(db);
   const deliveryRepo = new DeliveryRepository(db);
+  const settlementRepo = new CourierSettlementRepository(db);
+  const deliveryOfficeRepo = new DeliveryOfficeRepository(db);
+  const feeTierRepo = new DeliveryFeeTierRepository(db);
 
   const orderClient = new OrderHttpClient(config.orderServiceUrl);
   const vendorClient = new VendorHttpClient(config.vendorServiceUrl);
@@ -46,9 +62,19 @@ export const createApp = () => {
     userClient,
     db,
     config.assignedWindowMinutes,
+    feeTierRepo,
+    deliveryOfficeRepo,
   );
 
   const deliveryController = new DeliveryController(deliveryService);
+
+  const officeSettlementRepo = new DeliveryOfficeSettlementRepository(db);
+
+  const settlementService = new CourierSettlementService(settlementRepo, deliveryRepo, deliveryOfficeRepo, courierRepo, db);
+  const settlementController = new CourierSettlementController(settlementService);
+
+  const officeSettlementService = new DeliveryOfficeSettlementService(officeSettlementRepo, deliveryOfficeRepo, deliveryRepo, db);
+  const officeSettlementController = new DeliveryOfficeSettlementController(officeSettlementService);
 
   // Cancel deliveries that exceeded the courier assignment window
   const EXPIRY_CHECK_INTERVAL_MS = 60_000;
@@ -66,7 +92,13 @@ export const createApp = () => {
 
   app.use(authenticate);
 
-  app.use("/", createDeliveryRoutes(deliveryController));
+  const feeTierService = new DeliveryFeeTierService(feeTierRepo);
+  const feeTierController = new DeliveryFeeTierController(feeTierService);
+
+  app.use("/", createDeliveryRoutes(deliveryController, deliveryOfficeRepo));
+  app.use("/courier-settlements", createCourierSettlementRoutes(settlementController));
+  app.use("/office-settlements", createDeliveryOfficeSettlementRoutes(officeSettlementController));
+  app.use("/delivery-fee-tiers", createDeliveryFeeTierRoutes(feeTierController));
 
   app.get("/health", (req, res) => {
     res.json({ status: "healthy", service: "delivery-service" });

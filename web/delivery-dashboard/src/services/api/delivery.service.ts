@@ -30,13 +30,67 @@ export const deliveryService = {
     return response.data?.data;
   },
 
+  getMyOffice: async () => {
+    const response = await apiClient.get<ApiResponse<any>>("/delivery/offices/mine");
+    return response.data?.data;
+  },
+
+  acceptDelivery: async (deliveryId: string) => {
+    const response = await apiClient.patch<ApiResponse<null>>(`/delivery/deliveries/${deliveryId}/accept`, {});
+    return response.data?.data;
+  },
+
   assignCourier: async (deliveryId: string, body: AssignCourierDto) => {
     const response = await apiClient.post<ApiResponse<null>>(`/delivery/deliveries/${deliveryId}/assign`, body);
     return response.data?.data;
   },
 
-  // updateDeliveryStatus: async (id: string, status: string) => {
-  //   const response = await apiClient.patch(`/delivery/deliveries/${id}/status`, { status });
-  //   return response.data?.data;
-  // },
+  // Office Settlements
+  getOfficePendingEarnings: async () => {
+    const response = await apiClient.get<ApiResponse<any>>("/delivery/office-settlements/pending");
+    return response.data?.data;
+  },
+
+  getOfficeSettlements: async (limit = 10, offset = 0) => {
+    const response = await apiClient.get<ApiResponse<any[]>>(`/delivery/office-settlements?limit=${limit}&offset=${offset}`);
+    return response.data?.data;
+  },
+
+  createOfficeSettlement: async (body: { periodStart: string; periodEnd: string; notes?: string }) => {
+    const response = await apiClient.post<ApiResponse<any>>("/delivery/office-settlements", body);
+    return response.data?.data;
+  },
+
+  markOfficeSettlementPaid: async (id: string) => {
+    const response = await apiClient.patch<ApiResponse<null>>(`/delivery/office-settlements/${id}/mark-paid`, {});
+    return response.data?.data;
+  },
+
+  // Courier Settlements
+  getAllCouriersPendingEarnings: async () => {
+    const response = await apiClient.get<ApiResponse<any[]>>("/delivery/courier-settlements/all-pending");
+    return response.data?.data;
+  },
+
+  getCourierSettlements: async (courierId?: string, limit = 10, offset = 0) => {
+    const params = new URLSearchParams({ limit: String(limit), offset: String(offset) });
+    if (courierId) params.set("courierId", courierId);
+    const response = await apiClient.get<ApiResponse<any[]>>(`/delivery/courier-settlements?${params}`);
+    return response.data?.data;
+  },
+
+  createCourierSettlement: async (body: { courierId: string; periodStart: string; periodEnd: string; notes?: string }) => {
+    const response = await apiClient.post<ApiResponse<any>>("/delivery/courier-settlements", body);
+    return response.data?.data;
+  },
+
+  markCourierSettlementPaid: async (id: string) => {
+    const response = await apiClient.patch<ApiResponse<null>>(`/delivery/courier-settlements/${id}/mark-paid`, {});
+    return response.data?.data;
+  },
+
+  getCourierPendingEarnings: async (courierId: string) => {
+    const response = await apiClient.get<ApiResponse<any>>(`/delivery/courier-settlements/courier/${courierId}/pending`);
+    return response.data?.data;
+  },
 };

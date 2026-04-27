@@ -13,6 +13,7 @@ export interface Delivery {
   customerOrderId: string;
   vendorOrderId?: string;
   courierId?: string;
+  deliveryOfficeId?: string;
   status: DeliveryStatus;
   pickupLocations: PickupLocation[];
   deliveryAddress: string;

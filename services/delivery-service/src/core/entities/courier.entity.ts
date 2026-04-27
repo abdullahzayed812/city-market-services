@@ -1,6 +1,7 @@
 export interface Courier {
   id: string;
   userId: string;
+  deliveryOfficeId?: string;
   fullName: string;
   phone: string;
   vehicleType?: string;

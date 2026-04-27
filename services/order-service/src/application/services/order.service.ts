@@ -4,8 +4,6 @@ import { IVendorOrderRepository } from "../../core/interfaces/vendor-order.repos
 import { IVendorOrderItemRepository } from "../../core/interfaces/vendor-order-item.repository";
 import { IOrderItemProposalRepository } from "../../core/interfaces/order-item-proposal.repository";
 import { IOrderStatusHistoryRepository } from "../../core/interfaces/order-status-history.repository";
-import { ICustomerPenaltyRepository } from "../../core/interfaces/customer-penalty.repository";
-import { CustomerPenalty } from "../../core/entities/customer-penalty.entity";
 import { CustomerOrder } from "../../core/entities/customer-order.entity";
 import { VendorOrder } from "../../core/entities/vendor-order.entity";
 import { VendorOrderItem } from "../../core/entities/vendor-order-item.entity";
@@ -20,9 +18,9 @@ import {
   EventType,
 } from "@city-market/shared";
 import { Database, Logger } from "@city-market/shared/node";
-import { randomUUID } from "crypto";
 import { CatalogHttpClient } from "../../infrastructure/http/catalog-http-client";
 import { VendorHttpClient } from "../../infrastructure/http/vendor-http-client";
+import { UserHttpClient } from "../../infrastructure/http/user-http-client";
 import { OrderPublisher } from "../../infrastructure/messaging/OrderPublisher";
 
 // Sub-services/Managers
@@ -51,7 +49,7 @@ export class OrderService {
     private publisher: OrderPublisher,
     private commissionTierService: CommissionTierService,
     private db: Database,
-    private penaltyRepo: ICustomerPenaltyRepository,
+    private userClient: UserHttpClient,
   ) {
     this.stateManager = new OrderStateManager(
       customerOrderRepo,
@@ -90,8 +88,10 @@ export class OrderService {
   }
 
   async createOrder(dto: CreateOrderDto, userId?: string): Promise<OrderWithItems> {
-    const hasPenalty = await this.penaltyRepo.hasActivePenalty(dto.customerId);
-    if (hasPenalty) throw new ValidationError("cod_blocked_due_to_penalty");
+    if (userId) {
+      const hasPenalty = await this.userClient.hasActivePenalty(userId);
+      if (hasPenalty) throw new ValidationError("cod_blocked_due_to_penalty");
+    }
 
     return this.db.withTransaction(async (connection) => {
       const result = await this.creationManager.create(dto, userId, connection);
@@ -404,75 +404,6 @@ export class OrderService {
 
     await this.publisher.publishOrderStockReleaseRequested({ orderId, items });
     await this.publisher.publishOrderCancelled(orderId, customerId);
-  }
-
-  async cancelOrderAndPenalizeCustomer(
-    customerOrderId: string,
-    customerId: string,
-    deliveryId: string,
-    reason: string,
-  ): Promise<void> {
-    return this.db.withTransaction(async (connection) => {
-      const co = await this.customerOrderRepo.findByIdWithLock(customerOrderId, connection);
-      if (!co) return;
-
-      const terminalStatuses: CustomerOrderStatus[] = [
-        CustomerOrderStatus.COMPLETED,
-        CustomerOrderStatus.CANCELLED,
-        CustomerOrderStatus.CANCELLED_BY_CUSTOMER,
-      ];
-      if (terminalStatuses.includes(co.status)) return;
-
-      await this.customerOrderRepo.updateStatus(customerOrderId, CustomerOrderStatus.CANCELLED, connection);
-      await this.stateManager.recordStatusChange(
-        { customerOrderId },
-        CustomerOrderStatus.CANCELLED,
-        reason,
-        connection,
-      );
-
-      const vendorOrders = await this.vendorOrderRepo.findByCustomerOrder(customerOrderId, connection);
-      const items: any[] = [];
-      for (const vo of vendorOrders) {
-        const cancelableStatuses: VendorOrderStatus[] = [
-          VendorOrderStatus.PENDING,
-          VendorOrderStatus.CONFIRMED,
-          VendorOrderStatus.PROPOSAL_SENT,
-        ];
-        if (cancelableStatuses.includes(vo.status as VendorOrderStatus)) {
-          await this.vendorOrderRepo.updateStatus(vo.id, VendorOrderStatus.CANCELLED, connection);
-          await this.stateManager.recordStatusChange(
-            { vendorOrderId: vo.id },
-            VendorOrderStatus.CANCELLED,
-            reason,
-            connection,
-          );
-        }
-        const voItems = await this.vendorOrderItemRepo.findByVendorOrder(vo.id, connection);
-        for (const item of voItems) {
-          items.push({
-            vendorProductId: item.vendorProductId,
-            quantity: item.quantity,
-            requestedWeightGrams: item.requestedWeightGrams,
-            vendorId: vo.vendorId,
-          });
-        }
-      }
-
-      const penalty: CustomerPenalty = {
-        id: randomUUID(),
-        customerId,
-        customerOrderId,
-        deliveryId,
-        reason,
-        isActive: true,
-        createdAt: new Date(),
-      };
-      await this.penaltyRepo.create(penalty, connection);
-
-      await this.publisher.publishOrderStockReleaseRequested({ orderId: customerOrderId, items });
-      await this.publisher.publishOrderCancelled(customerOrderId, co.customerId);
-    });
   }
 
   async cancelOrderDueToDeliveryFailure(customerOrderId: string): Promise<void> {

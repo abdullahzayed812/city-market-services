@@ -6,6 +6,7 @@ export interface User {
   passwordHash: string;
   role: UserRole;
   isActive: boolean;
+  activeSession?: string | null;
   createdAt: Date;
   updatedAt: Date;
 }

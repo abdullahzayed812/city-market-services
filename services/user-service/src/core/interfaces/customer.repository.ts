@@ -6,4 +6,11 @@ export interface ICustomerRepository {
   findByUserId(userId: string): Promise<Customer | null>;
   findByIds(ids: string[]): Promise<Customer[]>;
   update(id: string, data: Partial<Customer>): Promise<void>;
+  updateDeviceInfo(id: string, info: {
+    deviceId: string;
+    devicePlatform: string;
+    deviceModel?: string;
+    deviceAppVersion?: string;
+    deviceIp?: string;
+  }): Promise<void>;
 }

@@ -107,9 +107,18 @@ export class DeliveryController {
     }
   };
 
+  acceptDelivery = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      await this.deliveryService.acceptDelivery(req.params.id, req.user!.userId);
+      res.json(ApiResponse.success(null, "delivery_accepted"));
+    } catch (error) {
+      next(error);
+    }
+  };
+
   assignCourier = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
-      await this.deliveryService.assignCourier(req.params.id, req.body);
+      await this.deliveryService.assignCourier(req.params.id, req.body, req.user?.userId);
       res.json(ApiResponse.success(null, "courier_assigned"));
     } catch (error) {
       next(error);

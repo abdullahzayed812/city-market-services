@@ -17,9 +17,11 @@ export class DeliveryRepository implements IDeliveryRepository {
     const conn = connection || this.pool;
     const query = `
       INSERT INTO deliveries (
-        id, customer_id, customer_order_id, vendor_order_id, status, delivery_address,
-        delivery_latitude, delivery_longitude, total_price, items_count
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        id, customer_id, customer_order_id, vendor_order_id, status,
+        delivery_address, delivery_latitude, delivery_longitude,
+        total_price, items_count,
+        delivery_fee, courier_fee_percentage, courier_fee_amount
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
     await conn.execute(query, [
       delivery.id,
@@ -32,6 +34,9 @@ export class DeliveryRepository implements IDeliveryRepository {
       delivery.deliveryLongitude || null,
       delivery.totalPrice || 0,
       delivery.itemsCount || 0,
+      delivery.deliveryFee || 0,
+      delivery.courierFeePercentage ?? null,
+      delivery.courierFeeAmount || 0,
     ]);
 
     // Insert into delivery_pickup_locations table
@@ -180,6 +185,10 @@ export class DeliveryRepository implements IDeliveryRepository {
       fields.push("assigned_window_expiry = ?");
       values.push(data.assignedWindowExpiry);
     }
+    if (data.deliveryOfficeId !== undefined) {
+      fields.push("delivery_office_id = ?");
+      values.push(data.deliveryOfficeId);
+    }
 
     if (fields.length === 0) return;
 
@@ -255,6 +264,36 @@ export class DeliveryRepository implements IDeliveryRepository {
     );
   }
 
+  async acceptDelivery(id: string, officeId: string, connection?: any): Promise<boolean> {
+    const conn = connection || this.pool;
+    const [result]: any = await conn.execute(
+      `UPDATE deliveries SET delivery_office_id = ?, status = 'ACCEPTED'
+       WHERE id = ? AND status = 'PENDING' AND delivery_office_id IS NULL`,
+      [officeId, id],
+    );
+    return result.affectedRows > 0;
+  }
+
+  async markDeliveriesAsCourierSettled(deliveryIds: string[], settlementId: string, connection?: any): Promise<void> {
+    if (deliveryIds.length === 0) return;
+    const conn = connection || this.pool;
+    const placeholders = deliveryIds.map(() => "?").join(", ");
+    await (conn as any).query(
+      `UPDATE deliveries SET courier_settlement_id = ? WHERE id IN (${placeholders})`,
+      [settlementId, ...deliveryIds],
+    );
+  }
+
+  async markDeliveriesAsOfficeSettled(deliveryIds: string[], settlementId: string, connection?: any): Promise<void> {
+    if (deliveryIds.length === 0) return;
+    const conn = connection || this.pool;
+    const placeholders = deliveryIds.map(() => "?").join(", ");
+    await (conn as any).query(
+      `UPDATE deliveries SET office_settlement_id = ? WHERE id IN (${placeholders})`,
+      [settlementId, ...deliveryIds],
+    );
+  }
+
   private mapToEntity(row: any): Delivery {
     return {
       id: row.id,
@@ -262,13 +301,19 @@ export class DeliveryRepository implements IDeliveryRepository {
       customerOrderId: row.customer_order_id,
       vendorOrderId: row.vendor_order_id,
       courierId: row.courier_id,
+      deliveryOfficeId: row.delivery_office_id ?? undefined,
       status: row.status,
-      pickupLocations: [], // Will be populated by separate query
+      deliveryFee: row.delivery_fee ? parseFloat(row.delivery_fee) : 0,
+      courierFeePercentage: row.courier_fee_percentage != null ? parseFloat(row.courier_fee_percentage) : undefined,
+      courierFeeAmount: row.courier_fee_amount ? parseFloat(row.courier_fee_amount) : 0,
+      pickupLocations: [],
       deliveryAddress: row.delivery_address,
       deliveryLatitude: row.delivery_latitude,
       deliveryLongitude: row.delivery_longitude,
       totalPrice: row.total_price ? parseFloat(row.total_price) : 0,
       itemsCount: row.items_count || 0,
+      officeSettlementId: row.office_settlement_id ?? undefined,
+      courierSettlementId: row.courier_settlement_id ?? undefined,
       assignedAt: row.assigned_at,
       assignedWindowExpiry: row.assigned_window_expiry,
       pickedUpAt: row.picked_up_at,

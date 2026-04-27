@@ -23,7 +23,7 @@ const loadedConfig = ConfigLoader.load<{
   jwtAccessSecret: { env: "JWT_ACCESS_SECRET", required: true, sensitive: true },
   jwtRefreshSecret: { env: "JWT_REFRESH_SECRET", required: true, sensitive: true },
   jwtServiceAccessSecret: { env: "JWT_SERVICE_ACCESS_SECRET", required: true, sensitive: true },
-  jwtAccessExpiry: { env: "JWT_ACCESS_EXPIRY", default: "7d" },
+  jwtAccessExpiry: { env: "JWT_ACCESS_EXPIRY", default: "15m" },
   jwtRefreshExpiry: { env: "JWT_REFRESH_EXPIRY", default: "7d" },
   jwtServiceAccessExpiry: { env: "JWT_SERVICE_ACCESS_EXPIRY", default: "15m" },
 });

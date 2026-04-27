@@ -9,6 +9,7 @@ import VendorsManagement from "./pages/VendorsManagement.tsx";
 import ProductsManagement from "./pages/ProductsManagement.tsx";
 import FinancialAnalytics from "./pages/FinancialAnalytics.tsx";
 import CommissionTiers from "./pages/CommissionTiers.tsx";
+import DeliveryFeeTiers from "./pages/DeliveryFeeTiers.tsx";
 import LoginPage from "./pages/LoginPage.tsx";
 import ProtectedRoute from "./components/ProtectedRoute.tsx";
 import { AuthProvider } from "./components/AuthProvider.tsx";
@@ -38,6 +39,7 @@ function App() {
               <Route path="couriers" element={<CouriersManagement />} />
               <Route path="financial-analytics" element={<FinancialAnalytics />} />
               <Route path="commission-tiers" element={<CommissionTiers />} />
+              <Route path="delivery-fee-tiers" element={<DeliveryFeeTiers />} />
               <Route path="categories" element={<CategoriesManagement />} />
               <Route path="settings" element={<div>Settings Page (Coming Soon)</div>} />
             </Route>

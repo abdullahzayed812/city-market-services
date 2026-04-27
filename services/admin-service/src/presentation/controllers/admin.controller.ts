@@ -454,6 +454,134 @@ export class AdminController {
     }
   };
 
+  // Delivery Offices
+  getAllDeliveryOffices = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      const result = await this.adminService.getAllDeliveryOffices(req.user!.userId);
+      res.json(result);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  // Courier Settlements
+  getCourierPendingEarnings = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      const result = await this.adminService.getCourierPendingEarnings(req.params.courierId, req.user!.userId);
+      res.json(result);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  getCourierSettlements = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      const courierId = req.query.courierId as string | undefined;
+      const limit = parseInt(req.query.limit as string) || 10;
+      const offset = parseInt(req.query.offset as string) || 0;
+      const result = await this.adminService.getCourierSettlements(courierId, limit, offset, req.user!.userId);
+      res.json(result);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  createCourierSettlement = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      const result = await this.adminService.createCourierSettlement(req.body, req.user!.userId);
+      res.json(result);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  markCourierSettlementPaid = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      const result = await this.adminService.markCourierSettlementPaid(req.params.id, req.user!.userId);
+      res.json(result);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  // Office Settlements
+  getOfficePendingEarnings = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      const deliveryOfficeId = req.query.deliveryOfficeId as string | undefined;
+      const result = await this.adminService.getOfficePendingEarnings(deliveryOfficeId, req.user!.userId);
+      res.json(result);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  getOfficeSettlements = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      const deliveryOfficeId = req.query.deliveryOfficeId as string | undefined;
+      const limit = parseInt(req.query.limit as string) || 10;
+      const offset = parseInt(req.query.offset as string) || 0;
+      const result = await this.adminService.getOfficeSettlements(deliveryOfficeId, limit, offset, req.user!.userId);
+      res.json(result);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  createOfficeSettlement = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      const result = await this.adminService.createOfficeSettlement(req.body, req.user!.userId);
+      res.json(result);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  markOfficeSettlementPaid = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      const result = await this.adminService.markOfficeSettlementPaid(req.params.id, req.user!.userId);
+      res.json(result);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  // Delivery Fee Tiers
+  getAllDeliveryFeeTiers = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      const result = await this.adminService.getAllDeliveryFeeTiers(req.user!.userId);
+      res.json(result);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  createDeliveryFeeTier = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      const result = await this.adminService.createDeliveryFeeTier(req.body, req.user!.userId);
+      res.json(result);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  updateDeliveryFeeTier = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      const result = await this.adminService.updateDeliveryFeeTier(req.params.id, req.body, req.user!.userId);
+      res.json(result);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  deleteDeliveryFeeTier = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      const result = await this.adminService.deleteDeliveryFeeTier(req.params.id, req.user!.userId);
+      res.json(result);
+    } catch (error) {
+      next(error);
+    }
+  };
+
   // Settlement Management
   getVendorPendingEarnings = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {

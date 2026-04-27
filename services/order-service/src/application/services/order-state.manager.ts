@@ -69,11 +69,15 @@ export class OrderStateManager {
 
       const eventType = this.getEventTypeForCustomerStatus(newStatus);
       if (eventType) {
-        await this.publisher.publishGenericEvent(eventType, {
+        const payload: Record<string, any> = {
           customerOrderId,
           status: newStatus,
           customerId: customerOrder.customerId,
-        });
+        };
+        if (newStatus === CustomerOrderStatus.READY) {
+          payload.deliveryFee = customerOrder.deliveryFee;
+        }
+        await this.publisher.publishGenericEvent(eventType, payload);
       }
     }
   }

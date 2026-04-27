@@ -1,7 +1,7 @@
 import React from "react";
 import { NavLink } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { LayoutDashboard, Users, ShoppingBag, Truck, BarChart3, Settings, Building, Box, Percent } from "lucide-react";
+import { LayoutDashboard, Users, ShoppingBag, Truck, BarChart3, Settings, Building, Box, Percent, PackageCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const Sidebar: React.FC = () => {
@@ -16,8 +16,9 @@ const Sidebar: React.FC = () => {
     { name: t("common.products"), href: "/products", icon: Box },
     { name: t("common.categories"), href: "/categories", icon: LayoutDashboard },
     // { name: t("common.revenue"), href: "/revenue", icon: BarChart3 },
-    { name: t("financial.analytics", "Vendor Analytics"), href: "/financial-analytics", icon: BarChart3 },
+    { name: t("financial.analytics", "Financial Settlements"), href: "/financial-analytics", icon: BarChart3 },
     { name: t("financial.commission_tiers", "Commission Tiers"), href: "/commission-tiers", icon: Percent },
+    { name: t("delivery_tiers.title", "Delivery Fee Tiers"), href: "/delivery-fee-tiers", icon: PackageCheck },
     { name: t("common.settings"), href: "/settings", icon: Settings },
   ];
 

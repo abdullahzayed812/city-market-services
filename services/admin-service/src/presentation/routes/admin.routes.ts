@@ -62,6 +62,27 @@ export const createAdminRoutes = (controller: AdminController): Router => {
   router.patch("/commission-tiers/:id", authorize(UserRole.ADMIN), controller.updateCommissionTier);
   router.delete("/commission-tiers/:id", authorize(UserRole.ADMIN), controller.deleteCommissionTier);
 
+  // Delivery Offices
+  router.get("/delivery-offices", authorize(UserRole.ADMIN), controller.getAllDeliveryOffices);
+
+  // Delivery Fee Tiers
+  router.get("/delivery-fee-tiers", authorize(UserRole.ADMIN), controller.getAllDeliveryFeeTiers);
+  router.post("/delivery-fee-tiers", authorize(UserRole.ADMIN), controller.createDeliveryFeeTier);
+  router.patch("/delivery-fee-tiers/:id", authorize(UserRole.ADMIN), controller.updateDeliveryFeeTier);
+  router.delete("/delivery-fee-tiers/:id", authorize(UserRole.ADMIN), controller.deleteDeliveryFeeTier);
+
+  // Courier Settlements
+  router.get("/delivery-settlements/courier/:courierId/pending", authorize(UserRole.ADMIN), controller.getCourierPendingEarnings);
+  router.get("/delivery-settlements/courier", authorize(UserRole.ADMIN), controller.getCourierSettlements);
+  router.post("/delivery-settlements/courier", authorize(UserRole.ADMIN), controller.createCourierSettlement);
+  router.patch("/delivery-settlements/courier/:id/mark-paid", authorize(UserRole.ADMIN), controller.markCourierSettlementPaid);
+
+  // Office Settlements
+  router.get("/delivery-settlements/office/pending", authorize(UserRole.ADMIN), controller.getOfficePendingEarnings);
+  router.get("/delivery-settlements/office", authorize(UserRole.ADMIN), controller.getOfficeSettlements);
+  router.post("/delivery-settlements/office", authorize(UserRole.ADMIN), controller.createOfficeSettlement);
+  router.patch("/delivery-settlements/office/:id/mark-paid", authorize(UserRole.ADMIN), controller.markOfficeSettlementPaid);
+
   // Settlement Management
   router.get("/settlements/vendor/:vendorId/pending", authorize(UserRole.ADMIN), controller.getVendorPendingEarnings);
   router.get("/settlements", authorize(UserRole.ADMIN), controller.getSettlements);

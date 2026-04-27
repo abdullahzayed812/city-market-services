@@ -89,6 +89,18 @@ export class UserRepository implements IUserRepository {
     await this.pool.execute(query, [isActive, userId]);
   }
 
+  async updateActiveSession(userId: string, sessionId: string | null): Promise<void> {
+    await this.pool.execute("UPDATE users SET active_session = ? WHERE id = ?", [sessionId, userId]);
+  }
+
+  async findActiveSession(userId: string): Promise<string | null> {
+    const [rows] = await this.pool.execute<RowDataPacket[]>(
+      "SELECT active_session FROM users WHERE id = ?",
+      [userId],
+    );
+    return rows.length > 0 ? (rows[0].active_session ?? null) : null;
+  }
+
   private mapToEntity(row: any): Omit<User, "passwordHash"> {
     return {
       id: row.id,

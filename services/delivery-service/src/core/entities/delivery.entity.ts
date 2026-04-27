@@ -8,8 +8,12 @@ export interface Delivery {
   vendorOrderId?: string; // This will become less relevant if we have multiple pickup locations
   // But keep it for now as it's part of the unique constraint
   courierId?: string;
+  deliveryOfficeId?: string;
   status: DeliveryStatus;
-  pickupLocations: PickupLocation[]; // New: List of pickup locations
+  deliveryFee: number;
+  courierFeePercentage?: number;
+  courierFeeAmount: number;
+  pickupLocations: PickupLocation[];
   deliveryAddress: string;
   pickupLatitude?: number;
   pickupLongitude?: number;
@@ -17,6 +21,8 @@ export interface Delivery {
   deliveryLongitude?: number;
   totalPrice: number;
   itemsCount: number;
+  officeSettlementId?: string;
+  courierSettlementId?: string;
   assignedAt?: Date;
   assignedWindowExpiry?: Date;
   pickedUpAt?: Date;

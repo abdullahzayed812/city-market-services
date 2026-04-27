@@ -14,13 +14,14 @@ export class CourierRepository implements ICourierRepository {
     const conn = connection || this.pool;
     const query = `
       INSERT INTO couriers (
-        id, user_id, full_name, phone, vehicle_type, license_plate,
+        id, user_id, delivery_office_id, full_name, phone, vehicle_type, license_plate,
         is_available, is_active, rating, total_deliveries
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
     await conn.execute(query, [
       courier.id,
       courier.userId,
+      courier.deliveryOfficeId || null,
       courier.fullName,
       courier.phone,
       courier.vehicleType || null,
@@ -58,6 +59,13 @@ export class CourierRepository implements ICourierRepository {
     const conn = connection || this.pool;
     const query = "SELECT * FROM couriers ORDER BY created_at DESC LIMIT ? OFFSET ?";
     const [rows] = await conn.query<RowDataPacket[]>(query, [limit, offset]);
+    return rows.map((row) => this.mapToEntity(row));
+  }
+
+  async findByOfficeId(deliveryOfficeId: string, limit: number, offset: number, connection?: PoolConnection): Promise<Courier[]> {
+    const conn = connection || this.pool;
+    const query = "SELECT * FROM couriers WHERE delivery_office_id = ? ORDER BY created_at DESC LIMIT ? OFFSET ?";
+    const [rows] = await conn.query<RowDataPacket[]>(query, [deliveryOfficeId, limit, offset]);
     return rows.map((row) => this.mapToEntity(row));
   }
 
@@ -106,6 +114,7 @@ export class CourierRepository implements ICourierRepository {
     return {
       id: row.id,
       userId: row.user_id,
+      deliveryOfficeId: row.delivery_office_id ?? undefined,
       fullName: row.full_name,
       phone: row.phone,
       vehicleType: row.vehicle_type,

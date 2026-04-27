@@ -10,6 +10,7 @@ import { OrderItemProposalRepository } from "./infrastructure/repositories/order
 import { OrderStatusHistoryRepository } from "./infrastructure/repositories/order-status-history.repository";
 import { CatalogHttpClient } from "./infrastructure/http/catalog-http-client";
 import { VendorHttpClient } from "./infrastructure/http/vendor-http-client";
+import { UserHttpClient } from "./infrastructure/http/user-http-client";
 import { OrderPublisher } from "./infrastructure/messaging/OrderPublisher";
 import { EventType } from "@city-market/shared";
 import { errorHandler, Database, rabbitMQBus, authenticate } from "@city-market/shared/node";
@@ -19,7 +20,6 @@ import { StockReservedConsumer } from "./application/events/stock-reserved.consu
 import { StockRejectedConsumer } from "./application/events/stock-rejected.consumer";
 import { config } from "./config/env";
 import { CommissionTierRepository } from "./infrastructure/repositories/commission-tier.repository";
-import { CustomerPenaltyRepository } from "./infrastructure/repositories/customer-penalty.repository";
 import { CommissionTierService } from "./application/services/commission-tier.service";
 import { CommissionTierController } from "./presentation/controllers/commission-tier.controller";
 import { createCommissionTierRoutes } from "./presentation/routes/commission-tier.routes";
@@ -49,11 +49,11 @@ export const createApp = () => {
   const statusHistoryRepo = new OrderStatusHistoryRepository(db);
   const catalogClient = new CatalogHttpClient(config.catalogServiceUrl);
   const vendorClient = new VendorHttpClient(config.vendorServiceUrl);
+  const userClient = new UserHttpClient(config.userServiceUrl);
   const publisher = new OrderPublisher(rabbitMQBus);
 
   const commissionTierRepo = new CommissionTierRepository(db);
   const commissionTierService = new CommissionTierService(commissionTierRepo);
-  const penaltyRepo = new CustomerPenaltyRepository(db);
   const commissionTierController = new CommissionTierController(commissionTierService);
 
   const settlementRepo = new SettlementRepository(db);
@@ -71,7 +71,7 @@ export const createApp = () => {
     publisher,
     commissionTierService,
     db,
-    penaltyRepo,
+    userClient,
   );
 
   const orderController = new OrderController(orderService);

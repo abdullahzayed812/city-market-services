@@ -9,6 +9,7 @@ export const config = ConfigLoader.load<{
   dbName: string;
   catalogServiceUrl: string;
   vendorServiceUrl: string;
+  userServiceUrl: string;
   authServiceUrl: string;
   orderServiceClientId: string;
   orderServiceClientSecret: string;
@@ -23,6 +24,7 @@ export const config = ConfigLoader.load<{
   dbName: { env: "DB_NAME", default: "order_db" },
   catalogServiceUrl: { env: "CATALOG_SERVICE_URL", default: "http://localhost:3004" },
   vendorServiceUrl: { env: "VENDOR_SERVICE_URL", default: "http://localhost:3003" },
+  userServiceUrl: { env: "USER_SERVICE_URL", default: "http://localhost:3002" },
   authServiceUrl: { env: "AUTH_SERVICE_URL", default: "http://localhost:3001" },
   orderServiceClientId: { env: "ORDER_SERVICE_CLIENT_ID", default: "order-service-id" },
   orderServiceClientSecret: { env: "ORDER_SERVICE_CLIENT_SECRET", required: true, sensitive: true },

@@ -7,6 +7,7 @@ export const config = ConfigLoader.load<{
   dbUser: string;
   dbPassword: string;
   dbName: string;
+  rabbitMQUrl: string;
 }>({
   port: { env: "PORT", default: 3002 },
   dbHost: { env: "DB_HOST", default: "localhost" },
@@ -14,4 +15,5 @@ export const config = ConfigLoader.load<{
   dbUser: { env: "DB_USER", required: true },
   dbPassword: { env: "DB_PASSWORD", required: true, sensitive: true },
   dbName: { env: "DB_NAME", default: "user_db" },
+  rabbitMQUrl: { env: "RABBITMQ_URL", default: "amqp://localhost" },
 });

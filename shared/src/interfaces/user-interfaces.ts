@@ -17,8 +17,16 @@ export interface Customer {
   userId: string;
   fullName: string;
   phone?: string;
+  hasPenalty?: boolean;
   createdAt: Date;
   updatedAt: Date;
+}
+
+export interface RegisterDeviceDto {
+  deviceId: string;
+  platform: 'ios' | 'android';
+  model?: string;
+  appVersion?: string;
 }
 
 export interface Address {

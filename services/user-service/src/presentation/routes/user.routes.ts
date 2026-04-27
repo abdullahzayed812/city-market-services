@@ -10,6 +10,7 @@ export const createUserRoutes = (controller: UserController): Router => {
   router.post("/customers/me/addresses", controller.addAddress);
   router.get("/customers/me/addresses", controller.getMyAddresses);
   router.delete("/addresses/:addressId", controller.deleteAddress);
+  router.patch("/customers/me/device", controller.registerDevice);
 
   // Internal/Service routes
   router.get("/customers", controller.getCustomersByIds);

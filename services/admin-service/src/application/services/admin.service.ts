@@ -325,6 +325,62 @@ export class AdminService {
     return this.serviceClient.order.deleteCommissionTier(id, userId);
   }
 
+  // Delivery Office Management
+  async getAllDeliveryOffices(userId?: string) {
+    return this.serviceClient.delivery.getAllDeliveryOffices(userId);
+  }
+
+  // Delivery Courier Settlements
+  async getCourierPendingEarnings(courierId: string, userId?: string) {
+    return this.serviceClient.delivery.getCourierPendingEarnings(courierId, userId);
+  }
+
+  async getCourierSettlements(courierId?: string, limit?: number, offset?: number, userId?: string) {
+    return this.serviceClient.delivery.getCourierSettlements(courierId, limit, offset, userId);
+  }
+
+  async createCourierSettlement(data: any, userId?: string) {
+    return this.serviceClient.delivery.createCourierSettlement(data, userId);
+  }
+
+  async markCourierSettlementPaid(id: string, userId?: string) {
+    return this.serviceClient.delivery.markCourierSettlementPaid(id, userId);
+  }
+
+  // Delivery Office Settlements
+  async getOfficePendingEarnings(deliveryOfficeId?: string, userId?: string) {
+    return this.serviceClient.delivery.getOfficePendingEarnings(deliveryOfficeId, userId);
+  }
+
+  async getOfficeSettlements(deliveryOfficeId?: string, limit?: number, offset?: number, userId?: string) {
+    return this.serviceClient.delivery.getOfficeSettlements(deliveryOfficeId, limit, offset, userId);
+  }
+
+  async createOfficeSettlement(data: any, userId?: string) {
+    return this.serviceClient.delivery.createOfficeSettlement(data, userId);
+  }
+
+  async markOfficeSettlementPaid(id: string, userId?: string) {
+    return this.serviceClient.delivery.markOfficeSettlementPaid(id, userId);
+  }
+
+  // Delivery Fee Tiers
+  async getAllDeliveryFeeTiers(userId?: string) {
+    return this.serviceClient.delivery.getAllDeliveryFeeTiers(userId);
+  }
+
+  async createDeliveryFeeTier(data: any, userId?: string) {
+    return this.serviceClient.delivery.createDeliveryFeeTier(data, userId);
+  }
+
+  async updateDeliveryFeeTier(id: string, data: any, userId?: string) {
+    return this.serviceClient.delivery.updateDeliveryFeeTier(id, data, userId);
+  }
+
+  async deleteDeliveryFeeTier(id: string, userId?: string) {
+    return this.serviceClient.delivery.deleteDeliveryFeeTier(id, userId);
+  }
+
   // Settlement Management
   async getVendorPendingEarnings(vendorId: string, userId?: string) {
     return this.serviceClient.order.getVendorPendingEarnings(vendorId, userId);

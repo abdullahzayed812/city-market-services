@@ -2,6 +2,8 @@ import { randomUUID } from "crypto";
 import { PoolConnection } from "mysql2/promise";
 import { ICourierRepository } from "../../core/interfaces/courier.repository";
 import { IDeliveryRepository } from "../../core/interfaces/delivery.repository";
+import { IDeliveryOfficeRepository } from "../../core/interfaces/delivery-office.repository";
+import { IDeliveryFeeTierRepository } from "../../core/interfaces/delivery-fee-tier.repository";
 import { Courier } from "../../core/entities/courier.entity";
 import { Delivery } from "../../core/entities/delivery.entity";
 import { RegisterCourierDto, UpdateCourierDto } from "../../core/dto/courier.dto";
@@ -27,7 +29,9 @@ export class DeliveryService {
     private userClient: UserHttpClient,
     private db: Database,
     private assignedWindowMinutes: number = 15,
-  ) { }
+    private feeTierRepo?: IDeliveryFeeTierRepository,
+    private officeRepo?: IDeliveryOfficeRepository,
+  ) {}
 
   // Courier management
   async registerCourier(dto: RegisterCourierDto): Promise<Courier> {
@@ -95,15 +99,17 @@ export class DeliveryService {
       id: randomUUID(),
       customerId: dto.customerId,
       customerOrderId: dto.customerOrderId,
-      // vendorOrderId: dto.vendorOrderId || "GROUPED",
       vendorOrderId: dto.vendorOrderId || "GROUPED",
       status: DeliveryStatus.PENDING,
-      pickupLocations: dto.pickupLocations, // Use new field
+      pickupLocations: dto.pickupLocations,
       deliveryAddress: dto.deliveryAddress,
       deliveryLatitude: dto.deliveryLatitude,
       deliveryLongitude: dto.deliveryLongitude,
       totalPrice: dto.totalPrice || 0,
       itemsCount: dto.itemsCount || 0,
+      deliveryFee: dto.deliveryFee || 0,
+      courierFeePercentage: dto.courierFeePercentage,
+      courierFeeAmount: dto.courierFeeAmount || 0,
       createdAt: new Date(),
       updatedAt: new Date(),
     };
@@ -111,7 +117,7 @@ export class DeliveryService {
     return this.deliveryRepo.create(delivery, connection);
   }
 
-  async createDeliveryFromOrder(customerOrderId: string, userId?: string): Promise<Delivery[]> {
+  async createDeliveryFromOrder(customerOrderId: string, userId?: string, deliveryFee?: number): Promise<Delivery[]> {
     let connection: PoolConnection | undefined;
     const eventsToPublish: (() => Promise<void>)[] = [];
     const createdDeliveries: Delivery[] = [];
@@ -134,9 +140,7 @@ export class DeliveryService {
 
       // Concurrent batch fetch of unique vendors to prevent N+1 HTTP calls
       const uniqueVendorIds = Array.from(new Set(vendorOrders.map((vo: any) => vo.vendorId)));
-      const vendorDetailsArray = await Promise.all(
-        uniqueVendorIds.map((id) => this.vendorClient.getVendor(id as string, userId)),
-      );
+      const vendorDetailsArray = await Promise.all(uniqueVendorIds.map((id) => this.vendorClient.getVendor(id as string, userId)));
       const vendorMap = new Map(uniqueVendorIds.map((id, index) => [id, vendorDetailsArray[index]]));
 
       const vendors = vendorOrders.map((vo: any) => ({
@@ -158,13 +162,7 @@ export class DeliveryService {
           return existingDeliveries; // Return existing deliveries to maintain idempotency
         }
 
-        const delivery = await this.createIndividualDelivery(
-          customerOrder,
-          vendors,
-          customerOrderId,
-          undefined,
-          connection,
-        ); // Pass connection
+        const delivery = await this.createIndividualDelivery(customerOrder, vendors, customerOrderId, undefined, connection, deliveryFee);
         createdDeliveries.push(delivery);
 
         // Link all vendor orders to this delivery
@@ -182,20 +180,14 @@ export class DeliveryService {
         // Separate Delivery per VendorOrder
         for (const v of vendors) {
           // Check for existing delivery for this specific vendor order
-          const existingDelivery = await this.deliveryRepo.findByCustomerOrderAndVendorOrder(
-            customerOrderId,
-            v.id,
-            connection,
-          ); // Pass connection
+          const existingDelivery = await this.deliveryRepo.findByCustomerOrderAndVendorOrder(customerOrderId, v.id, connection); // Pass connection
           if (existingDelivery) {
-            Logger.info(
-              `Delivery already exists for Customer Order ${customerOrderId} and Vendor Order ${v.id}. Skipping creation.`,
-            );
+            Logger.info(`Delivery already exists for Customer Order ${customerOrderId} and Vendor Order ${v.id}. Skipping creation.`);
             createdDeliveries.push(existingDelivery); // Add existing delivery to the list
             continue; // Skip creating new delivery
           }
 
-          const delivery = await this.createIndividualDelivery(customerOrder, [v], customerOrderId, v, connection); // Pass connection
+          const delivery = await this.createIndividualDelivery(customerOrder, [v], customerOrderId, v, connection, deliveryFee);
           createdDeliveries.push(delivery);
           lastDeliveryId = delivery.id;
 
@@ -238,15 +230,25 @@ export class DeliveryService {
     customerOrderId: string,
     vendorOrder?: any,
     connection?: PoolConnection,
+    deliveryFee?: number,
   ): Promise<Delivery> {
-    // Add connection
     const itemsCount = vendors.reduce((sum, v) => sum + (v.items?.length || 0), 0);
     const totalPrice = vendors.reduce((sum, v) => sum + (v.totalAmount || 0), 0);
+
+    let courierFeePercentage: number | undefined;
+    let courierFeeAmount = 0;
+
+    if (deliveryFee && deliveryFee > 0 && this.feeTierRepo) {
+      const tier = await this.feeTierRepo.findByAmount(deliveryFee);
+      if (tier) {
+        courierFeePercentage = tier.courierPercentage;
+        courierFeeAmount = Number(((deliveryFee * tier.courierPercentage) / 100).toFixed(2));
+      }
+    }
 
     const dto: CreateDeliveryDto = {
       customerId: customerOrder.customerId,
       customerOrderId: customerOrderId,
-      // vendorOrderId: vendorOrder ? vendorOrder.id : undefined,
       vendorOrderId: vendorOrder ? vendorOrder.id : undefined,
       pickupLocations: vendors.map((v) => ({
         id: randomUUID(),
@@ -260,11 +262,12 @@ export class DeliveryService {
       deliveryLongitude: customerOrder.deliveryLongitude,
       totalPrice,
       itemsCount,
+      deliveryFee: deliveryFee || 0,
+      courierFeePercentage,
+      courierFeeAmount,
     };
 
-    // Enrich the delivery object with calculated fields before creation
-    const delivery = await this.createDelivery(dto, connection);
-    return delivery;
+    return this.createDelivery(dto, connection);
   }
 
   private checkDistances(vendors: any[]): boolean {
@@ -289,8 +292,7 @@ export class DeliveryService {
     const dLat = (lat2 - lat1) * (Math.PI / 180);
     const dLon = (lon2 - lon1) * (Math.PI / 180);
     const a =
-      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-      Math.cos(lat1 * (Math.PI / 180)) * Math.cos(lat2 * (Math.PI / 180)) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) + Math.cos(lat1 * (Math.PI / 180)) * Math.cos(lat2 * (Math.PI / 180)) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     return R * c;
   }
@@ -319,12 +321,7 @@ export class DeliveryService {
     return this.enrichDeliveriesWithOrderData(deliveries, userId);
   }
 
-  async getCourierDeliveries(
-    courierId: string,
-    page: number = 1,
-    limit: number = 20,
-    userId?: string,
-  ): Promise<Delivery[]> {
+  async getCourierDeliveries(courierId: string, page: number = 1, limit: number = 20, userId?: string): Promise<Delivery[]> {
     const offset = (page - 1) * limit;
     const deliveries = await this.deliveryRepo.findByCourier(courierId, limit, offset);
     return this.enrichDeliveriesWithOrderData(deliveries, userId);
@@ -405,12 +402,16 @@ export class DeliveryService {
         await this.courierRepo.updateAvailability(delivery.courierId, true);
         await this.courierRepo.incrementDeliveries(delivery.courierId);
       }
-      const items = delivery.vendorOrders?.flatMap((vo: any) => vo.items?.map((item: any) => ({
-        vendorProductId: item.vendorProductId,
-        quantity: item.quantity,
-        actualWeightGrams: item.actualWeightGrams,
-        vendorUserId: vo.vendorUserId, // Added
-      })) || []) || [];
+      const items =
+        delivery.vendorOrders?.flatMap(
+          (vo: any) =>
+            vo.items?.map((item: any) => ({
+              vendorProductId: item.vendorProductId,
+              quantity: item.quantity,
+              actualWeightGrams: item.actualWeightGrams,
+              vendorUserId: vo.vendorUserId, // Added
+            })) || [],
+        ) || [];
 
       eventsToPublish.push(() =>
         this.publisher.publishOrderDelivered({
@@ -431,22 +432,43 @@ export class DeliveryService {
     }
   }
 
-  async assignCourier(deliveryId: string, dto: AssignCourierDto): Promise<void> {
+  async acceptDelivery(deliveryId: string, userId: string): Promise<void> {
+    if (!this.officeRepo) throw new ValidationError("office_repository_not_configured");
+
+    const office = await this.officeRepo.findByUserId(userId);
+    if (!office) throw new NotFoundError("delivery_office_not_found");
+
+    const accepted = await this.deliveryRepo.acceptDelivery(deliveryId, office.id);
+    if (!accepted) throw new ValidationError("delivery_already_accepted_by_another_office");
+  }
+
+  async assignCourier(deliveryId: string, dto: AssignCourierDto, managerId?: string): Promise<void> {
     let connection: PoolConnection | undefined;
     const eventsToPublish: (() => Promise<void>)[] = [];
 
     try {
       connection = await this.db.beginTransaction();
 
-      const delivery = await this.deliveryRepo.findById(deliveryId, connection); // Fetch with connection
+      const delivery = await this.deliveryRepo.findById(deliveryId, connection);
       if (!delivery) throw new NotFoundError("delivery_not_found");
+
+      if (delivery.status !== DeliveryStatus.ACCEPTED) {
+        throw new ValidationError("delivery_must_be_accepted_before_assignment");
+      }
+
+      if (managerId && this.officeRepo) {
+        const office = await this.officeRepo.findByUserId(managerId);
+        if (!office) throw new NotFoundError("delivery_office_not_found");
+        if (delivery.deliveryOfficeId !== office.id) {
+          throw new ValidationError("delivery_not_assigned_to_your_office");
+        }
+      }
 
       const courier = await this.courierRepo.findById(dto.courierId, connection);
       if (!courier) throw new NotFoundError("courier_not_found");
 
-      // Check courier availability and proximity if needed
       await this.deliveryRepo.assignCourier(deliveryId, dto.courierId, this.assignedWindowMinutes, connection);
-      await this.courierRepo.updateAvailability(dto.courierId, false, connection); // Pass connection // Courier becomes unavailable when assigned
+      await this.courierRepo.updateAvailability(dto.courierId, false, connection);
 
       eventsToPublish.push(() =>
         this.publisher.publishCourierAssigned({
@@ -474,7 +496,8 @@ export class DeliveryService {
 
   private isValidStatusTransition(currentStatus: DeliveryStatus, newStatus: DeliveryStatus): boolean {
     const transitions: Record<string, DeliveryStatus[]> = {
-      [DeliveryStatus.PENDING]: [DeliveryStatus.ASSIGNED, DeliveryStatus.FAILED],
+      [DeliveryStatus.PENDING]: [DeliveryStatus.ACCEPTED, DeliveryStatus.FAILED],
+      [DeliveryStatus.ACCEPTED]: [DeliveryStatus.ASSIGNED, DeliveryStatus.FAILED],
       [DeliveryStatus.ASSIGNED]: [DeliveryStatus.PICKED_UP, DeliveryStatus.FAILED],
       [DeliveryStatus.PICKED_UP]: [DeliveryStatus.ON_THE_WAY, DeliveryStatus.FAILED],
       [DeliveryStatus.ON_THE_WAY]: [DeliveryStatus.DELIVERED, DeliveryStatus.FAILED],

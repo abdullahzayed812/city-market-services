@@ -4,6 +4,7 @@ import {
     LayoutDashboard,
     Truck,
     Users,
+    Wallet,
     Settings
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -15,6 +16,7 @@ const Sidebar = () => {
         { icon: LayoutDashboard, label: t("common.dashboard"), path: "/" },
         { icon: Truck, label: t("common.deliveries"), path: "/deliveries" },
         { icon: Users, label: t("common.couriers"), path: "/couriers" },
+        { icon: Wallet, label: t("financial.settlements", "Settlements"), path: "/settlements" },
         { icon: Settings, label: t("common.settings"), path: "/settings" },
     ];
 

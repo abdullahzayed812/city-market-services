@@ -74,11 +74,42 @@ export const adminApi = {
   markSettlementPaid: (id: string) => axiosInstance.patch<ApiResponse<null>>(`/admin/settlements/${id}/mark-paid`, {}),
   getPlatformFinancialOverview: () => axiosInstance.get<ApiResponse<any>>("/admin/settlements/overview"),
 
+  // Delivery Offices
+  getDeliveryOffices: () => axiosInstance.get<ApiResponse<any[]>>("/admin/delivery-offices"),
+
+  // Courier Settlements (Delivery)
+  getCourierPendingEarnings: (courierId: string) =>
+    axiosInstance.get<ApiResponse<any>>(`/admin/delivery-settlements/courier/${courierId}/pending`),
+  getCourierSettlements: (params?: { courierId?: string; limit?: number; offset?: number }) =>
+    axiosInstance.get<ApiResponse<any[]>>("/admin/delivery-settlements/courier", { params }),
+  createCourierSettlement: (data: { courierId: string; periodStart: string; periodEnd: string; notes?: string }) =>
+    axiosInstance.post<ApiResponse<any>>("/admin/delivery-settlements/courier", data),
+  markCourierSettlementPaid: (id: string) =>
+    axiosInstance.patch<ApiResponse<null>>(`/admin/delivery-settlements/courier/${id}/mark-paid`, {}),
+
+  // Office Settlements (Delivery)
+  getOfficePendingEarnings: (deliveryOfficeId?: string) =>
+    axiosInstance.get<ApiResponse<any>>("/admin/delivery-settlements/office/pending", {
+      params: deliveryOfficeId ? { deliveryOfficeId } : undefined,
+    }),
+  getOfficeSettlements: (params?: { deliveryOfficeId?: string; limit?: number; offset?: number }) =>
+    axiosInstance.get<ApiResponse<any[]>>("/admin/delivery-settlements/office", { params }),
+  createOfficeSettlement: (data: { deliveryOfficeId?: string; periodStart: string; periodEnd: string; notes?: string }) =>
+    axiosInstance.post<ApiResponse<any>>("/admin/delivery-settlements/office", data),
+  markOfficeSettlementPaid: (id: string) =>
+    axiosInstance.patch<ApiResponse<null>>(`/admin/delivery-settlements/office/${id}/mark-paid`, {}),
+
   // Commission Tiers
   getAllCommissionTiers: () => axiosInstance.get<ApiResponse<any>>("/admin/commission-tiers"),
   createCommissionTier: (data: any) => axiosInstance.post<ApiResponse<any>>("/admin/commission-tiers", data),
   updateCommissionTier: (id: string, data: any) => axiosInstance.patch<ApiResponse<null>>(`/admin/commission-tiers/${id}`, data),
   deleteCommissionTier: (id: string) => axiosInstance.delete<ApiResponse<null>>(`/admin/commission-tiers/${id}`),
+
+  // Delivery Fee Tiers
+  getAllDeliveryFeeTiers: () => axiosInstance.get<ApiResponse<any[]>>("/admin/delivery-fee-tiers"),
+  createDeliveryFeeTier: (data: any) => axiosInstance.post<ApiResponse<any>>("/admin/delivery-fee-tiers", data),
+  updateDeliveryFeeTier: (id: string, data: any) => axiosInstance.patch<ApiResponse<null>>(`/admin/delivery-fee-tiers/${id}`, data),
+  deleteDeliveryFeeTier: (id: string) => axiosInstance.delete<ApiResponse<null>>(`/admin/delivery-fee-tiers/${id}`),
 
   // Registration Management
   registerUser: (data: any) => axiosInstance.post<ApiResponse<any>>("/admin/users/register", data),

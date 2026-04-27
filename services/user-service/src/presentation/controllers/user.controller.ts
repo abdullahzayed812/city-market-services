@@ -85,4 +85,14 @@ export class UserController {
       next(error);
     }
   };
+
+  registerDevice = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      const ip = (req.headers["x-forwarded-for"] as string)?.split(",")[0]?.trim() || req.socket.remoteAddress;
+      await this.userService.registerDeviceInfo(req.user!.userId, req.body, ip);
+      res.json(ApiResponse.success(null, "device_registered"));
+    } catch (error) {
+      next(error);
+    }
+  };
 }

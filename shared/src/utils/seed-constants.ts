@@ -4,6 +4,16 @@ export const SEED_DATA = {
     CUSTOMER: "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a12",
     COURIER: "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a15",
     DELIVERY_MANAGER: "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a16",
+    DELIVERY_MANAGER_2: "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a47",
+    DELIVERY_MANAGER_3: "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a48",
+    COURIER_SARA: "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a49",
+    COURIER_OMAR: "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a50",
+    COURIER_LAYLA: "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a51",
+    COURIER_KARIM: "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a52",
+    COURIER_NOUR: "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a53",
+    COURIER_HASSAN: "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a54",
+    COURIER_DINA: "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a55",
+    COURIER_YASSER: "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a56",
     MADINATY_SUPERMARKET: "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a13", // SuperMarket 1
     AL_JAZIRA_SUPERMARKET: "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a14", // SuperMarket 2
     MOATAZ_PHARMACY: "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a17", // Pharmacy
@@ -73,6 +83,19 @@ export const SEED_DATA = {
   },
   COURIERS: {
     MIKE: "e0eebc99-9c0b-4ef8-bb6d-6bb9bd380a51",
+    SARA: "e0eebc99-9c0b-4ef8-bb6d-6bb9bd380a52",
+    OMAR: "e0eebc99-9c0b-4ef8-bb6d-6bb9bd380a53",
+    LAYLA: "e0eebc99-9c0b-4ef8-bb6d-6bb9bd380a54",
+    KARIM: "e0eebc99-9c0b-4ef8-bb6d-6bb9bd380a55",
+    NOUR: "e0eebc99-9c0b-4ef8-bb6d-6bb9bd380a56",
+    HASSAN: "e0eebc99-9c0b-4ef8-bb6d-6bb9bd380a57",
+    DINA: "e0eebc99-9c0b-4ef8-bb6d-6bb9bd380a58",
+    YASSER: "e0eebc99-9c0b-4ef8-bb6d-6bb9bd380a59",
+  },
+  DELIVERY_OFFICES: {
+    MAIN_OFFICE: "f1eebc99-9c0b-4ef8-bb6d-6bb9bd380b01",
+    EAST_OFFICE: "f1eebc99-9c0b-4ef8-bb6d-6bb9bd380b02",
+    WEST_OFFICE: "f1eebc99-9c0b-4ef8-bb6d-6bb9bd380b03",
   },
   ORDERS: {
     ORDER_1: "f0eebc99-9c0b-4ef8-bb6d-6bb9bd380a61",
