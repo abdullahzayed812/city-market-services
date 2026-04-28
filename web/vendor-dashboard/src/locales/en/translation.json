@@ -91,6 +91,7 @@
     "unavailable": "Unavailable",
     "pendingOrder": "Pending Order",
     "statuses": {
+      "draft": "Draft",
       "pending": "Pending",
       "preparing": "Preparing",
       "proposal_sent": "Proposal Sent",

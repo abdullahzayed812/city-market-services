@@ -29,11 +29,6 @@ const Deliveries = () => {
     queryFn: deliveryService.getAvailableCouriers,
   });
 
-  const { data: myOffice } = useQuery({
-    queryKey: ["my-office"],
-    queryFn: deliveryService.getMyOffice,
-  });
-
   const { socket } = useSocket();
 
   useEffect(() => {
@@ -43,7 +38,14 @@ const Deliveries = () => {
       queryClient.invalidateQueries({ queryKey: ["deliveries"] });
     };
 
-    const events = [EventType.DELIVERY_CREATED, EventType.COURIER_ASSIGNED, EventType.ORDER_PICKED_UP, EventType.ORDER_ON_THE_WAY, EventType.ORDER_DELIVERED];
+    const events = [
+      EventType.DELIVERY_CREATED,
+      EventType.DELIVERY_ACCEPTED,
+      EventType.COURIER_ASSIGNED,
+      EventType.ORDER_PICKED_UP,
+      EventType.ORDER_ON_THE_WAY,
+      EventType.ORDER_DELIVERED,
+    ];
 
     events.forEach((event) => socket.on(event, handleUpdate));
 
@@ -54,11 +56,15 @@ const Deliveries = () => {
 
   const acceptMutation = useMutation({
     mutationFn: (deliveryId: string) => deliveryService.acceptDelivery(deliveryId),
+    // onMutate: (deliveryId: string) => {
+    //   queryClient.setQueryData<Delivery[]>(["deliveries"], (old) => old?.map((d) => (d.id === deliveryId ? { ...d, status: DeliveryStatus.ACCEPTED } : d)));
+    // },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["deliveries"] });
       toast({ title: t("common.success", "Success"), description: t("deliveries.delivery_accepted", "Delivery accepted") });
     },
-    onError: (err: any) => {
+    onError: (err: any, deliveryId: string) => {
+      queryClient.invalidateQueries({ queryKey: ["deliveries"] });
       toast({
         title: t("common.error", "Error"),
         description: err.response?.data?.message || t("deliveries.failed_accept", "Failed to accept delivery"),
@@ -182,13 +188,13 @@ const Deliveries = () => {
                     {delivery.status === DeliveryStatus.PENDING && (
                       <Button
                         className="w-full mt-4 bg-sky-600 hover:bg-sky-700"
-                        onClick={() => acceptMutation.mutate(delivery.id)}
                         disabled={acceptMutation.isPending}
+                        onClick={() => acceptMutation.mutate(delivery.id)}
                       >
                         {t("deliveries.accept", "Accept")}
                       </Button>
                     )}
-                    {delivery.status === DeliveryStatus.ACCEPTED && myOffice && delivery.deliveryOfficeId === myOffice.id && (
+                    {delivery.status === DeliveryStatus.ACCEPTED && (
                       <Button
                         className="w-full mt-4"
                         onClick={() => {

@@ -40,10 +40,8 @@ const CreateSettlementDialog: React.FC<CreateSettlementDialogProps> = ({ isOpen,
   const [notes, setNotes] = useState("");
 
   const handleConfirm = () => {
-    const start = new Date(periodStart);
-    start.setHours(0, 0, 0, 0);
-    const end = new Date(periodEnd);
-    end.setHours(23, 59, 59, 999);
+    const start = new Date(`${periodStart}T00:00:00.000Z`);
+    const end = new Date(`${periodEnd}T23:59:59.999Z`);
     onConfirm(start.toISOString(), end.toISOString(), notes);
   };
 

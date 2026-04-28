@@ -57,11 +57,8 @@ export const CreateDeliverySettlementDialog: React.FC<Props> = ({
   const handleCreate = () => {
     if (!periodStart || !periodEnd) return;
 
-    const start = new Date(periodStart);
-    start.setHours(0, 0, 0, 0);
-
-    const end = new Date(periodEnd);
-    end.setHours(23, 59, 59, 999);
+    const start = new Date(`${periodStart}T00:00:00.000Z`);
+    const end = new Date(`${periodEnd}T23:59:59.999Z`);
 
     const payload: any = {
       periodStart: start.toISOString(),

@@ -153,7 +153,21 @@ export class DeliveryRepository implements IDeliveryRepository {
       LIMIT ? OFFSET ?
     `;
     const [rows] = await conn.query<RowDataPacket[]>(query, [limit, offset]);
-    return this.mapRowsToDeliveries(rows, conn); // Pass connection to helper
+    return this.mapRowsToDeliveries(rows, conn);
+  }
+
+  async findForManager(officeId: string, limit: number, offset: number, connection?: PoolConnection): Promise<Delivery[]> {
+    const conn = connection || this.pool;
+    const query = `
+      SELECT d.*, c.full_name as courier_name, c.phone as courier_phone
+      FROM deliveries d
+      LEFT JOIN couriers c ON d.courier_id = c.id
+      WHERE d.status = 'PENDING' OR d.delivery_office_id = ?
+      ORDER BY d.created_at DESC
+      LIMIT ? OFFSET ?
+    `;
+    const [rows] = await conn.query<RowDataPacket[]>(query, [officeId, limit, offset]);
+    return this.mapRowsToDeliveries(rows, conn);
   }
 
   async update(id: string, data: Partial<Delivery>, connection?: PoolConnection): Promise<void> {

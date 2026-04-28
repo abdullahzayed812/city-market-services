@@ -90,6 +90,11 @@ export const createApp = () => {
     orderReadyConsumer.handle(event)
   );
 
+  app.use((req, res, next) => {
+    console.log(`[delivery-service] ${req.method} ${req.url}`);
+    next();
+  });
+
   app.use(authenticate);
 
   const feeTierService = new DeliveryFeeTierService(feeTierRepo);

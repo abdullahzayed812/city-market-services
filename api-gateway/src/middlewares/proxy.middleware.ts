@@ -25,8 +25,10 @@ export const setupProxy = (basePath: string, targetUrl: string) => {
           proxyReq.setHeader("Accept-Language", req.headers["accept-language"]);
         }
 
-        // Only handle body if it was parsed by express.json() and it's an appropriate content-type
-        if (req.body && Object.keys(req.body).length > 0 && req.headers["content-type"]?.includes("application/json")) {
+        // Rewrite body: express.json() consumed the stream, so we must re-stream it.
+        // Always do this when Content-Type is JSON (even empty body {}), otherwise
+        // the downstream service's body parser hangs waiting for bytes that never arrive.
+        if (req.headers["content-type"]?.includes("application/json") && req.body !== undefined) {
           const bodyData = JSON.stringify(req.body);
           proxyReq.setHeader("Content-Length", Buffer.byteLength(bodyData));
           proxyReq.write(bodyData);

@@ -5,6 +5,7 @@ export interface ICourierRepository {
   findById(id: string, connection?: any): Promise<Courier | null>;
   findByUserId(userId: string, connection?: any): Promise<Courier | null>;
   findAvailable(connection?: any): Promise<Courier[]>;
+  findAvailableByOfficeId(deliveryOfficeId: string, connection?: any): Promise<Courier[]>;
   findAll(limit: number, offset: number, connection?: any): Promise<Courier[]>;
   findByOfficeId(deliveryOfficeId: string, limit: number, offset: number, connection?: any): Promise<Courier[]>;
   update(id: string, data: Partial<Courier>, connection?: any): Promise<void>;

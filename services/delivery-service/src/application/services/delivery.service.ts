@@ -8,7 +8,7 @@ import { Courier } from "../../core/entities/courier.entity";
 import { Delivery } from "../../core/entities/delivery.entity";
 import { RegisterCourierDto, UpdateCourierDto } from "../../core/dto/courier.dto";
 import { CreateDeliveryDto, AssignCourierDto, UpdateDeliveryStatusDto } from "../../core/dto/delivery.dto";
-import { DeliveryStatus, PickupLocation } from "@city-market/shared";
+import { DeliveryStatus, PickupLocation, UserRole } from "@city-market/shared";
 import { ValidationError, NotFoundError } from "@city-market/shared";
 import { EventType } from "@city-market/shared";
 import { RabbitMQBus, Logger, Database } from "@city-market/shared/node";
@@ -28,7 +28,7 @@ export class DeliveryService {
     private vendorClient: VendorHttpClient,
     private userClient: UserHttpClient,
     private db: Database,
-    private assignedWindowMinutes: number = 15,
+    private assignedWindowMinutes: number = 1,
     private feeTierRepo?: IDeliveryFeeTierRepository,
     private officeRepo?: IDeliveryOfficeRepository,
   ) {}
@@ -58,8 +58,16 @@ export class DeliveryService {
     return this.courierRepo.create(courier);
   }
 
-  async getAllCouriers(page: number = 1, limit: number = 20): Promise<Courier[]> {
+  async getAllCouriers(page: number = 1, limit: number = 20, userId?: string, role?: string): Promise<Courier[]> {
     const offset = (page - 1) * limit;
+
+    if (role === UserRole.DELIVERY_MANAGER && userId && this.officeRepo) {
+      const office = await this.officeRepo.findByUserId(userId);
+      if (office) {
+        return this.courierRepo.findByOfficeId(office.id, limit, offset);
+      }
+    }
+
     return this.courierRepo.findAll(limit, offset);
   }
 
@@ -79,7 +87,14 @@ export class DeliveryService {
     return courier;
   }
 
-  async getAvailableCouriers(): Promise<Courier[]> {
+  async getAvailableCouriers(userId?: string, role?: string): Promise<Courier[]> {
+    if (role === UserRole.DELIVERY_MANAGER && userId && this.officeRepo) {
+      const office = await this.officeRepo.findByUserId(userId);
+      if (office) {
+        return this.courierRepo.findAvailableByOfficeId(office.id);
+      }
+    }
+
     return this.courierRepo.findAvailable();
   }
 
@@ -327,8 +342,17 @@ export class DeliveryService {
     return this.enrichDeliveriesWithOrderData(deliveries, userId);
   }
 
-  async getAllDeliveries(page: number = 1, limit: number = 20, userId?: string): Promise<Delivery[]> {
+  async getAllDeliveries(page: number = 1, limit: number = 20, userId?: string, role?: string): Promise<Delivery[]> {
     const offset = (page - 1) * limit;
+
+    if (role === UserRole.DELIVERY_MANAGER && userId && this.officeRepo) {
+      const office = await this.officeRepo.findByUserId(userId);
+      if (office) {
+        const deliveries = await this.deliveryRepo.findForManager(office.id, limit, offset);
+        return this.enrichDeliveriesWithOrderData(deliveries, userId);
+      }
+    }
+
     const deliveries = await this.deliveryRepo.findAll(limit, offset);
     return this.enrichDeliveriesWithOrderData(deliveries, userId);
   }
@@ -440,6 +464,8 @@ export class DeliveryService {
 
     const accepted = await this.deliveryRepo.acceptDelivery(deliveryId, office.id);
     if (!accepted) throw new ValidationError("delivery_already_accepted_by_another_office");
+
+    this.publisher.publishDeliveryAccepted({ deliveryId, officeId: office.id }).catch(() => {});
   }
 
   async assignCourier(deliveryId: string, dto: AssignCourierDto, managerId?: string): Promise<void> {
@@ -502,7 +528,7 @@ export class DeliveryService {
       [DeliveryStatus.PICKED_UP]: [DeliveryStatus.ON_THE_WAY, DeliveryStatus.FAILED],
       [DeliveryStatus.ON_THE_WAY]: [DeliveryStatus.DELIVERED, DeliveryStatus.FAILED],
       [DeliveryStatus.DELIVERED]: [],
-      [DeliveryStatus.FAILED]: [],
+      [DeliveryStatus.FAILED]: [DeliveryStatus.FAILED],
     };
 
     return transitions[currentStatus]?.includes(newStatus) || false;

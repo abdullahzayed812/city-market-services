@@ -83,12 +83,12 @@ export class DeliveryOfficeSettlementService {
            INNER JOIN couriers c ON c.id = d.courier_id
            WHERE d.status = 'DELIVERED' AND d.office_settlement_id IS NULL
              AND c.delivery_office_id = ?
-             AND d.delivered_at BETWEEN ? AND ?`;
+             AND COALESCE(d.delivered_at, d.updated_at) BETWEEN ? AND ?`;
         params = [officeId, new Date(dto.periodStart), new Date(dto.periodEnd)];
       } else {
         query = `SELECT id, (delivery_fee - courier_fee_amount) as office_fee FROM deliveries
            WHERE status = 'DELIVERED' AND office_settlement_id IS NULL
-             AND delivered_at BETWEEN ? AND ?`;
+             AND COALESCE(delivered_at, updated_at) BETWEEN ? AND ?`;
         params = [new Date(dto.periodStart), new Date(dto.periodEnd)];
       }
 

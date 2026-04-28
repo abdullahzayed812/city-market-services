@@ -39,14 +39,5 @@ export const createDeliveryRoutes = (controller: DeliveryController, deliveryOff
     }
   });
 
-  router.get("/offices/mine", authorize(UserRole.DELIVERY_MANAGER), async (req, res, next) => {
-    try {
-      const office = await deliveryOfficeRepo.findByUserId(req.user!.userId);
-      res.json(ApiResponse.success(office));
-    } catch (error) {
-      next(error);
-    }
-  });
-
   return router;
 };

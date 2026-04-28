@@ -4,11 +4,7 @@ import { IDeliveryRepository } from "../../core/interfaces/delivery.repository";
 import { IDeliveryOfficeRepository } from "../../core/interfaces/delivery-office.repository";
 import { ICourierRepository } from "../../core/interfaces/courier.repository";
 import { CourierSettlement, CourierSettlementStatus } from "../../core/entities/courier-settlement.entity";
-import {
-  CreateCourierSettlementDto,
-  CourierPendingEarningsSummary,
-  DeliveryPlatformOverview,
-} from "../../core/dto/courier-settlement.dto";
+import { CreateCourierSettlementDto, CourierPendingEarningsSummary, DeliveryPlatformOverview } from "../../core/dto/courier-settlement.dto";
 import { Database } from "@city-market/shared/node";
 import { ValidationError, NotFoundError, UnauthorizedError, UserRole } from "@city-market/shared";
 
@@ -67,10 +63,11 @@ export class CourierSettlementService {
 
     const connection = await this.db.beginTransaction();
     try {
+      // console.log(new Date(dto.periodStart), new Date(dto.periodEnd));
       const [rows]: any = await connection.execute(
         `SELECT id, courier_fee_amount FROM deliveries
          WHERE courier_id = ? AND status = 'DELIVERED' AND courier_settlement_id IS NULL
-           AND delivered_at BETWEEN ? AND ?`,
+           AND COALESCE(delivered_at, updated_at) BETWEEN ? AND ?`,
         [dto.courierId, new Date(dto.periodStart), new Date(dto.periodEnd)],
       );
 
@@ -78,9 +75,7 @@ export class CourierSettlementService {
         throw new ValidationError("no_qualifying_deliveries_for_settlement");
       }
 
-      const totalDeliveryFees = Number(
-        rows.reduce((sum: number, r: any) => sum + parseFloat(r.courier_fee_amount || 0), 0).toFixed(2),
-      );
+      const totalDeliveryFees = Number(rows.reduce((sum: number, r: any) => sum + parseFloat(r.courier_fee_amount || 0), 0).toFixed(2));
 
       const settlement: CourierSettlement = {
         id: randomUUID(),

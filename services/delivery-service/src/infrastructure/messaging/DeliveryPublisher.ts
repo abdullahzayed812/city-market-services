@@ -77,4 +77,11 @@ export class DeliveryPublisher {
   }): Promise<void> {
     await this.publish(EventType.DELIVERY_CANCELLED_BY_COURIER, data);
   }
+
+  async publishDeliveryAccepted(data: {
+    deliveryId: string;
+    officeId: string;
+  }): Promise<void> {
+    await this.publish(EventType.DELIVERY_ACCEPTED, data);
+  }
 }

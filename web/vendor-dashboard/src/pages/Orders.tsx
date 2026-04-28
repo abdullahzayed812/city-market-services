@@ -49,8 +49,12 @@ const Orders = () => {
 
   const getStatusColor = (status: VendorOrderStatus) => {
     switch (status) {
+      case VendorOrderStatus.DRAFT:
+        return "bg-gray-100 text-gray-800";
       case VendorOrderStatus.PENDING:
         return "bg-yellow-100 text-yellow-800";
+      case VendorOrderStatus.PREPARING:
+        return "bg-amber-100 text-amber-800";
       case VendorOrderStatus.PROPOSAL_SENT:
         return "bg-blue-100 text-blue-800";
       case VendorOrderStatus.CONFIRMED:
@@ -63,8 +67,6 @@ const Orders = () => {
         return "bg-green-100 text-green-800";
       case VendorOrderStatus.CANCELLED:
         return "bg-red-100 text-red-800";
-      case VendorOrderStatus.PREPARING:
-        return "bg-orange-100 text-orange-800";
       default:
         return "bg-gray-100 text-gray-800";
     }

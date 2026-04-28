@@ -5,7 +5,7 @@ import { IVendorOrderRepository } from "../../core/interfaces/vendor-order.repos
 import { OrderStateManager } from "../services/order-state.manager";
 import { OrderPublisher } from "../../infrastructure/messaging/OrderPublisher";
 
-const CONFIRMATION_TIMEOUT_MINUTES = parseInt(process.env.ORDER_CONFIRMATION_TIMEOUT_MINUTES || "15", 10);
+const CONFIRMATION_TIMEOUT_MINUTES = parseInt(process.env.ORDER_CONFIRMATION_TIMEOUT_MINUTES || "2", 10);
 
 export class StockReservedConsumer {
   constructor(
@@ -14,7 +14,7 @@ export class StockReservedConsumer {
     private vendorOrderRepo: IVendorOrderRepository,
     private stateManager: OrderStateManager,
     private publisher: OrderPublisher,
-  ) { }
+  ) {}
 
   async handle(event: any): Promise<void> {
     const { orderId } = event.payload;

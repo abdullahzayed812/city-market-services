@@ -30,11 +30,6 @@ export const deliveryService = {
     return response.data?.data;
   },
 
-  getMyOffice: async () => {
-    const response = await apiClient.get<ApiResponse<any>>("/delivery/offices/mine");
-    return response.data?.data;
-  },
-
   acceptDelivery: async (deliveryId: string) => {
     const response = await apiClient.patch<ApiResponse<null>>(`/delivery/deliveries/${deliveryId}/accept`, {});
     return response.data?.data;

@@ -91,6 +91,7 @@
     "unavailable": "غير متوفر",
     "pendingOrder": "قبول",
     "statuses": {
+      "draft": "مسودة",
       "pending": "قيد الانتظار",
       "preparing": "جاري التجهيز",
       "proposal_sent": "تم إرسال المقترح",

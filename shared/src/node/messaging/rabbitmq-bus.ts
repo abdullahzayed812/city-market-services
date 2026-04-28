@@ -48,14 +48,20 @@ export class RabbitMQBus {
   }
 
   async publish(event: BaseEvent): Promise<void> {
-    if (!this.channel) {
-      Logger.error("RabbitMQ channel not available, cannot publish");
+    if (!this.isConnected || !this.channel) {
+      Logger.warn(`RabbitMQ not connected, dropping event ${event.type}`);
       return;
     }
 
     try {
       const exchange = "citymarket_events";
-      await this.channel.assertExchange(exchange, "topic", { durable: true });
+      const timeout = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error("RabbitMQ publish timeout")), 3000)
+      );
+      await Promise.race([
+        this.channel.assertExchange(exchange, "topic", { durable: true }),
+        timeout,
+      ]);
       this.channel.publish(exchange, event.type, Buffer.from(JSON.stringify(event)));
       Logger.info(`Published event ${event.type}`);
     } catch (error) {

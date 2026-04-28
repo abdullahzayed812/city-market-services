@@ -5,7 +5,7 @@ import { Logger } from "@city-market/shared/node";
 import { AuthenticatedRequest } from "@city-market/shared/node";
 
 export class DeliveryController {
-  constructor(private deliveryService: DeliveryService) { }
+  constructor(private deliveryService: DeliveryService) {}
 
   // Courier management
   registerCourier = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
@@ -24,7 +24,7 @@ export class DeliveryController {
     try {
       const page = parseInt(req.query.page as string) || 1;
       const limit = parseInt(req.query.limit as string) || 20;
-      const couriers = await this.deliveryService.getAllCouriers(page, limit);
+      const couriers = await this.deliveryService.getAllCouriers(page, limit, req.user?.userId, req.user?.role);
       res.json(ApiResponse.success(couriers));
     } catch (error) {
       next(error);
@@ -42,7 +42,7 @@ export class DeliveryController {
 
   getAvailableCouriers = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
-      const couriers = await this.deliveryService.getAvailableCouriers();
+      const couriers = await this.deliveryService.getAvailableCouriers(req.user?.userId, req.user?.role);
       res.json(ApiResponse.success(couriers));
     } catch (error) {
       next(error);
@@ -148,7 +148,7 @@ export class DeliveryController {
     try {
       const page = parseInt(req.query.page as string) || 1;
       const limit = parseInt(req.query.limit as string) || 20;
-      const deliveries = await this.deliveryService.getAllDeliveries(page, limit, req.user?.userId);
+      const deliveries = await this.deliveryService.getAllDeliveries(page, limit, req.user?.userId, req.user?.role);
       res.json(ApiResponse.success(deliveries));
     } catch (error) {
       next(error);
@@ -158,7 +158,7 @@ export class DeliveryController {
   getFinancialAnalytics = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
       const vendorOrderIdsStr = req.query.vendorOrderIds as string;
-      const vendorOrderIds = vendorOrderIdsStr ? vendorOrderIdsStr.split(',') : [];
+      const vendorOrderIds = vendorOrderIdsStr ? vendorOrderIdsStr.split(",") : [];
       const periodStart = req.query.periodStart ? new Date(req.query.periodStart as string) : undefined;
       const periodEnd = req.query.periodEnd ? new Date(req.query.periodEnd as string) : undefined;
 
