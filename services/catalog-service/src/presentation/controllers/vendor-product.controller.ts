@@ -16,14 +16,7 @@ export class VendorProductController {
       const vendorId = req.query.vendorId as string;
       const search = req.query.search as string;
 
-      const { products, total } = await this.catalogService.getAllVendorProducts(
-        page,
-        limit,
-        globalCategoryId,
-        vendorCategoryId,
-        vendorId,
-        search,
-      );
+      const { products, total } = await this.catalogService.getAllVendorProducts(page, limit, globalCategoryId, vendorCategoryId, vendorId, search);
       res.json(
         ApiResponse.success({
           data: products,
@@ -78,11 +71,7 @@ export class VendorProductController {
     try {
       const page = parseInt(req.query.page as string) || 1;
       const limit = parseInt(req.query.limit as string) || 20;
-      const { products, total } = await this.catalogService.getVendorProductsByCategory(
-        req.params.categoryId,
-        page,
-        limit,
-      );
+      const { products, total } = await this.catalogService.getVendorProductsByCategory(req.params.categoryId, page, limit);
       res.json(
         ApiResponse.success({
           data: products,
@@ -134,9 +123,9 @@ export class VendorProductController {
 
   updateStock = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
-      if (req.body.stock !== undefined) {
+      if (req.body.stock) {
         await this.catalogService.updateVendorStock(req.params.id, req.body.stock);
-      } else if (req.body.weight !== undefined) {
+      } else if (req.body.weight) {
         await this.catalogService.updateVendorWeightStock(req.params.id, req.body.weight);
       } else {
         throw new ValidationError("stock_or_weight_must_be_provided");
@@ -163,9 +152,9 @@ export class VendorProductController {
   decrementStock = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
       const { stock, weight } = req.body;
-      if (stock !== undefined) {
+      if (stock) {
         await this.catalogService.decrementVendorStock(req.params.id, stock, MeasurementType.UNIT);
-      } else if (weight !== undefined) {
+      } else if (weight) {
         await this.catalogService.decrementVendorStock(req.params.id, weight, MeasurementType.WEIGHT);
       } else {
         throw new ValidationError("stock_or_weight_must_be_provided");

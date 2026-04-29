@@ -63,12 +63,7 @@ export class CustomerOrderRepository implements ICustomerOrderRepository {
     return rows.length > 0 ? this.mapToEntity(rows[0]) : null;
   }
 
-  async findByCustomer(
-    customerId: string,
-    limit: number,
-    offset: number,
-    connection?: PoolConnection,
-  ): Promise<CustomerOrder[]> {
+  async findByCustomer(customerId: string, limit: number, offset: number, connection?: PoolConnection): Promise<CustomerOrder[]> {
     const conn = connection || this.pool;
     const query = `
       SELECT * FROM customer_orders 
@@ -109,28 +104,28 @@ export class CustomerOrderRepository implements ICustomerOrderRepository {
       fields.push("status = ?");
       values.push(data.status);
     }
-    if (data.cancellationReason !== undefined) {
+    if (data.cancellationReason) {
       fields.push("cancellation_reason = ?");
       values.push(data.cancellationReason);
     }
-    if (data.confirmationExpiry !== undefined) {
+    if (data.confirmationExpiry) {
       fields.push("confirmation_expiry = ?");
       values.push(data.confirmationExpiry);
     }
     // Add other updatable fields here if necessary, e.g., total amounts
-    if (data.subtotal !== undefined) {
+    if (data.subtotal) {
       fields.push("subtotal = ?");
       values.push(data.subtotal);
     }
-    if (data.deliveryFee !== undefined) {
+    if (data.deliveryFee) {
       fields.push("delivery_fee = ?");
       values.push(data.deliveryFee);
     }
-    if (data.commissionAmount !== undefined) {
+    if (data.commissionAmount) {
       fields.push("commission_amount = ?");
       values.push(data.commissionAmount);
     }
-    if (data.totalAmount !== undefined) {
+    if (data.totalAmount) {
       fields.push("total_amount = ?");
       values.push(data.totalAmount);
     }

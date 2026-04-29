@@ -41,6 +41,7 @@ CREATE TABLE deliveries (
   delivery_fee DECIMAL(10, 2) DEFAULT 0.00,
   courier_fee_percentage DECIMAL(5, 2) NULL DEFAULT NULL,
   courier_fee_amount DECIMAL(10, 2) DEFAULT 0.00,
+  office_fee_amount DECIMAL(10, 2) DEFAULT 0.00,
   delivery_address TEXT NOT NULL,
   delivery_latitude DECIMAL(10, 8),
   delivery_longitude DECIMAL(11, 8),
@@ -84,6 +85,8 @@ CREATE TABLE IF NOT EXISTS delivery_fee_tiers (
   min_amount DECIMAL(10, 2) NOT NULL,
   max_amount DECIMAL(10, 2) NULL,
   courier_percentage DECIMAL(5, 2) NOT NULL,
+  office_percentage DECIMAL(5, 2) NOT NULL DEFAULT 0.00,
+  platform_percentage DECIMAL(5, 2) NOT NULL DEFAULT 0.00,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   UNIQUE INDEX idx_min_amount (min_amount)

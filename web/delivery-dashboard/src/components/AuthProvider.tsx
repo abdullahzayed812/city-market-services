@@ -43,8 +43,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setToken(data.accessToken);
   };
 
-  const logout = () => {
+  const logout = async () => {
+    try {
+      const refreshToken = localStorage.getItem("courier_refresh_token");
+      if (refreshToken) {
+        await authService.logout(refreshToken);
+      }
+    } catch {
+      // ignore — still clear local state
+    }
     localStorage.removeItem("courier_token");
+    localStorage.removeItem("courier_refresh_token");
+    localStorage.removeItem("courier_user");
     setToken(null);
     setUser(null);
     setCourier(null);

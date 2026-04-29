@@ -406,7 +406,7 @@ export class OrderService {
     await this.publisher.publishOrderCancelled(orderId, customerId);
   }
 
-  async cancelOrderDueToDeliveryFailure(customerOrderId: string): Promise<void> {
+  async cancelOrderDueToDeliveryFailure(customerOrderId: string, courierReason?: string): Promise<void> {
     return this.db.withTransaction(async (connection) => {
       const co = await this.customerOrderRepo.findByIdWithLock(customerOrderId, connection);
       if (!co) return;
@@ -418,12 +418,13 @@ export class OrderService {
       ];
       if (terminalStatuses.includes(co.status)) return;
 
-      const reason = "Delivery assignment expired";
+      const cancellationReason = courierReason || "Delivery cancelled by courier";
       await this.customerOrderRepo.updateStatus(customerOrderId, CustomerOrderStatus.CANCELLED, connection);
+      await this.customerOrderRepo.update(customerOrderId, { cancellationReason }, connection);
       await this.stateManager.recordStatusChange(
         { customerOrderId },
         CustomerOrderStatus.CANCELLED,
-        reason,
+        cancellationReason,
         connection,
       );
 
@@ -437,10 +438,11 @@ export class OrderService {
         ];
         if (cancelableStatuses.includes(vo.status as VendorOrderStatus)) {
           await this.vendorOrderRepo.updateStatus(vo.id, VendorOrderStatus.CANCELLED, connection);
+          await this.vendorOrderRepo.update(vo.id, { cancellationReason }, connection);
           await this.stateManager.recordStatusChange(
             { vendorOrderId: vo.id },
             VendorOrderStatus.CANCELLED,
-            reason,
+            cancellationReason,
             connection,
           );
         }

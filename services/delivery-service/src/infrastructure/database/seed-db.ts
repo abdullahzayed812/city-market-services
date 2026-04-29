@@ -53,18 +53,18 @@ const seedDb = async () => {
     }
 
     // ── Delivery Fee Tiers ────────────────────────────────────────────────────
-    // courier_percentage is the courier's share; office keeps (100 - courier_percentage)%
+    // courier + office + platform must sum to 100
     const feeTiers = [
-      { minAmount: 0,  maxAmount: 20,   courierPercentage: 60 }, // رسوم صغيرة: كوريير 60% / مكتب 40%
-      { minAmount: 20, maxAmount: 40,   courierPercentage: 65 }, // رسوم متوسطة: كوريير 65% / مكتب 35%
-      { minAmount: 40, maxAmount: 70,   courierPercentage: 70 }, // رسوم مرتفعة: كوريير 70% / مكتب 30%
-      { minAmount: 70, maxAmount: null, courierPercentage: 75 }, // رسوم عالية جداً: كوريير 75% / مكتب 25%
+      { minAmount: 0,  maxAmount: 20,   courierPercentage: 60, officePercentage: 30, platformPercentage: 10 }, // صغيرة
+      { minAmount: 20, maxAmount: 40,   courierPercentage: 65, officePercentage: 25, platformPercentage: 10 }, // متوسطة
+      { minAmount: 40, maxAmount: 70,   courierPercentage: 70, officePercentage: 20, platformPercentage: 10 }, // مرتفعة
+      { minAmount: 70, maxAmount: null, courierPercentage: 75, officePercentage: 15, platformPercentage: 10 }, // عالية
     ];
 
     for (const tier of feeTiers) {
       await connection.execute(
-        `INSERT IGNORE INTO delivery_fee_tiers (id, min_amount, max_amount, courier_percentage) VALUES (?, ?, ?, ?)`,
-        [randomUUID(), tier.minAmount, tier.maxAmount, tier.courierPercentage],
+        `INSERT IGNORE INTO delivery_fee_tiers (id, min_amount, max_amount, courier_percentage, office_percentage, platform_percentage) VALUES (?, ?, ?, ?, ?, ?)`,
+        [randomUUID(), tier.minAmount, tier.maxAmount, tier.courierPercentage, tier.officePercentage, tier.platformPercentage],
       );
     }
 

@@ -102,6 +102,8 @@
     "failed": "Failed",
     "order_items": "Order Items",
     "no_items": "No items found.",
-    "total_price": "Total price"
+    "items_price": "Items price",
+    "total_price": "Total price",
+    "delivery_fee": "Delivery fee"
   }
 }

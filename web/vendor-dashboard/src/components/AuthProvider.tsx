@@ -62,13 +62,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const logout = () => {
+  const logout = async () => {
+    try {
+      const refreshToken = localStorage.getItem("vendor_refresh_token");
+      if (refreshToken) {
+        await authService.logout(refreshToken);
+      }
+    } catch {
+      // ignore — still clear local state
+    }
     localStorage.removeItem("vendor_token");
     localStorage.removeItem("vendor_refresh_token");
     localStorage.removeItem("vendor_user");
     setToken(null);
     setUser(null);
     setVendor(null);
+    window.location.href = "/login";
   };
 
   return (

@@ -73,7 +73,7 @@ export class VendorRepository implements IVendorRepository {
       fields.push("shop_name = ?");
       values.push(data.shopName);
     }
-    if (data.shopDescription !== undefined) {
+    if (data.shopDescription) {
       fields.push("shop_description = ?");
       values.push(data.shopDescription);
     }
@@ -85,19 +85,19 @@ export class VendorRepository implements IVendorRepository {
       fields.push("address = ?");
       values.push(data.address);
     }
-    if (data.latitude !== undefined) {
+    if (data.latitude) {
       fields.push("latitude = ?");
       values.push(data.latitude);
     }
-    if (data.longitude !== undefined) {
+    if (data.longitude) {
       fields.push("longitude = ?");
       values.push(data.longitude);
     }
-    if (data.storeImage !== undefined) {
+    if (data.storeImage) {
       fields.push("store_image = ?");
       values.push(data.storeImage);
     }
-    if (data.type !== undefined) {
+    if (data.type) {
       fields.push("type = ?");
       values.push(data.type);
     }

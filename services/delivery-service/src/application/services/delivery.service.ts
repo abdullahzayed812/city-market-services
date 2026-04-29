@@ -125,6 +125,7 @@ export class DeliveryService {
       deliveryFee: dto.deliveryFee || 0,
       courierFeePercentage: dto.courierFeePercentage,
       courierFeeAmount: dto.courierFeeAmount || 0,
+      officeFeeAmount: dto.officeFeeAmount || 0,
       createdAt: new Date(),
       updatedAt: new Date(),
     };
@@ -252,12 +253,14 @@ export class DeliveryService {
 
     let courierFeePercentage: number | undefined;
     let courierFeeAmount = 0;
+    let officeFeeAmount = 0;
 
     if (deliveryFee && deliveryFee > 0 && this.feeTierRepo) {
       const tier = await this.feeTierRepo.findByAmount(deliveryFee);
       if (tier) {
         courierFeePercentage = tier.courierPercentage;
         courierFeeAmount = Number(((deliveryFee * tier.courierPercentage) / 100).toFixed(2));
+        officeFeeAmount = Number(((deliveryFee * tier.officePercentage) / 100).toFixed(2));
       }
     }
 
@@ -280,6 +283,7 @@ export class DeliveryService {
       deliveryFee: deliveryFee || 0,
       courierFeePercentage,
       courierFeeAmount,
+      officeFeeAmount,
     };
 
     return this.createDelivery(dto, connection);

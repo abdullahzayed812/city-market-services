@@ -216,16 +216,19 @@
   },
   "delivery_tiers": {
     "title": "Delivery Fee Tiers",
-    "description": "Set the courier's share of the delivery fee per price range. The office keeps the remainder.",
+    "description": "Define how each delivery fee is split between the courier, office, and platform. All three percentages must sum to 100%.",
     "add_tier": "Add Tier",
     "add_new_tier": "Add New Tier",
     "edit_tier": "Edit Tier",
     "no_tiers_found": "No delivery fee tiers defined yet.",
     "courier_percentage": "Courier %",
     "office_percentage": "Office %",
-    "office_gets": "Office gets",
+    "platform_percentage": "Platform %",
+    "fee_split": "Fee Split (%)",
+    "total": "Total",
+    "percentages_must_sum_to_100": "Must sum to 100%",
     "how_it_works": "How tiers work",
-    "how_it_works_desc": "When a delivery completes, the courier's percentage is determined automatically based on the delivery fee amount. The office receives the remainder (100% - courier %). These percentages are frozen on each delivery at creation time."
+    "how_it_works_desc": "When a delivery is created, the fee is split three ways based on the matching tier: courier share, office share, and platform share. All three percentages must sum to exactly 100%. These amounts are locked per delivery at creation time."
   },
   "orders": {
     "order_id": "Order ID",

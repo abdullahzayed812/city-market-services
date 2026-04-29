@@ -35,7 +35,7 @@ export class DeliveryOfficeSettlementService {
     if (officeId) {
       query = `SELECT
          COUNT(*) as unsettledDeliveries,
-         SUM(d.delivery_fee - d.courier_fee_amount) as totalDeliveryFees,
+         SUM(d.office_fee_amount) as totalDeliveryFees,
          MIN(d.delivered_at) as oldestUnsettledDeliveryDate
        FROM deliveries d
        INNER JOIN couriers c ON c.id = d.courier_id
@@ -45,7 +45,7 @@ export class DeliveryOfficeSettlementService {
     } else {
       query = `SELECT
          COUNT(*) as unsettledDeliveries,
-         SUM(delivery_fee - courier_fee_amount) as totalDeliveryFees,
+         SUM(office_fee_amount) as totalDeliveryFees,
          MIN(delivered_at) as oldestUnsettledDeliveryDate
        FROM deliveries
        WHERE status = 'DELIVERED' AND office_settlement_id IS NULL`;
@@ -64,14 +64,11 @@ export class DeliveryOfficeSettlementService {
   }
 
   async createSettlement(dto: CreateOfficeSettlementDto, userId: string, role: UserRole): Promise<DeliveryOfficeSettlement> {
-    let officeId: string | undefined;
-
-    if (role === UserRole.DELIVERY_MANAGER) {
-      const resolved = await this.resolveOfficeId(userId, role);
-      officeId = resolved ?? undefined;
-    } else if (dto.deliveryOfficeId) {
-      officeId = dto.deliveryOfficeId;
+    if (role !== UserRole.ADMIN) {
+      throw new UnauthorizedError("only_admin_can_create_office_settlements");
     }
+
+    const officeId = dto.deliveryOfficeId;
 
     const connection = await this.db.beginTransaction();
     try {
@@ -79,14 +76,14 @@ export class DeliveryOfficeSettlementService {
       let params: any[];
 
       if (officeId) {
-        query = `SELECT d.id, (d.delivery_fee - d.courier_fee_amount) as office_fee FROM deliveries d
+        query = `SELECT d.id, d.office_fee_amount as office_fee FROM deliveries d
            INNER JOIN couriers c ON c.id = d.courier_id
            WHERE d.status = 'DELIVERED' AND d.office_settlement_id IS NULL
              AND c.delivery_office_id = ?
              AND COALESCE(d.delivered_at, d.updated_at) BETWEEN ? AND ?`;
         params = [officeId, new Date(dto.periodStart), new Date(dto.periodEnd)];
       } else {
-        query = `SELECT id, (delivery_fee - courier_fee_amount) as office_fee FROM deliveries
+        query = `SELECT id, office_fee_amount as office_fee FROM deliveries
            WHERE status = 'DELIVERED' AND office_settlement_id IS NULL
              AND COALESCE(delivered_at, updated_at) BETWEEN ? AND ?`;
         params = [new Date(dto.periodStart), new Date(dto.periodEnd)];
@@ -135,22 +132,19 @@ export class DeliveryOfficeSettlementService {
       if (targetOfficeId) return this.settlementRepo.findByOfficeId(targetOfficeId, limit, offset);
       return this.settlementRepo.findAll(limit, offset);
     }
+    // DELIVERY_MANAGER can view their own office settlements (read-only)
     const officeId = await this.resolveOfficeId(userId, role);
     if (officeId) return this.settlementRepo.findByOfficeId(officeId, limit, offset);
-    return this.settlementRepo.findAll(limit, offset);
+    return [];
   }
 
-  async markSettlementAsPaid(id: string, userId: string, role: UserRole): Promise<void> {
+  async markSettlementAsPaid(id: string, _userId: string, role: UserRole): Promise<void> {
+    if (role !== UserRole.ADMIN) {
+      throw new UnauthorizedError("only_admin_can_mark_office_settlement_paid");
+    }
     const settlement = await this.settlementRepo.findById(id);
     if (!settlement) throw new NotFoundError("settlement_not_found");
     if (settlement.status === OfficeSettlementStatus.PAID) throw new ValidationError("settlement_already_paid");
-
-    if (role === UserRole.DELIVERY_MANAGER) {
-      const officeId = await this.resolveOfficeId(userId, role);
-      if (settlement.deliveryOfficeId !== officeId) {
-        throw new UnauthorizedError("settlement_not_owned_by_your_office");
-      }
-    }
 
     await this.settlementRepo.updateStatus(id, OfficeSettlementStatus.PAID, new Date());
   }

@@ -7,9 +7,9 @@ export class DeliveryCancelledByCourierConsumer implements EventSubscriber {
 
   async handle(event: BaseEvent): Promise<void> {
     try {
-      const { customerOrderId } = event.payload;
+      const { customerOrderId, reason } = event.payload;
       Logger.info(`Processing DELIVERY_CANCELLED_BY_COURIER for order ${customerOrderId}`);
-      await this.orderService.cancelOrderDueToDeliveryFailure(customerOrderId);
+      await this.orderService.cancelOrderDueToDeliveryFailure(customerOrderId, reason);
     } catch (error) {
       Logger.error(`Failed to process DELIVERY_CANCELLED_BY_COURIER for order ${event.payload?.customerOrderId}`, error);
     }

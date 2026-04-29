@@ -20,8 +20,8 @@ export class DeliveryRepository implements IDeliveryRepository {
         id, customer_id, customer_order_id, vendor_order_id, status,
         delivery_address, delivery_latitude, delivery_longitude,
         total_price, items_count,
-        delivery_fee, courier_fee_percentage, courier_fee_amount
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        delivery_fee, courier_fee_percentage, courier_fee_amount, office_fee_amount
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
     await conn.execute(query, [
       delivery.id,
@@ -37,6 +37,7 @@ export class DeliveryRepository implements IDeliveryRepository {
       delivery.deliveryFee || 0,
       delivery.courierFeePercentage ?? null,
       delivery.courierFeeAmount || 0,
+      delivery.officeFeeAmount || 0,
     ]);
 
     // Insert into delivery_pickup_locations table
@@ -179,7 +180,7 @@ export class DeliveryRepository implements IDeliveryRepository {
       fields.push("status = ?");
       values.push(data.status);
     }
-    if (data.notes !== undefined) {
+    if (data.notes) {
       fields.push("notes = ?");
       values.push(data.notes);
     }
@@ -191,15 +192,15 @@ export class DeliveryRepository implements IDeliveryRepository {
       fields.push("delivered_at = ?");
       values.push(data.deliveredAt);
     }
-    if (data.vendorOrderId !== undefined) {
+    if (data.vendorOrderId) {
       fields.push("vendor_order_id = ?");
       values.push(data.vendorOrderId);
     }
-    if (data.assignedWindowExpiry !== undefined) {
+    if (data.assignedWindowExpiry) {
       fields.push("assigned_window_expiry = ?");
       values.push(data.assignedWindowExpiry);
     }
-    if (data.deliveryOfficeId !== undefined) {
+    if (data.deliveryOfficeId) {
       fields.push("delivery_office_id = ?");
       values.push(data.deliveryOfficeId);
     }
@@ -237,7 +238,7 @@ export class DeliveryRepository implements IDeliveryRepository {
       SELECT COUNT(DISTINCT d.id) as totalDeliveries
       FROM deliveries d
       JOIN delivery_pickup_locations p ON d.id = p.delivery_id
-      WHERE p.vendor_order_id IN (${vendorOrderIds.map(() => '?').join(',')}) 
+      WHERE p.vendor_order_id IN (${vendorOrderIds.map(() => "?").join(",")}) 
       AND d.status = 'DELIVERED'
     `;
     const params: any[] = [...vendorOrderIds];
@@ -258,7 +259,7 @@ export class DeliveryRepository implements IDeliveryRepository {
   private async getPickupLocationsForDelivery(deliveryId: string, conn: Pool | PoolConnection): Promise<PickupLocation[]> {
     const query = "SELECT id, delivery_id, vendor_order_id, address, latitude, longitude FROM delivery_pickup_locations WHERE delivery_id = ?";
     const [rows] = await conn.execute<RowDataPacket[]>(query, [deliveryId]);
-    return (rows as RowDataPacket[]).map(row => ({
+    return (rows as RowDataPacket[]).map((row) => ({
       id: row.id,
       deliveryId: row.delivery_id,
       vendorOrderId: row.vendor_order_id,
@@ -274,7 +275,7 @@ export class DeliveryRepository implements IDeliveryRepository {
         const delivery = this.mapToEntity(row);
         delivery.pickupLocations = await this.getPickupLocationsForDelivery(delivery.id, conn); // Pass conn
         return delivery;
-      })
+      }),
     );
   }
 
@@ -292,20 +293,14 @@ export class DeliveryRepository implements IDeliveryRepository {
     if (deliveryIds.length === 0) return;
     const conn = connection || this.pool;
     const placeholders = deliveryIds.map(() => "?").join(", ");
-    await (conn as any).query(
-      `UPDATE deliveries SET courier_settlement_id = ? WHERE id IN (${placeholders})`,
-      [settlementId, ...deliveryIds],
-    );
+    await (conn as any).query(`UPDATE deliveries SET courier_settlement_id = ? WHERE id IN (${placeholders})`, [settlementId, ...deliveryIds]);
   }
 
   async markDeliveriesAsOfficeSettled(deliveryIds: string[], settlementId: string, connection?: any): Promise<void> {
     if (deliveryIds.length === 0) return;
     const conn = connection || this.pool;
     const placeholders = deliveryIds.map(() => "?").join(", ");
-    await (conn as any).query(
-      `UPDATE deliveries SET office_settlement_id = ? WHERE id IN (${placeholders})`,
-      [settlementId, ...deliveryIds],
-    );
+    await (conn as any).query(`UPDATE deliveries SET office_settlement_id = ? WHERE id IN (${placeholders})`, [settlementId, ...deliveryIds]);
   }
 
   private mapToEntity(row: any): Delivery {
@@ -320,6 +315,7 @@ export class DeliveryRepository implements IDeliveryRepository {
       deliveryFee: row.delivery_fee ? parseFloat(row.delivery_fee) : 0,
       courierFeePercentage: row.courier_fee_percentage != null ? parseFloat(row.courier_fee_percentage) : undefined,
       courierFeeAmount: row.courier_fee_amount ? parseFloat(row.courier_fee_amount) : 0,
+      officeFeeAmount: row.office_fee_amount ? parseFloat(row.office_fee_amount) : 0,
       pickupLocations: [],
       deliveryAddress: row.delivery_address,
       deliveryLatitude: row.delivery_latitude,

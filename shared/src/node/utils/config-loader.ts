@@ -21,7 +21,7 @@ export class ConfigLoader {
     for (const [key, details] of Object.entries(schema)) {
       const value = process.env[details.env];
 
-      if (value === undefined || value === "") {
+      if (!value || value === "") {
         if (details.required) {
           missingVars.push(details.env);
         } else {
@@ -39,12 +39,7 @@ export class ConfigLoader {
       }
 
       // Production Safety: Check for default secrets in production
-      if (
-        process.env.NODE_ENV === "production" &&
-        details.sensitive &&
-        config[key] === details.default &&
-        details.default !== undefined
-      ) {
+      if (process.env.NODE_ENV === "production" && details.sensitive && config[key] === details.default && details.default) {
         Logger.error(`CRITICAL: Sensitive variable ${details.env} is using a default value in production!`);
         process.exit(1);
       }

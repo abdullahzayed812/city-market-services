@@ -59,15 +59,15 @@ export class CategoryRepository implements ICategoryRepository {
       fields.push("name = ?");
       values.push(data.name);
     }
-    if (data.description !== undefined) {
+    if (data.description) {
       fields.push("description = ?");
       values.push(data.description);
     }
-    if (data.iconUrl !== undefined) {
+    if (data.iconUrl) {
       fields.push("icon_url = ?");
       values.push(data.iconUrl);
     }
-    if (data.color !== undefined) {
+    if (data.color) {
       fields.push("color = ?");
       values.push(data.color);
     }

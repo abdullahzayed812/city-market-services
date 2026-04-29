@@ -36,7 +36,12 @@ export class VendorOrderRepository implements IVendorOrderRepository {
   }
   async findById(id: string, connection?: PoolConnection): Promise<VendorOrder | null> {
     const conn = connection || this.pool;
-    const query = "SELECT * FROM vendor_orders WHERE id = ?";
+    const query = `
+      SELECT vo.*, co.confirmation_expiry
+      FROM vendor_orders vo
+      JOIN customer_orders co ON vo.customer_order_id = co.id
+      WHERE vo.id = ?
+    `;
     const [rows] = await conn.execute<RowDataPacket[]>(query, [id]);
     return rows.length > 0 ? this.mapToEntity(rows[0]) : null;
   }
@@ -52,12 +57,7 @@ export class VendorOrderRepository implements IVendorOrderRepository {
     const [rows] = await conn.execute<RowDataPacket[]>(query, [customerOrderId]);
     return rows.map((row) => this.mapToEntity(row));
   }
-  async findByVendor(
-    vendorId: string,
-    limit: number,
-    offset: number,
-    connection?: PoolConnection
-  ): Promise<VendorOrder[]> {
+  async findByVendor(vendorId: string, limit: number, offset: number, connection?: PoolConnection): Promise<VendorOrder[]> {
     const conn = connection || this.pool;
     const query = `
         SELECT * FROM vendor_orders 
@@ -69,16 +69,12 @@ export class VendorOrderRepository implements IVendorOrderRepository {
     return rows.map((row) => this.mapToEntity(row));
   }
 
-  async findByVendorWithItems(
-    vendorId: string,
-    limit: number,
-    offset: number,
-    connection?: PoolConnection
-  ): Promise<VendorOrderWithItemsDto[]> {
+  async findByVendorWithItems(vendorId: string, limit: number, offset: number, connection?: PoolConnection): Promise<VendorOrderWithItemsDto[]> {
     const conn = connection || this.pool;
     const query = `
       SELECT
         vo.*,
+        co.confirmation_expiry,
         voi.id AS item_id,
         voi.product_id AS item_product_id,
         voi.product_name AS item_product_name,
@@ -88,6 +84,7 @@ export class VendorOrderRepository implements IVendorOrderRepository {
         voi.unit_price AS item_unit_price,
         voi.total_price AS item_total_price
       FROM vendor_orders vo
+      JOIN customer_orders co ON vo.customer_order_id = co.id
       LEFT JOIN vendor_order_items voi ON vo.id = voi.vendor_order_id
       WHERE vo.id IN (
         SELECT id FROM (
@@ -119,6 +116,7 @@ export class VendorOrderRepository implements IVendorOrderRepository {
           totalAmount: parseFloat(row.total_amount),
           deliveryId: row.delivery_id,
           cancellationReason: row.cancellation_reason,
+          confirmationExpiry: row.confirmation_expiry ?? undefined,
           createdAt: row.created_at,
           updatedAt: row.updated_at,
           items: [],
@@ -150,6 +148,7 @@ export class VendorOrderRepository implements IVendorOrderRepository {
     const [rows] = await conn.execute<RowDataPacket[]>(query, [status]);
     return rows.map((row) => this.mapToEntity(row));
   }
+
   async updateStatus(id: string, status: string, connection?: PoolConnection): Promise<void> {
     const conn = connection || this.pool;
     const query = "UPDATE vendor_orders SET status = ? WHERE id = ?";
@@ -172,31 +171,31 @@ export class VendorOrderRepository implements IVendorOrderRepository {
       fields.push("status = ?");
       values.push(data.status);
     }
-    if (data.deliveryId !== undefined) {
+    if (data.deliveryId) {
       fields.push("delivery_id = ?");
       values.push(data.deliveryId);
     }
-    if (data.cancellationReason !== undefined) {
+    if (data.cancellationReason) {
       fields.push("cancellation_reason = ?");
       values.push(data.cancellationReason);
     }
-    if (data.subtotal !== undefined) {
+    if (data.subtotal) {
       fields.push("subtotal = ?");
       values.push(data.subtotal);
     }
-    if (data.commissionAmount !== undefined) {
+    if (data.commissionAmount) {
       fields.push("commission_amount = ?");
       values.push(data.commissionAmount);
     }
-    if (data.totalAmount !== undefined) {
+    if (data.totalAmount) {
       fields.push("total_amount = ?");
       values.push(data.totalAmount);
     }
-    if (data.commissionPercentage !== undefined) {
+    if (data.commissionPercentage) {
       fields.push("commission_percentage = ?");
       values.push(data.commissionPercentage);
     }
-    if (data.settlementId !== undefined) {
+    if (data.settlementId) {
       fields.push("settlement_id = ?");
       values.push(data.settlementId);
     }
@@ -208,7 +207,12 @@ export class VendorOrderRepository implements IVendorOrderRepository {
     await conn.execute(query, values);
   }
 
-  async getVendorFinancials(vendorId: string, periodStart?: Date, periodEnd?: Date, connection?: PoolConnection): Promise<{ totalRevenue: number; platformCommission: number; totalOrders: number; vendorOrderIds: string[] }> {
+  async getVendorFinancials(
+    vendorId: string,
+    periodStart?: Date,
+    periodEnd?: Date,
+    connection?: PoolConnection,
+  ): Promise<{ totalRevenue: number; platformCommission: number; totalOrders: number; vendorOrderIds: string[] }> {
     const conn = connection || this.pool;
     let query = `
       SELECT 
@@ -247,7 +251,7 @@ export class VendorOrderRepository implements IVendorOrderRepository {
       totalRevenue: parseFloat(rows[0].totalRevenue) || 0,
       platformCommission: parseFloat(rows[0].platformCommission) || 0,
       totalOrders: parseInt(rows[0].totalOrders) || 0,
-      vendorOrderIds: (idRows as any[]).map(r => r.id)
+      vendorOrderIds: (idRows as any[]).map((r) => r.id),
     };
   }
 
@@ -264,6 +268,7 @@ export class VendorOrderRepository implements IVendorOrderRepository {
       deliveryId: row.delivery_id,
       settlementId: row.settlement_id,
       cancellationReason: row.cancellation_reason,
+      confirmationExpiry: row.confirmation_expiry ?? undefined,
       createdAt: row.created_at,
       updatedAt: row.updated_at,
     };

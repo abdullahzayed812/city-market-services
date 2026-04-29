@@ -16,6 +16,7 @@ export interface CreateDeliveryDto {
   deliveryFee?: number;
   courierFeePercentage?: number;
   courierFeeAmount?: number;
+  officeFeeAmount?: number;
 }
 
 export interface AssignCourierDto {

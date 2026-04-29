@@ -21,6 +21,8 @@ interface DeliveryFeeTier {
   minAmount: number;
   maxAmount: number | null;
   courierPercentage: number;
+  officePercentage: number;
+  platformPercentage: number;
 }
 
 const DeliveryFeeTiers: React.FC = () => {
@@ -28,7 +30,13 @@ const DeliveryFeeTiers: React.FC = () => {
   const queryClient = useQueryClient();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingTier, setEditingTier] = useState<DeliveryFeeTier | null>(null);
-  const [formData, setFormData] = useState({ minAmount: "", maxAmount: "", courierPercentage: "" });
+  const [formData, setFormData] = useState({
+    minAmount: "",
+    maxAmount: "",
+    courierPercentage: "",
+    officePercentage: "",
+    platformPercentage: "",
+  });
   const [error, setError] = useState<string | null>(null);
 
   const { data: tiersResponse, isLoading } = useQuery({
@@ -64,7 +72,7 @@ const DeliveryFeeTiers: React.FC = () => {
   });
 
   const resetForm = () => {
-    setFormData({ minAmount: "", maxAmount: "", courierPercentage: "" });
+    setFormData({ minAmount: "", maxAmount: "", courierPercentage: "", officePercentage: "", platformPercentage: "" });
     setEditingTier(null);
     setError(null);
   };
@@ -75,17 +83,33 @@ const DeliveryFeeTiers: React.FC = () => {
       minAmount: tier.minAmount.toString(),
       maxAmount: tier.maxAmount?.toString() || "",
       courierPercentage: tier.courierPercentage.toString(),
+      officePercentage: tier.officePercentage.toString(),
+      platformPercentage: tier.platformPercentage.toString(),
     });
     setError(null);
     setIsDialogOpen(true);
   };
 
+  const percentageSum = () => {
+    const c = parseFloat(formData.courierPercentage || "0");
+    const o = parseFloat(formData.officePercentage || "0");
+    const p = parseFloat(formData.platformPercentage || "0");
+    return Number((c + o + p).toFixed(2));
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    const sum = percentageSum();
+    if (sum !== 100) {
+      setError(t("delivery_tiers.percentages_must_sum_to_100", `Percentages must sum to 100 (currently ${sum})`));
+      return;
+    }
     const data = {
       minAmount: parseFloat(formData.minAmount),
       maxAmount: formData.maxAmount === "" ? null : parseFloat(formData.maxAmount),
       courierPercentage: parseFloat(formData.courierPercentage),
+      officePercentage: parseFloat(formData.officePercentage),
+      platformPercentage: parseFloat(formData.platformPercentage),
     };
     if (editingTier) {
       updateMutation.mutate({ id: editingTier.id, data });
@@ -95,6 +119,9 @@ const DeliveryFeeTiers: React.FC = () => {
   };
 
   if (isLoading) return <div className="p-8 text-center">{t("common.loading")}</div>;
+
+  const sum = percentageSum();
+  const sumColor = sum === 100 ? "text-green-600" : "text-red-500";
 
   return (
     <div className="space-y-6 p-6 animate-in fade-in zoom-in duration-500">
@@ -128,6 +155,7 @@ const DeliveryFeeTiers: React.FC = () => {
               <TableHead>{t("financial.max_amount")} ({t("common.currency")})</TableHead>
               <TableHead>{t("delivery_tiers.courier_percentage")} (%)</TableHead>
               <TableHead>{t("delivery_tiers.office_percentage")} (%)</TableHead>
+              <TableHead>{t("delivery_tiers.platform_percentage")} (%)</TableHead>
               <TableHead className="text-end">{t("common.actions")}</TableHead>
             </TableRow>
           </TableHeader>
@@ -143,7 +171,12 @@ const DeliveryFeeTiers: React.FC = () => {
                 </TableCell>
                 <TableCell>
                   <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                    {(100 - tier.courierPercentage).toFixed(2)}%
+                    {tier.officePercentage}%
+                  </span>
+                </TableCell>
+                <TableCell>
+                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                    {tier.platformPercentage}%
                   </span>
                 </TableCell>
                 <TableCell className="text-end space-x-1">
@@ -167,7 +200,7 @@ const DeliveryFeeTiers: React.FC = () => {
             ))}
             {tiers.length === 0 && (
               <TableRow>
-                <TableCell colSpan={5} className="text-center py-8 text-gray-500">
+                <TableCell colSpan={6} className="text-center py-8 text-gray-500">
                   {t("delivery_tiers.no_tiers_found")}
                 </TableCell>
               </TableRow>
@@ -191,54 +224,103 @@ const DeliveryFeeTiers: React.FC = () => {
                 <AlertDescription>{error}</AlertDescription>
               </Alert>
             )}
-            <div className="space-y-2">
-              <Label htmlFor="minAmount">{t("financial.min_amount")}</Label>
-              <Input
-                id="minAmount"
-                type="number"
-                step="0.01"
-                min="0"
-                value={formData.minAmount}
-                onChange={(e) => setFormData({ ...formData, minAmount: e.target.value })}
-                required
-              />
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="minAmount">{t("financial.min_amount")}</Label>
+                <Input
+                  id="minAmount"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={formData.minAmount}
+                  onChange={(e) => setFormData({ ...formData, minAmount: e.target.value })}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="maxAmount">
+                  {t("financial.max_amount")} ({t("financial.leave_empty_for_infinity")})
+                </Label>
+                <Input
+                  id="maxAmount"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={formData.maxAmount}
+                  onChange={(e) => setFormData({ ...formData, maxAmount: e.target.value })}
+                />
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="maxAmount">
-                {t("financial.max_amount")} ({t("financial.leave_empty_for_infinity")})
-              </Label>
-              <Input
-                id="maxAmount"
-                type="number"
-                step="0.01"
-                min="0"
-                value={formData.maxAmount}
-                onChange={(e) => setFormData({ ...formData, maxAmount: e.target.value })}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="courierPercentage">{t("delivery_tiers.courier_percentage")}</Label>
-              <Input
-                id="courierPercentage"
-                type="number"
-                step="0.01"
-                min="0"
-                max="100"
-                value={formData.courierPercentage}
-                onChange={(e) => setFormData({ ...formData, courierPercentage: e.target.value })}
-                required
-              />
-              {formData.courierPercentage !== "" && (
-                <p className="text-xs text-gray-500">
-                  {t("delivery_tiers.office_gets")} {(100 - parseFloat(formData.courierPercentage || "0")).toFixed(2)}%
+
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <Label>{t("delivery_tiers.fee_split", "Fee Split (%)")}</Label>
+                <span className={`text-xs font-mono font-bold ${sumColor}`}>
+                  {t("delivery_tiers.total", "Total")}: {formData.courierPercentage || formData.officePercentage || formData.platformPercentage ? sum : "—"}%
+                </span>
+              </div>
+              <div className="grid grid-cols-3 gap-3">
+                <div className="space-y-1">
+                  <Label htmlFor="courierPercentage" className="text-xs text-blue-700">
+                    {t("delivery_tiers.courier_percentage")}
+                  </Label>
+                  <Input
+                    id="courierPercentage"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    max="100"
+                    value={formData.courierPercentage}
+                    onChange={(e) => setFormData({ ...formData, courierPercentage: e.target.value })}
+                    required
+                    className="border-blue-200 focus:border-blue-400"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="officePercentage" className="text-xs text-green-700">
+                    {t("delivery_tiers.office_percentage")}
+                  </Label>
+                  <Input
+                    id="officePercentage"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    max="100"
+                    value={formData.officePercentage}
+                    onChange={(e) => setFormData({ ...formData, officePercentage: e.target.value })}
+                    required
+                    className="border-green-200 focus:border-green-400"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="platformPercentage" className="text-xs text-purple-700">
+                    {t("delivery_tiers.platform_percentage")}
+                  </Label>
+                  <Input
+                    id="platformPercentage"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    max="100"
+                    value={formData.platformPercentage}
+                    onChange={(e) => setFormData({ ...formData, platformPercentage: e.target.value })}
+                    required
+                    className="border-purple-200 focus:border-purple-400"
+                  />
+                </div>
+              </div>
+              {(formData.courierPercentage || formData.officePercentage || formData.platformPercentage) && sum !== 100 && (
+                <p className={`text-xs ${sumColor}`}>
+                  {t("delivery_tiers.percentages_must_sum_to_100", "Must sum to 100%")} ({sum}% / 100%)
                 </p>
               )}
             </div>
+
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
                 {t("common.cancel")}
               </Button>
-              <Button type="submit" disabled={createMutation.isPending || updateMutation.isPending}>
+              <Button type="submit" disabled={createMutation.isPending || updateMutation.isPending || sum !== 100}>
                 {editingTier ? t("common.update") : t("common.create")}
               </Button>
             </DialogFooter>

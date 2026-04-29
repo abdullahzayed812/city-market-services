@@ -79,21 +79,21 @@ export class OrderCreationManager {
       if (!product.isAvailable) throw new ValidationError("product_not_available");
 
       if (product.measurementType === MeasurementType.UNIT) {
-        if (requestedItem.weight !== undefined || requestedItem.weightGrams !== undefined) {
+        if (requestedItem.weight || requestedItem.weightGrams) {
           throw new ValidationError("unit_product_cannot_have_weight");
         }
-        if (requestedItem.quantity === undefined || requestedItem.quantity <= 0) {
+        if (!requestedItem.quantity || requestedItem.quantity <= 0) {
           throw new ValidationError("invalid_quantity");
         }
         if (product.stockQuantity < requestedItem.quantity) {
           throw new ValidationError("insufficient_stock");
         }
       } else if (product.measurementType === MeasurementType.WEIGHT) {
-        if (requestedItem.quantity !== undefined) {
+        if (requestedItem.quantity) {
           throw new ValidationError("weight_product_cannot_have_quantity");
         }
         const weightGrams = requestedItem.weightGrams || (requestedItem.weight ? Math.round(requestedItem.weight * 1000) : undefined);
-        if (weightGrams === undefined || weightGrams <= 0) throw new ValidationError("invalid_weight");
+        if (!weightGrams || weightGrams <= 0) throw new ValidationError("invalid_weight");
 
         const availableWeight = (product.stockWeightGrams || 0) - (product.reservedWeightGrams || 0);
         if (availableWeight < weightGrams) throw new ValidationError("insufficient_stock");
@@ -242,8 +242,8 @@ export class OrderCreationManager {
     for (const item of items) {
       const existing = mergedItems.get(item.vendorProductId);
       if (existing) {
-        if (item.quantity !== undefined) existing.quantity! += item.quantity;
-        if (item.requestedWeightGrams !== undefined) {
+        if (item.quantity) existing.quantity! += item.quantity;
+        if (item.requestedWeightGrams) {
           existing.requestedWeightGrams! += item.requestedWeightGrams;
         }
         existing.totalPrice = Number(existing.totalPrice) + Number(item.totalPrice);

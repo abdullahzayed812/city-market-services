@@ -240,11 +240,27 @@ const Deliveries = () => {
                       </div>
                     ))}
 
-                    <div className="mt-4 flex justify-between items-center border-t pt-3">
-                      <span className="text-sm font-semibold">{t("orders.total_price")}</span>
-                      <span className="text-sm font-bold text-primary">
-                        {delivery?.computedTotal?.toFixed(2)} {t("common.currency")}
-                      </span>
+                    <div className="mt-4 border-t pt-3 space-y-2">
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-muted-foreground">{t("orders.items_price")}</span>
+                        <span className="text-sm font-medium">
+                          {delivery?.computedTotal?.toFixed(2)} {t("common.currency")}
+                        </span>
+                      </div>
+                      {delivery.deliveryFee != null && (
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm text-muted-foreground">{t("orders.delivery_fee")}</span>
+                          <span className="text-sm font-medium">
+                            {delivery.deliveryFee.toFixed(2)} {t("common.currency")}
+                          </span>
+                        </div>
+                      )}
+                      <div className="flex justify-between items-center border-t pt-2">
+                        <span className="text-sm font-bold">{t("orders.total_price")}</span>
+                        <span className="text-sm font-bold text-primary">
+                          {((delivery?.computedTotal ?? 0) + (delivery.deliveryFee ?? 0)).toFixed(2)} {t("common.currency")}
+                        </span>
+                      </div>
                     </div>
                     {(!delivery.vendorOrders || delivery.vendorOrders.length === 0) && (
                       <p className="text-sm text-muted-foreground italic">{t("orders.no_items")}</p>

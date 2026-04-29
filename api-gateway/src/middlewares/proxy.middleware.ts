@@ -28,7 +28,7 @@ export const setupProxy = (basePath: string, targetUrl: string) => {
         // Rewrite body: express.json() consumed the stream, so we must re-stream it.
         // Always do this when Content-Type is JSON (even empty body {}), otherwise
         // the downstream service's body parser hangs waiting for bytes that never arrive.
-        if (req.headers["content-type"]?.includes("application/json") && req.body !== undefined) {
+        if (req.headers["content-type"]?.includes("application/json") && req.body) {
           const bodyData = JSON.stringify(req.body);
           proxyReq.setHeader("Content-Length", Buffer.byteLength(bodyData));
           proxyReq.write(bodyData);

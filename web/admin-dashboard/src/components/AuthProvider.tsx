@@ -37,7 +37,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setToken(data.accessToken);
   };
 
-  const logout = () => {
+  const logout = async () => {
+    // Best-effort server-side session invalidation
+    try {
+      const refreshToken = localStorage.getItem("admin_refresh_token");
+      if (refreshToken) {
+        await authService.logout(refreshToken);
+      }
+    } catch {
+      // ignore — we still clear local state
+    }
     localStorage.removeItem("admin_token");
     localStorage.removeItem("admin_refresh_token");
     localStorage.removeItem("admin_user");

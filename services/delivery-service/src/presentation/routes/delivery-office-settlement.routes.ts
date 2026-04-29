@@ -20,13 +20,13 @@ export const createDeliveryOfficeSettlementRoutes = (controller: DeliveryOfficeS
 
   router.post(
     "/",
-    authorize(UserRole.ADMIN, UserRole.DELIVERY_MANAGER),
+    authorize(UserRole.ADMIN),
     controller.createSettlement,
   );
 
   router.patch(
     "/:id/mark-paid",
-    authorize(UserRole.ADMIN, UserRole.DELIVERY_MANAGER),
+    authorize(UserRole.ADMIN),
     controller.markPaid,
   );
 

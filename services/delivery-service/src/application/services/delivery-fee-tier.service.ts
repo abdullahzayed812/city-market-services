@@ -10,7 +10,7 @@ export class DeliveryFeeTierService {
     return this.tierRepo.findAll();
   }
 
-  async create(data: { minAmount: number; maxAmount: number | null; courierPercentage: number }): Promise<DeliveryFeeTier> {
+  async create(data: { minAmount: number; maxAmount: number | null; courierPercentage: number; officePercentage: number; platformPercentage: number }): Promise<DeliveryFeeTier> {
     await this.validate(data);
     const tier: DeliveryFeeTier = {
       id: randomUUID(),
@@ -21,7 +21,7 @@ export class DeliveryFeeTierService {
     return this.tierRepo.create(tier);
   }
 
-  async update(id: string, data: Partial<{ minAmount: number; maxAmount: number | null; courierPercentage: number }>): Promise<void> {
+  async update(id: string, data: Partial<{ minAmount: number; maxAmount: number | null; courierPercentage: number; officePercentage: number; platformPercentage: number }>): Promise<void> {
     const existing = await this.tierRepo.findById(id);
     if (!existing) throw new NotFoundError("delivery_fee_tier_not_found");
     const merged = { ...existing, ...data };
@@ -36,14 +36,17 @@ export class DeliveryFeeTierService {
   }
 
   private async validate(
-    tier: { minAmount: number; maxAmount: number | null; courierPercentage: number },
+    tier: { minAmount: number; maxAmount: number | null; courierPercentage: number; officePercentage: number; platformPercentage: number },
     excludeId?: string,
   ): Promise<void> {
     if (tier.minAmount < 0) throw new ValidationError("min_amount_cannot_be_negative");
     if (tier.maxAmount !== null && tier.maxAmount <= tier.minAmount)
       throw new ValidationError("max_amount_must_be_greater_than_min");
-    if (tier.courierPercentage < 0 || tier.courierPercentage > 100)
-      throw new ValidationError("courier_percentage_must_be_0_to_100");
+    if (tier.courierPercentage < 0 || tier.officePercentage < 0 || tier.platformPercentage < 0)
+      throw new ValidationError("percentages_cannot_be_negative");
+    const total = Number((tier.courierPercentage + tier.officePercentage + tier.platformPercentage).toFixed(2));
+    if (total !== 100)
+      throw new ValidationError(`percentages_must_sum_to_100 (got ${total})`);
 
     const all = await this.tierRepo.findAll();
     for (const existing of all) {

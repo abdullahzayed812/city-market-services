@@ -43,7 +43,7 @@ export class AddressRepository implements IAddressRepository {
     const fields: string[] = [];
     const values: any[] = [];
 
-    if (data.label !== undefined) {
+    if (data.label) {
       fields.push("label = ?");
       values.push(data.label);
     }
@@ -51,7 +51,7 @@ export class AddressRepository implements IAddressRepository {
       fields.push("address = ?");
       values.push(data.address);
     }
-    if (data.isDefault !== undefined) {
+    if (data.isDefault) {
       fields.push("is_default = ?");
       values.push(data.isDefault);
     }

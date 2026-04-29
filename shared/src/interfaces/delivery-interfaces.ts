@@ -22,6 +22,7 @@ export interface Delivery {
   deliveryLatitude?: number;
   deliveryLongitude?: number;
   totalPrice: number;
+  deliveryFee?: number;
   itemsCount: number;
   assignedAt?: Date;
   assignedWindowExpiry?: Date;

@@ -22,7 +22,7 @@ const Inventory = () => {
 
   const handleSaveStock = (product: VendorProduct) => {
     const newValue = stockEdits[product.id];
-    if (newValue !== undefined) {
+    if (newValue) {
       const updatePayload: any = { id: product.id };
       if (product.measurementType === MeasurementType.WEIGHT) {
         // Convert to grams if the unit is KG
@@ -130,7 +130,7 @@ const Inventory = () => {
                       variant="ghost"
                       size="icon"
                       className="text-slate-400 hover:text-orange-600 hover:bg-orange-50 transition-colors"
-                      disabled={stockEdits[product.id] === undefined}
+                      disabled={!stockEdits[product.id]}
                       onClick={() => handleSaveStock(product)}
                     >
                       <Save className="h-4 w-4" />

@@ -13,6 +13,7 @@ export interface Delivery {
   deliveryFee: number;
   courierFeePercentage?: number;
   courierFeeAmount: number;
+  officeFeeAmount: number;
   pickupLocations: PickupLocation[];
   deliveryAddress: string;
   pickupLatitude?: number;

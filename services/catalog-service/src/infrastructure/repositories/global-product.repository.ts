@@ -58,7 +58,7 @@ export class GlobalProductRepository implements IGlobalProductRepository {
     };
 
     for (const [key, value] of Object.entries(data)) {
-      if (fieldMap[key] !== undefined && value !== undefined) {
+      if (fieldMap[key] && value) {
         fields.push(`${fieldMap[key]} = ?`);
         values.push(value);
       }

@@ -20,37 +20,33 @@ export class CustomerRepository implements ICustomerRepository {
   }
 
   async create(customer: Customer): Promise<Customer> {
-    await this.pool.execute(
-      "INSERT INTO customers (id, user_id, full_name, phone) VALUES (?, ?, ?, ?)",
-      [customer.id, customer.userId, customer.fullName, customer.phone || null],
-    );
+    await this.pool.execute("INSERT INTO customers (id, user_id, full_name, phone) VALUES (?, ?, ?, ?)", [
+      customer.id,
+      customer.userId,
+      customer.fullName,
+      customer.phone || null,
+    ]);
     return customer;
   }
 
   async findById(id: string): Promise<Customer | null> {
-    const [rows] = await this.pool.execute<RowDataPacket[]>(
-      `${BASE_QUERY} WHERE c.id = ?`,
-      [id],
-    );
+    const [rows] = await this.pool.execute<RowDataPacket[]>(`${BASE_QUERY} WHERE c.id = ?`, [id]);
     return rows.length > 0 ? this.mapToEntity(rows[0]) : null;
   }
 
   async findByUserId(userId: string): Promise<Customer | null> {
-    const [rows] = await this.pool.execute<RowDataPacket[]>(
-      `${BASE_QUERY} WHERE c.user_id = ?`,
-      [userId],
-    );
+    const [rows] = await this.pool.execute<RowDataPacket[]>(`${BASE_QUERY} WHERE c.user_id = ?`, [userId]);
     return rows.length > 0 ? this.mapToEntity(rows[0]) : null;
   }
 
   async findByIds(ids: string[]): Promise<Customer[]> {
     if (ids.length === 0) return [];
     const placeholders = ids.map(() => "?").join(", ");
-    const [rows] = await this.pool.execute<RowDataPacket[]>(
-      `${BASE_QUERY} WHERE c.id IN (${placeholders}) OR c.user_id IN (${placeholders})`,
-      [...ids, ...ids],
-    );
-    return rows.map(row => this.mapToEntity(row));
+    const [rows] = await this.pool.execute<RowDataPacket[]>(`${BASE_QUERY} WHERE c.id IN (${placeholders}) OR c.user_id IN (${placeholders})`, [
+      ...ids,
+      ...ids,
+    ]);
+    return rows.map((row) => this.mapToEntity(row));
   }
 
   async update(id: string, data: Partial<Customer>): Promise<void> {
@@ -61,7 +57,7 @@ export class CustomerRepository implements ICustomerRepository {
       fields.push("full_name = ?");
       values.push(data.fullName);
     }
-    if (data.phone !== undefined) {
+    if (data.phone) {
       fields.push("phone = ?");
       values.push(data.phone);
     }
@@ -86,14 +82,7 @@ export class CustomerRepository implements ICustomerRepository {
        SET device_id = ?, device_platform = ?, device_model = ?,
            device_app_version = ?, device_ip = ?, device_updated_at = NOW()
        WHERE id = ?`,
-      [
-        info.deviceId,
-        info.devicePlatform,
-        info.deviceModel ?? null,
-        info.deviceAppVersion ?? null,
-        info.deviceIp ?? null,
-        id,
-      ],
+      [info.deviceId, info.devicePlatform, info.deviceModel ?? null, info.deviceAppVersion ?? null, info.deviceIp ?? null, id],
     );
   }
 

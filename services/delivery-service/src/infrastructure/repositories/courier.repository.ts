@@ -89,11 +89,11 @@ export class CourierRepository implements ICourierRepository {
       fields.push("phone = ?");
       values.push(data.phone);
     }
-    if (data.vehicleType !== undefined) {
+    if (data.vehicleType) {
       fields.push("vehicle_type = ?");
       values.push(data.vehicleType);
     }
-    if (data.licensePlate !== undefined) {
+    if (data.licensePlate) {
       fields.push("license_plate = ?");
       values.push(data.licensePlate);
     }
