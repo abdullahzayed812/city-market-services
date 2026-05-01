@@ -90,6 +90,7 @@
     "newQty": "الكمية الجديدة",
     "unavailable": "غير متوفر",
     "pendingOrder": "قبول",
+    "cancellationReason": "سبب الإلغاء",
     "statuses": {
       "draft": "مسودة",
       "pending": "قيد الانتظار",

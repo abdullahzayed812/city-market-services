@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { MapPin, Scale } from "lucide-react";
+import { MapPin, Scale, XCircle } from "lucide-react";
 
 interface OrderDetailsDialogProps {
   open: boolean;
@@ -62,6 +62,17 @@ const OrderDetailsDialog: React.FC<OrderDetailsDialogProps> = ({
               </div>
             </div>
 
+            {/* ── Cancellation Reason ── */}
+            {orderDetails.order.cancellationReason && (
+              <div className="bg-red-50 border border-red-200 p-4 rounded-lg flex items-start space-x-3">
+                <XCircle className="h-5 w-5 text-red-400 mt-0.5 shrink-0" />
+                <div>
+                  <p className="text-sm font-medium text-red-600 mb-1">{t("orders.cancellation_reason")}</p>
+                  <p className="text-sm text-red-700">{orderDetails.order.cancellationReason}</p>
+                </div>
+              </div>
+            )}
+
             {/* ── Vendor Sub-Orders ── */}
             <div className="space-y-4">
               <h3 className="font-bold border-b pb-2">{t("orders.vendor_sub_orders")}</h3>
@@ -81,6 +92,17 @@ const OrderDetailsDialog: React.FC<OrderDetailsDialogProps> = ({
                       </p>
                     </div>
                   </div>
+
+                  {/* Vendor Cancellation Reason */}
+                  {vendorOrder.cancellationReason && (
+                    <div className="flex items-start gap-2 bg-red-50 border border-red-200 rounded p-2 mt-2">
+                      <XCircle className="h-4 w-4 text-red-400 mt-0.5 shrink-0" />
+                      <p className="text-xs text-red-700">
+                        <span className="font-semibold">{t("orders.cancellation_reason")}: </span>
+                        {vendorOrder.cancellationReason}
+                      </p>
+                    </div>
+                  )}
 
                   {/* Vendor Order Items */}
                   <div className="mt-2 border-t pt-2 overflow-x-auto">

@@ -60,6 +60,11 @@ export class CommissionTierService {
         for (const existing of allTiers) {
             if (excludeId && existing.id === excludeId) continue;
 
+            // Only check overlap if scopes are identical
+            const targetVendorId = tier.vendorId || null;
+            const targetVendorType = tier.vendorType || null;
+            if (existing.vendorId !== targetVendorId || existing.vendorType !== targetVendorType) continue;
+
             // Overlap check
             const overlaps = this.checkOverlap(
                 tier.minAmount,

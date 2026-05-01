@@ -24,25 +24,33 @@ export class CommissionTierRepository implements ICommissionTierRepository {
 
   async create(tier: CommissionTier): Promise<void> {
     const query = `
-      INSERT INTO commission_tiers (id, min_amount, max_amount, percentage)
-      VALUES (?, ?, ?, ?)
+      INSERT INTO commission_tiers (id, vendor_id, vendor_type, min_amount, max_amount, percentage)
+      VALUES (?, ?, ?, ?, ?, ?)
     `;
-    await this.pool.execute(query, [tier.id, tier.minAmount, tier.maxAmount, tier.percentage]);
+    await this.pool.execute(query, [tier.id, tier.vendorId || null, tier.vendorType || null, tier.minAmount, tier.maxAmount, tier.percentage]);
   }
 
   async update(id: string, data: Partial<CommissionTier>): Promise<void> {
     const fields: string[] = [];
     const values: any[] = [];
 
-    if (data.minAmount) {
+    if (data.vendorId !== undefined) {
+      fields.push("vendor_id = ?");
+      values.push(data.vendorId || null);
+    }
+    if (data.vendorType !== undefined) {
+      fields.push("vendor_type = ?");
+      values.push(data.vendorType || null);
+    }
+    if (data.minAmount !== undefined) {
       fields.push("min_amount = ?");
       values.push(data.minAmount);
     }
-    if (data.maxAmount) {
+    if (data.maxAmount !== undefined) {
       fields.push("max_amount = ?");
       values.push(data.maxAmount);
     }
-    if (data.percentage) {
+    if (data.percentage !== undefined) {
       fields.push("percentage = ?");
       values.push(data.percentage);
     }
@@ -72,6 +80,8 @@ export class CommissionTierRepository implements ICommissionTierRepository {
   private mapToEntity(row: any): CommissionTier {
     return {
       id: row.id,
+      vendorId: row.vendor_id || null,
+      vendorType: row.vendor_type || null,
       minAmount: parseFloat(row.min_amount),
       maxAmount: row.max_amount ? parseFloat(row.max_amount) : null,
       percentage: parseFloat(row.percentage),

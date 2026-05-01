@@ -117,10 +117,14 @@ CREATE TABLE customer_penalties (
 
 CREATE TABLE commission_tiers (
   id VARCHAR(36) PRIMARY KEY,
+  vendor_id VARCHAR(36) DEFAULT NULL,
+  vendor_type VARCHAR(50) DEFAULT NULL,
   min_amount DECIMAL(10, 2) NOT NULL,
   max_amount DECIMAL(10, 2),
   percentage DECIMAL(5, 2) NOT NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  UNIQUE INDEX idx_min_amount (min_amount)
+  INDEX idx_vendor_id (vendor_id),
+  INDEX idx_vendor_type (vendor_type),
+  UNIQUE INDEX idx_tier_scope (vendor_id, vendor_type, min_amount)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

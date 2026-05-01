@@ -167,6 +167,12 @@
     "min_amount": "الحد الأدنى للمبلغ",
     "max_amount": "الحد الأقصى للمبلغ",
     "percentage": "النسبة المئوية",
+    "scope": "النطاق",
+    "tier_scope": "نطاق الشريحة",
+    "scope_global": "عام (افتراضي)",
+    "scope_vendor_type": "نوع المتجر",
+    "scope_specific_vendor": "تاجر محدد",
+    "global_default": "افتراضي عام",
     "no_tiers_found": "لا توجد شرائح عمولات معرفة بعد.",
     "edit_tier": "تعديل الشريحة",
     "add_new_tier": "إضافة شريحة جديدة",
@@ -246,7 +252,8 @@
     "delivery_fee": "رسوم التوصيل",
     "pending_proposal": "عرض معلق",
     "weight": "الوزن",
-    "address_not_provided": "تفاصيل العنوان غير متوفرة"
+    "address_not_provided": "تفاصيل العنوان غير متوفرة",
+    "cancellation_reason": "سبب الإلغاء"
   },
   "couriers": {
     "vehicle": "المركبة",

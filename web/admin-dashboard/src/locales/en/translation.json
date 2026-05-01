@@ -167,6 +167,12 @@
     "min_amount": "Min Amount",
     "max_amount": "Max Amount",
     "percentage": "Percentage",
+    "scope": "Scope",
+    "tier_scope": "Tier Scope",
+    "scope_global": "Global (Default)",
+    "scope_vendor_type": "Vendor Type",
+    "scope_specific_vendor": "Specific Vendor",
+    "global_default": "Global Default",
     "no_tiers_found": "No commission tiers defined yet.",
     "edit_tier": "Edit Tier",
     "add_new_tier": "Add New Tier",
@@ -246,7 +252,8 @@
     "delivery_fee": "Delivery Fee",
     "pending_proposal": "Pending Proposal",
     "weight": "Weight",
-    "address_not_provided": "Address details not provided"
+    "address_not_provided": "Address details not provided",
+    "cancellation_reason": "Cancellation Reason"
   },
   "couriers": {
     "vehicle": "Vehicle",

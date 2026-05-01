@@ -90,6 +90,7 @@
     "newQty": "New Qty",
     "unavailable": "Unavailable",
     "pendingOrder": "Pending Order",
+    "cancellationReason": "Cancellation Reason",
     "statuses": {
       "draft": "Draft",
       "pending": "Pending",

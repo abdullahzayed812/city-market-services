@@ -27,7 +27,7 @@ export class OrderCreationManager {
     private publisher: OrderPublisher,
     private stateManager: OrderStateManager,
     private commissionTierService: CommissionTierService,
-  ) {}
+  ) { }
 
   async create(
     dto: CreateOrderDto,
@@ -54,7 +54,7 @@ export class OrderCreationManager {
 
     const tiers = await this.commissionTierService.getAllTiers();
 
-    const { totalSubtotal, totalCommissionAmount, vendorOrdersData } = this.calculateTotals(vendorItemsMap, tiers);
+    const { totalSubtotal, totalCommissionAmount, vendorOrdersData } = this.calculateTotals(vendorItemsMap, tiers, vendorInfosMap);
 
     const customerOrder = await this.createCustomerOrderRecords(dto, totalSubtotal, totalCommissionAmount, vendorInfosMap, connection!);
     const createdVendorOrders = await this.createVendorOrderRecords(customerOrder, vendorOrdersData, vendorInfosMap, connection!);
@@ -117,7 +117,7 @@ export class OrderCreationManager {
     return vendorItemsMap;
   }
 
-  private calculateTotals(vendorItemsMap: Map<string, { product: ProductInfo; amount: number }[]>, tiers: any[]) {
+  private calculateTotals(vendorItemsMap: Map<string, { product: ProductInfo; amount: number }[]>, tiers: any[], vendorInfosMap: Map<string, any>) {
     let totalSubtotal = 0;
     let totalCommissionAmount = 0;
     const vendorOrdersData: any[] = [];
@@ -143,7 +143,8 @@ export class OrderCreationManager {
         } as any);
       }
 
-      const { amount: commissionAmount, percentage: commissionPercentage } = CommissionCalculator.calculate(vendorSubtotal, tiers);
+      const vendorInfo = vendorInfosMap.get(vendorId);
+      const { amount: commissionAmount, percentage: commissionPercentage } = CommissionCalculator.calculate(vendorSubtotal, tiers, vendorId, vendorInfo?.type);
       totalSubtotal += vendorSubtotal;
       totalCommissionAmount += commissionAmount;
       vendorOrdersData.push({

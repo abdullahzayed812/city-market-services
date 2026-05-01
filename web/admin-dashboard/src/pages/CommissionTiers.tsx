@@ -5,7 +5,7 @@ import { adminApi } from "@/services/api/admin-api";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Pencil, Trash2, AlertCircle } from "lucide-react";
+import { Plus, Pencil, Trash2, AlertCircle, Store, Tags, Globe } from "lucide-react";
 import {
     Dialog,
     DialogContent,
@@ -18,6 +18,8 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 interface CommissionTier {
     id: string;
+    vendorId?: string | null;
+    vendorType?: string | null;
     minAmount: number;
     maxAmount: number | null;
     percentage: number;
@@ -29,6 +31,9 @@ const CommissionTiers: React.FC = () => {
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [editingTier, setEditingTier] = useState<CommissionTier | null>(null);
     const [formData, setFormData] = useState({
+        tierType: "global" as "global" | "vendorType" | "vendorId",
+        vendorType: "",
+        vendorId: "",
         minAmount: "",
         maxAmount: "",
         percentage: "",
@@ -40,7 +45,28 @@ const CommissionTiers: React.FC = () => {
         queryFn: () => adminApi.getAllCommissionTiers(),
     });
 
+    const { data: vendorsResponse } = useQuery({
+        queryKey: ["vendors"],
+        queryFn: () => adminApi.getVendors(),
+    });
+
     const tiers: CommissionTier[] = tiersResponse?.data?.data || [];
+    const vendors = vendorsResponse?.data?.data || [];
+    const uniqueVendorTypes = Array.from(new Set(vendors.map((v: any) => v.type).filter(Boolean)));
+
+    const sortedTiers = [...tiers].sort((a, b) => {
+        const getPriority = (tier: CommissionTier) => {
+            if (!tier.vendorId && !tier.vendorType) return 1; // Global
+            if (tier.vendorType) return 2; // Type
+            return 3; // Specific vendor
+        };
+        const pA = getPriority(a);
+        const pB = getPriority(b);
+        if (pA !== pB) return pA - pB;
+        if (a.vendorType && b.vendorType && a.vendorType !== b.vendorType) return a.vendorType.localeCompare(b.vendorType);
+        if (a.vendorId && b.vendorId && a.vendorId !== b.vendorId) return a.vendorId.localeCompare(b.vendorId);
+        return a.minAmount - b.minAmount;
+    });
 
     const createMutation = useMutation({
         mutationFn: adminApi.createCommissionTier,
@@ -74,14 +100,21 @@ const CommissionTiers: React.FC = () => {
     });
 
     const resetForm = () => {
-        setFormData({ minAmount: "", maxAmount: "", percentage: "" });
+        setFormData({ tierType: "global", vendorType: "", vendorId: "", minAmount: "", maxAmount: "", percentage: "" });
         setEditingTier(null);
         setError(null);
     };
 
     const handleEdit = (tier: CommissionTier) => {
         setEditingTier(tier);
+        let tierType: "global" | "vendorType" | "vendorId" = "global";
+        if (tier.vendorId) tierType = "vendorId";
+        else if (tier.vendorType) tierType = "vendorType";
+
         setFormData({
+            tierType,
+            vendorType: tier.vendorType || "",
+            vendorId: tier.vendorId || "",
             minAmount: tier.minAmount.toString(),
             maxAmount: tier.maxAmount?.toString() || "",
             percentage: tier.percentage.toString(),
@@ -93,6 +126,8 @@ const CommissionTiers: React.FC = () => {
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         const data = {
+            vendorId: formData.tierType === "vendorId" && formData.vendorId.trim() !== "" ? formData.vendorId.trim() : null,
+            vendorType: formData.tierType === "vendorType" && formData.vendorType.trim() !== "" ? formData.vendorType.trim() : null,
             minAmount: parseFloat(formData.minAmount),
             maxAmount: formData.maxAmount === "" ? null : parseFloat(formData.maxAmount),
             percentage: parseFloat(formData.percentage),
@@ -129,6 +164,7 @@ const CommissionTiers: React.FC = () => {
                 <Table>
                     <TableHeader>
                         <TableRow>
+                            <TableHead>{t("financial.scope")}</TableHead>
                             <TableHead>{t("financial.min_amount")} ({t("common.currency")})</TableHead>
                             <TableHead>{t("financial.max_amount")} ({t("common.currency")})</TableHead>
                             <TableHead>{t("financial.percentage")} (%)</TableHead>
@@ -136,8 +172,33 @@ const CommissionTiers: React.FC = () => {
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {tiers.map((tier) => (
+                        {sortedTiers.map((tier) => (
                             <TableRow key={tier.id}>
+                                <TableCell>
+                                    {tier.vendorId ? (
+                                        <div className="flex items-center space-x-2">
+                                            <span className="inline-flex items-center px-2 py-1 bg-purple-100 text-purple-700 rounded-md text-xs font-semibold">
+                                                <Store className="h-3 w-3 me-1" />
+                                                {vendors.find((v: any) => v.id === tier.vendorId)?.shopName || tier.vendorId}
+                                            </span>
+                                            {vendors.find((v: any) => v.id === tier.vendorId)?.type && (
+                                                <span className="px-2 py-1 bg-blue-50 text-blue-600 rounded-md text-[10px] font-medium border border-blue-100">
+                                                    {t(`vendors.types.${(vendors.find((v: any) => v.id === tier.vendorId)?.type as string).toLowerCase()}`) || vendors.find((v: any) => v.id === tier.vendorId)?.type}
+                                                </span>
+                                            )}
+                                        </div>
+                                    ) : tier.vendorType ? (
+                                        <span className="inline-flex items-center px-2 py-1 bg-blue-100 text-blue-700 rounded-md text-xs font-semibold">
+                                            <Tags className="h-3 w-3 me-1" />
+                                            {t("common.type")}: {t(`vendors.types.${tier.vendorType!.toLowerCase()}`) || tier.vendorType}
+                                        </span>
+                                    ) : (
+                                        <span className="inline-flex items-center px-2 py-1 bg-gray-100 text-gray-700 rounded-md text-xs font-semibold">
+                                            <Globe className="h-3 w-3 me-1" />
+                                            {t("financial.global_default")}
+                                        </span>
+                                    )}
+                                </TableCell>
                                 <TableCell className="font-medium">{tier.minAmount}</TableCell>
                                 <TableCell>{tier.maxAmount === null ? "∞" : tier.maxAmount}</TableCell>
                                 <TableCell>{tier.percentage}%</TableCell>
@@ -183,6 +244,53 @@ const CommissionTiers: React.FC = () => {
                                 <AlertTitle>{t("common.error")}</AlertTitle>
                                 <AlertDescription>{error}</AlertDescription>
                             </Alert>
+                        )}
+                        <div className="space-y-2">
+                            <Label htmlFor="tierType">{t("financial.tier_scope")}</Label>
+                            <select
+                                id="tierType"
+                                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                value={formData.tierType}
+                                onChange={(e) => setFormData({ ...formData, tierType: e.target.value as any })}
+                            >
+                                <option value="global">{t("financial.scope_global")}</option>
+                                <option value="vendorType">{t("financial.scope_vendor_type")}</option>
+                                <option value="vendorId">{t("financial.scope_specific_vendor")}</option>
+                            </select>
+                        </div>
+                        {formData.tierType === "vendorType" && (
+                            <div className="space-y-2">
+                                <Label htmlFor="vendorType">{t("financial.scope_vendor_type")}</Label>
+                                <select
+                                    id="vendorType"
+                                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                    value={formData.vendorType}
+                                    onChange={(e) => setFormData({ ...formData, vendorType: e.target.value })}
+                                    required
+                                >
+                                    <option value="" disabled>{t("common.select_type") || "Select Type"}</option>
+                                    {uniqueVendorTypes.map((type: any) => (
+                                        <option key={type} value={type}>{t(`vendors.types.${type.toLowerCase()}`) || type}</option>
+                                    ))}
+                                </select>
+                            </div>
+                        )}
+                        {formData.tierType === "vendorId" && (
+                            <div className="space-y-2">
+                                <Label htmlFor="vendorId">{t("financial.scope_specific_vendor")}</Label>
+                                <select
+                                    id="vendorId"
+                                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                    value={formData.vendorId}
+                                    onChange={(e) => setFormData({ ...formData, vendorId: e.target.value })}
+                                    required
+                                >
+                                    <option value="" disabled>{t("common.select_vendor")}</option>
+                                    {vendors.map((v: any) => (
+                                        <option key={v.id} value={v.id}>{v.shopName} {v.type ? `(${t(`vendors.types.${v.type.toLowerCase()}`)})` : ""}</option>
+                                    ))}
+                                </select>
+                            </div>
                         )}
                         <div className="space-y-2">
                             <Label htmlFor="minAmount">{t("financial.min_amount")}</Label>

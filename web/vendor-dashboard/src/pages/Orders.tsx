@@ -11,7 +11,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { MoreHorizontal, CheckCircle, XCircle, ChevronDown, Send } from "lucide-react";
+import { MoreHorizontal, CheckCircle, XCircle, ChevronDown, Send, AlertCircle } from "lucide-react";
 import { VendorOrderStatus } from "@city-market/shared";
 import type { VendorOrderWithItemsDto, ProposeChangesDto } from "@city-market/shared";
 import { OrderPreparationModal } from "@/features/orders/components/OrderPreparationModal";
@@ -198,6 +198,15 @@ const Orders = () => {
                     <TableRow>
                       <TableCell colSpan={7}>
                         <div className="p-4 bg-muted/50">
+                          {order.cancellationReason && (
+                            <div className="flex items-start gap-2 bg-red-50 border border-red-200 rounded-md p-3 mb-3">
+                              <AlertCircle className="h-4 w-4 text-red-500 mt-0.5 shrink-0" />
+                              <p className="text-sm text-red-700">
+                                <span className="font-semibold">{t("orders.cancellationReason")}: </span>
+                                {order.cancellationReason}
+                              </p>
+                            </div>
+                          )}
                           <h4 className="font-semibold mb-2">{t("orders.orderItems")}</h4>
                           <Table>
                             <TableHeader>
