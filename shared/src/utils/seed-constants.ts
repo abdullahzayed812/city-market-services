@@ -69,17 +69,20 @@ export const SEED_DATA = {
     MAZAARE_AL_KHEIR: "c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a56",
   },
   CATEGORIES: {
-    DAIRY: "d0eebc99-9c0b-4ef8-bb6d-6bb9bd380a41",
-    GROCERY: "d0eebc99-9c0b-4ef8-bb6d-6bb9bd380a42",
-    DRINKS: "d0eebc99-9c0b-4ef8-bb6d-6bb9bd380a43",
-    FROZEN: "d0eebc99-9c0b-4ef8-bb6d-6bb9bd380a44",
-    CLEANING: "d0eebc99-9c0b-4ef8-bb6d-6bb9bd380a45",
-    PERSONAL_CARE: "d0eebc99-9c0b-4ef8-bb6d-6bb9bd380a46",
+    DAIRY:        "d0eebc99-9c0b-4ef8-bb6d-6bb9bd380a41",
+    GROCERY:      "d0eebc99-9c0b-4ef8-bb6d-6bb9bd380a42",
+    DRINKS:       "d0eebc99-9c0b-4ef8-bb6d-6bb9bd380a43",
+    FROZEN:       "d0eebc99-9c0b-4ef8-bb6d-6bb9bd380a44",
+    CLEANING:     "d0eebc99-9c0b-4ef8-bb6d-6bb9bd380a45",
+    PERSONAL_CARE:"d0eebc99-9c0b-4ef8-bb6d-6bb9bd380a46",
     PHARMACY_OTC: "d0eebc99-9c0b-4ef8-bb6d-6bb9bd380a47",
-    BAKERY: "d0eebc99-9c0b-4ef8-bb6d-6bb9bd380a48",
-    MEAT: "d0eebc99-9c0b-4ef8-bb6d-6bb9bd380a49", // لحوم
-    POULTRY: "d0eebc99-9c0b-4ef8-bb6d-6bb9bd380a50", // دواجن
-    FISH: "d0eebc99-9c0b-4ef8-bb6d-6bb9bd380a51", // أسماك
+    BAKERY:       "d0eebc99-9c0b-4ef8-bb6d-6bb9bd380a48",
+    MEAT:         "d0eebc99-9c0b-4ef8-bb6d-6bb9bd380a49",
+    POULTRY:      "d0eebc99-9c0b-4ef8-bb6d-6bb9bd380a50",
+    FISH:         "d0eebc99-9c0b-4ef8-bb6d-6bb9bd380a51",
+    EGGS:         "d0eebc99-9c0b-4ef8-bb6d-6bb9bd380b06",
+    SPICES:       "d0eebc99-9c0b-4ef8-bb6d-6bb9bd380b07",
+    BABY:         "d0eebc99-9c0b-4ef8-bb6d-6bb9bd380b08",
   },
   COURIERS: {
     MIKE: "e0eebc99-9c0b-4ef8-bb6d-6bb9bd380a51",

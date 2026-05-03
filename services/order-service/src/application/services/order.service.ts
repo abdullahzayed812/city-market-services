@@ -63,7 +63,6 @@ export class OrderService {
       vendorOrderRepo,
       vendorOrderItemRepo,
       proposalRepo,
-      catalogClient,
       vendorClient,
       publisher,
       this.stateManager,

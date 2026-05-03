@@ -54,7 +54,7 @@ export class VendorRepository implements IVendorRepository {
   }
 
   async findAll(limit: number, offset: number): Promise<Vendor[]> {
-    const query = "SELECT * FROM vendors ORDER BY created_at DESC";
+    const query = "SELECT * FROM vendors ORDER BY created_at ASC";
     const [rows] = await this.pool.query<RowDataPacket[]>(query);
     return rows.map((row) => this.mapToEntity(row));
   }

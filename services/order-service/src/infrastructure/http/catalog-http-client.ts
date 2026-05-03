@@ -48,50 +48,40 @@ export class CatalogHttpClient {
     }
   }
 
-  async checkAndDecrementStock(vendorProductId: string, amount: number, userId?: string, type: MeasurementType = MeasurementType.UNIT): Promise<void> {
-    // Changed to userId
-    try {
-      const config = await this.getRequestConfig(userId);
-      const payload = type === MeasurementType.UNIT ? { stock: amount } : { weight: amount };
-      const response = await this.axiosInstance.patch(
-        `${this.baseUrl}/products/${vendorProductId}/decrement`,
-        payload,
-        config
-      );
-      if (!response.data?.success) {
-        throw new Error(
-          `Failed to decrement stock for product ${vendorProductId}: ${response.data.message || "Unknown reason"}`
-        );
-      }
-    } catch (error: any) {
-      throw new Error(`Catalog service stock decrement failed for product ${vendorProductId}: ${error.message}`);
-    }
-  }
+  // async checkAndDecrementStock(vendorProductId: string, amount: number, userId?: string, type: MeasurementType = MeasurementType.UNIT): Promise<void> {
+  //   // Changed to userId
+  //   try {
+  //     const config = await this.getRequestConfig(userId);
+  //     const payload = type === MeasurementType.UNIT ? { stock: amount } : { weight: amount };
+  //     const response = await this.axiosInstance.patch(`${this.baseUrl}/products/${vendorProductId}/decrement`, payload, config);
+  //     if (!response.data?.success) {
+  //       throw new Error(`Failed to decrement stock for product ${vendorProductId}: ${response.data.message || "Unknown reason"}`);
+  //     }
+  //   } catch (error: any) {
+  //     throw new Error(`Catalog service stock decrement failed for product ${vendorProductId}: ${error.message}`);
+  //   }
+  // }
 
-  async reserveWeightStock(vendorProductId: string, weightGrams: number, userId?: string): Promise<void> {
-    try {
-      const config = await this.getRequestConfig(userId);
-      const response = await this.axiosInstance.patch(
-        `${this.baseUrl}/products/${vendorProductId}/reserve`,
-        { weightGrams },
-        config
-      );
-      if (!response.data?.success) {
-        throw new Error(`Failed to reserve stock: ${response.data.message}`);
-      }
-    } catch (error: any) {
-      throw new Error(`Catalog service stock reserve failed: ${error.message}`);
-    }
-  }
+  // async reserveWeightStock(vendorProductId: string, weightGrams: number, userId?: string): Promise<void> {
+  //   try {
+  //     const config = await this.getRequestConfig(userId);
+  //     const response = await this.axiosInstance.patch(
+  //       `${this.baseUrl}/products/${vendorProductId}/reserve`,
+  //       { weightGrams },
+  //       config
+  //     );
+  //     if (!response.data?.success) {
+  //       throw new Error(`Failed to reserve stock: ${response.data.message}`);
+  //     }
+  //   } catch (error: any) {
+  //     throw new Error(`Catalog service stock reserve failed: ${error.message}`);
+  //   }
+  // }
 
   async releaseStock(vendorProductId: string, quantity: number, weightGrams: number, userId?: string): Promise<void> {
     try {
       const config = await this.getRequestConfig(userId);
-      const response = await this.axiosInstance.patch(
-        `${this.baseUrl}/products/${vendorProductId}/release`,
-        { quantity, weightGrams },
-        config
-      );
+      const response = await this.axiosInstance.patch(`${this.baseUrl}/products/${vendorProductId}/release`, { quantity, weightGrams }, config);
       if (!response.data?.success) {
         throw new Error(`Failed to release stock: ${response.data.message}`);
       }
@@ -100,19 +90,19 @@ export class CatalogHttpClient {
     }
   }
 
-  async commitStock(vendorProductId: string, quantity: number, weightGrams: number, userId?: string): Promise<void> {
-    try {
-      const config = await this.getRequestConfig(userId);
-      const response = await this.axiosInstance.patch(
-        `${this.baseUrl}/products/${vendorProductId}/commit`,
-        { quantity, weightGrams },
-        config
-      );
-      if (!response.data?.success) {
-        throw new Error(`Failed to commit stock: ${response.data.message}`);
-      }
-    } catch (error: any) {
-      throw new Error(`Catalog service stock commit failed: ${error.message}`);
-    }
-  }
+  // async commitStock(vendorProductId: string, quantity: number, weightGrams: number, userId?: string): Promise<void> {
+  //   try {
+  //     const config = await this.getRequestConfig(userId);
+  //     const response = await this.axiosInstance.patch(
+  //       `${this.baseUrl}/products/${vendorProductId}/commit`,
+  //       { quantity, weightGrams },
+  //       config
+  //     );
+  //     if (!response.data?.success) {
+  //       throw new Error(`Failed to commit stock: ${response.data.message}`);
+  //     }
+  //   } catch (error: any) {
+  //     throw new Error(`Catalog service stock commit failed: ${error.message}`);
+  //   }
+  // }
 }

@@ -165,18 +165,18 @@ export class VendorProductController {
     }
   };
 
-  reserveStock = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
-    try {
-      const { quantity, weightGrams } = req.body;
-      const success = await this.catalogService.reserveStock(req.params.id, quantity || 0, weightGrams || 0);
-      if (!success) {
-        throw new ValidationError("insufficient_stock_for_reservation");
-      }
-      res.json(ApiResponse.success(null, "vendor_stock_reserved"));
-    } catch (error) {
-      next(error);
-    }
-  };
+  // reserveStock = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  //   try {
+  //     const { quantity, weightGrams } = req.body;
+  //     const success = await this.catalogService.reserveStock(req.params.id, quantity || 0, weightGrams || 0);
+  //     if (!success) {
+  //       throw new ValidationError("insufficient_stock_for_reservation");
+  //     }
+  //     res.json(ApiResponse.success(null, "vendor_stock_reserved"));
+  //   } catch (error) {
+  //     next(error);
+  //   }
+  // };
 
   releaseStock = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
@@ -188,15 +188,15 @@ export class VendorProductController {
     }
   };
 
-  commitStock = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
-    try {
-      const { quantity, weightGrams } = req.body;
-      await this.catalogService.commitStock(req.params.id, quantity || 0, weightGrams || 0);
-      res.json(ApiResponse.success(null, "vendor_stock_committed"));
-    } catch (error) {
-      next(error);
-    }
-  };
+  // commitStock = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  //   try {
+  //     const { quantity, weightGrams } = req.body;
+  //     await this.catalogService.commitStock(req.params.id, quantity || 0, weightGrams || 0);
+  //     res.json(ApiResponse.success(null, "vendor_stock_committed"));
+  //   } catch (error) {
+  //     next(error);
+  //   }
+  // };
 
   delete = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {

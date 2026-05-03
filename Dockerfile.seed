@@ -1,0 +1,72 @@
+# ─── Stage 1: Install dependencies ───────────────────────────────────────────
+FROM node:20-alpine AS deps
+WORKDIR /app
+
+COPY package.json package-lock.json ./
+
+# All workspace package.json files so npm can resolve the workspace graph
+COPY shared/package.json                            ./shared/
+COPY api-gateway/package.json                       ./api-gateway/
+COPY services/auth-service/package.json             ./services/auth-service/
+COPY services/user-service/package.json             ./services/user-service/
+COPY services/vendor-service/package.json           ./services/vendor-service/
+COPY services/catalog-service/package.json          ./services/catalog-service/
+COPY services/order-service/package.json            ./services/order-service/
+COPY services/delivery-service/package.json         ./services/delivery-service/
+COPY services/admin-service/package.json            ./services/admin-service/
+COPY services/notification-service/package.json     ./services/notification-service/
+COPY services/payment-service/package.json          ./services/payment-service/
+COPY services/rating-service/package.json           ./services/rating-service/
+COPY services/websocket-gateway/package.json        ./services/websocket-gateway/
+COPY web/admin-dashboard/package.json               ./web/admin-dashboard/
+COPY web/vendor-dashboard/package.json              ./web/vendor-dashboard/
+COPY web/delivery-dashboard/package.json            ./web/delivery-dashboard/
+
+RUN npm ci
+
+# ─── Stage 2: Build shared + seeded services ─────────────────────────────────
+FROM node:20-alpine AS builder
+WORKDIR /app
+
+COPY --from=deps /app/node_modules ./node_modules
+
+COPY shared/ ./shared/
+RUN cd shared && npm run build && rm -rf src tsconfig.json
+
+COPY services/auth-service/ ./services/auth-service/
+RUN cd services/auth-service && npm run build
+
+COPY services/user-service/ ./services/user-service/
+RUN cd services/user-service && npm run build
+
+COPY services/vendor-service/ ./services/vendor-service/
+RUN cd services/vendor-service && npm run build
+
+COPY services/catalog-service/ ./services/catalog-service/
+RUN cd services/catalog-service && npm run build
+
+COPY services/order-service/ ./services/order-service/
+RUN cd services/order-service && npm run build
+
+COPY services/delivery-service/ ./services/delivery-service/
+RUN cd services/delivery-service && npm run build
+
+# ─── Stage 3: Seed runner ─────────────────────────────────────────────────────
+FROM node:20-alpine
+WORKDIR /app
+
+RUN apk add --no-cache mysql-client
+
+COPY --from=builder /app/node_modules                       ./node_modules
+COPY --from=builder /app/shared                             ./shared
+COPY --from=builder /app/services/auth-service/dist         ./services/auth-service/dist
+COPY --from=builder /app/services/user-service/dist         ./services/user-service/dist
+COPY --from=builder /app/services/vendor-service/dist       ./services/vendor-service/dist
+COPY --from=builder /app/services/catalog-service/dist      ./services/catalog-service/dist
+COPY --from=builder /app/services/order-service/dist        ./services/order-service/dist
+COPY --from=builder /app/services/delivery-service/dist     ./services/delivery-service/dist
+
+COPY docker/seed-runner.sh /seed-runner.sh
+RUN chmod +x /seed-runner.sh
+
+CMD ["sh", "/seed-runner.sh"]

@@ -46,7 +46,7 @@ export class CategoryRepository implements ICategoryRepository {
       params.push(vendorId);
     }
 
-    query += " ORDER BY name";
+    query += " ORDER BY created_at ASC";
     const [rows] = await this.pool.execute<RowDataPacket[]>(query, params);
     return rows.map((row) => this.mapToEntity(row));
   }

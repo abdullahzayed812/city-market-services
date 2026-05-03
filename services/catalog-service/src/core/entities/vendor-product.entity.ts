@@ -1,4 +1,4 @@
-import { MeasurementType, WeightUnit } from "../../../../../shared/src/enums/index.js";
+import { MeasurementType, WeightUnit } from "@city-market/shared";
 
 export interface VendorProduct {
   id: string;

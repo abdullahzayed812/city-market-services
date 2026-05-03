@@ -63,7 +63,7 @@ const Deliveries = () => {
       queryClient.invalidateQueries({ queryKey: ["deliveries"] });
       toast({ title: t("common.success", "Success"), description: t("deliveries.delivery_accepted", "Delivery accepted") });
     },
-    onError: (err: any, deliveryId: string) => {
+    onError: (err: any) => {
       queryClient.invalidateQueries({ queryKey: ["deliveries"] });
       toast({
         title: t("common.error", "Error"),

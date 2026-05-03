@@ -20,6 +20,10 @@ x-service-defaults: &service-defaults
       condition: service_healthy
     redis:
       condition: service_healthy
+    db-init:
+      condition: service_completed_successfully
+    db-seed:
+      condition: service_completed_successfully
 
 # ─────────────────────────────────────────────
 #  Shared defaults – DB + RabbitMQ services
@@ -36,9 +40,12 @@ x-rabbitmq-service: &rabbitmq-service
       condition: service_healthy
     rabbitmq:
       condition: service_healthy
+    db-init:
+      condition: service_completed_successfully
+    db-seed:
+      condition: service_completed_successfully
 
 services:
-
   # ────────────────────────────────────────────
   #  Infrastructure
   # ────────────────────────────────────────────
@@ -62,6 +69,52 @@ services:
       retries: 10
     ports:
       - "3307:3306"
+
+  db-init:
+    image: mysql:8.0
+    restart: "no"
+    networks:
+      - citymarket
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+    volumes:
+      - ./docker/mysql/init-schemas.sh:/init-schemas.sh:ro
+      - ./services/auth-service/src/infrastructure/database/schema.sql:/schemas/auth-service.sql:ro
+      - ./services/user-service/src/infrastructure/database/schema.sql:/schemas/user-service.sql:ro
+      - ./services/vendor-service/src/infrastructure/database/schema.sql:/schemas/vendor-service.sql:ro
+      - ./services/catalog-service/src/infrastructure/database/schema.sql:/schemas/catalog-service.sql:ro
+      - ./services/order-service/src/infrastructure/database/schema.sql:/schemas/order-service.sql:ro
+      - ./services/delivery-service/src/infrastructure/database/schema.sql:/schemas/delivery-service.sql:ro
+      - ./services/notification-service/src/infrastructure/database/schema.sql:/schemas/notification-service.sql:ro
+      - ./services/payment-service/src/infrastructure/database/schema.sql:/schemas/payment-service.sql:ro
+      - ./services/rating-service/src/infrastructure/database/schema.sql:/schemas/rating-service.sql:ro
+    command: sh /init-schemas.sh
+
+  db-seed:
+    build:
+      context: .
+      dockerfile: Dockerfile.seed
+    restart: "no"
+    networks:
+      - citymarket
+    depends_on:
+      db-init:
+        condition: service_completed_successfully
+    environment:
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_USER: ${DB_USER:-citymarket}
+      DB_PASSWORD: ${DB_PASSWORD}
+      # Placeholders for required vars validated at config load — not used during seeding
+      JWT_ACCESS_SECRET: seed-placeholder
+      JWT_REFRESH_SECRET: seed-placeholder
+      JWT_SERVICE_ACCESS_SECRET: seed-placeholder
+      ORDER_SERVICE_CLIENT_SECRET: seed-placeholder
+      VENDOR_SERVICE_CLIENT_SECRET: seed-placeholder
+      DELIVERY_SERVICE_CLIENT_SECRET: seed-placeholder
 
   redis:
     image: redis:7-alpine
@@ -149,7 +202,7 @@ services:
       VENDOR_SERVICE_CLIENT_SECRET: ${VENDOR_SERVICE_CLIENT_SECRET}
 
   user-service:
-    <<: *service-defaults
+    <<: *rabbitmq-service
     build:
       context: .
       dockerfile: Dockerfile.service
@@ -164,9 +217,12 @@ services:
       DB_PASSWORD: ${DB_PASSWORD}
       DB_NAME: user_db
       REDIS_URL: redis://redis:6379
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET}
+      JWT_SERVICE_ACCESS_SECRET: ${JWT_SERVICE_ACCESS_SECRET}
+      RABBITMQ_URL: amqp://${RABBITMQ_USER:-guest}:${RABBITMQ_PASSWORD:-guest}@rabbitmq:5672
 
   vendor-service:
-    <<: *service-defaults
+    <<: *rabbitmq-service
     build:
       context: .
       dockerfile: Dockerfile.service
@@ -185,6 +241,9 @@ services:
       AUTH_SERVICE_TOKEN_URL: http://auth-service:3001/oauth/token
       VENDOR_SERVICE_CLIENT_ID: vendor-service-id
       VENDOR_SERVICE_CLIENT_SECRET: ${VENDOR_SERVICE_CLIENT_SECRET}
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET}
+      JWT_SERVICE_ACCESS_SECRET: ${JWT_SERVICE_ACCESS_SECRET}
+      RABBITMQ_URL: amqp://${RABBITMQ_USER:-guest}:${RABBITMQ_PASSWORD:-guest}@rabbitmq:5672
 
   catalog-service:
     <<: *rabbitmq-service
@@ -202,6 +261,8 @@ services:
       DB_PASSWORD: ${DB_PASSWORD}
       DB_NAME: catalog_db
       REDIS_URL: redis://redis:6379
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET}
+      JWT_SERVICE_ACCESS_SECRET: ${JWT_SERVICE_ACCESS_SECRET}
       RABBITMQ_URL: amqp://${RABBITMQ_USER:-guest}:${RABBITMQ_PASSWORD:-guest}@rabbitmq:5672
 
   order-service:
@@ -222,14 +283,18 @@ services:
       REDIS_URL: redis://redis:6379
       CATALOG_SERVICE_URL: http://catalog-service:3004
       VENDOR_SERVICE_URL: http://vendor-service:3003
+      USER_SERVICE_URL: http://user-service:3002
       AUTH_SERVICE_URL: http://auth-service:3001
       AUTH_SERVICE_TOKEN_URL: http://auth-service:3001/oauth/token
       ORDER_SERVICE_CLIENT_ID: order-service-id
       ORDER_SERVICE_CLIENT_SECRET: ${ORDER_SERVICE_CLIENT_SECRET}
+      ORDER_CONFIRMATION_TIMEOUT_MINUTES: ${ORDER_CONFIRMATION_TIMEOUT_MINUTES:-2}
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET}
+      JWT_SERVICE_ACCESS_SECRET: ${JWT_SERVICE_ACCESS_SECRET}
       RABBITMQ_URL: amqp://${RABBITMQ_USER:-guest}:${RABBITMQ_PASSWORD:-guest}@rabbitmq:5672
 
   delivery-service:
-    <<: *service-defaults
+    <<: *rabbitmq-service
     build:
       context: .
       dockerfile: Dockerfile.service
@@ -246,10 +311,15 @@ services:
       REDIS_URL: redis://redis:6379
       ORDER_SERVICE_URL: http://order-service:3005
       VENDOR_SERVICE_URL: http://vendor-service:3003
+      USER_SERVICE_URL: http://user-service:3002
       AUTH_SERVICE_URL: http://auth-service:3001
       AUTH_SERVICE_TOKEN_URL: http://auth-service:3001/oauth/token
       DELIVERY_SERVICE_CLIENT_ID: delivery-service-id
       DELIVERY_SERVICE_CLIENT_SECRET: ${DELIVERY_SERVICE_CLIENT_SECRET}
+      ASSIGNED_WINDOW_MINUTES: ${ASSIGNED_WINDOW_MINUTES:-2}
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET}
+      JWT_SERVICE_ACCESS_SECRET: ${JWT_SERVICE_ACCESS_SECRET}
+      RABBITMQ_URL: amqp://${RABBITMQ_USER:-guest}:${RABBITMQ_PASSWORD:-guest}@rabbitmq:5672
 
   admin-service:
     <<: *service-defaults
@@ -276,6 +346,8 @@ services:
       AUTH_SERVICE_TOKEN_URL: http://auth-service:3001/oauth/token
       ADMIN_SERVICE_CLIENT_ID: admin-service-id
       ADMIN_SERVICE_CLIENT_SECRET: ${ADMIN_SERVICE_CLIENT_SECRET}
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET}
+      JWT_SERVICE_ACCESS_SECRET: ${JWT_SERVICE_ACCESS_SECRET}
 
   notification-service:
     <<: *rabbitmq-service
@@ -294,6 +366,8 @@ services:
       DB_NAME: notification_db
       REDIS_URL: redis://redis:6379
       RABBITMQ_URL: amqp://${RABBITMQ_USER:-guest}:${RABBITMQ_PASSWORD:-guest}@rabbitmq:5672
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET}
+      JWT_SERVICE_ACCESS_SECRET: ${JWT_SERVICE_ACCESS_SECRET}
       FIREBASE_SERVICE_ACCOUNT_JSON: ${FIREBASE_SERVICE_ACCOUNT_JSON:-}
       FIREBASE_SERVICE_ACCOUNT_PATH: ${FIREBASE_SERVICE_ACCOUNT_PATH:-/run/secrets/firebase-service-account.json}
     volumes:
@@ -318,6 +392,8 @@ services:
       AUTH_SERVICE_TOKEN_URL: http://auth-service:3001/oauth/token
       PAYMENT_SERVICE_CLIENT_ID: payment-service-id
       PAYMENT_SERVICE_CLIENT_SECRET: ${PAYMENT_SERVICE_CLIENT_SECRET}
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET}
+      JWT_SERVICE_ACCESS_SECRET: ${JWT_SERVICE_ACCESS_SECRET}
 
   rating-service:
     <<: *rabbitmq-service
@@ -342,6 +418,8 @@ services:
       AUTH_SERVICE_TOKEN_URL: http://auth-service:3001/oauth/token
       RATING_SERVICE_CLIENT_ID: rating-service-id
       RATING_SERVICE_CLIENT_SECRET: ${RATING_SERVICE_CLIENT_SECRET}
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET}
+      JWT_SERVICE_ACCESS_SECRET: ${JWT_SERVICE_ACCESS_SECRET}
       RABBITMQ_URL: amqp://${RABBITMQ_USER:-guest}:${RABBITMQ_PASSWORD:-guest}@rabbitmq:5672
 
   websocket-gateway:
@@ -359,6 +437,8 @@ services:
       AUTH_SERVICE_TOKEN_URL: http://auth-service:3001/oauth/token
       WEBSOCKET_GATEWAY_CLIENT_ID: websocket-gateway-id
       WEBSOCKET_GATEWAY_CLIENT_SECRET: ${WEBSOCKET_GATEWAY_CLIENT_SECRET}
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET}
+      REDIS_URL: redis://redis:6379
       RABBITMQ_URL: amqp://${RABBITMQ_USER:-guest}:${RABBITMQ_PASSWORD:-guest}@rabbitmq:5672
 
   # ────────────────────────────────────────────

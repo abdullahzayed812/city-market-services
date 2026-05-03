@@ -3,7 +3,11 @@ import Redis from "ioredis";
 import { Logger } from "../utils/logger.js";
 import { ApiResponse } from "../../utils/response.js";
 
-const redis = new Redis(process.env.REDIS_URL || "redis://localhost:6379");
+let redis: Redis | null = null;
+const getRedis = () => {
+  if (!redis) redis = new Redis(process.env.REDIS_URL || "redis://localhost:6379");
+  return redis;
+};
 
 export const idempotency = (ttlSeconds = 86400) => {
   return async (req: Request, res: Response, next: NextFunction) => {
@@ -16,7 +20,7 @@ export const idempotency = (ttlSeconds = 86400) => {
     const redisKey = `idempotency:${req.method}:${req.path}:${key}`;
 
     try {
-      const cachedResponse = await redis.get(redisKey);
+      const cachedResponse = await getRedis().get(redisKey);
 
       if (cachedResponse) {
         const { status, body } = JSON.parse(cachedResponse);
@@ -28,13 +32,13 @@ export const idempotency = (ttlSeconds = 86400) => {
       }
 
       // Mark as processing
-      await redis.set(redisKey, JSON.stringify({ status: "PROCESSING" }), "EX", 60);
+      await getRedis().set(redisKey, JSON.stringify({ status: "PROCESSING" }), "EX", 60);
 
       // Intercept res.json to cache the final response
       const originalJson = res.json;
       res.json = function (body: any) {
         if (res.statusCode >= 200 && res.statusCode < 300) {
-          redis.set(
+          getRedis().set(
             redisKey,
             JSON.stringify({ status: "COMPLETED", body }),
             "EX",
@@ -42,7 +46,7 @@ export const idempotency = (ttlSeconds = 86400) => {
           ).catch(err => Logger.error("Failed to cache idempotency response", err));
         } else {
           // If request failed, remove the PROCESSING lock so it can be retried
-          redis.del(redisKey).catch(err => Logger.error("Failed to delete idempotency lock", err));
+          getRedis().del(redisKey).catch(err => Logger.error("Failed to delete idempotency lock", err));
         }
         return originalJson.call(this, body);
       };

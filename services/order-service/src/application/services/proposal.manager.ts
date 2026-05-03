@@ -5,7 +5,6 @@ import { ICustomerOrderRepository } from "../../core/interfaces/customer-order.r
 import { IOrderItemProposalRepository } from "../../core/interfaces/order-item-proposal.repository";
 import { ProposeChangesDto } from "../../core/dto/order.dto";
 import { OrderStateManager } from "./order-state.manager";
-import { CatalogHttpClient } from "../../infrastructure/http/catalog-http-client";
 import { VendorHttpClient } from "../../infrastructure/http/vendor-http-client";
 import { OrderPublisher } from "../../infrastructure/messaging/OrderPublisher";
 import {
@@ -31,7 +30,6 @@ export class ProposalManager {
     private vendorOrderRepo: IVendorOrderRepository,
     private vendorOrderItemRepo: IVendorOrderItemRepository,
     private proposalRepo: IOrderItemProposalRepository,
-    private catalogClient: CatalogHttpClient,
     private vendorClient: VendorHttpClient,
     private publisher: OrderPublisher,
     private stateManager: OrderStateManager,
@@ -163,7 +161,10 @@ export class ProposalManager {
 
     if (proposal.type === ProposalType.QUANTITY_REDUCTION && proposal.proposedQuantity) {
       const diff = lockedItem.quantity! - proposal.proposedQuantity;
-      await this.catalogClient.releaseStock(lockedItem.vendorProductId, diff, 0);
+      await this.publisher.publishOrderStockReleaseRequested({
+        orderId: co.id,
+        items: [{ vendorProductId: lockedItem.vendorProductId, quantity: diff, weightGrams: 0 }],
+      });
 
       await this.vendorOrderItemRepo.update(
         lockedItem.id,
@@ -175,7 +176,10 @@ export class ProposalManager {
         connection,
       );
     } else if (proposal.type === ProposalType.WEIGHT_ADJUSTMENT && proposal.proposedWeightGrams) {
-      await this.catalogClient.releaseStock(lockedItem.vendorProductId, 0, lockedItem.requestedWeightGrams!);
+      await this.publisher.publishOrderStockReleaseRequested({
+        orderId: co.id,
+        items: [{ vendorProductId: lockedItem.vendorProductId, quantity: 0, weightGrams: lockedItem.requestedWeightGrams! }],
+      });
       const strategy = PricingStrategyFactory.getStrategy(MeasurementType.WEIGHT);
       const newTotalPrice = strategy.calculateTotal(lockedItem.unitPrice, proposal.proposedWeightGrams);
       await this.vendorOrderItemRepo.update(
@@ -187,7 +191,10 @@ export class ProposalManager {
         connection,
       );
     } else if (proposal.type === ProposalType.UNAVAILABLE) {
-      await this.catalogClient.releaseStock(lockedItem.vendorProductId, lockedItem.quantity || 0, lockedItem.requestedWeightGrams || 0);
+      await this.publisher.publishOrderStockReleaseRequested({
+        orderId: co.id,
+        items: [{ vendorProductId: lockedItem.vendorProductId, quantity: lockedItem.quantity || 0, weightGrams: lockedItem.requestedWeightGrams || 0 }],
+      });
       await this.vendorOrderItemRepo.update(lockedItem.id, { quantity: 0, requestedWeightGrams: 0, totalPrice: 0, proposedQuantity: null as any }, connection);
     }
 
@@ -226,7 +233,10 @@ export class ProposalManager {
     const lockedVo = await this.vendorOrderRepo.findByIdWithLock(vo.id, connection);
     if (!lockedVo) throw new NotFoundError("vendor_order_not_found");
 
-    await this.catalogClient.releaseStock(item.vendorProductId, item.quantity || 0, item.requestedWeightGrams || 0);
+    await this.publisher.publishOrderStockReleaseRequested({
+      orderId: co.id,
+      items: [{ vendorProductId: item.vendorProductId, quantity: item.quantity || 0, weightGrams: item.requestedWeightGrams || 0 }],
+    });
 
     await this.proposalRepo.updateStatus(proposalId, ProposalStatus.REJECTED, connection);
 
@@ -259,7 +269,10 @@ export class ProposalManager {
         // Release reservations for all items in this vendor order
         const items = await this.vendorOrderItemRepo.findByVendorOrder(rvo.id, connection);
         for (const item of items) {
-          await this.catalogClient.releaseStock(item.vendorProductId, item.quantity || 0, item.requestedWeightGrams || 0);
+          await this.publisher.publishOrderStockReleaseRequested({
+            orderId: co.id,
+            items: [{ vendorProductId: item.vendorProductId, quantity: item.quantity || 0, weightGrams: item.requestedWeightGrams || 0 }],
+          });
         }
 
         await this.vendorOrderRepo.updateStatus(rvo.id, VendorOrderStatus.CANCELLED, connection);

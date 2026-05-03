@@ -51,18 +51,19 @@ export class PushNotificationProvider {
 
       // 2. Check for path in environment variable (dedicated path var)
       else if (config.firebaseServiceAccountPath) {
-        if (fs.existsSync(config.firebaseServiceAccountPath)) {
-          credential = config.firebaseServiceAccountPath;
-          Logger.info(`Firebase: Using credentials from path: ${config.firebaseServiceAccountPath}`);
+        const filePath = config.firebaseServiceAccountPath;
+        if (fs.existsSync(filePath) && this.isValidJsonFile(filePath)) {
+          credential = filePath;
+          Logger.info(`Firebase: Using credentials from path: ${filePath}`);
         } else {
-          Logger.warn(`Firebase: Path provided in FIREBASE_SERVICE_ACCOUNT_PATH does not exist: ${config.firebaseServiceAccountPath}`);
+          Logger.warn(`Firebase: Path provided in FIREBASE_SERVICE_ACCOUNT_PATH is missing or empty: ${filePath}`);
         }
       }
 
       // 3. Check for default file location in config folder
       if (!credential) {
         const defaultPath = path.join(__dirname, "../../config/firebase-service-account.json");
-        if (fs.existsSync(defaultPath)) {
+        if (fs.existsSync(defaultPath) && this.isValidJsonFile(defaultPath)) {
           credential = defaultPath;
           Logger.info("Firebase: Using default credentials file at src/config/firebase-service-account.json");
         }
@@ -173,6 +174,17 @@ export class PushNotificationProvider {
     } catch (error) {
       Logger.error(`[Push Multicast Critical Failure]`, error);
       return [];
+    }
+  }
+
+  private isValidJsonFile(filePath: string): boolean {
+    try {
+      const content = fs.readFileSync(filePath, "utf-8").trim();
+      if (!content) return false;
+      JSON.parse(content);
+      return true;
+    } catch {
+      return false;
     }
   }
 

@@ -5,13 +5,18 @@ import { randomUUID } from "crypto";
 import { ProductFactory } from "./factories/product.factory";
 import { ProductSeeder } from "./seeders/product.seeder";
 
-// ─── Fixed UUIDs for categories not in SEED_DATA ─────────────────────────────
+// ─── Fixed UUIDs for categories not in SEED_DATA.CATEGORIES ──────────────────
 const CAT = {
-  SNACKS:     "d0eebc99-9c0b-4ef8-bb6d-6bb9bd380b01",
-  ROASTERY:   "d0eebc99-9c0b-4ef8-bb6d-6bb9bd380b02",
-  VEG_FRUIT:  "d0eebc99-9c0b-4ef8-bb6d-6bb9bd380b03",
+  SNACKS: "d0eebc99-9c0b-4ef8-bb6d-6bb9bd380b01",
+  ROASTERY: "d0eebc99-9c0b-4ef8-bb6d-6bb9bd380b02",
+  VEG_FRUIT: "d0eebc99-9c0b-4ef8-bb6d-6bb9bd380b03",
   STATIONERY: "d0eebc99-9c0b-4ef8-bb6d-6bb9bd380b04",
-  PASTRY:     "d0eebc99-9c0b-4ef8-bb6d-6bb9bd380b05",
+  PASTRY: "d0eebc99-9c0b-4ef8-bb6d-6bb9bd380b05",
+  // The following are also in SEED_DATA.CATEGORIES:
+  FROZEN: SEED_DATA.CATEGORIES.FROZEN,
+  EGGS: SEED_DATA.CATEGORIES.EGGS,
+  SPICES: SEED_DATA.CATEGORIES.SPICES,
+  BABY: SEED_DATA.CATEGORIES.BABY,
 };
 
 // ─── Vendor shorthands ────────────────────────────────────────────────────────
@@ -32,102 +37,131 @@ const seedDb = async () => {
     console.log("Starting catalog seeding...");
 
     // ── 1. Global Categories ──────────────────────────────────────────────────
-    // key must match the keys in product.factory.ts GLOBAL_PRODUCTS
+    // Names are SHORT (1-3 words) for mobile UI.
+    // key must match the keys in product.factory.ts GLOBAL_PRODUCTS.
     const globalCategories = [
       {
         id: SEED_DATA.CATEGORIES.DAIRY,
-        name: "الألبان ومنتجاتها",
+        name: "ألبان",
         description: "حليب وجبن وزبادي ومنتجات الألبان",
         color: "#3B82F6",
         key: "DAIRY",
       },
       {
         id: SEED_DATA.CATEGORIES.GROCERY,
-        name: "البقالة والمواد الغذائية",
-        description: "مواد غذائية جافة ومعلبات وزيوت",
+        name: "بقالة",
+        description: "مواد غذائية جافة ومعلبات وزيوت وأساسيات المطبخ",
         color: "#F59E0B",
         key: "GROCERY",
       },
       {
         id: SEED_DATA.CATEGORIES.DRINKS,
-        name: "المشروبات",
+        name: "مشروبات",
         description: "مياه وعصائر ومشروبات غازية وساخنة",
         color: "#06B6D4",
         key: "DRINKS",
       },
       {
+        id: CAT.EGGS,
+        name: "بيض",
+        description: "بيض بلدي وأبيض وأنواع مختلفة",
+        color: "#FDE68A",
+        key: "EGGS",
+      },
+      {
+        id: CAT.SPICES,
+        name: "توابل",
+        description: "بهارات وتوابل وأعشاب مجففة",
+        color: "#92400E",
+        key: "SPICES",
+      },
+      {
         id: SEED_DATA.CATEGORIES.CLEANING,
-        name: "المنظفات ومستلزمات التنظيف",
+        name: "منظفات",
         description: "منظفات ومطهرات ومستلزمات المنزل",
         color: "#10B981",
         key: "CLEANING",
       },
       {
         id: SEED_DATA.CATEGORIES.PERSONAL_CARE,
-        name: "العناية الشخصية والصيدلية",
+        name: "عناية شخصية",
         description: "عناية بالشعر والبشرة والأسنان وأدوية بدون وصفة",
         color: "#EF4444",
         key: "PERSONAL_CARE",
       },
       {
+        id: CAT.BABY,
+        name: "مستلزمات أطفال",
+        description: "حفاضات وحليب أطفال ومستلزمات العناية بالرضع",
+        color: "#FCA5A5",
+        key: "BABY",
+      },
+      {
         id: SEED_DATA.CATEGORIES.MEAT,
-        name: "اللحوم الطازجة",
+        name: "لحوم",
         description: "لحوم بقري وضاني طازجة",
         color: "#B91C1C",
         key: "MEAT",
       },
       {
         id: SEED_DATA.CATEGORIES.POULTRY,
-        name: "الدواجن الطازجة",
-        description: "دجاج وأجزاء دواجن طازجة",
+        name: "دواجن",
+        description: "دجاج وأجزاء دواجن وديك رومي وبط",
         color: "#F97316",
         key: "POULTRY",
       },
       {
         id: SEED_DATA.CATEGORIES.FISH,
-        name: "الأسماك وثمار البحر",
-        description: "أسماك وجمبري وثمار بحر طازجة",
+        name: "أسماك",
+        description: "أسماك وجمبري وثمار بحر وأسماك مملحة",
         color: "#0EA5E9",
         key: "FISH",
       },
       {
         id: SEED_DATA.CATEGORIES.BAKERY,
-        name: "المخبوزات",
-        description: "خبز طازج وتوست وبقسماط",
+        name: "مخبوزات",
+        description: "خبز طازج وتوست وفطائر ومخبوزات",
         color: "#D97706",
         key: "BAKERY",
       },
       {
         id: CAT.PASTRY,
-        name: "الحلويات الشرقية",
+        name: "حلويات",
         description: "بقلاوة وكنافة وحلويات شرقية طازجة",
         color: "#EC4899",
         key: "PASTRY",
       },
       {
         id: CAT.SNACKS,
-        name: "سناكس وحلويات مغلفة",
+        name: "سناكس",
         description: "شيبس وبسكويت وحلويات مغلفة",
         color: "#A855F7",
         key: "SNACKS",
       },
       {
         id: CAT.ROASTERY,
-        name: "تسالي ومحامص",
-        description: "مكسرات وبذور محمصة وقهوة مطحونة",
+        name: "تسالي",
+        description: "مكسرات وبذور محمصة وفواكه مجففة وقهوة مطحونة",
         color: "#78350F",
         key: "ROASTERY",
       },
       {
         id: CAT.VEG_FRUIT,
-        name: "خضروات وفاكهة طازجة",
+        name: "خضار وفاكهة",
         description: "خضروات وفاكهة طازجة موسمية",
         color: "#22C55E",
         key: "VEG_FRUIT",
       },
       {
+        id: CAT.FROZEN,
+        name: "مجمدات",
+        description: "خضروات ودجاج وأسماك وأطعمة مجمدة",
+        color: "#BAE6FD",
+        key: "FROZEN",
+      },
+      {
         id: CAT.STATIONERY,
-        name: "أدوات مكتبية ومدرسية",
+        name: "أدوات مكتبية",
         description: "أقلام ودفاتر وأدوات مكتبية ومدرسية",
         color: "#6366F1",
         key: "STATIONERY",
@@ -136,20 +170,23 @@ const seedDb = async () => {
 
     const globalCategoryMap: Record<string, string> = {};
     for (const cat of globalCategories) {
-      await conn.execute(
-        "INSERT IGNORE INTO categories (id, name, type, description, color) VALUES (?, ?, ?, ?, ?)",
-        [cat.id, cat.name, CategoryType.GLOBAL, cat.description, cat.color],
-      );
+      await conn.execute("INSERT IGNORE INTO categories (id, name, type, description, color) VALUES (?, ?, ?, ?, ?)", [
+        cat.id,
+        cat.name,
+        CategoryType.GLOBAL,
+        cat.description,
+        cat.color,
+      ]);
       globalCategoryMap[cat.key] = cat.id;
     }
 
     // ── 2. Vendor Groups + Vendor Categories ──────────────────────────────────
     //
     // Each group defines:
-    //   ids         — which vendor IDs belong to this group
-    //   cats        — the vendor-specific category names to create for each vendor
-    //   globalMappings — maps a GLOBAL_PRODUCTS key to the vendor category name
-    //                    (controls which global products appear under which vendor category)
+    //   ids            — vendor IDs in this group
+    //   cats           — vendor-specific category names (created per vendor)
+    //   globalMappings — globalProductKey → vendorCategoryName
+    //                    (controls which global products appear under which vendor cat)
     //
     const vendorGroups: {
       ids: string[];
@@ -157,69 +194,75 @@ const seedDb = async () => {
       globalMappings: Record<string, string>;
     }[] = [
       {
-        // Supermarkets sell dairy, grocery, drinks, cleaning, packaged snacks
+        // Supermarkets: dairy, grocery, drinks, cleaning, snacks, eggs, spices, frozen
         ids: [V.SUPER_MARKET_1, V.SUPER_MARKET_2, V.SANAQREH],
-        cats: ["ألبان", "بقالة", "مشروبات", "منظفات", "سناكس"],
+        cats: ["ألبان", "بقالة", "مشروبات", "منظفات", "سناكس", "بيض", "توابل وبهارات", "مجمدات"],
         globalMappings: {
-          DAIRY:    "ألبان",
-          GROCERY:  "بقالة",
-          DRINKS:   "مشروبات",
+          DAIRY: "ألبان",
+          GROCERY: "بقالة",
+          DRINKS: "مشروبات",
           CLEANING: "منظفات",
-          SNACKS:   "سناكس",
+          SNACKS: "سناكس",
+          EGGS: "بيض",
+          SPICES: "توابل وبهارات",
+          FROZEN: "مجمدات",
         },
       },
       {
-        // Pharmacies sell personal care + OTC medicine
+        // Pharmacies: personal care, OTC medicine, baby care
         ids: [V.PHARMACY, V.AHMED_YEHIA, V.SABAWI],
-        cats: ["عناية شخصية وصيدلية"],
+        cats: ["عناية شخصية", "أدوية بدون وصفة", "فيتامينات ومكملات", "منتجات أطفال"],
         globalMappings: {
-          PERSONAL_CARE: "عناية شخصية وصيدلية",
+          PERSONAL_CARE: "عناية شخصية",
+          BABY: "منتجات أطفال",
         },
       },
       {
-        // Butchers sell all fresh meat cuts
+        // Butchers: all beef and lamb cuts
         ids: [V.BUTCHER, V.ABDULLAH_BUTCHER],
-        cats: ["لحوم طازجة"],
+        cats: ["لحم بقري", "لحم ضاني", "مشتقات اللحوم"],
         globalMappings: {
-          MEAT: "لحوم طازجة",
+          MEAT: "لحم بقري",
         },
       },
       {
-        // Poultry shops sell chicken and parts
+        // Poultry shops
         ids: [V.POULTRY, V.BEHEIRY_POULTRY],
-        cats: ["دواجن طازجة"],
+        cats: ["دجاج طازج", "أجزاء الدجاج", "دواجن متنوعة"],
         globalMappings: {
-          POULTRY: "دواجن طازجة",
+          POULTRY: "دجاج طازج",
+          EGGS: "أجزاء الدجاج",
         },
       },
       {
-        // Fish shops sell all seafood
+        // Fish shops (Alexandria specialty: includes salted/cured fish)
         ids: [V.FISH, V.GHANEM_FISH, V.MUTAWAKKIL_FISH, V.ABU_YOUSSEF_FISH],
-        cats: ["أسماك وثمار بحر"],
+        cats: ["أسماك طازجة", "مأكولات بحرية", "أسماك مملحة وفسيخ"],
         globalMappings: {
-          FISH: "أسماك وثمار بحر",
+          FISH: "أسماك طازجة",
         },
       },
       {
-        // Roasteries sell nuts, seeds, ground coffee
+        // Roasteries: nuts, dried fruits, ground coffee, herbs/spices
         ids: [V.BONDOQA, V.ASHRI, V.LOZINA],
-        cats: ["تسالي ومكسرات", "قهوة ومحامص"],
+        cats: ["مكسرات ولب", "فواكه مجففة", "قهوة ومحامص", "بهارات وأعشاب"],
         globalMappings: {
-          ROASTERY: "تسالي ومكسرات",
+          ROASTERY: "مكسرات ولب",
+          SPICES: "بهارات وأعشاب",
         },
       },
       {
-        // Bakeries sell fresh bread
+        // Bakeries
         ids: [V.BAKERY, V.AL_BARAKA_BAKERY],
-        cats: ["خبز طازج"],
+        cats: ["عيش طازج", "فطائر وكعك"],
         globalMappings: {
-          BAKERY: "خبز طازج",
+          BAKERY: "عيش طازج",
         },
       },
       {
-        // Pastry shops sell oriental sweets
+        // Pastry shops
         ids: [V.ABU_OMAR, V.RAWAN],
-        cats: ["حلويات شرقية"],
+        cats: ["حلويات شرقية", "مخبوزات حلوة"],
         globalMappings: {
           PASTRY: "حلويات شرقية",
         },
@@ -227,17 +270,19 @@ const seedDb = async () => {
       {
         // Stationery shops
         ids: [V.SHADY_LIBRARY],
-        cats: ["أدوات مكتبية ومدرسية"],
+        cats: ["أدوات مكتبية", "أدوات مدرسية"],
         globalMappings: {
-          STATIONERY: "أدوات مكتبية ومدرسية",
+          STATIONERY: "أدوات مكتبية",
         },
       },
       {
-        // Veg/fruit shops sell all produce
+        // Veg & fruit shops: produce, herbs, and eggs (sold alongside veg)
         ids: [V.AWLAD_RAGAB, V.MAZAARE_AL_KHEIR],
-        cats: ["خضروات طازجة", "فاكهة طازجة"],
+        cats: ["خضروات طازجة", "فاكهة طازجة", "أعشاب طازجة", "بيض بلدي"],
         globalMappings: {
           VEG_FRUIT: "خضروات طازجة",
+          EGGS: "بيض بلدي",
+          SPICES: "أعشاب طازجة",
         },
       },
     ];
@@ -253,10 +298,7 @@ const seedDb = async () => {
 
         for (const catName of group.cats) {
           const catId = randomUUID();
-          await conn.execute(
-            "INSERT IGNORE INTO categories (id, name, type, vendor_id) VALUES (?, ?, ?, ?)",
-            [catId, catName, CategoryType.VENDOR, vendorId],
-          );
+          await conn.execute("INSERT IGNORE INTO categories (id, name, type, vendor_id) VALUES (?, ?, ?, ?)", [catId, catName, CategoryType.VENDOR, vendorId]);
           vendorCatMap[vendorId][catName] = catId;
         }
 

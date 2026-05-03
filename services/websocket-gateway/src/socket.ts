@@ -4,7 +4,7 @@ import axios from "axios";
 import { UserRole } from "@city-market/shared";
 import { Logger } from "@city-market/shared/node";
 
-const JWT_SECRET = process.env.JWT_SECRET || "access_secret_key";
+const JWT_SECRET = process.env.JWT_ACCESS_SECRET || "access_secret_key";
 const VENDOR_SERVICE_URL = process.env.VENDOR_SERVICE_URL || "http://localhost:3003";
 const DELIVERY_SERVICE_URL = process.env.DELIVERY_SERVICE_URL || "http://localhost:3006";
 
@@ -27,7 +27,8 @@ export const setupSocketServer = (io: Server) => {
       const decoded = jwt.verify(token as string, JWT_SECRET) as DecodedToken;
       socket.data.user = decoded;
       next();
-    } catch (err) {
+    } catch (err: any) {
+      console.error("[WS Auth] verify failed:", err.message, "| secret used:", JWT_SECRET.slice(0, 8) + "...", "| token prefix:", (token as string).slice(0, 20));
       next(new Error("Authentication error: Invalid token"));
     }
   });

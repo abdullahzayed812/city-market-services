@@ -65,7 +65,7 @@ export const authenticate = (req: AuthenticatedRequest, res: Response, next: Nex
 
       req.authType = "service";
     } else if (isUserToken) {
-      const userSecret = process.env.JWT_SECRET || "access_secret_key";
+      const userSecret = process.env.JWT_ACCESS_SECRET || "access_secret_key";
       if (!userSecret) {
         throw new Error("JWT_SECRET is not defined");
       }
