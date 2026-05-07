@@ -2,7 +2,6 @@ import { Router } from "express";
 import { VendorController } from "../controllers/vendor.controller";
 import { UserRole } from "@city-market/shared";
 import { authorize } from "@city-market/shared/node";
-import { uploadVendorImage } from "../middlewares/upload.middleware";
 
 export const createVendorRoutes = (controller: VendorController): Router => {
   const router = Router();
@@ -17,12 +16,7 @@ export const createVendorRoutes = (controller: VendorController): Router => {
   router.patch("/:id/status", authorize(UserRole.VENDOR, UserRole.ADMIN), controller.updateStatus);
   router.post("/:id/working-hours", authorize(UserRole.VENDOR, UserRole.ADMIN), controller.setWorkingHours);
   router.get("/:id/working-hours", authorize(UserRole.VENDOR, UserRole.ADMIN), controller.getWorkingHours);
-  router.post(
-    "/:id/image",
-    authorize(UserRole.VENDOR, UserRole.ADMIN),
-    uploadVendorImage.single("image"),
-    controller.uploadImage
-  );
+  router.patch("/:id/image", authorize(UserRole.VENDOR, UserRole.ADMIN), controller.updateImage);
 
   return router;
 };

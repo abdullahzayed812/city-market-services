@@ -91,7 +91,7 @@ const ProductsManagement: React.FC = () => {
     createVendorProduct,
     updateVendorProduct,
     deleteVendorProduct,
-    uploadVendorProductImage,
+    updateProductImage,
   } = useAdminProducts({
     initialLimit: 20,
     globalCategoryId: selectedGlobalCategoryId,
@@ -145,10 +145,10 @@ const ProductsManagement: React.FC = () => {
   }, []);
 
   const handleUploadImage = useCallback(
-    (id: string, file: File) => {
-      uploadVendorProductImage(id, file);
+    (id: string, imageUrl: string) => {
+      updateProductImage(id, imageUrl);
     },
-    [uploadVendorProductImage],
+    [updateProductImage],
   );
 
   const handleDeleteProduct = useCallback(

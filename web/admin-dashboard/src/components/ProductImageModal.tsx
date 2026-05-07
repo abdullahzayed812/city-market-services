@@ -24,9 +24,7 @@ const ProductImageModal: React.FC<ProductImageModalProps> = ({ isOpen, onClose, 
         <div className="flex justify-center items-center p-4">
           {imageUrl ? (
             <img
-              src={`${
-                import.meta.env.VITE_API_URL || `${window.location.protocol}//${window.location.hostname}:3000/api/v1`
-              }${imageUrl}`}
+              src={imageUrl}
               alt={productName}
               className="max-w-full h-auto rounded-md"
             />

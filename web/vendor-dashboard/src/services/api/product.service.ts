@@ -37,14 +37,8 @@ export const productService = {
     const response = await apiClient.get<ApiResponse<Category[]>>(`/catalog/categories/vendor/${vendorId}`);
     return response.data?.data;
   },
-  uploadVendorProductImage: async (id: string, file: File) => {
-    const formData = new FormData();
-    formData.append("image", file);
-    const response = await apiClient.post<ApiResponse<{ imageUrl: string }>>(`/catalog/products/${id}/image`, formData, {
-      headers: {
-        "Content-Type": "multipart/form-data",
-      },
-    });
+  updateProductImage: async (id: string, imageUrl: string) => {
+    const response = await apiClient.patch<ApiResponse<null>>(`/catalog/products/${id}/image`, { imageUrl });
     return response.data?.data;
   },
   getGlobalProducts: async (page: number, limit: number, search?: string) => {

@@ -50,15 +50,9 @@ export class VendorClient extends BaseClient {
     return this.updateVendorStatus(vendorId, "SUSPENDED", userId);
   }
 
-  async uploadVendorImage(id: string, formData: any, userId?: string) {
+  async updateVendorImage(id: string, imageUrl: string, userId?: string) {
     const config = await this.getRequestConfig(userId);
-    const response = await this.axiosInstance.post(`/${id}/image`, formData, {
-      ...config,
-      headers: {
-        ...config.headers,
-        ...(formData.getHeaders?.() || {}),
-      },
-    });
+    const response = await this.axiosInstance.patch(`/${id}/image`, { imageUrl }, config);
     return response.data;
   }
 

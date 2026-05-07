@@ -1,6 +1,4 @@
 import { randomUUID } from "crypto";
-import fs from "fs/promises";
-import path from "path";
 import { IVendorProductRepository } from "../../core/interfaces/vendor-product.repository";
 import { ICategoryRepository } from "../../core/interfaces/category.repository";
 import { IGlobalProductRepository } from "../../core/interfaces/global-product.repository";
@@ -260,17 +258,6 @@ export class CatalogService {
 
   async updateVendorProductImage(id: string, imageUrl: string): Promise<void> {
     const product = await this.getVendorProductById(id);
-
-    if (product.imageUrl && product.imageUrl.startsWith("/catalog/uploads/products/")) {
-      try {
-        const oldImagePath = path.join(process.cwd(), product.imageUrl.replace("/catalog", ""));
-        await fs.unlink(oldImagePath);
-        Logger.info("Old product image deleted", { path: oldImagePath });
-      } catch (error) {
-        Logger.error("Failed to delete old product image", { error });
-      }
-    }
-
     await this.globalProductRepo.update(product.globalProductId, { imageUrl });
   }
 

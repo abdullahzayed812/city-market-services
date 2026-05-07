@@ -2,7 +2,6 @@ import { Response, NextFunction } from "express";
 import { AdminService } from "../../application/services/admin.service";
 import { ApiResponse } from "@city-market/shared";
 import { AuthenticatedRequest } from "@city-market/shared/node";
-import FormData from "form-data";
 
 export class AdminController {
   constructor(private adminService: AdminService) { }
@@ -133,19 +132,11 @@ export class AdminController {
     }
   };
 
-  uploadVendorImage = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  updateVendorImage = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
-      if (!req.file) {
-        throw new Error("No file uploaded");
-      }
-
-      const formData = new FormData();
-      formData.append("image", req.file.buffer, {
-        filename: req.file.originalname,
-        contentType: req.file.mimetype,
-      });
-
-      const result = await this.adminService.uploadVendorImage(req.params.id, formData, req.user!.userId);
+      const { imageUrl } = req.body as { imageUrl?: string };
+      if (!imageUrl || typeof imageUrl !== "string") throw new Error("imageUrl is required");
+      const result = await this.adminService.updateVendorImage(req.params.id, imageUrl, req.user!.userId);
       res.json(result);
     } catch (error) {
       next(error);
@@ -287,19 +278,11 @@ export class AdminController {
     }
   };
 
-  uploadCategoryIcon = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  updateCategoryIcon = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
-      if (!req.file) {
-        throw new Error("No file uploaded");
-      }
-
-      const formData = new FormData();
-      formData.append("icon", req.file.buffer, {
-        filename: req.file.originalname,
-        contentType: req.file.mimetype,
-      });
-
-      const result = await this.adminService.uploadCategoryIcon(req.params.id, formData, req.user!.userId);
+      const { iconUrl } = req.body as { iconUrl?: string };
+      if (!iconUrl || typeof iconUrl !== "string") throw new Error("iconUrl is required");
+      const result = await this.adminService.updateCategoryIcon(req.params.id, iconUrl, req.user!.userId);
       res.json(result);
     } catch (error) {
       next(error);
@@ -358,19 +341,11 @@ export class AdminController {
     }
   };
 
-  uploadProductImage = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  updateProductImage = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
-      if (!req.file) {
-        throw new Error("No file uploaded");
-      }
-
-      const formData = new FormData();
-      formData.append("image", req.file.buffer, {
-        filename: req.file.originalname,
-        contentType: req.file.mimetype,
-      });
-
-      const result = await this.adminService.uploadProductImage(req.params.id, formData, req.user!.userId);
+      const { imageUrl } = req.body as { imageUrl?: string };
+      if (!imageUrl || typeof imageUrl !== "string") throw new Error("imageUrl is required");
+      const result = await this.adminService.updateProductImage(req.params.id, imageUrl, req.user!.userId);
       res.json(result);
     } catch (error) {
       next(error);

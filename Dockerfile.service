@@ -21,6 +21,7 @@ COPY services/notification-service/package.json     ./services/notification-serv
 COPY services/payment-service/package.json          ./services/payment-service/
 COPY services/rating-service/package.json           ./services/rating-service/
 COPY services/websocket-gateway/package.json        ./services/websocket-gateway/
+COPY services/media-service/package.json            ./services/media-service/
 COPY web/admin-dashboard/package.json               ./web/admin-dashboard/
 COPY web/vendor-dashboard/package.json              ./web/vendor-dashboard/
 COPY web/delivery-dashboard/package.json            ./web/delivery-dashboard/

@@ -12,13 +12,13 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { type Category, CategoryType } from "@city-market/shared";
 import { useAdminProducts } from "@/hooks/useAdminProducts";
 import CategoryFormDialog from "../features/categories/components/CategoryFormDialog";
+import ImageUploader from "@/components/ImageUploader";
 
 const CategoriesManagement: React.FC = () => {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
-  const [uploadingId, setUploadingId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedVendorId, setSelectedVendorId] = useState<string>("all");
   const [activeTab, setActiveTab] = useState<string>("all");
@@ -78,11 +78,10 @@ const CategoriesManagement: React.FC = () => {
     },
   });
 
-  const uploadIconMutation = useMutation({
-    mutationFn: ({ id, file }: { id: string; file: File }) => adminApi.uploadCategoryIcon(id, file),
+  const updateIconMutation = useMutation({
+    mutationFn: ({ id, iconUrl }: { id: string; iconUrl: string }) => adminApi.updateCategoryIcon(id, iconUrl),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["adminCategories"] });
-      setUploadingId(null);
     },
   });
 
@@ -97,14 +96,6 @@ const CategoriesManagement: React.FC = () => {
   const handleEdit = (category: Category) => {
     setEditingCategory(category);
     setIsDialogOpen(true);
-  };
-
-  const handleFileChange = (id: string, e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setUploadingId(id);
-      uploadIconMutation.mutate({ id, file });
-    }
   };
 
   const handleReset = () => {
@@ -216,36 +207,20 @@ const CategoriesManagement: React.FC = () => {
                 {items.map((category) => (
                   <TableRow key={category.id}>
                     <TableCell>
-                      <div className="flex items-center space-x-2">
-                        <div className="relative group">
-                          {category.iconUrl ? (
-                            <img
-                              src={`${import.meta.env.VITE_API_URL ||
-                                `${window.location.protocol}//${window.location.hostname}:3000/api/v1`
-                                }${category.iconUrl}`}
-                              alt={category.name}
-                              className="h-10 w-10 object-contain rounded border p-1"
-                              onError={(e) => {
-                                e.currentTarget.style.display = "none";
-                              }}
-                            />
-                          ) : (
-                            <div className="h-10 w-10 bg-gray-100 rounded flex items-center justify-center text-gray-400 border">
-                              <Upload size={16} />
-                            </div>
-                          )}
-                          <label className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer rounded">
-                            <Input
-                              type="file"
-                              accept=".svg,.png,.jpg,.jpeg"
-                              className="hidden"
-                              onChange={(e) => handleFileChange(category.id, e)}
-                              disabled={uploadingId === category.id}
-                            />
-                            <Upload size={14} className="text-white" />
-                          </label>
-                        </div>
-                      </div>
+                      <ImageUploader
+                        folder="categories"
+                        entityId={category.id}
+                        currentImageUrl={category.iconUrl || undefined}
+                        onComplete={(result) => updateIconMutation.mutate({ id: category.id, iconUrl: result.url })}
+                      >
+                        {category.iconUrl ? (
+                          <img src={category.iconUrl} alt={category.name} className="h-10 w-10 object-contain rounded border p-1" />
+                        ) : (
+                          <div className="h-10 w-10 bg-gray-100 rounded flex items-center justify-center text-gray-400 border">
+                            <Upload size={16} />
+                          </div>
+                        )}
+                      </ImageUploader>
                     </TableCell>
                     <TableCell className="font-medium">{category.name}</TableCell>
                     <TableCell>

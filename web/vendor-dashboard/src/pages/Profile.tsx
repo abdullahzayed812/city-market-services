@@ -1,23 +1,24 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@/components/AuthProvider";
 import { vendorService } from "@/services/api/vendor.service";
+import { mediaService } from "@/services/api/media.service";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Clock, MapPin, Phone, Store, Eye, Upload } from "lucide-react";
+import { Clock, MapPin, Phone, Store, Eye, Upload, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import ProductImageModal from "@/components/ProductImageModal";
 import { type UpdateVendorDto } from "@city-market/shared";
-import { AxiosError } from "axios";
 
 const Profile = () => {
   const { t } = useTranslation();
   const { vendor } = useAuth();
   const queryClient = useQueryClient();
+  const imageInputRef = useRef<HTMLInputElement>(null);
   const [profileData, setProfileData] = useState({
     name: "",
     description: "",
@@ -25,6 +26,7 @@ const Profile = () => {
     phone: "",
   });
   const [isImageModalOpen, setIsImageModalOpen] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
 
   useEffect(() => {
     if (vendor) {
@@ -51,13 +53,13 @@ const Profile = () => {
     },
   });
 
-  const uploadImageMutation = useMutation({
-    mutationFn: (file: File) => vendorService.uploadImage(vendor?.id, file),
+  const updateImageMutation = useMutation({
+    mutationFn: (imageUrl: string) => vendorService.updateImage(vendor?.id, imageUrl),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["vendor-profile"] });
       toast.success(t("common.image_uploaded"));
     },
-    onError: (error: AxiosError<{ message: string }>) => {
+    onError: (error: any) => {
       toast.error(error?.response?.data?.message || t("common.upload_failed"));
     },
   });
@@ -66,10 +68,18 @@ const Profile = () => {
     updateProfileMutation.mutate(profileData);
   };
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      uploadImageMutation.mutate(file);
+    if (!file || !vendor?.id) return;
+    setUploadingImage(true);
+    try {
+      const result = await mediaService.upload(file, "vendors", vendor.id);
+      updateImageMutation.mutate(result.url);
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || t("common.upload_failed"));
+    } finally {
+      setUploadingImage(false);
+      if (imageInputRef.current) imageInputRef.current.value = "";
     }
   };
 
@@ -99,15 +109,7 @@ const Profile = () => {
               <div className="flex flex-col items-center space-y-4 sm:flex-row sm:space-x-4 sm:space-y-0">
                 <div className="relative h-24 w-24 overflow-hidden rounded-lg bg-muted flex-shrink-0">
                   {vendor?.storeImage ? (
-                    <img
-                      src={
-                        vendor.storeImage.startsWith("/")
-                          ? `${import.meta.env.VITE_API_BASE_URL}${vendor.storeImage}`
-                          : vendor.storeImage
-                      }
-                      alt="Store"
-                      className="h-full w-full object-cover"
-                    />
+                    <img src={vendor.storeImage} alt="Store" className="h-full w-full object-cover" />
                   ) : (
                     <div className="flex h-full w-full items-center justify-center">
                       <Store className="h-10 w-10 text-muted-foreground" />
@@ -118,7 +120,7 @@ const Profile = () => {
                   <div>
                     <h3 className="font-medium">{t("common.store_image")}</h3>
                     <p className="text-sm text-muted-foreground">{t("common.store_image_desc")}</p>
-                    {uploadImageMutation.isPending && (
+                    {uploadingImage && (
                       <p className="text-sm text-primary animate-pulse">{t("common.loading")}</p>
                     )}
                   </div>
@@ -129,28 +131,23 @@ const Profile = () => {
                         {t("common.view_image")}
                       </Button>
                     )}
-                    <Label htmlFor="image-upload" className="cursor-pointer">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="gap-2"
-                        type="button"
-                        disabled={uploadImageMutation.isPending}
-                        asChild
-                      >
-                        <span>
-                          <Upload className="h-4 w-4" />
-                          {t("common.upload_new")}
-                        </span>
-                      </Button>
-                    </Label>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="gap-2"
+                      type="button"
+                      disabled={uploadingImage}
+                      onClick={() => imageInputRef.current?.click()}
+                    >
+                      {uploadingImage ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+                      {t("common.upload_new")}
+                    </Button>
                     <input
-                      id="image-upload"
+                      ref={imageInputRef}
                       type="file"
                       className="hidden"
                       accept="image/*"
                       onChange={handleImageUpload}
-                      disabled={uploadImageMutation.isPending}
                     />
                   </div>
                 </div>

@@ -228,10 +228,10 @@ const seedDb = async () => {
       {
         // Poultry shops
         ids: [V.POULTRY, V.BEHEIRY_POULTRY],
-        cats: ["دجاج طازج", "أجزاء الدجاج", "دواجن متنوعة"],
+        cats: ["دجاج طازج", "أجزاء الدجاج", "دواجن متنوعة", "بيض طازج"],
         globalMappings: {
           POULTRY: "دجاج طازج",
-          EGGS: "أجزاء الدجاج",
+          EGGS: "بيض طازج",
         },
       },
       {
@@ -323,7 +323,11 @@ const seedDb = async () => {
 
     // ── 3. Generate and seed products ─────────────────────────────────────────
     const globalProducts = ProductFactory.generateGlobalProducts(globalCategoryMap);
-    const vendorProducts = ProductFactory.generateVendorProducts(globalProducts, assignmentRules);
+    // Reverse map: globalCategoryId → categoryKey (for realistic per-category pricing)
+    const categoryKeyById = Object.fromEntries(
+      Object.entries(globalCategoryMap).map(([key, id]) => [id, key]),
+    );
+    const vendorProducts = ProductFactory.generateVendorProducts(globalProducts, assignmentRules, categoryKeyById);
 
     const seeder = new ProductSeeder(conn);
     await seeder.seedGlobalProducts(globalProducts);

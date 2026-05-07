@@ -32,15 +32,9 @@ export class CatalogClient extends BaseClient {
     return response.data;
   }
 
-  async uploadCategoryIcon(id: string, formData: any, userId?: string) {
+  async updateCategoryIcon(id: string, iconUrl: string, userId?: string) {
     const config = await this.getRequestConfig(userId);
-    const response = await this.axiosInstance.post(`/categories/${id}/icon`, formData, {
-      ...config,
-      headers: {
-        ...config.headers,
-        ...(formData.getHeaders?.() || {}),
-      },
-    });
+    const response = await this.axiosInstance.patch(`/categories/${id}/icon`, { iconUrl }, config);
     return response.data;
   }
 
@@ -80,15 +74,9 @@ export class CatalogClient extends BaseClient {
     return response.data;
   }
 
-  async uploadProductImage(id: string, formData: any, userId?: string) {
+  async updateProductImage(id: string, imageUrl: string, userId?: string) {
     const config = await this.getRequestConfig(userId);
-    const response = await this.axiosInstance.post(`/products/${id}/image`, formData, {
-      ...config,
-      headers: {
-        ...config.headers,
-        ...(formData.getHeaders?.() || {}),
-      },
-    });
+    const response = await this.axiosInstance.patch(`/products/${id}/image`, { imageUrl }, config);
     return response.data;
   }
 

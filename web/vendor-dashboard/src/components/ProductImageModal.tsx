@@ -12,12 +12,7 @@ interface VendorProductImageModalProps {
 const VendorProductImageModal = ({ isOpen, onClose, imageUrl, productName }: VendorProductImageModalProps) => {
   const { t } = useTranslation();
 
-  const getFullImageUrl = (url: string | null) => {
-    if (!url) return null;
-    return url.startsWith("/") ? `${import.meta.env.VITE_API_BASE_URL}${url}` : url;
-  };
-
-  const fullImageUrl = getFullImageUrl(imageUrl);
+  const fullImageUrl = imageUrl || null;
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>

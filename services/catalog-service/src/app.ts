@@ -1,6 +1,5 @@
 import express from "express";
 import cors from "cors";
-import path from "path";
 import { createVendorProductRoutes } from "./presentation/routes/vendor-product.routes";
 import { createCategoryRoutes } from "./presentation/routes/category.routes";
 import { createGlobalProductRoutes } from "./presentation/routes/global-product.routes";
@@ -24,7 +23,6 @@ export const createApp = () => {
 
   app.use(cors());
   app.use(express.json());
-  app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 
   const db = new Database({
     host: config.dbHost,

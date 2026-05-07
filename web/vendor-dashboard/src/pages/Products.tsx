@@ -93,11 +93,7 @@ const Products = () => {
                     <div className="relative h-12 w-12 overflow-hidden rounded bg-muted flex-shrink-0">
                       {product.imageUrl ? (
                         <img
-                          src={
-                            product.imageUrl.startsWith("/")
-                              ? `${import.meta.env.VITE_API_BASE_URL}${product.imageUrl}`
-                              : product.imageUrl
-                          }
+                          src={product.imageUrl}
                           alt={product.name}
                           className="h-full w-full object-cover"
                         />

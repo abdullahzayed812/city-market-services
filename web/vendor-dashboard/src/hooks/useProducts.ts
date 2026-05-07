@@ -62,8 +62,8 @@ export const useProducts = (globalProductSearch?: string) => {
     },
   });
 
-  const uploadVendorProductImageMutation = useMutation({
-    mutationFn: ({ id, file }: { id: string; file: File }) => productService.uploadVendorProductImage(id, file),
+  const updateProductImageMutation = useMutation({
+    mutationFn: ({ id, imageUrl }: { id: string; imageUrl: string }) => productService.updateProductImage(id, imageUrl),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["vendor-products"] });
     },
@@ -88,6 +88,6 @@ export const useProducts = (globalProductSearch?: string) => {
     updateVendorProduct: updateVendorProductMutation.mutate,
     updateStock: updateStockMutation.mutate,
     deleteVendorProduct: deleteVendorProductMutation.mutate,
-    uploadVendorProductImage: uploadVendorProductImageMutation.mutate,
+    updateProductImage: updateProductImageMutation.mutate,
   };
 };

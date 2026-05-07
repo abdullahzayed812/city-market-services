@@ -1,6 +1,5 @@
 import express from "express";
 import cors from "cors";
-import path from "path";
 import { createVendorRoutes } from "./presentation/routes/vendor.routes";
 import { VendorController } from "./presentation/controllers/vendor.controller";
 import { VendorService } from "./application/services/vendor.service";
@@ -25,7 +24,6 @@ export const createApp = () => {
 
   app.use(cors());
   app.use(express.json());
-  app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 
   const db = new Database({
     host: config.dbHost,

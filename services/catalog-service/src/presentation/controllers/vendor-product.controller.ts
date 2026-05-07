@@ -207,14 +207,14 @@ export class VendorProductController {
     }
   };
 
-  uploadImage = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  updateImage = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
-      if (!req.file) {
-        throw new ValidationError("no_image_file_provided");
+      const { imageUrl } = req.body as { imageUrl?: string };
+      if (!imageUrl || typeof imageUrl !== "string") {
+        throw new ValidationError("image_url_required");
       }
-      const imageUrl = `/catalog/uploads/products/${req.file.filename}`;
       await this.catalogService.updateVendorProductImage(req.params.id, imageUrl);
-      res.json(ApiResponse.success({ imageUrl }, "vendor_product_image_uploaded"));
+      res.json(ApiResponse.success({ imageUrl }, "vendor_product_image_updated"));
     } catch (error) {
       next(error);
     }

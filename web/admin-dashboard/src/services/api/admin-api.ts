@@ -38,13 +38,8 @@ export const adminApi = {
     id: string,
     body: { status: ShopStatus }, // Use inline type for update status
   ) => axiosInstance.patch<ApiResponse<null>>(`/admin/vendors/${id}/status`, body),
-  uploadVendorImage: (id: string, file: File) => {
-    const formData = new FormData();
-    formData.append("image", file); // Use "image" as the field name
-    return axiosInstance.post<ApiResponse<{ imageUrl: string }>>(`/admin/vendors/${id}/image`, formData, {
-      headers: { "Content-Type": "multipart/form-data" },
-    });
-  },
+  updateVendorImage: (id: string, imageUrl: string) =>
+    axiosInstance.patch<ApiResponse<null>>(`/admin/vendors/${id}/image`, { imageUrl }),
 
   // Orders Management
   getOrders: () => axiosInstance.get<ApiResponse<CustomerOrder[]>>("/admin/orders"),
@@ -121,13 +116,8 @@ export const adminApi = {
   createCategory: (body: CreateCategoryDto) => axiosInstance.post<ApiResponse<Category>>("/admin/categories", body),
   updateCategory: (id: string, body: Partial<Category>) => axiosInstance.patch<ApiResponse<null>>(`/admin/categories/${id}`, body),
   deleteCategory: (id: string) => axiosInstance.delete<ApiResponse<null>>(`/admin/categories/${id}`),
-  uploadCategoryIcon: (id: string, file: File) => {
-    const formData = new FormData();
-    formData.append("icon", file);
-    return axiosInstance.post<ApiResponse<{ iconUrl: string }>>(`/admin/categories/${id}/icon`, formData, {
-      headers: { "Content-Type": "multipart/form-data" },
-    });
-  },
+  updateCategoryIcon: (id: string, iconUrl: string) =>
+    axiosInstance.patch<ApiResponse<null>>(`/admin/categories/${id}/icon`, { iconUrl }),
 
   // Vendor Products Management
   getVendorProducts: async (
@@ -146,13 +136,8 @@ export const adminApi = {
   createVendorProduct: (body: CreateVendorProductDto) => axiosInstance.post<ApiResponse<VendorProduct>>("/admin/products", body),
   updateVendorProduct: (id: string, body: Partial<VendorProduct>) => axiosInstance.put<ApiResponse<null>>(`/admin/products/${id}`, body),
   deleteVendorProduct: (id: string) => axiosInstance.delete<ApiResponse<null>>(`/admin/products/${id}`),
-  uploadVendorProductImage: (id: string, file: File) => {
-    const formData = new FormData();
-    formData.append("image", file); // Use "image" as the field name as per vendor-service upload
-    return axiosInstance.post<ApiResponse<{ imageUrl: string }>>(`/admin/products/${id}/image`, formData, {
-      headers: { "Content-Type": "multipart/form-data" },
-    });
-  },
+  updateVendorProductImage: (id: string, imageUrl: string) =>
+    axiosInstance.patch<ApiResponse<null>>(`/admin/products/${id}/image`, { imageUrl }),
 
   // Global Products management
   getGlobalProducts: async (page: number, limit: number, search?: string): Promise<{ data: GlobalProduct[]; total: number }> => {

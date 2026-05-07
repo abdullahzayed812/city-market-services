@@ -76,8 +76,8 @@ export class ServiceClient {
     return this.vendor.updateVendorStatus(id, status, userId);
   }
 
-  async uploadVendorImage(id: string, formData: any, userId?: string) {
-    return this.vendor.uploadVendorImage(id, formData, userId);
+  async updateVendorImage(id: string, imageUrl: string, userId?: string) {
+    return this.vendor.updateVendorImage(id, imageUrl, userId);
   }
 
   async getOrderById(id: string, userId?: string) {
@@ -116,8 +116,8 @@ export class ServiceClient {
     return this.catalog.deleteCategory(id, userId);
   }
 
-  async uploadCategoryIcon(id: string, formData: any, userId?: string) {
-    return this.catalog.uploadCategoryIcon(id, formData, userId);
+  async updateCategoryIcon(id: string, iconUrl: string, userId?: string) {
+    return this.catalog.updateCategoryIcon(id, iconUrl, userId);
   }
 
   async getAllProducts(page?: number, limit?: number, userId?: string, globalCat?: string, vendorCat?: string, vendorId?: string, search?: string) {
@@ -136,8 +136,8 @@ export class ServiceClient {
     return this.catalog.deleteProduct(id, userId);
   }
 
-  async uploadProductImage(id: string, formData: any, userId?: string) {
-    return this.catalog.uploadProductImage(id, formData, userId);
+  async updateProductImage(id: string, imageUrl: string, userId?: string) {
+    return this.catalog.updateProductImage(id, imageUrl, userId);
   }
 
   async getGlobalProducts(page?: number, limit?: number, userId?: string) {

@@ -2,7 +2,6 @@ import { Router } from "express";
 import { CategoryController } from "../controllers/category.controller";
 import { UserRole } from "@city-market/shared";
 import { authorize } from "@city-market/shared/node";
-import { uploadCategoryIcon } from "../middlewares/upload.middleware";
 
 export const createCategoryRoutes = (controller: CategoryController): Router => {
   const router = Router();
@@ -11,11 +10,10 @@ export const createCategoryRoutes = (controller: CategoryController): Router => 
   router.post("/categories", authorize(UserRole.VENDOR, UserRole.ADMIN), controller.create);
   router.patch("/categories/:id", authorize(UserRole.VENDOR, UserRole.ADMIN), controller.update);
   router.delete("/categories/:id", authorize(UserRole.VENDOR, UserRole.ADMIN), controller.delete);
-  router.post(
+  router.patch(
     "/categories/:id/icon",
     authorize(UserRole.VENDOR, UserRole.ADMIN),
-    uploadCategoryIcon.single("icon"),
-    controller.uploadIcon,
+    controller.updateIcon,
   );
 
   // Queries

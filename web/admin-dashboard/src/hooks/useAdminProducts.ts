@@ -120,23 +120,23 @@ export const useAdminProducts = ({ initialLimit = 20, globalCategoryId, vendorCa
     [deleteVendorProductMutation],
   );
 
-  // --- Upload Vendor Product Image ---
-  const uploadVendorProductImageMutation = useMutation({
-    mutationFn: ({ id, file }: { id: string; file: File }) => adminApi.uploadVendorProductImage(id, file),
+  // --- Update Vendor Product Image URL ---
+  const updateProductImageMutation = useMutation({
+    mutationFn: ({ id, imageUrl }: { id: string; imageUrl: string }) => adminApi.updateVendorProductImage(id, imageUrl),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["adminProducts"] });
-      toast({ title: "Success", description: "Vendor product image uploaded successfully." });
+      toast({ title: "Success", description: "Product image updated successfully." });
     },
     onError: (err: any) => {
-      toast({ title: "Error", description: `Failed to upload image: ${err.message}`, variant: "destructive" });
+      toast({ title: "Error", description: `Failed to update image: ${err.message}`, variant: "destructive" });
     },
   });
 
-  const uploadVendorProductImage = useCallback(
-    (id: string, file: File) => {
-      uploadVendorProductImageMutation.mutate({ id, file });
+  const updateProductImage = useCallback(
+    (id: string, imageUrl: string) => {
+      updateProductImageMutation.mutate({ id, imageUrl });
     },
-    [uploadVendorProductImageMutation],
+    [updateProductImageMutation],
   );
 
   return {
@@ -155,7 +155,7 @@ export const useAdminProducts = ({ initialLimit = 20, globalCategoryId, vendorCa
     createVendorProduct,
     updateVendorProduct,
     deleteVendorProduct,
-    uploadVendorProductImage,
+    updateProductImage,
     error,
   };
 };

@@ -5,17 +5,16 @@ import { adminApi } from "@/services/api/admin-api";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { Store, Phone, Upload, Plus, Edit } from "lucide-react";
+import { Store, Phone, Plus, Edit } from "lucide-react";
 import { ShopStatus } from "@city-market/shared";
 import { useToast } from "@/hooks/use-toast";
 import VendorFormDialog from "@/features/vendors/components/VendorFormDialog";
+import ImageUploader from "@/components/ImageUploader";
 
 const VendorsManagement: React.FC = () => {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const { toast } = useToast();
-  const [uploadingId, setUploadingId] = useState<string | null>(null);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editingVendor, setEditingVendor] = useState<any>(null);
@@ -70,22 +69,13 @@ const VendorsManagement: React.FC = () => {
     },
   });
 
-  const uploadImageMutation = useMutation({
-    mutationFn: ({ id, file }: { id: string; file: File }) => adminApi.uploadVendorImage(id, file),
+  const updateImageMutation = useMutation({
+    mutationFn: ({ id, imageUrl }: { id: string; imageUrl: string }) => adminApi.updateVendorImage(id, imageUrl),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["adminVendors"] });
-      setUploadingId(null);
       toast({ description: t("vendors.image_uploaded") });
     },
   });
-
-  const handleFileChange = (id: string, e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setUploadingId(id);
-      uploadImageMutation.mutate({ id, file });
-    }
-  };
 
   if (isLoading) return <div className="p-8 text-center">{t("common.loading")}</div>;
 
@@ -131,29 +121,20 @@ const VendorsManagement: React.FC = () => {
             {vendors?.map((vendor) => (
               <TableRow key={vendor.id}>
                 <TableCell>
-                  <div className="relative group">
+                  <ImageUploader
+                    folder="vendors"
+                    entityId={vendor.id}
+                    currentImageUrl={vendor.storeImage || undefined}
+                    onComplete={(result) => updateImageMutation.mutate({ id: vendor.id, imageUrl: result.url })}
+                  >
                     {vendor.storeImage ? (
-                      <img
-                        src={`${import.meta.env.VITE_API_URL || `${window.location.protocol}//${window.location.hostname}:3000/api/v1`}${vendor.storeImage}`}
-                        alt={vendor.shopName}
-                        className="h-10 w-10 object-cover rounded border"
-                      />
+                      <img src={vendor.storeImage} alt={vendor.shopName} className="h-10 w-10 object-cover rounded border" />
                     ) : (
                       <div className="h-10 w-10 bg-slate-100 rounded flex items-center justify-center text-slate-400 border">
                         <Store size={16} />
                       </div>
                     )}
-                    <label className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer rounded">
-                      <Input
-                        type="file"
-                        accept="image/*"
-                        className="hidden"
-                        onChange={(e) => handleFileChange(vendor.id, e)}
-                        disabled={uploadingId === vendor.id}
-                      />
-                      <Upload size={14} className="text-white" />
-                    </label>
-                  </div>
+                  </ImageUploader>
                 </TableCell>
                 <TableCell>
                   <div className="font-medium">{vendor.shopName}</div>

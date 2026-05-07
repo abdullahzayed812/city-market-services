@@ -1,6 +1,5 @@
 import { Router } from "express";
 import { VendorProductController } from "../controllers/vendor-product.controller";
-import { uploadProductImage } from "../middlewares/upload.middleware";
 
 export const createVendorProductRoutes = (controller: VendorProductController): Router => {
   const router = Router();
@@ -14,11 +13,8 @@ export const createVendorProductRoutes = (controller: VendorProductController): 
   router.patch("/products/:id", controller.update);
   router.patch("/products/:id/stock", controller.updateStock);
   router.patch("/products/:id/price", controller.updatePrice);
-  // router.patch("/products/:id/decrement", controller.decrementStock);
-  // router.patch("/products/:id/reserve", controller.reserveStock);
   router.patch("/products/:id/release", controller.releaseStock);
-  // router.patch(":id/commit", controller.commitStock);
-  router.post("/products/:id/image", uploadProductImage.single("image"), controller.uploadImage);
+  router.patch("/products/:id/image", controller.updateImage);
   router.delete("/products/:id", controller.delete);
 
   return router;

@@ -1,19 +1,20 @@
-import React, { memo, useCallback } from "react";
+import React, { memo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Label } from "@/components/ui/label";
-import { Image as ImageIcon, MoreHorizontal, Trash, Power, PowerOff, Eye, Upload, Pencil } from "lucide-react";
+import { Image as ImageIcon, MoreHorizontal, Trash, Power, PowerOff, Eye, Upload, Pencil, Loader2 } from "lucide-react";
 import { MeasurementType, type VendorProduct } from "@city-market/shared";
+import { mediaService } from "@/services/api/media.service";
+import { useToast } from "@/hooks/use-toast";
 
 interface ProductTableProps {
   products: VendorProduct[];
   onEdit: (product: VendorProduct) => void;
   onDelete: (id: string) => void;
   onToggleAvailability: (product: VendorProduct) => void;
-  onUploadImage: (id: string, file: File) => void;
+  onUploadImage: (id: string, imageUrl: string) => void;
   onViewImage: (product: VendorProduct) => void;
   hasMore: boolean;
   onLoadMore: () => void;
@@ -23,18 +24,25 @@ interface ProductTableProps {
 const ProductTable: React.FC<ProductTableProps> = memo(
   ({ products, onEdit, onDelete, onToggleAvailability, onUploadImage, onViewImage, hasMore, onLoadMore, isFetchingNextPage }) => {
     const { t } = useTranslation();
+    const { toast } = useToast();
+    const inputRefs = useRef<Record<string, HTMLInputElement | null>>({});
+    const [uploadingId, setUploadingId] = useState<string | null>(null);
 
-    const handleImageUpload = (productId: string, e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleImageUpload = async (productId: string, e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0];
-      if (file) {
-        onUploadImage(productId, file);
+      if (!file) return;
+      setUploadingId(productId);
+      try {
+        const result = await mediaService.upload(file, "products", productId);
+        onUploadImage(productId, result.url);
+      } catch (err: any) {
+        toast({ title: "Upload failed", description: err?.response?.data?.message || err.message, variant: "destructive" });
+      } finally {
+        setUploadingId(null);
+        const input = inputRefs.current[productId];
+        if (input) input.value = "";
       }
     };
-
-    const getImageUrl = useCallback((path: string) => {
-      const baseUrl = import.meta.env.VITE_API_URL || `${window.location.protocol}//${window.location.hostname}:3000/api/v1`;
-      return `${baseUrl}${path}`;
-    }, []);
 
     return (
       <div className="space-y-4">
@@ -62,7 +70,7 @@ const ProductTable: React.FC<ProductTableProps> = memo(
                       <div className="flex items-center gap-2">
                         <div className="relative h-12 w-12 overflow-hidden rounded bg-muted flex-shrink-0">
                           {product.imageUrl ? (
-                            <img src={getImageUrl(product.imageUrl)} alt={product.name} className="h-full w-full object-cover" />
+                            <img src={product.imageUrl} alt={product.name} className="h-full w-full object-cover" />
                           ) : (
                             <div className="flex h-full w-full items-center justify-center">
                               <ImageIcon className="h-6 w-6 text-muted-foreground" />
@@ -75,14 +83,24 @@ const ProductTable: React.FC<ProductTableProps> = memo(
                               <Eye className="h-4 w-4" />
                             </Button>
                           )}
-                          <Label htmlFor={`img-${product.id}`} className="cursor-pointer">
-                            <Button variant="ghost" size="icon" className="h-8 w-8" type="button" title={t("products.upload_image")} asChild>
-                              <span>
-                                <Upload className="h-4 w-4" />
-                              </span>
-                            </Button>
-                          </Label>
-                          <input id={`img-${product.id}`} type="file" className="hidden" accept="image/*" onChange={(e) => handleImageUpload(product.id, e)} />
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            type="button"
+                            title={t("products.upload_image")}
+                            disabled={uploadingId === product.id}
+                            onClick={() => inputRefs.current[product.id]?.click()}
+                          >
+                            {uploadingId === product.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+                          </Button>
+                          <input
+                            ref={(el) => { inputRefs.current[product.id] = el; }}
+                            type="file"
+                            className="hidden"
+                            accept="image/*"
+                            onChange={(e) => handleImageUpload(product.id, e)}
+                          />
                         </div>
                       </div>
                     </TableCell>

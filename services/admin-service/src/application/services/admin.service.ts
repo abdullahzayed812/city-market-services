@@ -1,6 +1,5 @@
 import { ServiceClient } from "../../infrastructure/http/service-client";
 import { Logger } from "@city-market/shared/node";
-import FormData from "form-data";
 
 export interface DashboardStats {
   totalOrders: number;
@@ -82,9 +81,8 @@ export class AdminService {
     return this.serviceClient.vendor.updateVendorStatus(id, status, userId);
   }
 
-  async uploadVendorImage(id: string, formData: FormData, userId?: string) {
-    Logger.info(`Uploading image for vendor ${id}`);
-    return this.serviceClient.vendor.uploadVendorImage(id, formData, userId);
+  async updateVendorImage(id: string, imageUrl: string, userId?: string) {
+    return this.serviceClient.vendor.updateVendorImage(id, imageUrl, userId);
   }
 
   async getOrderById(id: string, userId?: string) {
@@ -229,8 +227,8 @@ export class AdminService {
     return this.serviceClient.catalog.deleteCategory(id, userId);
   }
 
-  async uploadCategoryIcon(id: string, formData: any, userId?: string) {
-    return this.serviceClient.catalog.uploadCategoryIcon(id, formData, userId);
+  async updateCategoryIcon(id: string, iconUrl: string, userId?: string) {
+    return this.serviceClient.catalog.updateCategoryIcon(id, iconUrl, userId);
   }
 
   // Product Management
@@ -282,9 +280,8 @@ export class AdminService {
     return this.serviceClient.catalog.deleteProduct(id, userId);
   }
 
-  async uploadProductImage(id: string, formData: FormData, userId?: string) {
-    Logger.info(`Uploading image for product ${id}`);
-    return this.serviceClient.catalog.uploadProductImage(id, formData, userId);
+  async updateProductImage(id: string, imageUrl: string, userId?: string) {
+    return this.serviceClient.catalog.updateProductImage(id, imageUrl, userId);
   }
 
   // Global Product Management
