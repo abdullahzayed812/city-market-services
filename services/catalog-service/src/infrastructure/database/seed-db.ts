@@ -1,9 +1,14 @@
 import { SEED_DATA, CategoryType } from "@city-market/shared";
 import { Database } from "@city-market/shared/node";
 import { config } from "../../config/env";
-import { randomUUID } from "crypto";
+import { createHash } from "crypto";
 import { ProductFactory } from "./factories/product.factory";
 import { ProductSeeder } from "./seeders/product.seeder";
+
+function deterministicUUID(input: string): string {
+  const hash = createHash("sha256").update(input).digest("hex");
+  return `${hash.slice(0, 8)}-${hash.slice(8, 12)}-${hash.slice(12, 16)}-${hash.slice(16, 20)}-${hash.slice(20, 32)}`;
+}
 
 // ─── Fixed UUIDs for categories not in SEED_DATA.CATEGORIES ──────────────────
 const CAT = {
@@ -297,7 +302,7 @@ const seedDb = async () => {
         vendorCatMap[vendorId] = {};
 
         for (const catName of group.cats) {
-          const catId = randomUUID();
+          const catId = deterministicUUID(`cat:${vendorId}:${catName}`);
           await conn.execute("INSERT IGNORE INTO categories (id, name, type, vendor_id) VALUES (?, ?, ?, ?)", [catId, catName, CategoryType.VENDOR, vendorId]);
           vendorCatMap[vendorId][catName] = catId;
         }

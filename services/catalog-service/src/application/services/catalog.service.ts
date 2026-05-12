@@ -102,11 +102,13 @@ export class CatalogService {
     vendorId: string,
     page: number,
     limit: number,
+    vendorCategoryId?: string,
   ): Promise<{ products: VendorProduct[]; total: number }> {
     const offset = (page - 1) * limit;
+    const filter: VendorProductFilter = { vendorId, vendorCategoryId };
     const [products, total] = await Promise.all([
-      this.vendorProductRepo.findByVendor(vendorId, limit, offset),
-      this.vendorProductRepo.countByFilter({ vendorId }),
+      this.vendorProductRepo.findByFilter(filter, limit, offset),
+      this.vendorProductRepo.countByFilter(filter),
     ]);
     return { products, total };
   }

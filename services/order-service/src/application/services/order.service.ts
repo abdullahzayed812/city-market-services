@@ -9,14 +9,7 @@ import { VendorOrder } from "../../core/entities/vendor-order.entity";
 import { VendorOrderItem } from "../../core/entities/vendor-order-item.entity";
 import { OrderItemProposal } from "../../core/entities/order-item-proposal.entity";
 import { CreateOrderDto, ProposeChangesDto, OrderWithItems } from "../../core/dto/order.dto";
-import {
-  CustomerOrderStatus,
-  VendorOrderStatus,
-  ValidationError,
-  NotFoundError,
-  ProposalStatus,
-  EventType,
-} from "@city-market/shared";
+import { CustomerOrderStatus, VendorOrderStatus, ValidationError, NotFoundError, ProposalStatus, EventType } from "@city-market/shared";
 import { Database, Logger } from "@city-market/shared/node";
 import { CatalogHttpClient } from "../../infrastructure/http/catalog-http-client";
 import { VendorHttpClient } from "../../infrastructure/http/vendor-http-client";
@@ -51,13 +44,7 @@ export class OrderService {
     private db: Database,
     private userClient: UserHttpClient,
   ) {
-    this.stateManager = new OrderStateManager(
-      customerOrderRepo,
-      vendorOrderRepo,
-      proposalRepo,
-      statusHistoryRepo,
-      publisher,
-    );
+    this.stateManager = new OrderStateManager(customerOrderRepo, vendorOrderRepo, proposalRepo, statusHistoryRepo, publisher);
     this.proposalManager = new ProposalManager(
       customerOrderRepo,
       vendorOrderRepo,
@@ -78,12 +65,7 @@ export class OrderService {
       this.stateManager,
       this.commissionTierService,
     );
-    this.vendorOrderManager = new VendorOrderManager(
-      vendorOrderRepo,
-      vendorOrderItemRepo,
-      this.stateManager,
-      this.proposalManager,
-    );
+    this.vendorOrderManager = new VendorOrderManager(vendorOrderRepo, vendorOrderItemRepo, this.stateManager, this.proposalManager);
   }
 
   async createOrder(dto: CreateOrderDto, userId?: string): Promise<OrderWithItems> {
@@ -104,9 +86,7 @@ export class OrderService {
 
     const vendorOrders = await this.vendorOrderRepo.findByCustomerOrder(id);
     const uniqueVendorIds = Array.from(new Set(vendorOrders.map((vo) => vo.vendorId)));
-    const vendorDetailsArray = await Promise.all(
-      uniqueVendorIds.map((vid) => this.vendorClient.getVendor(vid, userId)),
-    );
+    const vendorDetailsArray = await Promise.all(uniqueVendorIds.map((vid) => this.vendorClient.getVendor(vid, userId)));
     const vendorMap = new Map(uniqueVendorIds.map((vid, i) => [vid, vendorDetailsArray[i]]));
 
     const vendorOrdersWithItems = await Promise.all(
@@ -127,10 +107,12 @@ export class OrderService {
     return OrderMapper.mapOrderWithItems(customerOrder, vendorOrdersWithItems);
   }
 
-  async getCustomerOrders(customerId: string, page: number = 1, limit: number = 20): Promise<CustomerOrder[]> {
+  async getCustomerOrders(customerId: string, page: number = 1, limit: number = 20) {
     const offset = (page - 1) * limit;
-    const orders = await this.customerOrderRepo.findByCustomer(customerId, limit, offset);
-    return orders.map((o) => OrderMapper.mapCustomerOrder(o));
+    const rows = await this.customerOrderRepo.findByCustomer(customerId, limit + 1, offset);
+    const hasNextPage = rows.length > limit;
+    const items = rows.slice(0, limit).map((o) => OrderMapper.mapCustomerOrder(o));
+    return { items, hasNextPage };
   }
 
   async getAllOrders(page: number = 1, limit: number = 20): Promise<CustomerOrder[]> {
@@ -158,14 +140,12 @@ export class OrderService {
       });
   }
 
-  async getVendorOrders(
-    vendorId: string,
-    page: number = 1,
-    limit: number = 20,
-  ): Promise<(VendorOrder & { items: VendorOrderItem[] })[]> {
+  async getVendorOrders(vendorId: string, page: number = 1, limit: number = 20) {
     const offset = (page - 1) * limit;
-    const orders = await this.vendorOrderRepo.findByVendorWithItems(vendorId, limit, offset);
-    return orders.map((vo) => OrderMapper.mapVendorOrderWithItems(vo));
+    const rows = await this.vendorOrderRepo.findByVendorWithItems(vendorId, limit + 1, offset);
+    const hasNextPage = rows.length > limit;
+    const items = rows.slice(0, limit).map((vo) => OrderMapper.mapVendorOrderWithItems(vo));
+    return { items, hasNextPage };
   }
 
   async getVendorFinancials(vendorId: string, periodStart?: Date, periodEnd?: Date) {
@@ -184,9 +164,7 @@ export class OrderService {
 
     const mappedVo = OrderMapper.mapVendorOrder(vo);
     const mappedItems = items.map((i) => OrderMapper.mapVendorOrderItem(i));
-    const mappedProposals = proposals
-      .filter((p) => p.status === ProposalStatus.PENDING)
-      .map((p) => OrderMapper.mapProposal(p));
+    const mappedProposals = proposals.filter((p) => p.status === ProposalStatus.PENDING).map((p) => OrderMapper.mapProposal(p));
 
     return {
       ...mappedVo,
@@ -215,8 +193,7 @@ export class OrderService {
       const lockedVo = await this.vendorOrderRepo.findByIdWithLock(vendorOrderId, connection);
       if (!lockedVo) throw new NotFoundError("vendor_order_not_found");
 
-      if (lockedVo.status !== VendorOrderStatus.PENDING)
-        throw new ValidationError("vendor_can_only_confirm_pending_orders");
+      if (lockedVo.status !== VendorOrderStatus.PENDING) throw new ValidationError("vendor_can_only_confirm_pending_orders");
 
       await this.vendorOrderRepo.updateStatus(vendorOrderId, VendorOrderStatus.PREPARING, connection);
       await this.stateManager.recordStatusChange({ vendorOrderId }, VendorOrderStatus.PREPARING, undefined, connection);
@@ -232,12 +209,7 @@ export class OrderService {
     });
   }
 
-  async updateVendorOrderStatus(
-    vendorOrderId: string,
-    status: VendorOrderStatus,
-    notes?: string,
-    skipCustomerSync: boolean = false,
-  ): Promise<void> {
+  async updateVendorOrderStatus(vendorOrderId: string, status: VendorOrderStatus, notes?: string, skipCustomerSync: boolean = false): Promise<void> {
     return this.db.withTransaction(async (connection: PoolConnection) => {
       if (!skipCustomerSync) {
         const vo = await this.vendorOrderRepo.findById(vendorOrderId, connection);
@@ -268,8 +240,7 @@ export class OrderService {
 
       if (co.status === status) return;
 
-      if (!this.stateManager.isValidCustomerStatusTransition(co.status, status))
-        throw new ValidationError("invalid_customer_order_status_transition");
+      if (!this.stateManager.isValidCustomerStatusTransition(co.status, status)) throw new ValidationError("invalid_customer_order_status_transition");
 
       await this.customerOrderRepo.updateStatus(customerOrderId, status, connection);
       await this.stateManager.recordStatusChange({ customerOrderId }, status, notes, connection);
@@ -305,10 +276,8 @@ export class OrderService {
       const co = await this.customerOrderRepo.findByIdWithLock(orderId, connection);
       if (!co) throw new NotFoundError("order_not_found");
       if (co.customerId !== customerId) throw new ValidationError("not_authorized");
-      if (co.status !== CustomerOrderStatus.AWAITING_CUSTOMER_CONFIRMATION)
-        throw new ValidationError("order_not_awaiting_confirmation");
-      if (co.confirmationExpiry && co.confirmationExpiry < new Date())
-        throw new ValidationError("order_confirmation_expired");
+      if (co.status !== CustomerOrderStatus.AWAITING_CUSTOMER_CONFIRMATION) throw new ValidationError("order_not_awaiting_confirmation");
+      if (co.confirmationExpiry && co.confirmationExpiry < new Date()) throw new ValidationError("order_confirmation_expired");
 
       await this.customerOrderRepo.updateStatus(orderId, CustomerOrderStatus.PENDING_VENDOR_CONFIRMATION, connection);
       await this.stateManager.recordStatusChange(
@@ -322,20 +291,7 @@ export class OrderService {
       for (const vo of vendorOrders) {
         if (vo.status === VendorOrderStatus.DRAFT) {
           await this.vendorOrderRepo.updateStatus(vo.id, VendorOrderStatus.PENDING, connection);
-          await this.stateManager.recordStatusChange(
-            { vendorOrderId: vo.id },
-            VendorOrderStatus.PENDING,
-            "Customer confirmed order",
-            connection,
-          );
-          const vendorInfo = await this.vendorClient.getVendor(vo.vendorId);
-          await this.publisher.publishVendorOrderCreated({
-            vendorOrderId: vo.id,
-            vendorId: vo.vendorId,
-            vendorUserId: vendorInfo?.userId,
-            customerOrderId: orderId,
-            customerId: co.customerId,
-          });
+          await this.stateManager.recordStatusChange({ vendorOrderId: vo.id }, VendorOrderStatus.PENDING, "Customer confirmed order", connection);
         }
       }
     });
@@ -346,8 +302,7 @@ export class OrderService {
       const co = await this.customerOrderRepo.findByIdWithLock(orderId, connection);
       if (!co) throw new NotFoundError("order_not_found");
       if (co.customerId !== customerId) throw new ValidationError("not_authorized");
-      if (co.status !== CustomerOrderStatus.AWAITING_CUSTOMER_CONFIRMATION)
-        throw new ValidationError("order_not_awaiting_confirmation");
+      if (co.status !== CustomerOrderStatus.AWAITING_CUSTOMER_CONFIRMATION) throw new ValidationError("order_not_awaiting_confirmation");
 
       await this._cancelAwaitingOrder(orderId, co.customerId, "Cancelled by customer", connection);
     });
@@ -371,24 +326,14 @@ export class OrderService {
   private async _cancelAwaitingOrder(orderId: string, customerId: string, reason: string, connection: any): Promise<void> {
     await this.customerOrderRepo.updateStatus(orderId, CustomerOrderStatus.CANCELLED_BY_CUSTOMER, connection);
     await this.customerOrderRepo.update(orderId, { cancellationReason: reason }, connection);
-    await this.stateManager.recordStatusChange(
-      { customerOrderId: orderId },
-      CustomerOrderStatus.CANCELLED_BY_CUSTOMER,
-      reason,
-      connection,
-    );
+    await this.stateManager.recordStatusChange({ customerOrderId: orderId }, CustomerOrderStatus.CANCELLED_BY_CUSTOMER, reason, connection);
 
     const vendorOrders = await this.vendorOrderRepo.findByCustomerOrder(orderId, connection);
     const items: any[] = [];
     for (const vo of vendorOrders) {
       if (vo.status === VendorOrderStatus.DRAFT) {
         await this.vendorOrderRepo.updateStatus(vo.id, VendorOrderStatus.CANCELLED, connection);
-        await this.stateManager.recordStatusChange(
-          { vendorOrderId: vo.id },
-          VendorOrderStatus.CANCELLED,
-          reason,
-          connection,
-        );
+        await this.stateManager.recordStatusChange({ vendorOrderId: vo.id }, VendorOrderStatus.CANCELLED, reason, connection);
       }
       const voItems = await this.vendorOrderItemRepo.findByVendorOrder(vo.id, connection);
       for (const item of voItems) {
@@ -410,40 +355,22 @@ export class OrderService {
       const co = await this.customerOrderRepo.findByIdWithLock(customerOrderId, connection);
       if (!co) return;
 
-      const terminalStatuses: CustomerOrderStatus[] = [
-        CustomerOrderStatus.COMPLETED,
-        CustomerOrderStatus.CANCELLED,
-        CustomerOrderStatus.CANCELLED_BY_CUSTOMER,
-      ];
+      const terminalStatuses: CustomerOrderStatus[] = [CustomerOrderStatus.COMPLETED, CustomerOrderStatus.CANCELLED, CustomerOrderStatus.CANCELLED_BY_CUSTOMER];
       if (terminalStatuses.includes(co.status)) return;
 
       const cancellationReason = courierReason || "Delivery cancelled by courier";
       await this.customerOrderRepo.updateStatus(customerOrderId, CustomerOrderStatus.CANCELLED, connection);
       await this.customerOrderRepo.update(customerOrderId, { cancellationReason }, connection);
-      await this.stateManager.recordStatusChange(
-        { customerOrderId },
-        CustomerOrderStatus.CANCELLED,
-        cancellationReason,
-        connection,
-      );
+      await this.stateManager.recordStatusChange({ customerOrderId }, CustomerOrderStatus.CANCELLED, cancellationReason, connection);
 
       const vendorOrders = await this.vendorOrderRepo.findByCustomerOrder(customerOrderId, connection);
       const items: any[] = [];
       for (const vo of vendorOrders) {
-        const cancelableStatuses: VendorOrderStatus[] = [
-          VendorOrderStatus.PENDING,
-          VendorOrderStatus.CONFIRMED,
-          VendorOrderStatus.PROPOSAL_SENT,
-        ];
+        const cancelableStatuses: VendorOrderStatus[] = [VendorOrderStatus.PENDING, VendorOrderStatus.CONFIRMED, VendorOrderStatus.PROPOSAL_SENT];
         if (cancelableStatuses.includes(vo.status as VendorOrderStatus)) {
           await this.vendorOrderRepo.updateStatus(vo.id, VendorOrderStatus.CANCELLED, connection);
           await this.vendorOrderRepo.update(vo.id, { cancellationReason }, connection);
-          await this.stateManager.recordStatusChange(
-            { vendorOrderId: vo.id },
-            VendorOrderStatus.CANCELLED,
-            cancellationReason,
-            connection,
-          );
+          await this.stateManager.recordStatusChange({ vendorOrderId: vo.id }, VendorOrderStatus.CANCELLED, cancellationReason, connection);
         }
         const voItems = await this.vendorOrderItemRepo.findByVendorOrder(vo.id, connection);
         for (const item of voItems) {
@@ -463,9 +390,7 @@ export class OrderService {
 
   async calculateDeliveryFee(customerLat: number, customerLng: number, vendorIds: string[]): Promise<number> {
     const vendorDetailsArray = await Promise.all(vendorIds.map((vid) => this.vendorClient.getVendor(vid)));
-    const vendorLocations = vendorDetailsArray
-      .filter((v) => v !== null)
-      .map((v) => ({ latitude: v!.latitude, longitude: v!.longitude }));
+    const vendorLocations = vendorDetailsArray.filter((v) => v !== null).map((v) => ({ latitude: v!.latitude, longitude: v!.longitude }));
 
     return DeliveryFeeCalculator.calculate(customerLat, customerLng, vendorLocations);
   }

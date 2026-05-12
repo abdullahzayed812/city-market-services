@@ -1,5 +1,10 @@
-import { randomUUID } from "crypto";
+import { createHash } from "crypto";
 import { MeasurementType, WeightUnit } from "@city-market/shared";
+
+function deterministicUUID(input: string): string {
+  const hash = createHash("sha256").update(input).digest("hex");
+  return `${hash.slice(0, 8)}-${hash.slice(8, 12)}-${hash.slice(12, 16)}-${hash.slice(16, 20)}-${hash.slice(20, 32)}`;
+}
 
 export interface GlobalProductSeed {
   id: string;
@@ -640,7 +645,7 @@ export class ProductFactory {
       for (const product of productList) {
         const isWeight = product.measure === MeasurementType.WEIGHT;
         products.push({
-          id: randomUUID(),
+          id: deterministicUUID(`gp:${product.name}:${categoryId}`),
           name: product.name,
           description: product.description,
           global_category_id: categoryId,
@@ -672,7 +677,7 @@ export class ProductFactory {
         const isWeight = gp.measurement_type === MeasurementType.WEIGHT;
 
         vendorProducts.push({
-          id: randomUUID(),
+          id: deterministicUUID(`vp:${assignment.vendorId}:${gp.id}`),
           vendor_id: assignment.vendorId,
           global_product_id: gp.id,
           vendor_category_id: assignment.vendorCategoryId,

@@ -340,25 +340,31 @@ export class DeliveryService {
     return this.enrichDeliveriesWithOrderData(deliveries, userId);
   }
 
-  async getCourierDeliveries(courierId: string, page: number = 1, limit: number = 20, userId?: string): Promise<Delivery[]> {
+  async getCourierDeliveries(courierId: string, page: number = 1, limit: number = 20, userId?: string) {
     const offset = (page - 1) * limit;
-    const deliveries = await this.deliveryRepo.findByCourier(courierId, limit, offset);
-    return this.enrichDeliveriesWithOrderData(deliveries, userId);
+    const rows = await this.deliveryRepo.findByCourier(courierId, limit + 1, offset);
+    const hasNextPage = rows.length > limit;
+    const items = await this.enrichDeliveriesWithOrderData(rows.slice(0, limit), userId);
+    return { items, hasNextPage };
   }
 
-  async getAllDeliveries(page: number = 1, limit: number = 20, userId?: string, role?: string): Promise<Delivery[]> {
+  async getAllDeliveries(page: number = 1, limit: number = 20, userId?: string, role?: string) {
     const offset = (page - 1) * limit;
 
     if (role === UserRole.DELIVERY_MANAGER && userId && this.officeRepo) {
       const office = await this.officeRepo.findByUserId(userId);
       if (office) {
-        const deliveries = await this.deliveryRepo.findForManager(office.id, limit, offset);
-        return this.enrichDeliveriesWithOrderData(deliveries, userId);
+        const rows = await this.deliveryRepo.findForManager(office.id, limit + 1, offset);
+        const hasNextPage = rows.length > limit;
+        const items = await this.enrichDeliveriesWithOrderData(rows.slice(0, limit), userId);
+        return { items, hasNextPage };
       }
     }
 
-    const deliveries = await this.deliveryRepo.findAll(limit, offset);
-    return this.enrichDeliveriesWithOrderData(deliveries, userId);
+    const rows = await this.deliveryRepo.findAll(limit + 1, offset);
+    const hasNextPage = rows.length > limit;
+    const items = await this.enrichDeliveriesWithOrderData(rows.slice(0, limit), userId);
+    return { items, hasNextPage };
   }
 
   private async enrichDeliveriesWithOrderData(deliveries: Delivery[], userId?: string): Promise<Delivery[]> {

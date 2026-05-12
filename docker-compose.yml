@@ -370,8 +370,9 @@ services:
       JWT_SERVICE_ACCESS_SECRET: ${JWT_SERVICE_ACCESS_SECRET}
       FIREBASE_SERVICE_ACCOUNT_JSON: ${FIREBASE_SERVICE_ACCOUNT_JSON:-}
       FIREBASE_SERVICE_ACCOUNT_PATH: ${FIREBASE_SERVICE_ACCOUNT_PATH:-/run/secrets/firebase-service-account.json}
-    volumes:
-      - ${FIREBASE_CREDENTIALS_FILE:-/dev/null}:/run/secrets/firebase-service-account.json:ro
+    secrets:
+      - source: firebase-service-account
+        target: /run/secrets/firebase-service-account.json
 
   payment-service:
     <<: *service-defaults
@@ -539,6 +540,10 @@ volumes:
   mysql_data:
   rabbitmq_data:
   redis_data:
+
+secrets:
+  firebase-service-account:
+    file: ${FIREBASE_CREDENTIALS_FILE:-./firebase-credentials.json}
 
 networks:
   citymarket:

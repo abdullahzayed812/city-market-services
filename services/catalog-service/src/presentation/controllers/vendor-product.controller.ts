@@ -53,7 +53,8 @@ export class VendorProductController {
     try {
       const page = parseInt(req.query.page as string) || 1;
       const limit = parseInt(req.query.limit as string) || 20;
-      const { products, total } = await this.catalogService.getVendorProductsByVendor(req.params.vendorId, page, limit);
+      const vendorCategoryId = req.query.vendorCategoryId as string | undefined;
+      const { products, total } = await this.catalogService.getVendorProductsByVendor(req.params.vendorId, page, limit, vendorCategoryId);
       res.json(
         ApiResponse.success({
           data: products,

@@ -30,6 +30,7 @@ shared/src/**/*.d.ts.map
 
 # Firebase & Secrets
 firebase-service-account.json
+firebase-credentials.json
 firebase-adminsdk.json
 google-services.json
 GoogleService-Info.plist

@@ -27,7 +27,7 @@ export class OrderCreationManager {
     private publisher: OrderPublisher,
     private stateManager: OrderStateManager,
     private commissionTierService: CommissionTierService,
-  ) { }
+  ) {}
 
   async create(
     dto: CreateOrderDto,
@@ -59,11 +59,21 @@ export class OrderCreationManager {
     const customerOrder = await this.createCustomerOrderRecords(dto, totalSubtotal, totalCommissionAmount, vendorInfosMap, connection!);
     const createdVendorOrders = await this.createVendorOrderRecords(customerOrder, vendorOrdersData, vendorInfosMap, connection!);
 
-    // Publish event for Catalog Service to reserve stock
     await this.publisher.publishOrderStockCheckRequested({
       orderId: customerOrder.id,
       items: dto.items,
     });
+
+    for (const vo of createdVendorOrders) {
+      const vendorInfo = vendorInfosMap.get(vo.vendorId);
+      await this.publisher.publishVendorOrderCreated({
+        vendorOrderId: vo.id,
+        vendorId: vo.vendorId,
+        vendorUserId: vendorInfo?.userId,
+        customerOrderId: customerOrder.id,
+        customerId: customerOrder.customerId,
+      });
+    }
 
     return { order: customerOrder, vendorOrders: createdVendorOrders };
   }
@@ -222,18 +232,6 @@ export class OrderCreationManager {
       }
 
       createdVendorOrders.push({ ...vendorOrder, items: uniqueItems });
-
-      // Vendor order event will be published after stock is reserved
-      /*
-      const vendorInfo = vendorInfosMap.get(vendorOrder.vendorId);
-      await this.publisher.publishVendorOrderCreated({
-        vendorOrderId: vendorOrder.id,
-        vendorId: vendorOrder.vendorId,
-        vendorUserId: vendorInfo?.userId,
-        customerOrderId: customerOrder.id,
-        customerId: customerOrder.customerId,
-      });
-      */
     }
     return createdVendorOrders;
   }

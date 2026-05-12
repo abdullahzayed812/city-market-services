@@ -1,7 +1,12 @@
 import { SEED_DATA } from "@city-market/shared";
 import { Database } from "@city-market/shared/node";
 import { config } from "../../config/env";
-import { randomUUID } from "crypto";
+import { createHash, randomUUID } from "crypto";
+
+function deterministicUUID(input: string): string {
+  const hash = createHash("sha256").update(input).digest("hex");
+  return `${hash.slice(0, 8)}-${hash.slice(8, 12)}-${hash.slice(12, 16)}-${hash.slice(16, 20)}-${hash.slice(20, 32)}`;
+}
 
 const seedDb = async () => {
   const db = Database.getInstance({
@@ -26,7 +31,6 @@ const seedDb = async () => {
 
     const addresses = [
       {
-        id: randomUUID(),
         customer_id: customerId,
         label: "البيت",
         address: "حي المحطة، بناية رقم 7، شقة رقم 3",
@@ -35,7 +39,6 @@ const seedDb = async () => {
         is_default: true,
       },
       {
-        id: randomUUID(),
         customer_id: customerId,
         label: "الشغل",
         address: "حي المنطقة الصناعية، بناية رقم 14، شقة رقم 1",
@@ -44,7 +47,6 @@ const seedDb = async () => {
         is_default: false,
       },
       {
-        id: randomUUID(),
         customer_id: customerId,
         label: "بيت الأهل",
         address: "حي النصر، بناية رقم 22، شقة رقم 9",
@@ -53,7 +55,6 @@ const seedDb = async () => {
         is_default: false,
       },
       {
-        id: randomUUID(),
         customer_id: customerId,
         label: "النادي",
         address: "نادي سموحة برج العرب، الحي الأول",
@@ -64,10 +65,17 @@ const seedDb = async () => {
     ];
 
     for (const addr of addresses) {
-      await connection.execute(
-        "INSERT IGNORE INTO addresses (id, customer_id, label, address, latitude, longitude, is_default) VALUES (?, ?, ?, ?, ?, ?, ?)",
-        [addr.id, addr.customer_id, addr.label, addr.address, addr.latitude, addr.longitude, addr.is_default],
-      );
+      const addrId = deterministicUUID(`addr:${addr.label}`);
+
+      await connection.execute("INSERT IGNORE INTO addresses (id, customer_id, label, address, latitude, longitude, is_default) VALUES (?, ?, ?, ?, ?, ?, ?)", [
+        addrId,
+        addr.customer_id,
+        addr.label,
+        addr.address,
+        addr.latitude,
+        addr.longitude,
+        addr.is_default,
+      ]);
     }
 
     console.log("Database seeded successfully");
