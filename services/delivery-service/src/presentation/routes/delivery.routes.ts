@@ -25,6 +25,7 @@ export const createDeliveryRoutes = (controller: DeliveryController, deliveryOff
   router.post("/deliveries/:id/assign", authorize(UserRole.ADMIN, UserRole.DELIVERY_MANAGER), controller.assignCourier);
   router.patch("/deliveries/:id/status", authorize(UserRole.COURIER, UserRole.ADMIN, UserRole.DELIVERY_MANAGER), controller.updateDeliveryStatus);
   router.patch("/deliveries/:id/cancel-by-courier", authorize(UserRole.COURIER), controller.cancelDeliveryByCourier);
+  router.patch("/deliveries/:id/cancel-by-manager", authorize(UserRole.DELIVERY_MANAGER), controller.cancelDeliveryByManager);
   router.get("/deliveries", authorize(UserRole.ADMIN, UserRole.DELIVERY_MANAGER), controller.getAllDeliveries);
   router.get("/deliveries-analytics", authorize(UserRole.ADMIN), controller.getFinancialAnalytics);
 

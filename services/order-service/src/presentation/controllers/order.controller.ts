@@ -5,7 +5,7 @@ import { Logger } from "@city-market/shared/node";
 import { AuthenticatedRequest } from "@city-market/shared/node";
 
 export class OrderController {
-  constructor(private orderService: OrderService) { }
+  constructor(private orderService: OrderService) {}
 
   create = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
@@ -145,24 +145,6 @@ export class OrderController {
     }
   };
 
-  confirmOrder = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
-    try {
-      await this.orderService.confirmOrder(req.params.id, req.user?.userId || "");
-      res.json(ApiResponse.success(null, "order_confirmed"));
-    } catch (error) {
-      next(error);
-    }
-  };
-
-  cancelOrderByCustomer = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
-    try {
-      await this.orderService.cancelOrderByCustomer(req.params.id, req.user?.userId || "");
-      res.json(ApiResponse.success(null, "order_cancelled"));
-    } catch (error) {
-      next(error);
-    }
-  };
-
   getDeliveryFeePreview = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
       const { lat, lng, vendorIds } = req.query;
@@ -171,11 +153,7 @@ export class OrderController {
       }
 
       const vendorIdArray = (vendorIds as string).split(",");
-      const fee = await this.orderService.calculateDeliveryFee(
-        parseFloat(lat as string),
-        parseFloat(lng as string),
-        vendorIdArray,
-      );
+      const fee = await this.orderService.calculateDeliveryFee(parseFloat(lat as string), parseFloat(lng as string), vendorIdArray);
 
       res.json(ApiResponse.success({ deliveryFee: fee }));
     } catch (error) {

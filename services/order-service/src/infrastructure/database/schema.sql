@@ -2,7 +2,6 @@ CREATE TABLE customer_orders (
   id VARCHAR(36) PRIMARY KEY,
   customer_id VARCHAR(36) NOT NULL,
   status ENUM('DRAFT','AWAITING_CUSTOMER_CONFIRMATION','PENDING_VENDOR_CONFIRMATION','PREPARING','WAITING_CUSTOMER_DECISION','READY','PICKED_UP', 'IN_DELIVERY','COMPLETED','CANCELLED','CANCELLED_BY_CUSTOMER') DEFAULT 'DRAFT',
-  confirmation_expiry TIMESTAMP NULL DEFAULT NULL,
   subtotal DECIMAL(10, 2) NOT NULL,
   delivery_fee DECIMAL(10, 2) DEFAULT 0,
   commission_amount DECIMAL(10, 2) DEFAULT 0,
@@ -16,8 +15,7 @@ CREATE TABLE customer_orders (
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   INDEX idx_customer_id (customer_id),
   INDEX idx_status (status),
-  INDEX idx_created_at (created_at),
-  INDEX idx_confirmation_expiry (status, confirmation_expiry)
+  INDEX idx_created_at (created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE vendor_orders (

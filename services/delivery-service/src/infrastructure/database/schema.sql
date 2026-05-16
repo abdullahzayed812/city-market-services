@@ -48,7 +48,6 @@ CREATE TABLE deliveries (
   total_price DECIMAL(10, 2) DEFAULT 0.00,
   items_count INT DEFAULT 0,
   assigned_at TIMESTAMP NULL,
-  assigned_window_expiry TIMESTAMP NULL DEFAULT NULL,
   office_settlement_id VARCHAR(36) NULL DEFAULT NULL,
   courier_settlement_id VARCHAR(36) NULL DEFAULT NULL,
   picked_up_at TIMESTAMP NULL,
@@ -60,7 +59,6 @@ CREATE TABLE deliveries (
   INDEX idx_vendor_order_id (vendor_order_id),
   INDEX idx_courier_id (courier_id),
   INDEX idx_status (status),
-  INDEX idx_assigned_window_expiry (status, assigned_window_expiry),
   FOREIGN KEY (courier_id) REFERENCES couriers(id) ON DELETE SET NULL,
   UNIQUE INDEX unique_delivery_per_vendor_order (customer_order_id, vendor_order_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

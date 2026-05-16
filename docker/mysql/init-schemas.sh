@@ -3,6 +3,13 @@ set -e
 
 MYSQL="mysql -h mysql -uroot -p${MYSQL_ROOT_PASSWORD} --batch"
 
+# Wait for MySQL TCP to be ready (healthcheck passes via socket, TCP may lag)
+until $MYSQL -e "SELECT 1" >/dev/null 2>&1; do
+  echo "[db-init] Waiting for MySQL TCP..."
+  sleep 2
+done
+echo "[db-init] MySQL is ready."
+
 apply() {
   local db="$1"
   local file="$2"

@@ -226,11 +226,11 @@ export class VendorProductRepository implements IVendorProductRepository {
   async releaseStock(id: string, quantity: number, weightGrams: number): Promise<void> {
     const query = `
       UPDATE vendor_products
-      SET 
+      SET
         reserved_quantity = GREATEST(0, reserved_quantity - ?),
         reserved_weight_grams = GREATEST(0, reserved_weight_grams - ?)
       WHERE id = ?`;
-    await this.pool.execute(query, [quantity, weightGrams, id]);
+    await this.pool.execute(query, [quantity ?? 0, weightGrams ?? 0, id]);
   }
 
   async commitStock(id: string, quantity: number, actualWeightGrams: number, reservedWeightGrams: number): Promise<void> {

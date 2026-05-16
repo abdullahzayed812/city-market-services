@@ -11,9 +11,6 @@ export const createOrderRoutes = (controller: OrderController): Router => {
   router.get("/customer-orders/:id", controller.getCustomerOrderById);
   router.get("/customer-orders/:id/proposals", controller.getOrderProposals);
   router.patch("/customer-orders/:id/status", controller.updateCustomerOrderStatus);
-  router.post("/customer-orders/:id/confirm", controller.confirmOrder);
-  router.post("/customer-orders/:id/cancel", controller.cancelOrderByCustomer);
-
   // Vendor Routes
   router.get("/vendor/:vendorId", controller.getVendorOrders); // restored
   router.get("/vendor/:vendorId/financials", controller.getVendorFinancials);

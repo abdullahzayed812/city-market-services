@@ -25,7 +25,6 @@ export interface Delivery {
   deliveryFee?: number;
   itemsCount: number;
   assignedAt?: Date;
-  assignedWindowExpiry?: Date;
   pickedUpAt?: Date;
   deliveredAt?: Date;
   notes?: string;

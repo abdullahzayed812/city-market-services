@@ -47,21 +47,15 @@ export class OrderStateManager {
     const allInDelivery = nonCancelledVendorOrders.every((vo) => deliveryStatuses.includes(vo.status));
     if (allInDelivery && nonCancelledVendorOrders.length > 0) return;
 
-    const allConfirmed =
-      nonCancelledVendorOrders.length > 0 &&
-      nonCancelledVendorOrders.every((vo) => vo.status === VendorOrderStatus.CONFIRMED);
-    const allCancelled =
-      vendorOrders.length > 0 && vendorOrders.every((vo) => vo.status === VendorOrderStatus.CANCELLED);
+    const allConfirmed = nonCancelledVendorOrders.length > 0 && nonCancelledVendorOrders.every((vo) => vo.status === VendorOrderStatus.CONFIRMED);
+    const allCancelled = vendorOrders.length > 0 && vendorOrders.every((vo) => vo.status === VendorOrderStatus.CANCELLED);
 
     let newStatus: CustomerOrderStatus | null = null;
     if (allCancelled) newStatus = CustomerOrderStatus.CANCELLED;
     else if (allConfirmed) newStatus = CustomerOrderStatus.READY;
-    else if (vendorOrders.some((vo) => vo.status === VendorOrderStatus.PROPOSAL_SENT))
-      newStatus = CustomerOrderStatus.WAITING_CUSTOMER_DECISION;
-    else if (vendorOrders.some((vo) => vo.status === VendorOrderStatus.PREPARING))
-      newStatus = CustomerOrderStatus.PREPARING;
-    else if (vendorOrders.some((vo) => vo.status === VendorOrderStatus.PENDING))
-      newStatus = CustomerOrderStatus.PENDING_VENDOR_CONFIRMATION;
+    else if (vendorOrders.some((vo) => vo.status === VendorOrderStatus.PROPOSAL_SENT)) newStatus = CustomerOrderStatus.WAITING_CUSTOMER_DECISION;
+    else if (vendorOrders.some((vo) => vo.status === VendorOrderStatus.PREPARING)) newStatus = CustomerOrderStatus.PREPARING;
+    else if (vendorOrders.some((vo) => vo.status === VendorOrderStatus.PENDING)) newStatus = CustomerOrderStatus.PENDING_VENDOR_CONFIRMATION;
 
     if (newStatus && newStatus !== customerOrder.status) {
       await this.customerOrderRepo.updateStatus(customerOrderId, newStatus, connection);
@@ -120,17 +114,8 @@ export class OrderStateManager {
   isValidVendorStatusTransition(currentStatus: VendorOrderStatus, newStatus: VendorOrderStatus): boolean {
     const transitions: Record<VendorOrderStatus, VendorOrderStatus[]> = {
       [VendorOrderStatus.DRAFT]: [VendorOrderStatus.PENDING, VendorOrderStatus.CANCELLED],
-      [VendorOrderStatus.PENDING]: [
-        VendorOrderStatus.PREPARING,
-        VendorOrderStatus.PROPOSAL_SENT,
-        VendorOrderStatus.CONFIRMED,
-        VendorOrderStatus.CANCELLED,
-      ],
-      [VendorOrderStatus.PREPARING]: [
-        VendorOrderStatus.PROPOSAL_SENT,
-        VendorOrderStatus.CONFIRMED,
-        VendorOrderStatus.CANCELLED,
-      ],
+      [VendorOrderStatus.PENDING]: [VendorOrderStatus.PREPARING, VendorOrderStatus.PROPOSAL_SENT, VendorOrderStatus.CONFIRMED, VendorOrderStatus.CANCELLED],
+      [VendorOrderStatus.PREPARING]: [VendorOrderStatus.PROPOSAL_SENT, VendorOrderStatus.CONFIRMED, VendorOrderStatus.CANCELLED],
       [VendorOrderStatus.PROPOSAL_SENT]: [VendorOrderStatus.CONFIRMED, VendorOrderStatus.CANCELLED],
       [VendorOrderStatus.CONFIRMED]: [VendorOrderStatus.PICKED_UP, VendorOrderStatus.CANCELLED],
       [VendorOrderStatus.PICKED_UP]: [VendorOrderStatus.ON_THE_WAY, VendorOrderStatus.CANCELLED],
@@ -143,22 +128,15 @@ export class OrderStateManager {
 
   isValidCustomerStatusTransition(currentStatus: CustomerOrderStatus, newStatus: CustomerOrderStatus): boolean {
     const transitions: Record<CustomerOrderStatus, CustomerOrderStatus[]> = {
-      [CustomerOrderStatus.DRAFT]: [CustomerOrderStatus.AWAITING_CUSTOMER_CONFIRMATION, CustomerOrderStatus.CANCELLED],
-      [CustomerOrderStatus.AWAITING_CUSTOMER_CONFIRMATION]: [
-        CustomerOrderStatus.PENDING_VENDOR_CONFIRMATION,
-        CustomerOrderStatus.CANCELLED_BY_CUSTOMER,
-      ],
+      [CustomerOrderStatus.DRAFT]: [CustomerOrderStatus.PENDING_VENDOR_CONFIRMATION, CustomerOrderStatus.CANCELLED],
+
       [CustomerOrderStatus.PENDING_VENDOR_CONFIRMATION]: [
         CustomerOrderStatus.PREPARING,
         CustomerOrderStatus.WAITING_CUSTOMER_DECISION,
         CustomerOrderStatus.READY,
         CustomerOrderStatus.CANCELLED,
       ],
-      [CustomerOrderStatus.PREPARING]: [
-        CustomerOrderStatus.WAITING_CUSTOMER_DECISION,
-        CustomerOrderStatus.READY,
-        CustomerOrderStatus.CANCELLED,
-      ],
+      [CustomerOrderStatus.PREPARING]: [CustomerOrderStatus.WAITING_CUSTOMER_DECISION, CustomerOrderStatus.READY, CustomerOrderStatus.CANCELLED],
       [CustomerOrderStatus.WAITING_CUSTOMER_DECISION]: [CustomerOrderStatus.READY, CustomerOrderStatus.CANCELLED],
       [CustomerOrderStatus.READY]: [CustomerOrderStatus.PICKED_UP, CustomerOrderStatus.CANCELLED],
       [CustomerOrderStatus.PICKED_UP]: [CustomerOrderStatus.IN_DELIVERY, CustomerOrderStatus.CANCELLED],
@@ -172,7 +150,7 @@ export class OrderStateManager {
 
   private getEventTypeForCustomerStatus(status: CustomerOrderStatus): EventType | null {
     const mapping: Partial<Record<CustomerOrderStatus, EventType>> = {
-      [CustomerOrderStatus.AWAITING_CUSTOMER_CONFIRMATION]: EventType.ORDER_AWAITING_CUSTOMER_CONFIRMATION,
+      [CustomerOrderStatus.PENDING_VENDOR_CONFIRMATION]: EventType.ORDER_CREATED,
       [CustomerOrderStatus.PREPARING]: EventType.ORDER_PREPARING,
       [CustomerOrderStatus.READY]: EventType.ORDER_READY,
       [CustomerOrderStatus.IN_DELIVERY]: EventType.ORDER_ON_THE_WAY,

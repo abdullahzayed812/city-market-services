@@ -144,6 +144,15 @@ export class DeliveryController {
     }
   };
 
+  cancelDeliveryByManager = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      await this.deliveryService.cancelDeliveryByManager(req.params.id, req.user!.userId, req.body.reason);
+      res.json(ApiResponse.success(null, "delivery_cancelled"));
+    } catch (error) {
+      next(error);
+    }
+  };
+
   getAllDeliveries = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
       const page = parseInt(req.query.page as string) || 1;

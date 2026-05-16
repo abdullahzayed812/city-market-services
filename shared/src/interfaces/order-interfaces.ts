@@ -14,7 +14,6 @@ export interface CustomerOrder {
   deliveryLongitude?: number;
   customerNotes?: string;
   cancellationReason?: string;
-  confirmationExpiry?: Date;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -29,7 +28,6 @@ export interface VendorOrder {
   totalAmount: number;
   deliveryId?: string;
   cancellationReason?: string;
-  confirmationExpiry?: Date;
   createdAt: Date;
   updatedAt: Date;
 }

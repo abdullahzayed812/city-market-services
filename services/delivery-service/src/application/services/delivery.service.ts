@@ -28,7 +28,7 @@ export class DeliveryService {
     private vendorClient: VendorHttpClient,
     private userClient: UserHttpClient,
     private db: Database,
-    private assignedWindowMinutes: number = 1,
+    private acceptedWindowMinutes: number = 5,
     private feeTierRepo?: IDeliveryFeeTierRepository,
     private officeRepo?: IDeliveryOfficeRepository,
   ) {}
@@ -323,10 +323,16 @@ export class DeliveryService {
     }
 
     try {
-      const orderData = await this.orderClient.getOrder(delivery.customerOrderId, userId);
+      const [orderData, customerPhone] = await Promise.all([
+        this.orderClient.getOrder(delivery.customerOrderId, userId),
+        this.userClient.getCustomerPhone(delivery.customerId),
+      ]);
       if (orderData && orderData.vendorOrders) {
         const deliveryVendorOrderIds = delivery.pickupLocations.map((pl) => pl.vendorOrderId);
         delivery.vendorOrders = orderData.vendorOrders.filter((vo: any) => deliveryVendorOrderIds.includes(vo.id));
+      }
+      if (customerPhone) {
+        delivery.customerPhone = customerPhone;
       }
       return delivery;
     } catch (error: any) {
@@ -472,10 +478,29 @@ export class DeliveryService {
     const office = await this.officeRepo.findByUserId(userId);
     if (!office) throw new NotFoundError("delivery_office_not_found");
 
-    const accepted = await this.deliveryRepo.acceptDelivery(deliveryId, office.id);
+    const accepted = await this.deliveryRepo.acceptDelivery(deliveryId, office.id, this.acceptedWindowMinutes);
     if (!accepted) throw new ValidationError("delivery_already_accepted_by_another_office");
 
     this.publisher.publishDeliveryAccepted({ deliveryId, officeId: office.id }).catch(() => {});
+  }
+
+  async cancelDeliveryByManager(deliveryId: string, userId: string, reason: string): Promise<void> {
+    if (!this.officeRepo) throw new ValidationError("office_repository_not_configured");
+
+    const office = await this.officeRepo.findByUserId(userId);
+    if (!office) throw new NotFoundError("delivery_office_not_found");
+
+    const delivery = await this.deliveryRepo.findById(deliveryId);
+    if (!delivery) throw new NotFoundError("delivery_not_found");
+    if (delivery.deliveryOfficeId !== office.id) throw new ValidationError("not_your_delivery");
+    if (delivery.status !== DeliveryStatus.ACCEPTED) throw new ValidationError("invalid_delivery_status_for_cancellation");
+
+    await this.deliveryRepo.update(deliveryId, { status: DeliveryStatus.FAILED });
+    await this.publisher.publishDeliveryFailed({
+      deliveryId,
+      customerOrderId: delivery.customerOrderId,
+      customerId: delivery.customerId,
+    });
   }
 
   async assignCourier(deliveryId: string, dto: AssignCourierDto, managerId?: string): Promise<void> {
@@ -503,7 +528,7 @@ export class DeliveryService {
       const courier = await this.courierRepo.findById(dto.courierId, connection);
       if (!courier) throw new NotFoundError("courier_not_found");
 
-      await this.deliveryRepo.assignCourier(deliveryId, dto.courierId, this.assignedWindowMinutes, connection);
+      await this.deliveryRepo.assignCourier(deliveryId, dto.courierId, connection);
       await this.courierRepo.updateAvailability(dto.courierId, false, connection);
 
       eventsToPublish.push(() =>
@@ -561,39 +586,39 @@ export class DeliveryService {
     });
   }
 
-  async cancelExpiredAssignedDeliveries(): Promise<void> {
-    const expired = await this.deliveryRepo.findExpiredAssigned();
-    for (const delivery of expired) {
-      let connection: PoolConnection | undefined;
-      try {
-        connection = await this.db.beginTransaction();
-        const locked = await this.deliveryRepo.findById(delivery.id, connection);
-        if (!locked || locked.status !== DeliveryStatus.ASSIGNED) {
-          await this.db.rollback(connection);
-          connection = undefined;
-          continue;
-        }
+  // async cancelExpiredAssignedDeliveries(): Promise<void> {
+  //   const expired = await this.deliveryRepo.findExpiredAccepted();
+  //   for (const delivery of expired) {
+  //     let connection: PoolConnection | undefined;
+  //     try {
+  //       connection = await this.db.beginTransaction();
+  //       const locked = await this.deliveryRepo.findById(delivery.id, connection);
+  //       if (!locked || locked.status !== DeliveryStatus.ASSIGNED) {
+  //         await this.db.rollback(connection);
+  //         connection = undefined;
+  //         continue;
+  //       }
 
-        await this.deliveryRepo.update(delivery.id, { status: DeliveryStatus.FAILED }, connection);
+  //       await this.deliveryRepo.update(delivery.id, { status: DeliveryStatus.FAILED }, connection);
 
-        if (delivery.courierId) {
-          await this.courierRepo.updateAvailability(delivery.courierId, true, connection);
-        }
+  //       if (delivery.courierId) {
+  //         await this.courierRepo.updateAvailability(delivery.courierId, true, connection);
+  //       }
 
-        await this.db.commit(connection);
-        connection = undefined;
+  //       await this.db.commit(connection);
+  //       connection = undefined;
 
-        await this.publisher.publishDeliveryFailed({
-          deliveryId: delivery.id,
-          customerOrderId: delivery.customerOrderId,
-          customerId: delivery.customerId,
-        });
-      } catch (err: any) {
-        if (connection) await this.db.rollback(connection);
-        Logger.warn(`[DeliveryService] Failed to cancel expired delivery ${delivery.id}: ${err.message}`);
-      }
-    }
-  }
+  //       await this.publisher.publishDeliveryFailed({
+  //         deliveryId: delivery.id,
+  //         customerOrderId: delivery.customerOrderId,
+  //         customerId: delivery.customerId,
+  //       });
+  //     } catch (err: any) {
+  //       if (connection) await this.db.rollback(connection);
+  //       Logger.warn(`[DeliveryService] Failed to cancel expired delivery ${delivery.id}: ${err.message}`);
+  //     }
+  //   }
+  // }
 
   async getVendorDeliveriesCount(vendorOrderIds: string[], periodStart?: Date, periodEnd?: Date): Promise<number> {
     return this.deliveryRepo.countByVendorOrderIds(vendorOrderIds, periodStart, periodEnd);

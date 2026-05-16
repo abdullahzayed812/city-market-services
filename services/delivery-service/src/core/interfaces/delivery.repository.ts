@@ -11,10 +11,9 @@ export interface IDeliveryRepository {
   findAll(limit: number, offset: number, connection?: any): Promise<Delivery[]>;
   findForManager(officeId: string, limit: number, offset: number, connection?: any): Promise<Delivery[]>;
   update(id: string, data: Partial<Delivery>, connection?: any): Promise<void>;
-  assignCourier(id: string, courierId: string, windowMinutes: number, connection?: any): Promise<void>;
-  findExpiredAssigned(connection?: any): Promise<Delivery[]>;
+  assignCourier(id: string, courierId: string, connection?: any): Promise<void>;
   countByVendorOrderIds(vendorOrderIds: string[], periodStart?: Date, periodEnd?: Date, connection?: any): Promise<number>;
-  acceptDelivery(id: string, officeId: string, connection?: any): Promise<boolean>;
+  acceptDelivery(id: string, officeId: string, windowMinutes: number, connection?: any): Promise<boolean>;
   markDeliveriesAsCourierSettled(deliveryIds: string[], settlementId: string, connection?: any): Promise<void>;
   markDeliveriesAsOfficeSettled(deliveryIds: string[], settlementId: string, connection?: any): Promise<void>;
 }

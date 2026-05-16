@@ -18,8 +18,8 @@ export class CustomerOrderRepository implements ICustomerOrderRepository {
       INSERT INTO customer_orders (
         id, customer_id, status, subtotal, delivery_fee,
         commission_amount, total_amount, delivery_address, delivery_latitude,
-        delivery_longitude, customer_notes, confirmation_expiry
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        delivery_longitude, customer_notes
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
     await conn.query(query, [
       order.id,
@@ -33,21 +33,8 @@ export class CustomerOrderRepository implements ICustomerOrderRepository {
       order.deliveryLatitude || null,
       order.deliveryLongitude || null,
       order.customerNotes || null,
-      order.confirmationExpiry || null,
     ]);
     return order;
-  }
-
-  async findExpiredAwaitingConfirmation(connection?: PoolConnection): Promise<CustomerOrder[]> {
-    const conn = connection || this.pool;
-    const query = `
-      SELECT * FROM customer_orders
-      WHERE status = 'AWAITING_CUSTOMER_CONFIRMATION'
-        AND confirmation_expiry IS NOT NULL
-        AND confirmation_expiry < NOW()
-    `;
-    const [rows] = await conn.execute<RowDataPacket[]>(query);
-    return rows.map((row) => this.mapToEntity(row));
   }
 
   async findById(id: string, connection?: PoolConnection): Promise<CustomerOrder | null> {
@@ -108,11 +95,6 @@ export class CustomerOrderRepository implements ICustomerOrderRepository {
       fields.push("cancellation_reason = ?");
       values.push(data.cancellationReason);
     }
-    if (data.confirmationExpiry) {
-      fields.push("confirmation_expiry = ?");
-      values.push(data.confirmationExpiry);
-    }
-    // Add other updatable fields here if necessary, e.g., total amounts
     if (data.subtotal) {
       fields.push("subtotal = ?");
       values.push(data.subtotal);
@@ -162,7 +144,6 @@ export class CustomerOrderRepository implements ICustomerOrderRepository {
       deliveryLongitude: row.delivery_longitude,
       customerNotes: row.customer_notes,
       cancellationReason: row.cancellation_reason,
-      confirmationExpiry: row.confirmation_expiry ?? undefined,
       createdAt: row.created_at,
       updatedAt: row.updated_at,
     };

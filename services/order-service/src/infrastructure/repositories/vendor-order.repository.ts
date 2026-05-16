@@ -37,9 +37,8 @@ export class VendorOrderRepository implements IVendorOrderRepository {
   async findById(id: string, connection?: PoolConnection): Promise<VendorOrder | null> {
     const conn = connection || this.pool;
     const query = `
-      SELECT vo.*, co.confirmation_expiry
+      SELECT vo.*
       FROM vendor_orders vo
-      JOIN customer_orders co ON vo.customer_order_id = co.id
       WHERE vo.id = ?
     `;
     const [rows] = await conn.execute<RowDataPacket[]>(query, [id]);
@@ -74,7 +73,6 @@ export class VendorOrderRepository implements IVendorOrderRepository {
     const query = `
       SELECT
         vo.*,
-        co.confirmation_expiry,
         voi.id AS item_id,
         voi.product_id AS item_product_id,
         voi.product_name AS item_product_name,
@@ -84,7 +82,6 @@ export class VendorOrderRepository implements IVendorOrderRepository {
         voi.unit_price AS item_unit_price,
         voi.total_price AS item_total_price
       FROM vendor_orders vo
-      JOIN customer_orders co ON vo.customer_order_id = co.id
       LEFT JOIN vendor_order_items voi ON vo.id = voi.vendor_order_id
       WHERE vo.id IN (
         SELECT id FROM (
@@ -116,7 +113,6 @@ export class VendorOrderRepository implements IVendorOrderRepository {
           totalAmount: parseFloat(row.total_amount),
           deliveryId: row.delivery_id,
           cancellationReason: row.cancellation_reason,
-          confirmationExpiry: row.confirmation_expiry ?? undefined,
           createdAt: row.created_at,
           updatedAt: row.updated_at,
           items: [],
@@ -268,7 +264,6 @@ export class VendorOrderRepository implements IVendorOrderRepository {
       deliveryId: row.delivery_id,
       settlementId: row.settlement_id,
       cancellationReason: row.cancellation_reason,
-      confirmationExpiry: row.confirmation_expiry ?? undefined,
       createdAt: row.created_at,
       updatedAt: row.updated_at,
     };

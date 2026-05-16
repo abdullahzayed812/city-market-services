@@ -1,5 +1,5 @@
 import { Logger, Database } from "@city-market/shared/node";
-import { CustomerOrderStatus, EventType } from "@city-market/shared";
+import { CustomerOrderStatus, EventType, VendorOrderStatus } from "@city-market/shared";
 import { ICustomerOrderRepository } from "../../core/interfaces/customer-order.repository";
 import { IVendorOrderRepository } from "../../core/interfaces/vendor-order.repository";
 import { OrderStateManager } from "../services/order-state.manager";
@@ -31,27 +31,24 @@ export class StockReservedConsumer {
         return;
       }
 
-      const confirmationExpiry = new Date(Date.now() + CONFIRMATION_TIMEOUT_MINUTES * 60 * 1000);
+      await this.customerOrderRepo.updateStatus(orderId, CustomerOrderStatus.PENDING_VENDOR_CONFIRMATION, connection);
 
-      // Move customer order to AWAITING_CUSTOMER_CONFIRMATION and set expiry
-      await this.customerOrderRepo.updateStatus(orderId, CustomerOrderStatus.AWAITING_CUSTOMER_CONFIRMATION, connection);
-      await this.customerOrderRepo.update(orderId, { confirmationExpiry }, connection);
       await this.stateManager.recordStatusChange(
         { customerOrderId: orderId },
-        CustomerOrderStatus.AWAITING_CUSTOMER_CONFIRMATION,
+        CustomerOrderStatus.PENDING_VENDOR_CONFIRMATION,
         "Stock reserved — awaiting customer confirmation",
         connection,
       );
 
-      // Vendor orders remain in DRAFT until customer confirms
-      // Notify the customer via WebSocket so they see the confirmation card
-      await this.publisher.publishGenericEvent(EventType.ORDER_AWAITING_CUSTOMER_CONFIRMATION, {
-        customerOrderId: orderId,
-        customerId: customerOrder.customerId,
-        confirmationExpiry,
-      });
+      const vendorOrders = await this.vendorOrderRepo.findByCustomerOrder(orderId, connection);
+      for (const vo of vendorOrders) {
+        if (vo.status === VendorOrderStatus.DRAFT) {
+          await this.vendorOrderRepo.updateStatus(vo.id, VendorOrderStatus.PENDING, connection);
+          await this.stateManager.recordStatusChange({ vendorOrderId: vo.id }, VendorOrderStatus.PENDING, "Customer confirmed order", connection);
+        }
+      }
 
-      Logger.info(`[OrderService] Order ${orderId} moved to AWAITING_CUSTOMER_CONFIRMATION (expires ${confirmationExpiry.toISOString()})`);
+      Logger.info(`[OrderService] Order ${orderId} moved to PENDING_VENDOR_CONFIRMATION and vendor orders to PENDING`);
     });
   }
 }

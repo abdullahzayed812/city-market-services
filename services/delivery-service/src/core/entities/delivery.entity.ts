@@ -25,7 +25,6 @@ export interface Delivery {
   officeSettlementId?: string;
   courierSettlementId?: string;
   assignedAt?: Date;
-  assignedWindowExpiry?: Date;
   pickedUpAt?: Date;
   deliveredAt?: Date;
   notes?: string;

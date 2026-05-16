@@ -4,7 +4,7 @@
 #   Add: */5 * * * * /home/abdullah/dev/citymarket/scripts/vps-monitor.sh
 
 # ── Configuration ──────────────────────────────────────────────────────────────
-ALERT_EMAIL="zuhairalrawi0@gmail.com"
+ALERT_EMAIL="aabdullah.zayed0099@gmail.com"
 
 CPU_THRESHOLD=85      # alert when CPU usage >= this percent
 RAM_THRESHOLD=85      # alert when RAM usage >= this percent

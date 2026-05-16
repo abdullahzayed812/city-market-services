@@ -61,7 +61,7 @@ export const createApp = () => {
     vendorClient,
     userClient,
     db,
-    config.assignedWindowMinutes,
+    config.acceptedWindowMinutes,
     feeTierRepo,
     deliveryOfficeRepo,
   );
@@ -76,19 +76,17 @@ export const createApp = () => {
   const officeSettlementService = new DeliveryOfficeSettlementService(officeSettlementRepo, deliveryOfficeRepo, deliveryRepo, db);
   const officeSettlementController = new DeliveryOfficeSettlementController(officeSettlementService);
 
-  // Cancel deliveries that exceeded the courier assignment window
-  const EXPIRY_CHECK_INTERVAL_MS = 60_000;
-  setInterval(() => {
-    deliveryService.cancelExpiredAssignedDeliveries().catch((err) =>
-      console.error("[DeliveryService] Assignment expiry check failed:", err.message),
-    );
-  }, EXPIRY_CHECK_INTERVAL_MS);
+  // // Cancel deliveries that exceeded the courier assignment window
+  // const EXPIRY_CHECK_INTERVAL_MS = 60_000;
+  // setInterval(() => {
+  //   deliveryService.cancelExpiredAssignedDeliveries().catch((err) =>
+  //     console.error("[DeliveryService] Assignment expiry check failed:", err.message),
+  //   );
+  // }, EXPIRY_CHECK_INTERVAL_MS);
 
   // Register Event Consumers
   const orderReadyConsumer = new OrderReadyConsumer(deliveryService);
-  rabbitMQBus.subscribe(EventType.ORDER_READY, "delivery_service_order_ready", (event) =>
-    orderReadyConsumer.handle(event)
-  );
+  rabbitMQBus.subscribe(EventType.ORDER_READY, "delivery_service_order_ready", (event) => orderReadyConsumer.handle(event));
 
   app.use((req, res, next) => {
     console.log(`[delivery-service] ${req.method} ${req.url}`);

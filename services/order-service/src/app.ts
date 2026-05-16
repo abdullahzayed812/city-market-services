@@ -78,45 +78,27 @@ export const createApp = () => {
 
   const deliveryUpdatedConsumer = new DeliveryUpdatedConsumer(orderService);
   const deliveryCancelledConsumer = new DeliveryCancelledByCourierConsumer(orderService);
-  const stockReservedConsumer = new StockReservedConsumer(
-    db,
-    customerOrderRepo,
-    vendorOrderRepo,
-    orderService.stateManager,
-    publisher,
-  );
+  const stockReservedConsumer = new StockReservedConsumer(db, customerOrderRepo, vendorOrderRepo, orderService.stateManager, publisher);
   const stockRejectedConsumer = new StockRejectedConsumer(db, customerOrderRepo, vendorOrderRepo, orderService.stateManager);
 
-  rabbitMQBus.subscribe(EventType.ORDER_PICKED_UP, "order_service_pickup", (event) =>
-    deliveryUpdatedConsumer.handle(event),
-  );
-  rabbitMQBus.subscribe(EventType.ORDER_ON_THE_WAY, "order_service_ontheway", (event) =>
-    deliveryUpdatedConsumer.handle(event),
-  );
-  rabbitMQBus.subscribe(EventType.ORDER_DELIVERED, "order_service_delivered", (event) =>
-    deliveryUpdatedConsumer.handle(event),
-  );
-  rabbitMQBus.subscribe(EventType.DELIVERY_FAILED, "order_service_delivery_failed", (event) =>
-    deliveryUpdatedConsumer.handle(event),
-  );
+  rabbitMQBus.subscribe(EventType.ORDER_PICKED_UP, "order_service_pickup", (event) => deliveryUpdatedConsumer.handle(event));
+  rabbitMQBus.subscribe(EventType.ORDER_ON_THE_WAY, "order_service_ontheway", (event) => deliveryUpdatedConsumer.handle(event));
+  rabbitMQBus.subscribe(EventType.ORDER_DELIVERED, "order_service_delivered", (event) => deliveryUpdatedConsumer.handle(event));
+  rabbitMQBus.subscribe(EventType.DELIVERY_FAILED, "order_service_delivery_failed", (event) => deliveryUpdatedConsumer.handle(event));
   rabbitMQBus.subscribe(EventType.DELIVERY_CANCELLED_BY_COURIER, "order_service_delivery_cancelled_by_courier", (event) =>
     deliveryCancelledConsumer.handle(event),
   );
 
-  rabbitMQBus.subscribe(EventType.STOCK_RESERVED, "order_service_stock_reserved", (event) =>
-    stockReservedConsumer.handle(event),
-  );
-  rabbitMQBus.subscribe(EventType.STOCK_REJECTED, "order_service_stock_rejected", (event) =>
-    stockRejectedConsumer.handle(event),
-  );
+  rabbitMQBus.subscribe(EventType.STOCK_RESERVED, "order_service_stock_reserved", (event) => stockReservedConsumer.handle(event));
+  rabbitMQBus.subscribe(EventType.STOCK_REJECTED, "order_service_stock_rejected", (event) => stockRejectedConsumer.handle(event));
 
-  // Cancel orders that exceeded the customer confirmation window
-  const EXPIRY_CHECK_INTERVAL_MS = 60_000;
-  setInterval(() => {
-    orderService.cancelExpiredOrders().catch((err) =>
-      console.error("[OrderService] Expiry check failed:", err.message),
-    );
-  }, EXPIRY_CHECK_INTERVAL_MS);
+  // // Cancel orders that exceeded the customer confirmation window
+  // const EXPIRY_CHECK_INTERVAL_MS = 60_000;
+  // setInterval(() => {
+  //   orderService.cancelExpiredOrders().catch((err) =>
+  //     console.error("[OrderService] Expiry check failed:", err.message),
+  //   );
+  // }, EXPIRY_CHECK_INTERVAL_MS);
 
   app.use(authenticate);
 

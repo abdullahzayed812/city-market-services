@@ -196,10 +196,6 @@ export class DeliveryRepository implements IDeliveryRepository {
       fields.push("vendor_order_id = ?");
       values.push(data.vendorOrderId);
     }
-    if (data.assignedWindowExpiry) {
-      fields.push("assigned_window_expiry = ?");
-      values.push(data.assignedWindowExpiry);
-    }
     if (data.deliveryOfficeId) {
       fields.push("delivery_office_id = ?");
       values.push(data.deliveryOfficeId);
@@ -212,22 +208,10 @@ export class DeliveryRepository implements IDeliveryRepository {
     await conn.query(query, values);
   }
 
-  async assignCourier(id: string, courierId: string, windowMinutes: number, connection?: PoolConnection): Promise<void> {
+  async assignCourier(id: string, courierId: string, connection?: PoolConnection): Promise<void> {
     const conn = connection || this.pool;
-    const query = `UPDATE deliveries SET courier_id = ?, status = "${DeliveryStatus.ASSIGNED}", assigned_at = NOW(), assigned_window_expiry = DATE_ADD(NOW(), INTERVAL ? MINUTE) WHERE id = ?`;
-    await conn.execute(query, [courierId, windowMinutes, id]);
-  }
-
-  async findExpiredAssigned(connection?: PoolConnection): Promise<Delivery[]> {
-    const conn = connection || this.pool;
-    const query = `
-      SELECT d.*, c.full_name as courier_name, c.phone as courier_phone
-      FROM deliveries d
-      LEFT JOIN couriers c ON d.courier_id = c.id
-      WHERE d.status = "${DeliveryStatus.ASSIGNED}" AND d.assigned_window_expiry < NOW()
-    `;
-    const [rows] = await conn.execute<RowDataPacket[]>(query);
-    return this.mapRowsToDeliveries(rows, conn);
+    const query = `UPDATE deliveries SET courier_id = ?, status = "${DeliveryStatus.ASSIGNED}", assigned_at = NOW() WHERE id = ?`;
+    await conn.execute(query, [courierId, id]);
   }
 
   async countByVendorOrderIds(vendorOrderIds: string[], periodStart?: Date, periodEnd?: Date, connection?: PoolConnection): Promise<number> {
@@ -279,7 +263,7 @@ export class DeliveryRepository implements IDeliveryRepository {
     );
   }
 
-  async acceptDelivery(id: string, officeId: string, connection?: any): Promise<boolean> {
+  async acceptDelivery(id: string, officeId: string, windowMinutes: number, connection?: any): Promise<boolean> {
     const conn = connection || this.pool;
     const [result]: any = await conn.execute(
       `UPDATE deliveries SET delivery_office_id = ?, status = 'ACCEPTED'
@@ -325,7 +309,6 @@ export class DeliveryRepository implements IDeliveryRepository {
       officeSettlementId: row.office_settlement_id ?? undefined,
       courierSettlementId: row.courier_settlement_id ?? undefined,
       assignedAt: row.assigned_at,
-      assignedWindowExpiry: row.assigned_window_expiry,
       pickedUpAt: row.picked_up_at,
       deliveredAt: row.delivered_at,
       notes: row.notes,
