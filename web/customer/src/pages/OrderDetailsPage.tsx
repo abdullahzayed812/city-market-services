@@ -92,7 +92,7 @@ export default function OrderDetailsPage() {
   const [ratingVendor, setRatingVendor] = useState<{ id: string; name: string } | null>(null);
 
   const {
-    data: { order },
+    data,
     isLoading,
     refetch,
     isRefetching,
@@ -102,6 +102,8 @@ export default function OrderDetailsPage() {
     enabled: !!orderId,
     refetchInterval: 15000,
   });
+
+  const order = data?.order;
 
   const { data: proposals } = useQuery({
     queryKey: ["order-proposals", orderId],
@@ -135,7 +137,7 @@ export default function OrderDetailsPage() {
     );
   }
 
-  const vendorOrders: (VendorOrder & { items: any[] })[] = (order as any).vendorOrders || [];
+  const vendorOrders: (VendorOrder & { items: any[] })[] = data?.vendorOrders || [];
 
   return (
     <div className="max-w-3xl mx-auto px-4 sm:px-6 py-6 animate-fade-in">

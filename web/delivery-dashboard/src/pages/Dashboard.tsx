@@ -11,10 +11,11 @@ const Dashboard = () => {
     queryFn: deliveryService.getAllCouriers,
   });
 
-  const { data: deliveries = [] } = useQuery({
+  const { data: deliveriesData } = useQuery({
     queryKey: ["deliveries"],
     queryFn: deliveryService.getAllDeliveries,
   });
+  const deliveries = deliveriesData?.items || [];
 
   const { data: pendingDeliveries = [] } = useQuery({
     queryKey: ["pending-deliveries"],

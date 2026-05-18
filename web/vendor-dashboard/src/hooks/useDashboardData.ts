@@ -22,7 +22,7 @@ export const useDashboardData = () => {
   const isLoading = ordersQuery.isLoading || productsQuery.isLoading;
   const isError = ordersQuery.isError || productsQuery.isError;
 
-  const orders = ordersQuery.data || [];
+  const orders = ordersQuery.data?.items || [];
   const products = productsQuery.data?.data || [];
 
   // Compute summary data
