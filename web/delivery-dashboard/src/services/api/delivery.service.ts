@@ -16,7 +16,7 @@ export const deliveryService = {
 
   // Deliveries Management
   getAllDeliveries: async () => {
-    const response = await apiClient.get<ApiResponse<Delivery[]>>("/delivery/deliveries");
+    const response = await apiClient.get<ApiResponse<{ items: Delivery[]; hasNextPage: boolean }>>("/delivery/deliveries");
     return response.data?.data;
   },
 

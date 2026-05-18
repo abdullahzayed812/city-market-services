@@ -19,10 +19,12 @@ const Deliveries = () => {
   const [assigningDeliveryId, setAssigningDeliveryId] = useState<string | null>(null);
   const [isAssignDialogOpen, setIsAssignDialogOpen] = useState(false);
 
-  const { data: deliveries = [], isLoading } = useQuery<Delivery[] | undefined>({
+  const { data, isLoading } = useQuery({
     queryKey: ["deliveries"],
     queryFn: deliveryService.getAllDeliveries,
   });
+
+  const deliveries = data?.items || [];
 
   const { data: availableCouriers = [] } = useQuery<Courier[] | undefined>({
     queryKey: ["available-couriers"],

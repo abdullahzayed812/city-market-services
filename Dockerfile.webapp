@@ -28,6 +28,7 @@ COPY services/websocket-gateway/package.json        ./services/websocket-gateway
 COPY web/admin-dashboard/package.json               ./web/admin-dashboard/
 COPY web/vendor-dashboard/package.json              ./web/vendor-dashboard/
 COPY web/delivery-dashboard/package.json            ./web/delivery-dashboard/
+COPY web/customer/package.json                      ./web/customer/
 
 RUN npm ci
 

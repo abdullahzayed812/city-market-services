@@ -25,8 +25,8 @@
     "clsx": "^2.1.1",
     "i18next": "^25.7.4",
     "lucide-react": "^0.562.0",
-    "react": "19.2.0",
-    "react-dom": "19.2.0",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
     "react-i18next": "^16.5.3",
     "react-router-dom": "^7.12.0",
     "set-cookie-parser": "^2.7.2",
@@ -36,8 +36,8 @@
   "devDependencies": {
     "@eslint/js": "^9.39.1",
     "@types/node": "^24.10.1",
-    "@types/react": "^19.2.5",
-    "@types/react-dom": "^19.2.3",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
     "@vitejs/plugin-react": "^5.1.2",
     "autoprefixer": "^10.4.23",
     "eslint": "^9.39.1",
@@ -50,9 +50,5 @@
     "typescript": "~5.9.3",
     "typescript-eslint": "^8.46.4",
     "vite": "^7.3.1"
-  },
-  "overrides": {
-    "react": "19.2.0",
-    "react-dom": "19.2.0"
   }
 }

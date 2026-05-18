@@ -482,6 +482,7 @@ services:
       - rating-service
       - websocket-gateway
       - media-service
+      - customer-web
     ports:
       - "80:80"
 
@@ -532,6 +533,21 @@ services:
       - citymarket
     ports:
       - "8082:80"
+
+  customer-web:
+    build:
+      context: .
+      dockerfile: Dockerfile.webapp
+      args:
+        WEB_APP: customer
+        VITE_API_URL: ${VITE_API_URL:-http://localhost/api/v1}
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost/api/v1}
+        VITE_WEBSOCKET_URL: ${VITE_WEBSOCKET_URL:-http://localhost}
+    restart: unless-stopped
+    networks:
+      - citymarket
+    ports:
+      - "8084:80"
 
 # ────────────────────────────────────────────
 #  Volumes & Networks

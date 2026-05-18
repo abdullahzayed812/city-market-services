@@ -71,9 +71,10 @@ export const useOrders = () => {
   });
 
   return {
-    orders: ordersQuery.data || [],
+    orders: ordersQuery.data?.items || [],
     isLoading: ordersQuery.isLoading,
     isError: ordersQuery.isError,
+    hasNextPage: ordersQuery.data?.hasNextPage || false,
     updateStatus: updateStatusMutation.mutate,
     cancelOrder: cancelOrderMutation.mutate,
     proposeChanges: proposeChangesMutation.mutate,

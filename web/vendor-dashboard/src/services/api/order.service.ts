@@ -10,7 +10,9 @@ import type {
 
 export const orderService = {
   getVendorOrders: async (vendorId: string) => {
-    const response = await apiClient.get<ApiResponse<VendorOrderWithItemsDto[]>>(`/orders/vendor/${vendorId}`);
+    const response = await apiClient.get<ApiResponse<{ items: VendorOrderWithItemsDto[]; hasNextPage: boolean }>>(
+      `/orders/vendor/${vendorId}`,
+    );
     return response.data?.data;
   },
   getOrderById: async (id: string) => {

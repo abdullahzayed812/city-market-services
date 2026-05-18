@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192" width="192" height="192">
+  <rect width="192" height="192" rx="40" fill="#10B981"/>
+  <rect width="192" height="192" rx="40" fill="url(#grad)"/>
+  <defs>
+    <linearGradient id="grad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#059669"/>
+      <stop offset="100%" stop-color="#34D399"/>
+    </linearGradient>
+  </defs>
+  <!-- Shopping bag icon -->
+  <path d="M68 82 C68 70 78 60 96 60 C114 60 124 70 124 82" stroke="white" stroke-width="8" stroke-linecap="round" fill="none"/>
+  <rect x="56" y="80" width="80" height="64" rx="12" fill="white" fill-opacity="0.95"/>
+  <!-- Bag handle holes -->
+  <circle cx="80" cy="80" r="6" fill="#10B981"/>
+  <circle cx="112" cy="80" r="6" fill="#10B981"/>
+  <!-- Checkmark inside bag -->
+  <path d="M79 112 L90 123 L113 100" stroke="#10B981" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+</svg>
