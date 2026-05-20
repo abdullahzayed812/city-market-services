@@ -1,10 +1,11 @@
-import { Link, useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
-import { ShoppingBag, Trash2, Plus, Minus, Scale, ArrowRight, ShoppingCart } from 'lucide-react';
-import { useCartStore, selectCartTotal, selectCartItemCount } from '@/store/cartStore';
-import { MeasurementType } from '@/types';
-import { formatPrice, getImageUrl } from '@/lib/utils';
-import { Button } from '@/components/ui/Button';
+import { Link, useNavigate } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
+import { ShoppingBag, Trash2, Plus, Minus, Scale, ArrowRight, ShoppingCart } from "lucide-react";
+import { useCartStore, selectCartTotal, selectCartItemCount } from "@/store/cartStore";
+import { MeasurementType } from "@/types";
+import { formatPrice, getImageUrl } from "@/lib/utils";
+import { Button } from "@/components/ui/Button";
+import { useAuthStore } from "@/store/authStore";
 
 function CartItemRow({ item }: { item: any }) {
   const updateQuantity = useCartStore((s) => s.updateQuantity);
@@ -13,9 +14,7 @@ function CartItemRow({ item }: { item: any }) {
   const isWeight = item.measurementType === MeasurementType.WEIGHT;
   const imageUrl = getImageUrl(item.imageUrl);
 
-  const lineTotal = isWeight
-    ? (item.price * (item.weightGrams || 0)) / 1000
-    : item.price * (item.quantity || 0);
+  const lineTotal = isWeight ? (item.price * (item.weightGrams || 0)) / 1000 : item.price * (item.quantity || 0);
 
   const handleIncrement = () => {
     if (isWeight) updateWeight(item.id, (item.weightGrams || 500) + 500);
@@ -68,7 +67,8 @@ function CartItemRow({ item }: { item: any }) {
 
         <p className="text-xs text-text-muted mb-3 flex items-center gap-1">
           {isWeight && <Scale size={10} />}
-          {formatPrice(item.price)}{isWeight ? '/kg' : ' each'}
+          {formatPrice(item.price)}
+          {isWeight ? "/kg" : " each"}
         </p>
 
         <div className="flex items-center justify-between">
@@ -81,9 +81,7 @@ function CartItemRow({ item }: { item: any }) {
               <Minus size={12} />
             </button>
             <span className="text-sm font-bold text-text-primary min-w-[44px] text-center">
-              {isWeight
-                ? `${((item.weightGrams || 0) / 1000).toFixed(1)}kg`
-                : item.quantity}
+              {isWeight ? `${((item.weightGrams || 0) / 1000).toFixed(1)}kg` : item.quantity}
             </span>
             <button
               onClick={handleIncrement}
@@ -102,12 +100,14 @@ function CartItemRow({ item }: { item: any }) {
 
 export default function CartPage() {
   const navigate = useNavigate();
+  const { isAuthenticated } = useAuthStore();
   const items = useCartStore((s) => s.items);
   const total = useCartStore(selectCartTotal);
   const itemCount = useCartStore(selectCartItemCount);
   const clearCart = useCartStore((s) => s.clearCart);
 
   const handleCheckout = () => navigate('/checkout');
+
 
   if (items.length === 0) {
     return (
@@ -116,13 +116,8 @@ export default function CartPage() {
           <ShoppingCart size={52} className="text-primary" strokeWidth={1.5} />
         </div>
         <h2 className="text-2xl font-black text-text-primary mb-2">Your cart is empty</h2>
-        <p className="text-text-muted text-sm mb-8 max-w-xs leading-relaxed">
-          Looks like you haven't added anything yet. Start exploring our stores!
-        </p>
-        <Link
-          to="/"
-          className="px-8 py-3.5 bg-primary text-white font-bold rounded-2xl hover:bg-primary-dark transition-colors shadow-primary-glow/40"
-        >
+        <p className="text-text-muted text-sm mb-8 max-w-xs leading-relaxed">Looks like you haven't added anything yet. Start exploring our stores!</p>
+        <Link to="/" className="px-8 py-3.5 bg-primary text-white font-bold rounded-2xl hover:bg-primary-dark transition-colors shadow-primary-glow/40">
           Start Shopping
         </Link>
       </div>
@@ -135,12 +130,11 @@ export default function CartPage() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-black text-text-primary tracking-tight">Your Cart</h1>
-          <p className="text-sm text-text-muted mt-0.5">{itemCount} item{itemCount !== 1 ? 's' : ''}</p>
+          <p className="text-sm text-text-muted mt-0.5">
+            {itemCount} item{itemCount !== 1 ? "s" : ""}
+          </p>
         </div>
-        <button
-          onClick={clearCart}
-          className="text-sm font-semibold text-error hover:bg-error-light px-3 py-1.5 rounded-xl transition-colors"
-        >
+        <button onClick={clearCart} className="text-sm font-semibold text-error hover:bg-error-light px-3 py-1.5 rounded-xl transition-colors">
           Clear All
         </button>
       </div>
@@ -178,12 +172,7 @@ export default function CartPage() {
               <span className="text-2xl font-black text-primary">{formatPrice(total)}</span>
             </div>
 
-            <Button
-              fullWidth
-              size="lg"
-              onClick={handleCheckout}
-              iconRight={<ArrowRight size={18} />}
-            >
+            <Button fullWidth size="lg" onClick={handleCheckout} iconRight={<ArrowRight size={18} />}>
               Proceed to Checkout
             </Button>
 
@@ -195,7 +184,6 @@ export default function CartPage() {
           </div>
         </div>
       </div>
-
     </div>
   );
 }

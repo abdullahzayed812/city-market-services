@@ -1,19 +1,16 @@
-import { useState, useEffect } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
-import { motion } from 'framer-motion';
-import {
-  ChevronLeft, ShoppingCart, Plus, Minus, Scale, Package,
-  Star, Store, AlertCircle,
-} from 'lucide-react';
-import { useQuery } from '@tanstack/react-query';
-import { CatalogService } from '@/services/api/catalogService';
-import { VendorService } from '@/services/api/vendorService';
-import { Skeleton } from '@/components/ui/Skeleton';
-import { Button } from '@/components/ui/Button';
-import { useCartStore } from '@/store/cartStore';
-import { MeasurementType } from '@/types';
-import { getImageUrl, formatPrice } from '@/lib/utils';
-import toast from 'react-hot-toast';
+import { useState, useEffect } from "react";
+import { useParams, useNavigate, Link } from "react-router-dom";
+import { motion } from "framer-motion";
+import { ChevronLeft, ShoppingCart, Plus, Minus, Scale, Package, Star, Store, AlertCircle } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { CatalogService } from "@/services/api/catalogService";
+import { VendorService } from "@/services/api/vendorService";
+import { Skeleton } from "@/components/ui/Skeleton";
+import { Button } from "@/components/ui/Button";
+import { useCartStore } from "@/store/cartStore";
+import { MeasurementType } from "@/types";
+import { getImageUrl, formatPrice } from "@/lib/utils";
+import toast from "react-hot-toast";
 
 export default function ProductDetailsPage() {
   const { productId } = useParams<{ productId: string }>();
@@ -24,13 +21,13 @@ export default function ProductDetailsPage() {
   const [amount, setAmount] = useState(1);
 
   const { data: product, isLoading } = useQuery({
-    queryKey: ['product', productId],
+    queryKey: ["product", productId],
     queryFn: () => CatalogService.getVendorProductById(productId!),
     enabled: !!productId,
   });
 
   const { data: vendor } = useQuery({
-    queryKey: ['vendor', product?.vendorId],
+    queryKey: ["vendor", product?.vendorId],
     queryFn: () => VendorService.getVendorById(product!.vendorId),
     enabled: !!product?.vendorId,
   });
@@ -43,17 +40,9 @@ export default function ProductDetailsPage() {
     }
   }, [product, isWeight]);
 
-  const stockAvailable = product
-    ? isWeight
-      ? (product.stockWeightGrams || 0) > 0
-      : (product.stockQuantity || 0) > 0
-    : false;
+  const stockAvailable = product ? (isWeight ? (product.stockWeightGrams || 0) > 0 : (product.stockQuantity || 0) > 0) : false;
 
-  const maxAmount = product
-    ? isWeight
-      ? product.stockWeightGrams || 0
-      : product.stockQuantity || 0
-    : 0;
+  const maxAmount = product ? (isWeight ? product.stockWeightGrams || 0 : product.stockQuantity || 0) : 0;
 
   const inCart = items.find((i) => i.id === productId);
 
@@ -79,7 +68,7 @@ export default function ProductDetailsPage() {
       isAvailable: stockAvailable,
       ...(isWeight ? { weightGrams: amount, weight: amount / 1000 } : { quantity: amount }),
     });
-    toast.success('Added to cart!');
+    toast.success("Added to cart!");
     navigate(-1);
   };
 
@@ -125,11 +114,7 @@ export default function ProductDetailsPage() {
         {/* Hero image */}
         <div className="relative aspect-video bg-gray-50">
           {imageUrl ? (
-            <img
-              src={imageUrl}
-              alt={product.name}
-              className="w-full h-full object-contain p-4"
-            />
+            <img src={imageUrl} alt={product.name} className="w-full h-full object-contain p-4" />
           ) : (
             <div className="w-full h-full flex items-center justify-center">
               <Package size={72} className="text-gray-200" />
@@ -137,9 +122,7 @@ export default function ProductDetailsPage() {
           )}
           {!stockAvailable && (
             <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-              <span className="bg-white text-text-primary font-bold px-5 py-2.5 rounded-xl shadow-medium">
-                Out of Stock
-              </span>
+              <span className="bg-white text-text-primary font-bold px-5 py-2.5 rounded-xl shadow-medium">Out of Stock</span>
             </div>
           )}
           {isWeight && (
@@ -153,51 +136,26 @@ export default function ProductDetailsPage() {
         <div className="p-6">
           {/* Title & Price */}
           <div className="flex items-start justify-between gap-4 mb-3">
-            <h1 className="text-xl font-black text-text-primary leading-tight flex-1">
-              {product.name}
-            </h1>
+            <h1 className="text-xl font-black text-text-primary leading-tight flex-1">{product.name}</h1>
             <div className="text-right flex-shrink-0">
-              <span className="text-2xl font-black text-primary">
-                {formatPrice(product.price)}
-              </span>
+              <span className="text-2xl font-black text-primary">{formatPrice(product.price)}</span>
               {isWeight && <span className="text-sm text-text-muted ml-1">/kg</span>}
             </div>
           </div>
 
           {/* Stock status */}
           <div className="flex items-center gap-2 mb-4">
-            <span
-              className={`w-2 h-2 rounded-full ${
-                stockAvailable ? 'bg-success' : 'bg-error'
-              }`}
-            />
-            <span
-              className={`text-sm font-semibold ${
-                stockAvailable ? 'text-success' : 'text-error'
-              }`}
-            >
-              {stockAvailable ? 'In Stock' : 'Out of Stock'}
-            </span>
-            {stockAvailable && isWeight && (
-              <span className="text-xs text-text-muted">
-                · {((product.stockWeightGrams || 0) / 1000).toFixed(1)}kg available
-              </span>
-            )}
-            {stockAvailable && !isWeight && (
-              <span className="text-xs text-text-muted">
-                · {product.stockQuantity} available
-              </span>
-            )}
+            <span className={`w-2 h-2 rounded-full ${stockAvailable ? "bg-success" : "bg-error"}`} />
+            <span className={`text-sm font-semibold ${stockAvailable ? "text-success" : "text-error"}`}>{stockAvailable ? "In Stock" : "Out of Stock"}</span>
+            {stockAvailable && isWeight && <span className="text-xs text-text-muted">· {((product.stockWeightGrams || 0) / 1000).toFixed(1)}kg available</span>}
+            {stockAvailable && !isWeight && <span className="text-xs text-text-muted">· {product.stockQuantity} available</span>}
           </div>
 
           {/* Store link */}
           {vendor && (
-            <Link
-              to={`/store/${vendor.id}`}
-              className="inline-flex items-center gap-2 text-sm text-text-muted hover:text-primary transition-colors mb-4"
-            >
+            <Link to={`/store/${vendor.id}`} className="inline-flex items-center gap-2 text-sm text-text-muted hover:text-primary transition-colors mb-4">
               <Store size={14} />
-              <span className="font-semibold">{vendor.name}</span>
+              <span className="font-semibold">{vendor.shopName}</span>
             </Link>
           )}
 
@@ -205,9 +163,7 @@ export default function ProductDetailsPage() {
           {product.description && (
             <>
               <div className="h-px bg-border mb-4" />
-              <h3 className="text-sm font-bold text-text-secondary uppercase tracking-wide mb-2">
-                Description
-              </h3>
+              <h3 className="text-sm font-bold text-text-secondary uppercase tracking-wide mb-2">Description</h3>
               <p className="text-sm text-text-secondary leading-relaxed">{product.description}</p>
             </>
           )}
@@ -218,13 +174,9 @@ export default function ProductDetailsPage() {
               <div className="h-px bg-border my-5" />
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="text-sm font-bold text-text-primary mb-0.5">
-                    {isWeight ? 'Select Weight' : 'Quantity'}
-                  </h3>
+                  <h3 className="text-sm font-bold text-text-primary mb-0.5">{isWeight ? "Select Weight" : "Quantity"}</h3>
                   <p className="text-xs text-text-muted">
-                    {isWeight
-                      ? `${(amount / 1000).toFixed(1)} kg selected`
-                      : `${amount} item${amount !== 1 ? 's' : ''} selected`}
+                    {isWeight ? `${(amount / 1000).toFixed(1)} kg selected` : `${amount} item${amount !== 1 ? "s" : ""} selected`}
                   </p>
                 </div>
                 <div className="flex items-center gap-3">
@@ -235,9 +187,7 @@ export default function ProductDetailsPage() {
                   >
                     <Minus size={16} />
                   </motion.button>
-                  <span className="text-lg font-bold text-text-primary min-w-[3rem] text-center">
-                    {isWeight ? `${(amount / 1000).toFixed(1)}kg` : amount}
-                  </span>
+                  <span className="text-lg font-bold text-text-primary min-w-[3rem] text-center">{isWeight ? `${(amount / 1000).toFixed(1)}kg` : amount}</span>
                   <motion.button
                     whileTap={{ scale: 0.9 }}
                     onClick={handleIncrement}
@@ -253,14 +203,8 @@ export default function ProductDetailsPage() {
 
           {/* Add to cart */}
           <div className="mt-6">
-            <Button
-              fullWidth
-              size="lg"
-              onClick={handleAddToCart}
-              disabled={!stockAvailable}
-              icon={<ShoppingCart size={18} />}
-            >
-              {inCart ? 'Add More to Cart' : 'Add to Cart'}
+            <Button fullWidth size="lg" onClick={handleAddToCart} disabled={!stockAvailable} icon={<ShoppingCart size={18} />}>
+              {inCart ? "Add More to Cart" : "Add to Cart"}
             </Button>
           </div>
         </div>

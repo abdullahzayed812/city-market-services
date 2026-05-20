@@ -1,17 +1,16 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
-import {
-  MapPin, Plus, Trash2, Home, Briefcase, ChevronLeft, Navigation,
-} from 'lucide-react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { UserService } from '@/services/api/userService';
-import { Button } from '@/components/ui/Button';
-import { Input } from '@/components/ui/Input';
-import { Modal } from '@/components/ui/Modal';
-import { Skeleton } from '@/components/ui/Skeleton';
-import toast from 'react-hot-toast';
-import type { Address } from '@/types';
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
+import { MapPin, Plus, Trash2, Home, Briefcase, ChevronLeft, Navigation } from "lucide-react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { UserService } from "@/services/api/userService";
+import { useAuthStore } from "@/store/authStore";
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
+import { Modal } from "@/components/ui/Modal";
+import { Skeleton } from "@/components/ui/Skeleton";
+import toast from "react-hot-toast";
+import type { Address } from "@/types";
 
 const ADDRESS_ICONS: Record<string, typeof Home> = {
   Home,
@@ -19,42 +18,44 @@ const ADDRESS_ICONS: Record<string, typeof Home> = {
   Other: MapPin,
 };
 
-const LABEL_OPTIONS = ['Home', 'Work', 'Other'];
+const LABEL_OPTIONS = ["Home", "Work", "Other"];
 
 export default function AddressesPage() {
   const navigate = useNavigate();
+  const { isAuthenticated } = useAuthStore();
   const queryClient = useQueryClient();
   const [addOpen, setAddOpen] = useState(false);
-  const [form, setForm] = useState({ label: 'Home', address: '', latitude: '', longitude: '' });
+  const [form, setForm] = useState({ label: "Home", address: "", latitude: "", longitude: "" });
 
   const { data: addresses = [], isLoading } = useQuery({
-    queryKey: ['addresses'],
+    queryKey: ["addresses"],
     queryFn: UserService.getAddresses,
+    enabled: isAuthenticated,
   });
 
   const addMutation = useMutation({
     mutationFn: UserService.addAddress,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['addresses'] });
-      toast.success('Address added!');
+      queryClient.invalidateQueries({ queryKey: ["addresses"] });
+      toast.success("Address added!");
       setAddOpen(false);
-      setForm({ label: 'Home', address: '', latitude: '', longitude: '' });
+      setForm({ label: "Home", address: "", latitude: "", longitude: "" });
     },
-    onError: () => toast.error('Failed to add address'),
+    onError: () => toast.error("Failed to add address"),
   });
 
   const deleteMutation = useMutation({
     mutationFn: UserService.deleteAddress,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['addresses'] });
-      toast.success('Address removed');
+      queryClient.invalidateQueries({ queryKey: ["addresses"] });
+      toast.success("Address removed");
     },
-    onError: () => toast.error('Failed to remove address'),
+    onError: () => toast.error("Failed to remove address"),
   });
 
   const handleAdd = () => {
     if (!form.address.trim()) {
-      toast.error('Please enter an address');
+      toast.error("Please enter an address");
       return;
     }
     addMutation.mutate({
@@ -66,7 +67,7 @@ export default function AddressesPage() {
   };
 
   return (
-    <div className="max-w-lg mx-auto px-4 sm:px-6 py-6">
+    <div className="max-w-lg mx-auto px-4 sm:px-6 py-6 animate-fade-in">
       {/* Header */}
       <div className="flex items-center gap-3 mb-6">
         <button
@@ -87,7 +88,9 @@ export default function AddressesPage() {
 
       {isLoading ? (
         <div className="space-y-3">
-          {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-24 rounded-2xl" />)}
+          {[...Array(3)].map((_, i) => (
+            <Skeleton key={i} className="h-24 rounded-2xl" />
+          ))}
         </div>
       ) : addresses.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-20 text-center">
@@ -95,9 +98,7 @@ export default function AddressesPage() {
             <MapPin size={36} className="text-primary" strokeWidth={1.5} />
           </div>
           <h3 className="text-lg font-bold text-text-primary mb-2">No addresses yet</h3>
-          <p className="text-sm text-text-muted mb-6">
-            Add a delivery address to checkout faster
-          </p>
+          <p className="text-sm text-text-muted mb-6">Add a delivery address to checkout faster</p>
           <Button onClick={() => setAddOpen(true)} icon={<Plus size={16} />}>
             Add Address
           </Button>
@@ -123,16 +124,14 @@ export default function AddressesPage() {
                     <div className="flex items-center gap-2 mb-1">
                       <span className="text-sm font-bold text-text-primary">{address.label}</span>
                       {address.isDefault && (
-                        <span className="text-[10px] font-bold text-primary-darker bg-primary-xlight px-2 py-0.5 rounded-full">
-                          Default
-                        </span>
+                        <span className="text-[10px] font-bold text-primary-darker bg-primary-xlight px-2 py-0.5 rounded-full">Default</span>
                       )}
                     </div>
                     <p className="text-xs text-text-muted leading-relaxed">{address.address}</p>
                     {address.latitude && address.longitude && (
                       <div className="flex items-center gap-1 mt-1 text-[10px] text-text-muted">
                         <Navigation size={10} />
-                        {address.latitude.toFixed(4)}, {address.longitude.toFixed(4)}
+                        {Number(address.latitude).toFixed(4)}, {Number(address.longitude).toFixed(4)}
                       </div>
                     )}
                   </div>
@@ -155,9 +154,7 @@ export default function AddressesPage() {
         <div className="space-y-4">
           {/* Label */}
           <div>
-            <label className="text-xs font-semibold text-text-secondary uppercase tracking-wide block mb-2">
-              Label
-            </label>
+            <label className="text-xs font-semibold text-text-secondary uppercase tracking-wide block mb-2">Label</label>
             <div className="flex gap-2">
               {LABEL_OPTIONS.map((opt) => {
                 const Icon = ADDRESS_ICONS[opt] || MapPin;
@@ -166,9 +163,7 @@ export default function AddressesPage() {
                     key={opt}
                     onClick={() => setForm((f) => ({ ...f, label: opt }))}
                     className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl border-2 text-sm font-semibold transition-colors ${
-                      form.label === opt
-                        ? 'border-primary bg-primary-xlight text-primary-darker'
-                        : 'border-border text-text-muted hover:border-gray-300'
+                      form.label === opt ? "border-primary bg-primary-xlight text-primary-darker" : "border-border text-text-muted hover:border-gray-300"
                     }`}
                   >
                     <Icon size={15} />

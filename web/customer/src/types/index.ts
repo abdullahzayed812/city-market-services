@@ -69,8 +69,8 @@ export interface CreateAddressDto {
 
 export interface Vendor {
   id: string;
-  name: string;
-  description?: string;
+  shopName: string;
+  shopDescription?: string;
   type: VendorType | string;
   storeImage?: string;
   isOpen?: boolean;
@@ -131,7 +131,21 @@ export interface VendorOrderItem {
 
 export interface OrderItemProposal {
   id: string;
+  vendorOrderItemId: string;
+  type: string;
+  actualQuantity?: number;
+  proposedQuantity?: number;
+  originalQuantity?: number; // Sometimes used for mapping
+  requestedWeightGrams?: number;
+  proposedWeightGrams?: number;
+  proposedWeight?: number;
+  requestedWeight?: number;
   status: string;
+  createdAt: string;
+  updatedAt: string;
+  vendorName?: string;
+  productName?: string;
+  priceDifference?: number;
 }
 
 export interface VendorOrder {

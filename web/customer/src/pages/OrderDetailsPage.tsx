@@ -100,7 +100,6 @@ export default function OrderDetailsPage() {
     queryKey: ["order", orderId],
     queryFn: () => OrderService.getOrderById(orderId!),
     enabled: !!orderId,
-    refetchInterval: 15000,
   });
 
   const order = data?.order;

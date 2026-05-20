@@ -1,26 +1,23 @@
-import { useState, useMemo } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
-import {
-  Search, ArrowRight, ChevronRight, TrendingUp,
-  Clock, ShieldCheck, Truck, Star, Gift,
-  ShoppingCart, Wheat, Store, Leaf, ChefHat,
-} from 'lucide-react';
-import { useQuery } from '@tanstack/react-query';
-import { CatalogService } from '@/services/api/catalogService';
-import { VendorService } from '@/services/api/vendorService';
-import { VendorCard } from '@/components/shared/VendorCard';
-import { ProductCard } from '@/components/shared/ProductCard';
-import { HomePageSkeleton } from '@/components/ui/Skeleton';
-import { getImageUrl } from '@/lib/utils';
-import type { Category, Vendor } from '@/types';
+import { useState, useMemo } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { motion } from "framer-motion";
+import { Search, ArrowRight, ChevronRight, TrendingUp, Clock, ShieldCheck, Truck, Star, Gift, ShoppingCart, Wheat, Store, Leaf, ChefHat } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { CatalogService } from "@/services/api/catalogService";
+import { VendorService } from "@/services/api/vendorService";
+import { VendorCard } from "@/components/shared/VendorCard";
+import { ProductCard } from "@/components/shared/ProductCard";
+import { HomePageSkeleton } from "@/components/ui/Skeleton";
+import { getImageUrl } from "@/lib/utils";
+import type { Category, Vendor } from "@/types";
+import { useAuthStore } from "@/store/authStore";
 
 const VENDOR_TYPE_LABELS: Record<string, string> = {
-  SUPERMARKET: 'Supermarkets',
-  BAKERY: 'Bakeries',
-  BUTCHER: 'Butchers',
-  GROCERY: 'Grocery Stores',
-  FRUITS: 'Fruits & Vegetables',
+  SUPERMARKET: "Supermarkets",
+  BAKERY: "Bakeries",
+  BUTCHER: "Butchers",
+  GROCERY: "Grocery Stores",
+  FRUITS: "Fruits & Vegetables",
 };
 
 const VENDOR_TYPE_ICON: Record<string, React.ElementType> = {
@@ -32,11 +29,11 @@ const VENDOR_TYPE_ICON: Record<string, React.ElementType> = {
 };
 
 const VENDOR_TYPE_COLOR: Record<string, string> = {
-  SUPERMARKET: '#10B981',
-  BAKERY: '#F59E0B',
-  BUTCHER: '#EF4444',
-  GROCERY: '#3B82F6',
-  FRUITS: '#22C55E',
+  SUPERMARKET: "#10B981",
+  BAKERY: "#F59E0B",
+  BUTCHER: "#EF4444",
+  GROCERY: "#3B82F6",
+  FRUITS: "#22C55E",
 };
 
 const staggerContainer = {
@@ -55,10 +52,7 @@ function SectionHeader({ title, to, icon }: { title: string; to: string; icon?: 
         {icon}
         <h2 className="text-lg font-bold text-text-primary tracking-tight">{title}</h2>
       </div>
-      <Link
-        to={to}
-        className="flex items-center gap-1 text-sm font-semibold text-primary hover:text-primary-dark transition-colors"
-      >
+      <Link to={to} className="flex items-center gap-1 text-sm font-semibold text-primary hover:text-primary-dark transition-colors">
         See all <ChevronRight size={15} />
       </Link>
     </div>
@@ -67,60 +61,45 @@ function SectionHeader({ title, to, icon }: { title: string; to: string; icon?: 
 
 function CategoryPill({ category, onPress }: { category: Category; onPress: () => void }) {
   return (
-    <motion.button
-      whileHover={{ scale: 1.06, y: -2 }}
-      whileTap={{ scale: 0.94 }}
-      onClick={onPress}
-      className="flex flex-col items-center gap-2 flex-shrink-0"
-    >
-      <div
-        className="w-[72px] h-[72px] rounded-2xl flex items-center justify-center overflow-hidden shadow-card transition-shadow hover:shadow-card-hover bg-white"
-      >
+    <motion.button whileHover={{ scale: 1.06, y: -2 }} whileTap={{ scale: 0.94 }} onClick={onPress} className="flex flex-col items-center gap-2 flex-shrink-0">
+      <div className="w-[72px] h-[72px] rounded-2xl flex items-center justify-center overflow-hidden shadow-card transition-shadow hover:shadow-card-hover bg-white">
         {category.imageUrl ? (
-          <img
-            src={getImageUrl(category.imageUrl)}
-            alt={category.name}
-            className="w-10 h-10 object-contain"
-          />
+          <img src={getImageUrl(category.imageUrl)} alt={category.name} className="w-10 h-10 object-contain" />
         ) : (
-          <span
-            className="text-2xl font-black"
-            style={{ color: category.color || '#10B981' }}
-          >
+          <span className="text-2xl font-black" style={{ color: category.color || "#10B981" }}>
             {category.name[0]}
           </span>
         )}
       </div>
-      <span className="text-xs font-semibold text-text-secondary text-center w-[76px] leading-tight line-clamp-2">
-        {category.name}
-      </span>
+      <span className="text-xs font-semibold text-text-secondary text-center w-[76px] leading-tight line-clamp-2">{category.name}</span>
     </motion.button>
   );
 }
 
 export default function HomePage() {
   const navigate = useNavigate();
-  const [searchQuery, setSearchQuery] = useState('');
+  const { user, isAuthenticated } = useAuthStore();
+  const [searchQuery, setSearchQuery] = useState("");
 
   const { data: categories = [], isLoading: catLoading } = useQuery({
-    queryKey: ['global-categories'],
+    queryKey: ["global-categories"],
     queryFn: CatalogService.getGlobalCategories,
   });
 
   const { data: vendors = [], isLoading: vendorLoading } = useQuery({
-    queryKey: ['vendors'],
+    queryKey: ["vendors"],
     queryFn: VendorService.getVendors,
   });
 
   const { data: featuredProducts } = useQuery({
-    queryKey: ['featured-products'],
+    queryKey: ["featured-products"],
     queryFn: () => CatalogService.searchVendorProducts({ limit: 12, page: 1 }),
   });
 
   const groupedVendors = useMemo(() => {
     const groups: Record<string, Vendor[]> = {};
     vendors.forEach((v) => {
-      const type = v.type || 'Other';
+      const type = v.type || "Other";
       if (!groups[type]) groups[type] = [];
       groups[type].push(v);
     });
@@ -132,14 +111,13 @@ export default function HomePage() {
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (searchQuery.trim()) navigate(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
-    else navigate('/search');
+    else navigate("/search");
   };
 
   if (isLoading) return <HomePageSkeleton />;
 
   return (
     <div className="animate-fade-in">
-
       {/* ── Hero ── */}
       <section className="relative overflow-hidden bg-hero-gradient">
         {/* Decorative background shapes */}
@@ -178,7 +156,14 @@ export default function HomePage() {
               transition={{ delay: 0.13, duration: 0.45 }}
               className="text-4xl sm:text-5xl font-black text-white leading-[1.08] mb-4 tracking-tight"
             >
-              Fresh groceries,
+              {isAuthenticated && user?.name ? (
+                <>
+                  <span className="text-white/60 text-lg sm:text-xl font-bold block mb-2 tracking-wide">Welcome back, {user.name.split(" ")[0]} 👋</span>
+                  Fresh groceries,
+                </>
+              ) : (
+                <>Fresh groceries,</>
+              )}
               <br />
               <span className="text-accent">delivered fast</span>
             </motion.h1>
@@ -226,10 +211,10 @@ export default function HomePage() {
           <div className="max-w-7xl mx-auto px-4 sm:px-6">
             <div className="flex divide-x divide-white/10">
               {[
-                { icon: Clock, label: '30 min delivery' },
-                { icon: ShieldCheck, label: 'Quality guaranteed' },
-                { icon: Truck, label: 'Live tracking' },
-                { icon: Star, label: 'Trusted vendors' },
+                { icon: Clock, label: "30 min delivery" },
+                { icon: ShieldCheck, label: "Quality guaranteed" },
+                { icon: Truck, label: "Live tracking" },
+                { icon: Star, label: "Trusted vendors" },
               ].map(({ icon: Icon, label }) => (
                 <div key={label} className="flex-1 flex items-center justify-center gap-2 py-3 sm:py-3.5">
                   <Icon size={14} className="text-white/70 flex-shrink-0" />
@@ -242,18 +227,13 @@ export default function HomePage() {
       </section>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
-
         {/* ── Categories ── */}
         {categories.length > 0 && (
           <section className="py-8">
             <SectionHeader title="Browse Categories" to="/search" />
             <div className="flex gap-4 overflow-x-auto pb-3 scrollbar-hide -mx-4 px-4">
               {categories.map((cat) => (
-                <CategoryPill
-                  key={cat.id}
-                  category={cat}
-                  onPress={() => navigate(`/search?categoryId=${cat.id}`)}
-                />
+                <CategoryPill key={cat.id} category={cat} onPress={() => navigate(`/search?categoryId=${cat.id}`)} />
               ))}
             </div>
           </section>
@@ -275,9 +255,7 @@ export default function HomePage() {
                   <span className="w-1 h-1 rounded-full bg-white animate-pulse-soft" />
                   Limited Time
                 </div>
-                <h3 className="text-2xl sm:text-3xl font-black text-white leading-tight mb-1 tracking-tight">
-                  Free Delivery Today
-                </h3>
+                <h3 className="text-2xl sm:text-3xl font-black text-white leading-tight mb-1 tracking-tight">Free Delivery Today</h3>
                 <p className="text-white/80 text-sm">On orders above $20 from any store</p>
               </div>
               <div className="flex-shrink-0 w-16 h-16 sm:w-20 sm:h-20 bg-white/15 rounded-2xl flex items-center justify-center">
@@ -290,17 +268,14 @@ export default function HomePage() {
         {/* ── Vendor Groups ── */}
         {groupedVendors.map(({ type, items }) => {
           const VIcon = VENDOR_TYPE_ICON[type] || Store;
-          const vColor = VENDOR_TYPE_COLOR[type] || '#10B981';
+          const vColor = VENDOR_TYPE_COLOR[type] || "#10B981";
           return (
             <section key={type} className="mb-10">
               <SectionHeader
                 title={VENDOR_TYPE_LABELS[type] || type}
                 to={`/stores?type=${type}`}
                 icon={
-                  <div
-                    className="w-7 h-7 rounded-lg flex items-center justify-center"
-                    style={{ backgroundColor: `${vColor}18` }}
-                  >
+                  <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ backgroundColor: `${vColor}18` }}>
                     <VIcon size={15} style={{ color: vColor }} strokeWidth={2} />
                   </div>
                 }
@@ -311,7 +286,7 @@ export default function HomePage() {
                 variants={staggerContainer}
                 initial="hidden"
                 whileInView="show"
-                viewport={{ once: true, margin: '-60px' }}
+                viewport={{ once: true, margin: "-60px" }}
                 className="hidden md:grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"
               >
                 {items.slice(0, 8).map((vendor) => (
@@ -349,7 +324,7 @@ export default function HomePage() {
               variants={staggerContainer}
               initial="hidden"
               whileInView="show"
-              viewport={{ once: true, margin: '-60px' }}
+              viewport={{ once: true, margin: "-60px" }}
               className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3"
             >
               {featuredProducts.data.slice(0, 12).map((product) => (
@@ -360,7 +335,6 @@ export default function HomePage() {
             </motion.div>
           </section>
         )}
-
       </div>
     </div>
   );

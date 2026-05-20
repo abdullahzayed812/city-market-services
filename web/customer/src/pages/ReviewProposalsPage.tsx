@@ -1,26 +1,38 @@
-import { useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
-import {
-  ChevronLeft, AlertCircle, Check, X, Scale,
-  Info, Package,
-} from 'lucide-react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { OrderService } from '@/services/api/orderService';
-import { Skeleton } from '@/components/ui/Skeleton';
-import { Button } from '@/components/ui/Button';
-import { formatPrice } from '@/lib/utils';
-import { Modal } from '@/components/ui/Modal';
-import toast from 'react-hot-toast';
+import { useState } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import { motion } from "framer-motion";
+import { ChevronLeft, AlertCircle, Check, X, Scale, Info, Package, Store, Tag, Clock, Layers } from "lucide-react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { OrderService } from "@/services/api/orderService";
+import { Skeleton } from "@/components/ui/Skeleton";
+import { Button } from "@/components/ui/Button";
+import { formatPrice, formatDateTime } from "@/lib/utils";
+import { Modal } from "@/components/ui/Modal";
+import { Badge } from "@/components/ui/Badge";
+import toast from "react-hot-toast";
+import type { OrderItemProposal } from "@/types";
+
+enum ProposalType {
+  QUANTITY_REDUCTION = "QUANTITY_REDUCTION",
+  WEIGHT_ADJUSTMENT = "WEIGHT_ADJUSTMENT",
+  UNAVAILABLE = "UNAVAILABLE",
+}
+
+const TYPE_CONFIG: Record<string, { label: string; color: string }> = {
+  [ProposalType.QUANTITY_REDUCTION]: { label: "Quantity Reduction", color: "#FF9500" },
+  [ProposalType.WEIGHT_ADJUSTMENT]: { label: "Weight Adjustment", color: "#FF9500" },
+  [ProposalType.UNAVAILABLE]: { label: "Unavailable", color: "#EF4444" },
+};
 
 export default function ReviewProposalsPage() {
   const { orderId } = useParams<{ orderId: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [rejectModal, setRejectModal] = useState<{ id: string } | null>(null);
+  const [acceptModal, setAcceptModal] = useState<{ id: string } | null>(null);
 
-  const { data: proposals = [], isLoading } = useQuery({
-    queryKey: ['order-proposals', orderId],
+  const { data: proposals = [], isLoading } = useQuery<OrderItemProposal[]>({
+    queryKey: ["order-proposals", orderId],
     queryFn: () => OrderService.getOrderProposals(orderId!),
     enabled: !!orderId,
   });
@@ -28,28 +40,31 @@ export default function ReviewProposalsPage() {
   const acceptMutation = useMutation({
     mutationFn: OrderService.acceptProposal,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['order-proposals', orderId] });
-      queryClient.invalidateQueries({ queryKey: ['order', orderId] });
-      toast.success('Proposal accepted');
+      queryClient.invalidateQueries({ queryKey: ["order-proposals", orderId] });
+      queryClient.invalidateQueries({ queryKey: ["order", orderId] });
+      toast.success("Proposal accepted");
+      setAcceptModal(null);
     },
-    onError: () => toast.error('Failed to accept proposal'),
+    onError: () => toast.error("Failed to accept proposal"),
   });
 
   const rejectMutation = useMutation({
-    mutationFn: ({ id, cancel }: { id: string; cancel: boolean }) =>
-      OrderService.rejectProposal(id, cancel),
+    mutationFn: ({ id, cancel }: { id: string; cancel: boolean }) => OrderService.rejectProposal(id, cancel),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['order-proposals', orderId] });
-      queryClient.invalidateQueries({ queryKey: ['order', orderId] });
-      toast.success('Proposal rejected');
+      queryClient.invalidateQueries({ queryKey: ["order-proposals", orderId] });
+      queryClient.invalidateQueries({ queryKey: ["order", orderId] });
+      toast.success("Proposal rejected");
       setRejectModal(null);
-      navigate(`/orders/${orderId}`);
+      // If no more proposals, go back
+      if (proposals.length <= 1) {
+        navigate(`/orders/${orderId}`);
+      }
     },
-    onError: () => toast.error('Failed to reject proposal'),
+    onError: () => toast.error("Failed to reject proposal"),
   });
 
   return (
-    <div className="max-w-lg mx-auto px-4 sm:px-6 py-6">
+    <div className="max-w-2xl mx-auto px-4 sm:px-6 py-6 animate-fade-in">
       <div className="flex items-center gap-3 mb-6">
         <button
           onClick={() => navigate(-1)}
@@ -61,135 +76,214 @@ export default function ReviewProposalsPage() {
       </div>
 
       {/* Info banner */}
-      <div className="flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-2xl p-4 mb-5">
-        <AlertCircle size={18} className="text-amber-500 flex-shrink-0 mt-0.5" />
-        <p className="text-sm text-amber-700">
-          The vendor has proposed changes to some items. Review and accept or reject them.
+      <div className="flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-2xl p-4 mb-6">
+        <AlertCircle size={20} className="text-amber-500 flex-shrink-0 mt-0.5" />
+        <p className="text-sm text-amber-700 leading-relaxed">
+          Some items from your order are unavailable or require adjustments. Please review the vendor's proposals below and decide how to proceed.
         </p>
       </div>
 
       {isLoading ? (
         <div className="space-y-4">
-          {[...Array(2)].map((_, i) => <Skeleton key={i} className="h-36 rounded-2xl" />)}
+          {[...Array(2)].map((_, i) => (
+            <Skeleton key={i} className="h-48 rounded-2xl" />
+          ))}
         </div>
       ) : proposals.length === 0 ? (
-        <div className="flex flex-col items-center py-16 text-center">
-          <Package size={48} className="text-primary/30 mb-3" />
-          <p className="font-bold text-text-primary">No proposals to review</p>
+        <div className="flex flex-col items-center py-20 text-center bg-white rounded-3xl shadow-card p-8">
+          <div className="w-20 h-20 bg-success-light rounded-full flex items-center justify-center mb-4">
+            <Check size={40} className="text-success" />
+          </div>
+          <h3 className="text-lg font-bold text-text-primary mb-2">No pending proposals</h3>
+          <p className="text-sm text-text-muted mb-6">All items have been processed.</p>
+          <Button onClick={() => navigate(-1)}>Go Back</Button>
         </div>
       ) : (
-        <div className="space-y-4">
-          {proposals.map((proposal: any) => (
-            <div key={proposal.id} className="bg-white rounded-2xl shadow-card p-5">
-              <h3 className="font-bold text-text-primary text-sm mb-3">
-                {proposal.productName || 'Product'}
-              </h3>
-
-              <div className="grid grid-cols-2 gap-3 mb-4">
-                <div className="bg-gray-50 rounded-xl p-3">
-                  <p className="text-[10px] text-text-muted uppercase font-semibold tracking-wide mb-1">
-                    You Ordered
-                  </p>
-                  {proposal.originalQuantity ? (
-                    <p className="text-sm font-bold text-text-primary">
-                      {proposal.originalQuantity} units
-                    </p>
-                  ) : (
-                    <p className="text-sm font-bold text-text-primary flex items-center gap-1">
-                      <Scale size={12} />
-                      {(proposal.requestedWeightGrams / 1000).toFixed(2)} kg
-                    </p>
-                  )}
-                </div>
-                <div className="bg-primary-xlight rounded-xl p-3">
-                  <p className="text-[10px] text-primary uppercase font-semibold tracking-wide mb-1">
-                    Vendor Proposes
-                  </p>
-                  {proposal.proposedQuantity ? (
-                    <p className="text-sm font-bold text-primary">
-                      {proposal.proposedQuantity} units
-                    </p>
-                  ) : proposal.proposedWeightGrams ? (
-                    <p className="text-sm font-bold text-primary flex items-center gap-1">
-                      <Scale size={12} />
-                      {(proposal.proposedWeightGrams / 1000).toFixed(2)} kg
-                    </p>
-                  ) : (
-                    <p className="text-sm font-bold text-error">Unavailable</p>
-                  )}
-                </div>
-              </div>
-
-              {proposal.priceDifference !== 0 && (
-                <div className="flex items-center gap-2 bg-gray-50 rounded-xl p-3 mb-4">
-                  <Info size={14} className="text-text-muted" />
-                  <p className="text-xs text-text-muted">
-                    Price difference:{' '}
-                    <span
-                      className={`font-bold ${
-                        proposal.priceDifference > 0 ? 'text-error' : 'text-success'
-                      }`}
+        <div className="space-y-5">
+          {proposals.map((proposal: OrderItemProposal) => {
+            const typeCfg = TYPE_CONFIG[proposal.type] || { label: proposal.type, color: "#6B7280" };
+            return (
+              <div key={proposal.id} className="bg-white rounded-3xl shadow-card overflow-hidden">
+                {/* Card Header */}
+                <div className="p-5 border-b border-border-light bg-gray-50/50">
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <div className="flex items-center gap-2 mb-1">
+                        <Store size={14} className="text-primary" />
+                        <span className="text-xs font-bold text-text-muted uppercase tracking-wider">{proposal.vendorName || "Vendor"}</span>
+                      </div>
+                      <h3 className="font-black text-text-primary text-lg leading-tight">{proposal.productName}</h3>
+                    </div>
+                    <div
+                      className="px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest text-white whitespace-nowrap"
+                      style={{ backgroundColor: typeCfg.color }}
                     >
-                      {proposal.priceDifference > 0 ? '+' : ''}
-                      {formatPrice(proposal.priceDifference)}
-                    </span>
-                  </p>
+                      {typeCfg.label}
+                    </div>
+                  </div>
                 </div>
-              )}
 
-              <div className="flex gap-3">
-                <Button
-                  variant="outline"
-                  fullWidth
-                  size="sm"
-                  icon={<X size={14} />}
-                  onClick={() => setRejectModal({ id: proposal.id })}
-                >
-                  Reject
-                </Button>
-                <Button
-                  fullWidth
-                  size="sm"
-                  icon={<Check size={14} />}
-                  loading={acceptMutation.isPending}
-                  onClick={() => acceptMutation.mutate(proposal.id)}
-                >
-                  Accept
-                </Button>
+                {/* Card Body */}
+                <div className="p-5">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5">
+                    {/* Original */}
+                    <div className="bg-gray-50 rounded-2xl p-4 border border-gray-100">
+                      <p className="text-[10px] text-text-muted uppercase font-black tracking-widest mb-2 flex items-center gap-1.5">
+                        <Tag size={10} />
+                        Original Order
+                      </p>
+                      <div className="flex items-baseline gap-1.5">
+                        {proposal.originalQuantity ? (
+                          <span className="text-lg font-black text-text-primary">{proposal.originalQuantity}</span>
+                        ) : (
+                          <span className="text-lg font-black text-text-primary">{((proposal.requestedWeightGrams || 0) / 1000).toFixed(2)}</span>
+                        )}
+
+                        <span className="text-xs font-bold text-text-muted">{proposal.originalQuantity ? "Units" : "kg"}</span>
+                      </div>
+                    </div>
+
+                    {/* Proposed */}
+                    <div className="bg-primary-xlight rounded-2xl p-4 border border-primary/10">
+                      <p className="text-[10px] text-primary uppercase font-black tracking-widest mb-2 flex items-center gap-1.5">
+                        <RefreshCw size={10} />
+                        Vendor Proposes
+                      </p>
+                      <div className="flex items-baseline gap-1.5">
+                        {proposal.proposedQuantity ? (
+                          <span className="text-lg font-black text-primary">{proposal.proposedQuantity}</span>
+                        ) : proposal.proposedWeightGrams ? (
+                          <span className="text-lg font-black text-primary">{((proposal.proposedWeightGrams || 0) / 1000).toFixed(2)}</span>
+                        ) : (
+                          <span className="text-lg font-black text-error">0</span>
+                        )}
+
+                        <span className="text-xs font-bold text-primary/60">
+                          {proposal.proposedQuantity ? "Units" : proposal.proposedWeightGrams ? "kg" : "Unavailable"}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Details List */}
+                  <div className="space-y-3 mb-6">
+                    {proposal.priceDifference !== undefined && proposal.priceDifference !== 0 && (
+                      <div className="flex items-center justify-between text-sm py-2 px-1 border-b border-gray-50">
+                        <div className="flex items-center gap-2 text-text-muted font-medium">
+                          <Info size={14} />
+                          Price Difference
+                        </div>
+                        <span className={`font-black ${proposal.priceDifference > 0 ? "text-error" : "text-success"}`}>
+                          {proposal.priceDifference > 0 ? "+" : ""}
+                          {formatPrice(proposal.priceDifference)}
+                        </span>
+                      </div>
+                    )}
+                    <div className="flex items-center justify-between text-sm py-2 px-1 border-b border-gray-50">
+                      <div className="flex items-center gap-2 text-text-muted font-medium">
+                        <Clock size={14} />
+                        Date
+                      </div>
+                      <span className="font-bold text-text-primary">{formatDateTime(proposal.createdAt)}</span>
+                    </div>
+                  </div>
+
+                  {/* Actions */}
+                  <div className="flex gap-3">
+                    <Button
+                      variant="outline"
+                      fullWidth
+                      size="lg"
+                      icon={<X size={18} />}
+                      onClick={() => setRejectModal({ id: proposal.id })}
+                      className="rounded-2xl border-2"
+                    >
+                      Reject
+                    </Button>
+                    <Button
+                      fullWidth
+                      size="lg"
+                      icon={<Check size={18} />}
+                      onClick={() => setAcceptModal({ id: proposal.id })}
+                      className="rounded-2xl shadow-primary-glow"
+                    >
+                      Accept
+                    </Button>
+                  </div>
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
+      {/* Accept confirmation modal */}
+      <Modal open={!!acceptModal} onClose={() => setAcceptModal(null)} title="Accept Proposal">
+        <p className="text-sm text-text-muted mb-6 leading-relaxed">
+          Are you sure you want to accept this proposal? Your order total will be adjusted accordingly.
+        </p>
+        <div className="flex gap-3">
+          <Button variant="ghost" fullWidth onClick={() => setAcceptModal(null)}>
+            Cancel
+          </Button>
+          <Button fullWidth loading={acceptMutation.isPending} onClick={() => acceptModal && acceptMutation.mutate(acceptModal.id)}>
+            Confirm Accept
+          </Button>
+        </div>
+      </Modal>
+
       {/* Reject confirmation modal */}
-      <Modal
-        open={!!rejectModal}
-        onClose={() => setRejectModal(null)}
-        title="Reject Proposal"
-      >
-        <p className="text-sm text-text-muted mb-5">
-          Do you want to reject just this item or cancel the entire order?
+      <Modal open={!!rejectModal} onClose={() => setRejectModal(null)} title="Reject Proposal">
+        <p className="text-sm text-text-muted mb-6 leading-relaxed">
+          Rejecting this proposal will remove the item from your order. Do you want to continue or cancel the entire order?
         </p>
         <div className="space-y-3">
           <Button
             variant="outline"
             fullWidth
+            className="h-12 border-2"
             loading={rejectMutation.isPending}
             onClick={() => rejectModal && rejectMutation.mutate({ id: rejectModal.id, cancel: false })}
           >
-            Reject This Item Only
+            Remove This Item
           </Button>
           <Button
             variant="danger"
             fullWidth
+            className="h-12"
             loading={rejectMutation.isPending}
             onClick={() => rejectModal && rejectMutation.mutate({ id: rejectModal.id, cancel: true })}
           >
             Cancel Entire Order
           </Button>
+          <Button variant="ghost" fullWidth onClick={() => setRejectModal(null)}>
+            Cancel
+          </Button>
         </div>
       </Modal>
     </div>
+  );
+}
+
+// Helper icons
+function RefreshCw({ size, className }: { size?: number; className?: string }) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width={size || 24}
+      height={size || 24}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+    >
+      <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
+      <path d="M21 3v5h-5" />
+      <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" />
+      <path d="M3 21v-5h5" />
+    </svg>
   );
 }

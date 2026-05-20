@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
   Mail, Lock, User, Phone, ArrowRight, Eye, EyeOff,
@@ -38,9 +38,15 @@ const PERKS = [
 
 export default function RegisterPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const signIn = useAuthStore((s) => s.signIn);
   const [showPass, setShowPass] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  // Determine where to redirect after registration
+  const queryParams = new URLSearchParams(location.search);
+  const redirectPath = queryParams.get("redirect");
+  const from = (location.state as any)?.from?.pathname || redirectPath || "/";
 
   const {
     register,
@@ -63,7 +69,7 @@ export default function RegisterPage() {
           await UserService.createCustomer({ fullName: data.fullName, phone: data.phone });
         } catch {}
         toast.success('Account created successfully!');
-        navigate('/', { replace: true });
+        navigate(from, { replace: true });
       }
     } catch (err: any) {
       toast.error(err?.response?.data?.message || 'Registration failed. Please try again.');

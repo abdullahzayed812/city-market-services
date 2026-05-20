@@ -90,12 +90,16 @@ function getNotificationActions(type) {
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
 
-  const { route, orderId } = event.notification.data || {};
+  const { route, orderId, type } = event.notification.data || {};
   let targetUrl = self.location.origin + (route || '/notifications');
 
-  // Deep-link to specific order if we have an ID
-  if (orderId && (route === '/orders' || !route)) {
-    targetUrl = `${self.location.origin}/orders/${orderId}`;
+  // Deep-link to specific order or proposals if we have an ID
+  if (orderId) {
+    if (type === 'VENDOR_ORDER_PROPOSED' || type === 'ORDER_AWAITING_CUSTOMER_CONFIRMATION') {
+      targetUrl = `${self.location.origin}/orders/${orderId}/proposals`;
+    } else if (route === '/orders' || !route) {
+      targetUrl = `${self.location.origin}/orders/${orderId}`;
+    }
   }
 
   event.waitUntil(

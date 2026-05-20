@@ -25,6 +25,9 @@ const CUSTOMER_EVENTS = [
   'DELIVERY_FAILED',
   'DELIVERY_CANCELLED_BY_COURIER',
   'USER_REGISTERED',
+  'PROPOSAL_ACCEPTED',
+  'PROPOSAL_REJECTED',
+  'ORDER_PREPARING',
 ] as const;
 
 type CustomerEvent = (typeof CUSTOMER_EVENTS)[number];
@@ -91,6 +94,18 @@ const EVENT_LABELS: Record<CustomerEvent, { title: string; message: string }> = 
     title: '👋 Welcome!',
     message: 'Welcome to CityMarket! Explore fresh groceries near you.',
   },
+  PROPOSAL_ACCEPTED: {
+    title: 'Proposal Accepted',
+    message: 'Your order has been updated with the accepted changes.',
+  },
+  PROPOSAL_REJECTED: {
+    title: 'Proposal Rejected',
+    message: 'The proposed changes were rejected.',
+  },
+  ORDER_PREPARING: {
+    title: '👨‍🍳 Preparing',
+    message: 'The vendor is now preparing your order.',
+  },
 };
 
 /** Which TanStack Query keys to invalidate per event */
@@ -109,6 +124,9 @@ const QUERIES_TO_INVALIDATE: Partial<Record<CustomerEvent, string[][]>> = {
   VENDOR_ORDER_CANCELLED: [['orders'], ['notifications-count'], ['notifications']],
   DELIVERY_FAILED: [['orders'], ['notifications-count'], ['notifications']],
   DELIVERY_CANCELLED_BY_COURIER: [['orders'], ['notifications-count'], ['notifications']],
+  PROPOSAL_ACCEPTED: [['orders'], ['notifications-count'], ['notifications']],
+  PROPOSAL_REJECTED: [['orders'], ['notifications-count'], ['notifications']],
+  ORDER_PREPARING: [['orders'], ['notifications-count'], ['notifications']],
 };
 
 export function useSocket() {

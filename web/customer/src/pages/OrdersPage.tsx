@@ -1,7 +1,7 @@
 import { useEffect, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Package, Clock, Calendar, ChevronRight } from 'lucide-react';
+import { Package, Clock, Calendar, ChevronRight, ShoppingBag } from 'lucide-react';
 import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import { OrderService } from '@/services/api/orderService';
 import { useAuthStore } from '@/store/authStore';
@@ -108,7 +108,7 @@ export default function OrdersPage() {
   );
 
   return (
-    <div className="max-w-3xl mx-auto px-4 sm:px-6 py-6">
+    <div className="max-w-3xl mx-auto px-4 sm:px-6 py-6 animate-fade-in">
       <h1 className="text-2xl font-black text-text-primary tracking-tight mb-6">My Orders</h1>
 
       {isLoading ? (

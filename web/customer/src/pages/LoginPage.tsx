@@ -29,7 +29,11 @@ export default function LoginPage() {
   const signIn = useAuthStore((s) => s.signIn);
   const [showPass, setShowPass] = useState(false);
   const [loading, setLoading] = useState(false);
-  const from = (location.state as any)?.from?.pathname || "/";
+
+  // Determine where to redirect after login
+  const queryParams = new URLSearchParams(location.search);
+  const redirectPath = queryParams.get("redirect");
+  const from = (location.state as any)?.from?.pathname || redirectPath || "/";
 
   const { register, handleSubmit, formState: { errors } } = useForm<FormData>({
     resolver: zodResolver(schema),
