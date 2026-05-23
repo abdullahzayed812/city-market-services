@@ -21,6 +21,7 @@ const AddressesPage = lazy(() => import('@/pages/AddressesPage'));
 const NotificationsPage = lazy(() => import('@/pages/NotificationsPage'));
 const VendorReviewsPage = lazy(() => import('@/pages/VendorReviewsPage'));
 const TermsPage = lazy(() => import('@/pages/TermsPage'));
+const LanguageSettingsPage = lazy(() => import('@/pages/LanguageSettingsPage'));
 
 function PageLoader() {
   return (
@@ -72,6 +73,7 @@ export function AppRouter() {
             <Route path="/profile" element={<ProfilePage />} />
             <Route path="/addresses" element={<AddressesPage />} />
             <Route path="/notifications" element={<NotificationsPage />} />
+            <Route path="/settings/language" element={<LanguageSettingsPage />} />
           </Route>
         </Route>
 

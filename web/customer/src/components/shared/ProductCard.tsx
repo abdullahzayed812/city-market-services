@@ -7,6 +7,7 @@ import { useCartStore } from '@/store/cartStore';
 import { MeasurementType } from '@/types';
 import type { VendorProduct } from '@/types';
 import toast from 'react-hot-toast';
+import { useTranslation } from 'react-i18next';
 
 interface ProductCardProps {
   product: VendorProduct;
@@ -17,6 +18,7 @@ export function ProductCard({ product, showVendor = false }: ProductCardProps) {
   const [added, setAdded] = useState(false);
   const addToCart = useCartStore((s) => s.addToCart);
   const items = useCartStore((s) => s.items);
+  const { t } = useTranslation();
 
   const inCart = !!items.find((i) => i.id === product.id);
   const imageUrl = getImageUrl(product.imageUrl);
@@ -44,7 +46,7 @@ export function ProductCard({ product, showVendor = false }: ProductCardProps) {
     });
 
     setAdded(true);
-    toast.success(`${product.name} added`, { duration: 1600 });
+    toast.success(`${product.name} - ${t('store.added_to_cart')}`, { duration: 1600 });
     setTimeout(() => setAdded(false), 1800);
   };
 
@@ -84,7 +86,7 @@ export function ProductCard({ product, showVendor = false }: ProductCardProps) {
           {!stockAvailable && (
             <div className="absolute inset-0 bg-white/75 flex items-center justify-center">
               <span className="text-xs font-bold text-text-muted bg-white px-3 py-1.5 rounded-full shadow-soft border border-border">
-                Out of Stock
+                {t('store.out_of_stock')}
               </span>
             </div>
           )}

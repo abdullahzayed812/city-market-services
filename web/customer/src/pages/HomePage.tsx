@@ -11,14 +11,7 @@ import { HomePageSkeleton } from "@/components/ui/Skeleton";
 import { getImageUrl } from "@/lib/utils";
 import type { Category, Vendor } from "@/types";
 import { useAuthStore } from "@/store/authStore";
-
-const VENDOR_TYPE_LABELS: Record<string, string> = {
-  SUPERMARKET: "Supermarkets",
-  BAKERY: "Bakeries",
-  BUTCHER: "Butchers",
-  GROCERY: "Grocery Stores",
-  FRUITS: "Fruits & Vegetables",
-};
+import { useTranslation } from "react-i18next";
 
 const VENDOR_TYPE_ICON: Record<string, React.ElementType> = {
   SUPERMARKET: ShoppingCart,
@@ -46,6 +39,7 @@ const staggerItem = {
 };
 
 function SectionHeader({ title, to, icon }: { title: string; to: string; icon?: React.ReactNode }) {
+  const { t } = useTranslation();
   return (
     <div className="flex items-center justify-between mb-5">
       <div className="flex items-center gap-2.5">
@@ -53,7 +47,7 @@ function SectionHeader({ title, to, icon }: { title: string; to: string; icon?: 
         <h2 className="text-lg font-bold text-text-primary tracking-tight">{title}</h2>
       </div>
       <Link to={to} className="flex items-center gap-1 text-sm font-semibold text-primary hover:text-primary-dark transition-colors">
-        See all <ChevronRight size={15} />
+        {t('common.see_all')} <ChevronRight size={15} />
       </Link>
     </div>
   );
@@ -80,6 +74,7 @@ export default function HomePage() {
   const navigate = useNavigate();
   const { user, isAuthenticated } = useAuthStore();
   const [searchQuery, setSearchQuery] = useState("");
+  const { t } = useTranslation();
 
   const { data: categories = [], isLoading: catLoading } = useQuery({
     queryKey: ["global-categories"],
@@ -107,6 +102,13 @@ export default function HomePage() {
   }, [vendors]);
 
   const isLoading = catLoading || vendorLoading;
+
+  const getVendorTypeLabel = (type: string): string => {
+    const key = `home.type_${type.toLowerCase()}`;
+    const translated = t(key);
+    // If key not found, fallback to the type itself
+    return translated === key ? type : translated;
+  };
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -146,7 +148,7 @@ export default function HomePage() {
               className="inline-flex items-center gap-2 bg-white/15 backdrop-blur-sm text-white/95 text-xs font-bold px-3.5 py-1.5 rounded-full mb-5 border border-white/20"
             >
               <span className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse-soft" />
-              Fast delivery in your area
+              {t('home.promo_subtitle')}
             </motion.div>
 
             {/* Headline */}
@@ -158,14 +160,16 @@ export default function HomePage() {
             >
               {isAuthenticated && user?.name ? (
                 <>
-                  <span className="text-white/60 text-lg sm:text-xl font-bold block mb-2 tracking-wide">Welcome back, {user.name.split(" ")[0]} 👋</span>
-                  Fresh groceries,
+                  <span className="text-white/60 text-lg sm:text-xl font-bold block mb-2 tracking-wide">
+                    {t('home.welcome')} {user.name.split(" ")[0]} 👋
+                  </span>
+                  {t('home.hero_headline')}
                 </>
               ) : (
-                <>Fresh groceries,</>
+                <>{t('home.hero_headline')}</>
               )}
               <br />
-              <span className="text-accent">delivered fast</span>
+              <span className="text-accent">{t('home.hero_subline')}</span>
             </motion.h1>
 
             <motion.p
@@ -174,7 +178,7 @@ export default function HomePage() {
               transition={{ delay: 0.2 }}
               className="text-white/75 text-sm sm:text-base mb-8 max-w-md leading-relaxed"
             >
-              Shop from local supermarkets, bakeries, butchers and more — everything at your door.
+              {t('home.hero_description')}
             </motion.p>
 
             {/* Search bar */}
@@ -186,12 +190,12 @@ export default function HomePage() {
               className="flex gap-2 max-w-lg"
             >
               <div className="flex-1 relative">
-                <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" />
+                <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none rtl:left-auto rtl:right-4" />
                 <input
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search products, stores..."
-                  className="w-full h-12 pl-11 pr-4 bg-white rounded-2xl text-sm font-medium text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-white/50 shadow-float"
+                  placeholder={t('home.search_placeholder')}
+                  className="w-full h-12 pl-11 pr-4 rtl:pl-4 rtl:pr-11 bg-white rounded-2xl text-sm font-medium text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-white/50 shadow-float"
                 />
               </div>
               <motion.button
@@ -199,7 +203,7 @@ export default function HomePage() {
                 type="submit"
                 className="h-12 px-5 bg-accent text-white font-bold rounded-2xl shadow-accent-glow hover:bg-accent-dark transition-colors flex items-center gap-1.5 flex-shrink-0"
               >
-                Search
+                {t('common.search')}
                 <ArrowRight size={15} />
               </motion.button>
             </motion.form>
@@ -211,14 +215,14 @@ export default function HomePage() {
           <div className="max-w-7xl mx-auto px-4 sm:px-6">
             <div className="flex divide-x divide-white/10">
               {[
-                { icon: Clock, label: "30 min delivery" },
-                { icon: ShieldCheck, label: "Quality guaranteed" },
-                { icon: Truck, label: "Live tracking" },
-                { icon: Star, label: "Trusted vendors" },
-              ].map(({ icon: Icon, label }) => (
-                <div key={label} className="flex-1 flex items-center justify-center gap-2 py-3 sm:py-3.5">
+                { icon: Clock, labelKey: "home.stat_delivery" },
+                { icon: ShieldCheck, labelKey: "home.stat_quality" },
+                { icon: Truck, labelKey: "home.stat_tracking" },
+                { icon: Star, labelKey: "home.stat_vendors" },
+              ].map(({ icon: Icon, labelKey }) => (
+                <div key={labelKey} className="flex-1 flex items-center justify-center gap-2 py-3 sm:py-3.5">
                   <Icon size={14} className="text-white/70 flex-shrink-0" />
-                  <span className="text-white/80 text-xs font-semibold hidden xs:block">{label}</span>
+                  <span className="text-white/80 text-xs font-semibold hidden xs:block">{t(labelKey)}</span>
                 </div>
               ))}
             </div>
@@ -230,7 +234,7 @@ export default function HomePage() {
         {/* ── Categories ── */}
         {categories.length > 0 && (
           <section className="py-8">
-            <SectionHeader title="Browse Categories" to="/search" />
+            <SectionHeader title={t('home.categories')} to="/search" />
             <div className="flex gap-4 overflow-x-auto pb-3 scrollbar-hide -mx-4 px-4">
               {categories.map((cat) => (
                 <CategoryPill key={cat.id} category={cat} onPress={() => navigate(`/search?categoryId=${cat.id}`)} />
@@ -253,10 +257,10 @@ export default function HomePage() {
               <div>
                 <div className="inline-flex items-center gap-1.5 bg-white/20 text-white text-[10px] font-bold px-2.5 py-1 rounded-full mb-2 uppercase tracking-widest">
                   <span className="w-1 h-1 rounded-full bg-white animate-pulse-soft" />
-                  Limited Time
+                  {t('home.promo_tag')}
                 </div>
-                <h3 className="text-2xl sm:text-3xl font-black text-white leading-tight mb-1 tracking-tight">Free Delivery Today</h3>
-                <p className="text-white/80 text-sm">On orders above $20 from any store</p>
+                <h3 className="text-2xl sm:text-3xl font-black text-white leading-tight mb-1 tracking-tight">{t('home.promo_title')}</h3>
+                <p className="text-white/80 text-sm">{t('home.promo_subtitle')}</p>
               </div>
               <div className="flex-shrink-0 w-16 h-16 sm:w-20 sm:h-20 bg-white/15 rounded-2xl flex items-center justify-center">
                 <Gift size={32} className="text-white" strokeWidth={1.5} />
@@ -272,7 +276,7 @@ export default function HomePage() {
           return (
             <section key={type} className="mb-10">
               <SectionHeader
-                title={VENDOR_TYPE_LABELS[type] || type}
+                title={getVendorTypeLabel(type)}
                 to={`/stores?type=${type}`}
                 icon={
                   <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ backgroundColor: `${vColor}18` }}>
@@ -312,7 +316,7 @@ export default function HomePage() {
         {featuredProducts && featuredProducts.data?.length > 0 && (
           <section className="mb-10">
             <SectionHeader
-              title="Trending Products"
+              title={t('home.trending')}
               to="/search"
               icon={
                 <div className="w-7 h-7 rounded-lg bg-primary-xlight flex items-center justify-center">

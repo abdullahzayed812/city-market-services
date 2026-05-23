@@ -1,26 +1,29 @@
-import { useEffect, useMemo } from 'react';
+import { useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Package, Clock, Calendar, ChevronRight, ShoppingBag } from 'lucide-react';
-import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
+import { useInfiniteQuery } from '@tanstack/react-query';
 import { OrderService } from '@/services/api/orderService';
 import { useAuthStore } from '@/store/authStore';
 import { CustomerOrderStatus } from '@/types';
 import { formatPrice } from '@/lib/utils';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { Button } from '@/components/ui/Button';
+import { useTranslation } from 'react-i18next';
 import type { CustomerOrder } from '@/types';
 
-const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
-  [CustomerOrderStatus.PENDING_VENDOR_CONFIRMATION]: { label: 'Pending', color: '#F59E0B' },
-  [CustomerOrderStatus.WAITING_CUSTOMER_DECISION]: { label: 'Action Required', color: '#F59E0B' },
-  [CustomerOrderStatus.READY]: { label: 'Ready', color: '#10B981' },
-  [CustomerOrderStatus.IN_DELIVERY]: { label: 'In Delivery', color: '#10B981' },
-  [CustomerOrderStatus.COMPLETED]: { label: 'Completed', color: '#10B981' },
-  [CustomerOrderStatus.CANCELLED]: { label: 'Cancelled', color: '#EF4444' },
-};
-
 function OrderCard({ order }: { order: CustomerOrder }) {
+  const { t } = useTranslation();
+
+  const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
+    [CustomerOrderStatus.PENDING_VENDOR_CONFIRMATION]: { label: t('orders.status_pending'), color: '#F59E0B' },
+    [CustomerOrderStatus.WAITING_CUSTOMER_DECISION]: { label: t('orders.status_waiting_customer_decision'), color: '#F59E0B' },
+    [CustomerOrderStatus.READY]: { label: t('orders.status_ready'), color: '#10B981' },
+    [CustomerOrderStatus.IN_DELIVERY]: { label: t('orders.status_in_delivery'), color: '#10B981' },
+    [CustomerOrderStatus.COMPLETED]: { label: t('orders.status_completed'), color: '#10B981' },
+    [CustomerOrderStatus.CANCELLED]: { label: t('orders.status_cancelled'), color: '#EF4444' },
+  };
+
   const cfg = STATUS_CONFIG[order.status] ?? { label: order.status, color: '#9CA3AF' };
   const date = new Date(order.createdAt);
   const needsAction = order.status === CustomerOrderStatus.WAITING_CUSTOMER_DECISION;
@@ -44,7 +47,7 @@ function OrderCard({ order }: { order: CustomerOrder }) {
               </p>
               {needsAction && (
                 <p className="text-[10px] font-bold text-amber-600 uppercase tracking-wide">
-                  Needs your action
+                  {t('orders.status_waiting_customer_decision')}
                 </p>
               )}
             </div>
@@ -74,12 +77,12 @@ function OrderCard({ order }: { order: CustomerOrder }) {
         <div className="flex items-center justify-between">
           <div>
             <p className="text-[10px] text-text-muted uppercase font-semibold tracking-wide mb-0.5">
-              Total
+              {t('orders.total_amount')}
             </p>
             <p className="text-lg font-black text-text-primary">{formatPrice(order.totalAmount)}</p>
           </div>
           <div className="flex items-center gap-1 text-xs font-bold text-primary bg-primary-xlight px-3.5 py-2 rounded-full">
-            {needsAction ? 'Review' : 'Track'}
+            {needsAction ? t('orders.review') : t('orders.track')}
             <ChevronRight size={13} />
           </div>
         </div>
@@ -91,8 +94,9 @@ function OrderCard({ order }: { order: CustomerOrder }) {
 export default function OrdersPage() {
   const navigate = useNavigate();
   const { isAuthenticated } = useAuthStore();
+  const { t } = useTranslation();
 
-  const { data, isLoading, refetch, fetchNextPage, hasNextPage, isFetchingNextPage } =
+  const { data, isLoading, fetchNextPage, hasNextPage, isFetchingNextPage } =
     useInfiniteQuery({
       queryKey: ['my-orders'],
       queryFn: ({ pageParam }) => OrderService.getMyOrders(pageParam),
@@ -109,7 +113,7 @@ export default function OrdersPage() {
 
   return (
     <div className="max-w-3xl mx-auto px-4 sm:px-6 py-6 animate-fade-in">
-      <h1 className="text-2xl font-black text-text-primary tracking-tight mb-6">My Orders</h1>
+      <h1 className="text-2xl font-black text-text-primary tracking-tight mb-6">{t('orders.title')}</h1>
 
       {isLoading ? (
         <div className="space-y-3">
@@ -126,11 +130,11 @@ export default function OrdersPage() {
           <div className="w-20 h-20 bg-primary-xlight rounded-full flex items-center justify-center mb-4">
             <Package size={36} className="text-primary" strokeWidth={1.5} />
           </div>
-          <h3 className="text-lg font-bold text-text-primary mb-2">No orders yet</h3>
+          <h3 className="text-lg font-bold text-text-primary mb-2">{t('orders.no_orders')}</h3>
           <p className="text-sm text-text-muted mb-6 max-w-xs">
-            Your order history will appear here once you place an order
+            {t('orders.no_orders_hint')}
           </p>
-          <Button onClick={() => navigate('/')}>Start Shopping</Button>
+          <Button onClick={() => navigate('/')}>{t('home.stores')}</Button>
         </motion.div>
       ) : (
         <>
@@ -147,7 +151,7 @@ export default function OrdersPage() {
                 disabled={isFetchingNextPage}
                 className="px-6 py-3 bg-white border border-border text-sm font-semibold rounded-xl hover:bg-gray-50 transition-colors disabled:opacity-50"
               >
-                {isFetchingNextPage ? 'Loading...' : 'Load More Orders'}
+                {isFetchingNextPage ? t('common.loading') : t('store.load_more')}
               </button>
             </div>
           )}

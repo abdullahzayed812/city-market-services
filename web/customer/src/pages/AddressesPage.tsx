@@ -9,6 +9,8 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Modal } from "@/components/ui/Modal";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { useTranslation } from "react-i18next";
+import { useLanguage } from "@/hooks/useLanguage";
 import toast from "react-hot-toast";
 import type { Address } from "@/types";
 
@@ -18,7 +20,11 @@ const ADDRESS_ICONS: Record<string, typeof Home> = {
   Other: MapPin,
 };
 
-const LABEL_OPTIONS = ["Home", "Work", "Other"];
+const LABEL_KEYS = [
+  { key: "Home", tKey: "addresses.label_home" },
+  { key: "Work", tKey: "addresses.label_work" },
+  { key: "Other", tKey: "addresses.label_other" },
+];
 
 export default function AddressesPage() {
   const navigate = useNavigate();
@@ -26,6 +32,8 @@ export default function AddressesPage() {
   const queryClient = useQueryClient();
   const [addOpen, setAddOpen] = useState(false);
   const [form, setForm] = useState({ label: "Home", address: "", latitude: "", longitude: "" });
+  const { t } = useTranslation();
+  const { isRTL } = useLanguage();
 
   const { data: addresses = [], isLoading } = useQuery({
     queryKey: ["addresses"],
@@ -37,25 +45,25 @@ export default function AddressesPage() {
     mutationFn: UserService.addAddress,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["addresses"] });
-      toast.success("Address added!");
+      toast.success(t('addresses.address_added'));
       setAddOpen(false);
       setForm({ label: "Home", address: "", latitude: "", longitude: "" });
     },
-    onError: () => toast.error("Failed to add address"),
+    onError: () => toast.error(t('addresses.failed_to_add')),
   });
 
   const deleteMutation = useMutation({
     mutationFn: UserService.deleteAddress,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["addresses"] });
-      toast.success("Address removed");
+      toast.success(t('addresses.address_deleted'));
     },
-    onError: () => toast.error("Failed to remove address"),
+    onError: () => toast.error(t('addresses.failed_to_remove')),
   });
 
   const handleAdd = () => {
     if (!form.address.trim()) {
-      toast.error("Please enter an address");
+      toast.error(t('addresses.please_enter'));
       return;
     }
     addMutation.mutate({
@@ -74,15 +82,15 @@ export default function AddressesPage() {
           onClick={() => navigate(-1)}
           className="w-9 h-9 flex items-center justify-center rounded-xl bg-white shadow-soft text-text-muted hover:text-text-primary transition-colors"
         >
-          <ChevronLeft size={20} />
+          <ChevronLeft size={20} className={isRTL ? "rotate-180" : ""} />
         </button>
-        <h1 className="text-2xl font-black text-text-primary tracking-tight">Addresses</h1>
+        <h1 className="text-2xl font-black text-text-primary tracking-tight">{t('profile.addresses')}</h1>
         <button
           onClick={() => setAddOpen(true)}
           className="ml-auto flex items-center gap-1.5 text-sm font-bold text-primary-darker bg-primary-xlight px-3 py-2 rounded-xl hover:bg-primary-light transition-colors"
         >
           <Plus size={16} />
-          Add New
+          {t('addresses.add_new')}
         </button>
       </div>
 
@@ -97,10 +105,10 @@ export default function AddressesPage() {
           <div className="w-20 h-20 bg-primary-xlight rounded-full flex items-center justify-center mb-4">
             <MapPin size={36} className="text-primary" strokeWidth={1.5} />
           </div>
-          <h3 className="text-lg font-bold text-text-primary mb-2">No addresses yet</h3>
-          <p className="text-sm text-text-muted mb-6">Add a delivery address to checkout faster</p>
+          <h3 className="text-lg font-bold text-text-primary mb-2">{t('addresses.no_addresses')}</h3>
+          <p className="text-sm text-text-muted mb-6">{t('addresses.add_hint')}</p>
           <Button onClick={() => setAddOpen(true)} icon={<Plus size={16} />}>
-            Add Address
+            {t('addresses.add_new')}
           </Button>
         </div>
       ) : (
@@ -124,7 +132,7 @@ export default function AddressesPage() {
                     <div className="flex items-center gap-2 mb-1">
                       <span className="text-sm font-bold text-text-primary">{address.label}</span>
                       {address.isDefault && (
-                        <span className="text-[10px] font-bold text-primary-darker bg-primary-xlight px-2 py-0.5 rounded-full">Default</span>
+                        <span className="text-[10px] font-bold text-primary-darker bg-primary-xlight px-2 py-0.5 rounded-full">{t('common.default')}</span>
                       )}
                     </div>
                     <p className="text-xs text-text-muted leading-relaxed">{address.address}</p>
@@ -150,24 +158,24 @@ export default function AddressesPage() {
       )}
 
       {/* Add modal */}
-      <Modal open={addOpen} onClose={() => setAddOpen(false)} title="Add New Address">
+      <Modal open={addOpen} onClose={() => setAddOpen(false)} title={t('addresses.add_new')}>
         <div className="space-y-4">
           {/* Label */}
           <div>
-            <label className="text-xs font-semibold text-text-secondary uppercase tracking-wide block mb-2">Label</label>
+            <label className="text-xs font-semibold text-text-secondary uppercase tracking-wide block mb-2">{t('common.label')}</label>
             <div className="flex gap-2">
-              {LABEL_OPTIONS.map((opt) => {
-                const Icon = ADDRESS_ICONS[opt] || MapPin;
+              {LABEL_KEYS.map(({ key, tKey }) => {
+                const Icon = ADDRESS_ICONS[key] || MapPin;
                 return (
                   <button
-                    key={opt}
-                    onClick={() => setForm((f) => ({ ...f, label: opt }))}
+                    key={key}
+                    onClick={() => setForm((f) => ({ ...f, label: key }))}
                     className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl border-2 text-sm font-semibold transition-colors ${
-                      form.label === opt ? "border-primary bg-primary-xlight text-primary-darker" : "border-border text-text-muted hover:border-gray-300"
+                      form.label === key ? "border-primary bg-primary-xlight text-primary-darker" : "border-border text-text-muted hover:border-gray-300"
                     }`}
                   >
                     <Icon size={15} />
-                    {opt}
+                    {t(tKey)}
                   </button>
                 );
               })}
@@ -175,8 +183,8 @@ export default function AddressesPage() {
           </div>
 
           <Input
-            label="Street Address"
-            placeholder="123 Main Street, City, Country"
+            label={t('common.address_details')}
+            placeholder={t('addresses.placeholder_address')}
             value={form.address}
             onChange={(e) => setForm((f) => ({ ...f, address: e.target.value }))}
             icon={<MapPin size={18} />}
@@ -184,14 +192,14 @@ export default function AddressesPage() {
 
           <div className="grid grid-cols-2 gap-3">
             <Input
-              label="Latitude (optional)"
+              label={t('addresses.latitude')}
               type="number"
               placeholder="25.2048"
               value={form.latitude}
               onChange={(e) => setForm((f) => ({ ...f, latitude: e.target.value }))}
             />
             <Input
-              label="Longitude (optional)"
+              label={t('addresses.longitude')}
               type="number"
               placeholder="55.2708"
               value={form.longitude}
@@ -201,10 +209,10 @@ export default function AddressesPage() {
 
           <div className="flex gap-3 pt-2">
             <Button variant="ghost" fullWidth onClick={() => setAddOpen(false)}>
-              Cancel
+              {t('common.cancel')}
             </Button>
             <Button fullWidth loading={addMutation.isPending} onClick={handleAdd}>
-              Add Address
+              {t('addresses.add_new')}
             </Button>
           </div>
         </div>

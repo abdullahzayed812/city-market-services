@@ -1,11 +1,12 @@
 import { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, X, SlidersHorizontal, PackageSearch } from 'lucide-react';
+import { Search, X, PackageSearch } from 'lucide-react';
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { CatalogService } from '@/services/api/catalogService';
 import { ProductCard } from '@/components/shared/ProductCard';
 import { ProductCardSkeleton } from '@/components/ui/Skeleton';
+import { useTranslation } from 'react-i18next';
 import type { Category } from '@/types';
 
 export default function SearchPage() {
@@ -14,6 +15,7 @@ export default function SearchPage() {
   const [debouncedQuery, setDebouncedQuery] = useState(query);
   const [selectedCategory, setSelectedCategory] = useState(params.get('categoryId') || '');
   const inputRef = useRef<HTMLInputElement>(null);
+  const { t } = useTranslation();
 
   useEffect(() => {
     inputRef.current?.focus();
@@ -65,14 +67,14 @@ export default function SearchPage() {
         <div className="relative">
           <Search
             size={18}
-            className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none"
+            className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none rtl:left-auto rtl:right-4"
           />
           <input
             ref={inputRef}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search products, brands, stores..."
-            className="w-full h-13 pl-12 pr-12 bg-white rounded-2xl text-sm font-medium text-text-primary placeholder:text-text-muted shadow-card border border-transparent focus:outline-none focus:ring-2 focus:ring-primary/25 focus:border-primary/20 transition-all"
+            placeholder={t('home.search_placeholder')}
+            className="w-full h-13 pl-12 pr-12 rtl:pl-12 rtl:pr-12 bg-white rounded-2xl text-sm font-medium text-text-primary placeholder:text-text-muted shadow-card border border-transparent focus:outline-none focus:ring-2 focus:ring-primary/25 focus:border-primary/20 transition-all"
           />
           <AnimatePresence>
             {query && (
@@ -81,7 +83,7 @@ export default function SearchPage() {
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.8 }}
                 onClick={() => setQuery('')}
-                className="absolute right-4 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-primary"
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-primary rtl:right-auto rtl:left-4"
               >
                 <X size={18} />
               </motion.button>
@@ -101,7 +103,7 @@ export default function SearchPage() {
                 : 'bg-white text-text-secondary hover:text-text-primary shadow-card border border-transparent'
             }`}
           >
-            All
+            {t('search.all')}
           </button>
           {categories.map((cat: Category) => (
             <button
@@ -123,9 +125,9 @@ export default function SearchPage() {
       {(debouncedQuery || selectedCategory) && (
         <div className="flex items-center justify-between mb-4">
           <p className="text-sm text-text-muted">
-            {isLoading ? 'Searching...' : `${products.length} result${products.length !== 1 ? 's' : ''}`}
+            {isLoading ? t('search.searching') : `${products.length} ${t('search.results')}`}
             {debouncedQuery && (
-              <span className="font-semibold text-text-primary"> for "{debouncedQuery}"</span>
+              <span className="font-semibold text-text-primary"> {t('search.in')} "{debouncedQuery}"</span>
             )}
           </p>
         </div>
@@ -147,18 +149,18 @@ export default function SearchPage() {
           <div className="w-20 h-20 bg-primary-xlight rounded-full flex items-center justify-center mb-4">
             <PackageSearch size={36} className="text-primary" />
           </div>
-          <h3 className="text-lg font-bold text-text-primary mb-2">No products found</h3>
+          <h3 className="text-lg font-bold text-text-primary mb-2">{t('common.no_results')}</h3>
           <p className="text-sm text-text-muted max-w-xs">
             {debouncedQuery
-              ? `We couldn't find anything matching "${debouncedQuery}". Try a different search.`
-              : 'Start searching for products above'}
+              ? t('search.no_results_hint')
+              : t('search.min_chars')}
           </p>
           {debouncedQuery && (
             <button
               onClick={() => setQuery('')}
               className="mt-4 px-5 py-2.5 bg-primary text-white text-sm font-semibold rounded-xl hover:bg-primary-dark transition-colors"
             >
-              Clear Search
+              {t('search.clear')}
             </button>
           )}
         </motion.div>
@@ -177,7 +179,7 @@ export default function SearchPage() {
                 disabled={isFetchingNextPage}
                 className="px-8 py-3 bg-white border border-border text-sm font-semibold text-text-secondary rounded-xl hover:bg-gray-50 transition-colors disabled:opacity-50"
               >
-                {isFetchingNextPage ? 'Loading...' : 'Load More'}
+                {isFetchingNextPage ? t('common.loading') : t('store.load_more')}
               </button>
             </div>
           )}

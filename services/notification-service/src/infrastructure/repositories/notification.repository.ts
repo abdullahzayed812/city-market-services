@@ -43,6 +43,14 @@ export class NotificationRepository implements INotificationRepository {
     }));
   }
 
+  async countAll(userId: string): Promise<number> {
+    const [rows] = await this.pool.query<RowDataPacket[]>(
+      "SELECT COUNT(*) as count FROM notifications WHERE user_id = ?",
+      [userId],
+    );
+    return rows[0].count;
+  }
+
   async markAsRead(id: string): Promise<void> {
     await this.pool.execute("UPDATE notifications SET is_read = TRUE WHERE id = ?", [id]);
   }

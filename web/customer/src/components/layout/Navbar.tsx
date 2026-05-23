@@ -10,6 +10,8 @@ import { useCartStore, selectCartItemCount } from '@/store/cartStore';
 import { useQuery } from '@tanstack/react-query';
 import { NotificationService } from '@/services/api/notificationService';
 import { AuthService } from '@/services/api/authService';
+import { useTranslation } from 'react-i18next';
+import { useLanguage } from '@/hooks/useLanguage';
 import toast from 'react-hot-toast';
 
 export function Navbar() {
@@ -17,6 +19,8 @@ export function Navbar() {
   const location = useLocation();
   const { isAuthenticated, user, signOut, refreshToken } = useAuthStore();
   const itemCount = useCartStore(selectCartItemCount);
+  const { t } = useTranslation();
+  const { language, changeLanguage } = useLanguage();
 
   const [menuOpen, setMenuOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
@@ -35,16 +39,16 @@ export function Navbar() {
       if (refreshToken) await AuthService.logout(refreshToken);
     } catch {}
     signOut();
-    toast.success('Signed out successfully');
+    toast.success(t('common.logout'));
     navigate('/');
     setUserMenuOpen(false);
   };
 
   const navLinks = [
-    { href: '/', label: 'Home', icon: Home },
-    { href: '/stores', label: 'Stores', icon: Store },
-    { href: '/search', label: 'Search', icon: Search },
-    { href: '/orders', label: 'My Orders', icon: ClipboardList },
+    { href: '/', label: t('home.title'), icon: Home },
+    { href: '/stores', label: t('home.stores'), icon: Store },
+    { href: '/search', label: t('common.search'), icon: Search },
+    { href: '/orders', label: t('orders.title'), icon: ClipboardList },
   ];
 
   const initials = user?.name
@@ -102,6 +106,15 @@ export function Navbar() {
             >
               <Search size={18} />
             </Link>
+
+            {/* Language toggle */}
+            <button
+              onClick={() => changeLanguage(language === 'ar' ? 'en' : 'ar')}
+              className="w-9 h-9 flex items-center justify-center rounded-xl text-text-muted hover:bg-gray-100 hover:text-text-primary transition-colors font-bold text-xs"
+              title={language === 'ar' ? 'Switch to English' : 'التبديل للعربية'}
+            >
+              {language === 'ar' ? 'EN' : 'عربي'}
+            </button>
 
             {/* Notifications */}
             {isAuthenticated && (
@@ -190,9 +203,9 @@ export function Navbar() {
                         </div>
                         <div className="py-1">
                           {[
-                            { to: '/profile', icon: User, label: 'My Profile' },
-                            { to: '/orders', icon: ClipboardList, label: 'My Orders' },
-                            { to: '/addresses', icon: MapPin, label: 'Addresses' },
+                            { to: '/profile', icon: User, label: t('profile.title') },
+                            { to: '/orders', icon: ClipboardList, label: t('orders.title') },
+                            { to: '/addresses', icon: MapPin, label: t('profile.addresses') },
                             { to: '/notifications', icon: Bell, label: 'Notifications', badge: unreadCount },
                           ].map(({ to, icon: Icon, label, badge }) => (
                             <Link
@@ -217,7 +230,7 @@ export function Navbar() {
                             className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-error hover:bg-error-light transition-colors"
                           >
                             <LogOut size={15} />
-                            Sign Out
+                            {t('common.logout')}
                           </button>
                         </div>
                       </motion.div>
@@ -231,13 +244,13 @@ export function Navbar() {
                   to="/login"
                   className="px-4 py-2 text-sm font-semibold text-text-secondary hover:text-primary hover:bg-gray-50 rounded-xl transition-colors"
                 >
-                  Sign In
+                  {t('common.login')}
                 </Link>
                 <Link
                   to="/register"
                   className="px-4 py-2 text-sm font-bold bg-primary text-white rounded-xl hover:bg-primary-dark transition-colors shadow-primary-glow/40"
                 >
-                  Get Started
+                  {t('common.register')}
                 </Link>
               </div>
             )}
@@ -298,7 +311,7 @@ export function Navbar() {
                     className="flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-semibold text-text-secondary hover:bg-gray-50 transition-colors"
                   >
                     <User size={18} className="text-text-muted" />
-                    Profile
+                    {t('profile.title')}
                   </Link>
                   <Link
                     to="/notifications"
@@ -318,7 +331,7 @@ export function Navbar() {
                     className="flex items-center gap-3 w-full px-3 py-3 rounded-xl text-sm font-semibold text-error hover:bg-error-light transition-colors"
                   >
                     <LogOut size={18} />
-                    Sign Out
+                    {t('common.logout')}
                   </button>
                 </>
               ) : (
@@ -328,14 +341,14 @@ export function Navbar() {
                     onClick={() => setMenuOpen(false)}
                     className="flex-1 py-3 text-center text-sm font-semibold text-primary border-2 border-primary rounded-xl hover:bg-primary-xlight transition-colors"
                   >
-                    Sign In
+                    {t('common.login')}
                   </Link>
                   <Link
                     to="/register"
                     onClick={() => setMenuOpen(false)}
                     className="flex-1 py-3 text-center text-sm font-bold bg-primary text-white rounded-xl hover:bg-primary-dark transition-colors"
                   >
-                    Get Started
+                    {t('common.register')}
                   </Link>
                 </div>
               )}

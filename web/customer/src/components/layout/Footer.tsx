@@ -1,7 +1,38 @@
 import { Link } from 'react-router-dom';
 import { ShoppingBag } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 export function Footer() {
+  const { t } = useTranslation();
+
+  const sections = [
+    {
+      titleKey: 'footer.shop_title',
+      links: [
+        { to: '/stores', labelKey: 'footer.all_stores' },
+        { to: '/search', labelKey: 'footer.search_products' },
+        { to: '/stores?type=SUPERMARKET', labelKey: 'footer.supermarkets' },
+        { to: '/stores?type=BAKERY', labelKey: 'footer.bakeries' },
+      ],
+    },
+    {
+      titleKey: 'footer.account_title',
+      links: [
+        { to: '/profile', labelKey: 'footer.my_profile' },
+        { to: '/orders', labelKey: 'footer.my_orders' },
+        { to: '/addresses', labelKey: 'footer.my_addresses' },
+        { to: '/notifications', labelKey: 'footer.my_notifications' },
+      ],
+    },
+    {
+      titleKey: 'footer.legal_title',
+      links: [
+        { to: '/terms', labelKey: 'footer.terms' },
+        { to: '/terms', labelKey: 'footer.privacy' },
+      ],
+    },
+  ];
+
   return (
     <footer className="hidden md:block bg-white border-t border-gray-100 mt-auto">
       <div className="max-w-7xl mx-auto px-6 py-10">
@@ -17,52 +48,26 @@ export function Footer() {
               </span>
             </Link>
             <p className="text-sm text-text-muted leading-relaxed mb-4">
-              Fresh groceries and everyday essentials delivered fast to your door.
+              {t('footer.tagline')}
             </p>
             <div className="flex items-center gap-1.5 text-xs text-text-muted">
               <span className="w-2 h-2 rounded-full bg-success animate-pulse-soft" />
-              All systems operational
+              {t('footer.all_systems')}
             </div>
           </div>
 
           {/* Links */}
-          {[
-            {
-              title: 'Shop',
-              links: [
-                { to: '/stores', label: 'All Stores' },
-                { to: '/search', label: 'Search Products' },
-                { to: '/stores?type=SUPERMARKET', label: 'Supermarkets' },
-                { to: '/stores?type=BAKERY', label: 'Bakeries' },
-              ],
-            },
-            {
-              title: 'Account',
-              links: [
-                { to: '/profile', label: 'My Profile' },
-                { to: '/orders', label: 'My Orders' },
-                { to: '/addresses', label: 'Addresses' },
-                { to: '/notifications', label: 'Notifications' },
-              ],
-            },
-            {
-              title: 'Legal',
-              links: [
-                { to: '/terms', label: 'Terms & Conditions' },
-                { to: '/terms', label: 'Privacy Policy' },
-              ],
-            },
-          ].map(({ title, links }) => (
-            <div key={title}>
-              <h4 className="font-bold text-text-primary mb-4 text-sm">{title}</h4>
+          {sections.map(({ titleKey, links }) => (
+            <div key={titleKey}>
+              <h4 className="font-bold text-text-primary mb-4 text-sm">{t(titleKey)}</h4>
               <ul className="space-y-2.5">
-                {links.map(({ to, label }) => (
-                  <li key={label}>
+                {links.map(({ to, labelKey }) => (
+                  <li key={labelKey}>
                     <Link
                       to={to}
                       className="text-sm text-text-muted hover:text-primary transition-colors"
                     >
-                      {label}
+                      {t(labelKey)}
                     </Link>
                   </li>
                 ))}
@@ -73,14 +78,14 @@ export function Footer() {
 
         <div className="border-t border-gray-100 pt-6 flex flex-col sm:flex-row justify-between items-center gap-3">
           <p className="text-sm text-text-muted">
-            © {new Date().getFullYear()} CityMarket. All rights reserved.
+            © {new Date().getFullYear()} {t('footer.copyright')}
           </p>
           <div className="flex items-center gap-2 text-sm text-text-muted">
-            <span>Fresh</span>
+            <span>{t('footer.fresh')}</span>
             <span className="w-1 h-1 rounded-full bg-gray-300" />
-            <span>Fast</span>
+            <span>{t('footer.fast')}</span>
             <span className="w-1 h-1 rounded-full bg-gray-300" />
-            <span>Reliable</span>
+            <span>{t('footer.reliable')}</span>
           </div>
         </div>
       </div>

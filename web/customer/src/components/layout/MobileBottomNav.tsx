@@ -2,25 +2,27 @@ import { Link, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Home, ShoppingCart, ClipboardList, User, Search } from 'lucide-react';
 import { useCartStore, selectCartItemCount } from '@/store/cartStore';
-
-const tabs = [
-  { href: '/', label: 'Home', icon: Home },
-  { href: '/search', label: 'Search', icon: Search },
-  { href: '/cart', label: 'Cart', icon: ShoppingCart },
-  { href: '/orders', label: 'Orders', icon: ClipboardList },
-  { href: '/profile', label: 'Profile', icon: User },
-];
+import { useTranslation } from 'react-i18next';
 
 export function MobileBottomNav() {
   const location = useLocation();
   const cartCount = useCartStore(selectCartItemCount);
+  const { t } = useTranslation();
+
+  const tabs = [
+    { href: '/', labelKey: 'nav.home', icon: Home },
+    { href: '/search', labelKey: 'nav.search', icon: Search },
+    { href: '/cart', labelKey: 'nav.cart', icon: ShoppingCart },
+    { href: '/orders', labelKey: 'nav.orders', icon: ClipboardList },
+    { href: '/profile', labelKey: 'nav.profile', icon: User },
+  ];
 
   return (
     <nav className="md:hidden fixed bottom-0 inset-x-0 z-30 safe-area-pb">
       {/* Frosted bar */}
       <div className="glass border-t border-white/60 shadow-nav">
         <div className="flex items-center h-[60px] px-1">
-          {tabs.map(({ href, label, icon: Icon }) => {
+          {tabs.map(({ href, labelKey, icon: Icon }) => {
             const isActive = location.pathname === href;
             const isCart = href === '/cart';
 
@@ -66,7 +68,7 @@ export function MobileBottomNav() {
                     isActive ? 'text-primary' : 'text-slate-400'
                   }`}
                 >
-                  {label}
+                  {t(labelKey)}
                 </span>
               </Link>
             );

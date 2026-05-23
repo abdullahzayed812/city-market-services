@@ -5,6 +5,8 @@ import { RatingService } from "@/services/api/ratingService";
 import { VendorService } from "@/services/api/vendorService";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { formatDate } from "@/lib/utils";
+import { useTranslation } from "react-i18next";
+import { useLanguage } from "@/hooks/useLanguage";
 
 function StarDisplay({ stars }: { stars: number }) {
   return (
@@ -19,6 +21,8 @@ function StarDisplay({ stars }: { stars: number }) {
 export default function VendorReviewsPage() {
   const { vendorId } = useParams<{ vendorId: string }>();
   const navigate = useNavigate();
+  const { t } = useTranslation();
+  const { isRTL } = useLanguage();
 
   const { data: vendor } = useQuery({
     queryKey: ["vendor", vendorId],
@@ -49,9 +53,9 @@ export default function VendorReviewsPage() {
           onClick={() => navigate(-1)}
           className="w-9 h-9 flex items-center justify-center rounded-xl bg-white shadow-soft text-text-muted hover:text-text-primary transition-colors"
         >
-          <ChevronLeft size={20} />
+          <ChevronLeft size={20} className={isRTL ? "rotate-180" : ""} />
         </button>
-        <h1 className="text-2xl font-black text-text-primary tracking-tight flex-1">Reviews</h1>
+        <h1 className="text-2xl font-black text-text-primary tracking-tight flex-1">{t('store.reviews')}</h1>
       </div>
 
       {/* Rating summary */}
@@ -61,7 +65,7 @@ export default function VendorReviewsPage() {
           <div className="text-center">
             <p className="text-5xl font-black text-text-primary">{avgRating > 0 ? avgRating.toFixed(1) : "—"}</p>
             <StarDisplay stars={Math.round(avgRating)} />
-            <p className="text-xs text-text-muted mt-1">{totalRatings} reviews</p>
+            <p className="text-xs text-text-muted mt-1">{totalRatings} {t('store.reviews')}</p>
           </div>
           <div className="flex-1 space-y-1.5">
             {[5, 4, 3, 2, 1].map((n) => {
@@ -94,8 +98,8 @@ export default function VendorReviewsPage() {
           <div className="w-16 h-16 bg-primary-xlight rounded-full flex items-center justify-center mb-3">
             <MessageSquare size={28} className="text-primary" strokeWidth={1.5} />
           </div>
-          <p className="font-bold text-text-primary">No reviews yet</p>
-          <p className="text-sm text-text-muted">Be the first to review this store</p>
+          <p className="font-bold text-text-primary">{t('store.no_reviews')}</p>
+          <p className="text-sm text-text-muted">{t('vendor_reviews.be_first')}</p>
         </div>
       ) : (
         <div className="space-y-3">
@@ -106,7 +110,7 @@ export default function VendorReviewsPage() {
                   <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-emerald-400 flex items-center justify-center text-white text-xs font-bold">
                     {(r.customerName || "U")[0].toUpperCase()}
                   </div>
-                  <p className="text-sm font-bold text-text-primary">{r.customerName || "Customer"}</p>
+                  <p className="text-sm font-bold text-text-primary">{r.customerName || t('vendor_reviews.anonymous')}</p>
                 </div>
                 <StarDisplay stars={r.stars} />
               </div>

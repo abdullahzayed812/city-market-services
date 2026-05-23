@@ -1,7 +1,9 @@
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Star, Clock, Bike, ShoppingCart, Wheat, Store, Leaf, ChefHat } from "lucide-react";
+import { Star, Clock, Bike, ShoppingCart, Wheat, Store, Leaf, ChefHat, Fish, Pill, Drumstick, Coffee } from "lucide-react";
 import { getImageUrl } from "@/lib/utils";
+import { useTranslation } from "react-i18next";
+import { VendorType } from "@/types";
 import type { Vendor } from "@/types";
 
 interface VendorCardProps {
@@ -10,35 +12,51 @@ interface VendorCardProps {
 }
 
 const TYPE_ICON: Record<string, React.ElementType> = {
-  SUPERMARKET: ShoppingCart,
-  BAKERY: Wheat,
-  BUTCHER: ChefHat,
-  GROCERY: Store,
-  FRUITS: Leaf,
+  [VendorType.Supermarket]: ShoppingCart,
+  [VendorType.Bakery]: Wheat,
+  [VendorType.Butcher]: ChefHat,
+  [VendorType.VegFruit]: Leaf,
+  [VendorType.Pharmacy]: Pill,
+  [VendorType.Poultry]: Drumstick,
+  [VendorType.Fish]: Fish,
+  [VendorType.Roastery]: Coffee,
+  [VendorType.Pastry]: Wheat,
+  [VendorType.Stationery]: Store,
 };
 
 const TYPE_COLOR: Record<string, string> = {
-  SUPERMARKET: "#10B981",
-  BAKERY: "#F59E0B",
-  BUTCHER: "#EF4444",
-  GROCERY: "#3B82F6",
-  FRUITS: "#22C55E",
+  [VendorType.Supermarket]: "#10B981",
+  [VendorType.Bakery]: "#F59E0B",
+  [VendorType.Butcher]: "#EF4444",
+  [VendorType.VegFruit]: "#22C55E",
+  [VendorType.Pharmacy]: "#3B82F6",
+  [VendorType.Poultry]: "#F97316",
+  [VendorType.Fish]: "#06B6D4",
+  [VendorType.Roastery]: "#92400E",
+  [VendorType.Pastry]: "#EC4899",
+  [VendorType.Stationery]: "#8B5CF6",
 };
 
-const TYPE_LABEL: Record<string, string> = {
-  SUPERMARKET: "Supermarket",
-  BAKERY: "Bakery",
-  BUTCHER: "Butcher",
-  GROCERY: "Grocery",
-  FRUITS: "Fruits & Veg",
+const TYPE_KEY: Record<string, string> = {
+  [VendorType.Supermarket]: "home.type_supermarket",
+  [VendorType.Bakery]: "home.type_bakery",
+  [VendorType.Butcher]: "home.type_butcher",
+  [VendorType.VegFruit]: "home.type_vegfruit",
+  [VendorType.Pharmacy]: "home.type_pharmacy",
+  [VendorType.Poultry]: "home.type_poultry",
+  [VendorType.Fish]: "home.type_fish",
+  [VendorType.Roastery]: "home.type_roastery",
+  [VendorType.Pastry]: "home.type_pastry",
+  [VendorType.Stationery]: "home.type_stationery",
 };
 
 export function VendorCard({ vendor, variant = "default" }: VendorCardProps) {
+  const { t } = useTranslation();
   const imageUrl = getImageUrl(vendor.storeImage);
   const isOpen = vendor.isOpen !== false;
   const VendorIcon = TYPE_ICON[vendor.type || ""] || Store;
   const iconColor = TYPE_COLOR[vendor.type || ""] || "#10B981";
-  const typeLabel = TYPE_LABEL[vendor.type || ""] || (vendor.type ?? "Store");
+  const typeLabel = vendor.type ? t(TYPE_KEY[vendor.type] ?? `home.type_other`) : "";
 
   if (variant === "horizontal") {
     return (
@@ -69,14 +87,14 @@ export function VendorCard({ vendor, variant = "default" }: VendorCardProps) {
               {vendor.estimatedDeliveryTime && (
                 <span className="flex items-center gap-1 text-xs text-text-muted">
                   <Clock size={11} />
-                  {vendor.estimatedDeliveryTime} min
+                  {vendor.estimatedDeliveryTime} {t('common.minutes')}
                 </span>
               )}
             </div>
           </div>
           <div className="flex items-start pt-0.5">
             <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${isOpen ? "bg-success/10 text-success" : "bg-gray-100 text-text-muted"}`}>
-              {isOpen ? "Open" : "Closed"}
+              {isOpen ? t('home.open') : t('home.closed')}
             </span>
           </div>
         </motion.div>
@@ -111,7 +129,7 @@ export function VendorCard({ vendor, variant = "default" }: VendorCardProps) {
                 isOpen ? "bg-success/80 text-white border-success/20" : "bg-black/50 text-white/80 border-white/10"
               }`}
             >
-              {isOpen ? "Open" : "Closed"}
+              {isOpen ? t('home.open') : t('home.closed')}
             </span>
           </div>
 
@@ -144,10 +162,10 @@ export function VendorCard({ vendor, variant = "default" }: VendorCardProps) {
           {vendor.estimatedDeliveryTime ? (
             <span className="flex items-center gap-1 text-xs text-text-muted">
               <Bike size={12} />
-              {vendor.estimatedDeliveryTime} min
+              {vendor.estimatedDeliveryTime} {t('common.minutes')}
             </span>
           ) : null}
-          {!vendor.rating && !vendor.estimatedDeliveryTime && <span className="text-xs text-text-muted">View store</span>}
+          {!vendor.rating && !vendor.estimatedDeliveryTime && <span className="text-xs text-text-muted">{t('store.view_store')}</span>}
         </div>
       </motion.div>
     </Link>

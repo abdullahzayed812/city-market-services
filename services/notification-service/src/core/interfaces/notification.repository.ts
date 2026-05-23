@@ -4,6 +4,7 @@ export interface INotificationRepository {
   // Notifications
   create(notification: Notification): Promise<Notification>;
   findByUserId(userId: string, limit: number, offset: number): Promise<Notification[]>;
+  countAll(userId: string): Promise<number>;
   markAsRead(id: string): Promise<void>;
   markAllAsRead(userId: string): Promise<void>;
   countUnread(userId: string): Promise<number>;

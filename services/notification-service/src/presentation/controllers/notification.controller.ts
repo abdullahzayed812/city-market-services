@@ -27,7 +27,7 @@ export class NotificationController {
       const page = Number(req.query.page) || 1;
       const limit = Number(req.query.limit) || 20;
       const result = await this.service.getNotifications(req.user!.userId, page, limit);
-      res.json(result);
+      res.json(ApiResponse.success(result));
     } catch (error) {
       next(error);
     }

@@ -2,11 +2,14 @@ import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Shield, ChevronDown, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
+import { useTranslation } from 'react-i18next';
 
 export function TermsModal() {
+  const { t } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
   const [hasScrolledToBottom, setHasScrolledToBottom] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const sections = t('terms.sections', { returnObjects: true }) as { heading: string; body: string }[];
 
   useEffect(() => {
     const accepted = localStorage.getItem('citymarket_terms_accepted');
@@ -46,8 +49,8 @@ export function TermsModal() {
               <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center mx-auto mb-3 border border-white/20">
                 <Shield size={24} className="text-white" />
               </div>
-              <h2 className="text-xl font-black tracking-tight">Terms & Conditions</h2>
-              <p className="text-white/80 text-xs mt-1 font-medium tracking-wide uppercase">Last updated: April 2025</p>
+              <h2 className="text-xl font-black tracking-tight">{t('terms.title')}</h2>
+              <p className="text-white/80 text-xs mt-1 font-medium tracking-wide uppercase">{t('terms.lastUpdated')}</p>
             </div>
           </div>
 
@@ -58,44 +61,11 @@ export function TermsModal() {
             className="flex-1 overflow-y-auto p-6 space-y-6"
           >
             <p className="text-sm text-text-secondary leading-relaxed">
-              Welcome to CityMarket. By using our customer app, you agree to be bound by the following terms and conditions. Please read them carefully before proceeding.
+              {t('terms.intro')}
             </p>
 
             <div className="space-y-5">
-              {[
-                {
-                  heading: "Acceptance of Terms",
-                  body: "By accessing and using the CityMarket customer app, you accept and agree to be bound by these Terms and Conditions and our Privacy Policy. If you do not agree to these terms, please do not use the app."
-                },
-                {
-                  heading: "Account Registration",
-                  body: "You must create an account to use most features of CityMarket. You are responsible for maintaining the confidentiality of your account credentials and for all activities that occur under your account. You must provide accurate and complete information during registration."
-                },
-                {
-                  heading: "Ordering and Payments",
-                  body: "When you place an order through CityMarket, you agree to pay the listed price plus any applicable delivery fees. All orders are subject to product availability. We reserve the right to cancel or modify orders in cases of pricing errors or stock unavailability."
-                },
-                {
-                  heading: "Delivery",
-                  body: "Delivery times are estimates and may vary based on distance, traffic, and vendor preparation time. CityMarket is not liable for delays caused by circumstances beyond our control. You are responsible for providing an accurate delivery address."
-                },
-                {
-                  heading: "Cancellations and Refunds",
-                  body: "Orders may be cancelled before they are confirmed by the vendor. Once an order is confirmed and being prepared, cancellation may not be possible. Refunds for eligible cancellations will be processed within 3–7 business days."
-                },
-                {
-                  heading: "User Conduct",
-                  body: "You agree not to misuse the app, submit false or fraudulent orders, abuse promotional offers, or engage in any conduct that violates applicable laws. CityMarket reserves the right to suspend or terminate accounts that violate these terms."
-                },
-                {
-                  heading: "Privacy and Data",
-                  body: "We collect and process your personal data in accordance with our Privacy Policy. By using the app, you consent to such collection and processing. We do not sell your personal information to third parties."
-                },
-                {
-                  heading: "Changes to Terms",
-                  body: "CityMarket reserves the right to update these Terms and Conditions at any time. Continued use of the app after changes are posted constitutes your acceptance of the revised terms."
-                }
-              ].map((section, idx) => (
+              {sections.map((section, idx) => (
                 <div key={idx} className="space-y-1.5">
                   <h3 className="text-sm font-black text-text-primary flex items-center gap-2">
                     <span className="w-5 h-5 rounded-md bg-primary-xlight text-primary text-[10px] flex items-center justify-center font-black">
@@ -111,7 +81,7 @@ export function TermsModal() {
             </div>
 
             <p className="text-sm text-text-secondary font-medium italic pt-4 border-t border-gray-100">
-              By tapping "Accept & Continue", you confirm that you have read, understood, and agree to these Terms and Conditions.
+              {t('terms.closing')}
             </p>
           </div>
 
@@ -120,7 +90,7 @@ export function TermsModal() {
             {!hasScrolledToBottom && (
               <div className="flex items-center justify-center gap-1.5 text-text-muted text-xs font-bold mb-1 animate-bounce">
                 <ChevronDown size={14} />
-                Scroll down to read
+                {t('auth.scroll_to_read')}
               </div>
             )}
             <Button
@@ -131,13 +101,13 @@ export function TermsModal() {
               className="h-14 rounded-2xl shadow-primary-glow"
               iconRight={hasScrolledToBottom ? <CheckCircle2 size={18} /> : undefined}
             >
-              Accept & Continue
+              {t('terms.accept')}
             </Button>
             <button
               onClick={() => window.location.href = 'about:blank'}
               className="text-sm font-bold text-error hover:text-error-dark transition-colors py-2"
             >
-              Decline
+              {t('terms.decline')}
             </button>
           </div>
         </motion.div>

@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ChevronLeft, ShoppingCart, Plus, Minus, Scale, Package, Star, Store, AlertCircle } from "lucide-react";
+import { ChevronLeft, ShoppingCart, Plus, Minus, Scale, Package, Store, AlertCircle } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { CatalogService } from "@/services/api/catalogService";
 import { VendorService } from "@/services/api/vendorService";
@@ -10,6 +10,8 @@ import { Button } from "@/components/ui/Button";
 import { useCartStore } from "@/store/cartStore";
 import { MeasurementType } from "@/types";
 import { getImageUrl, formatPrice } from "@/lib/utils";
+import { useTranslation } from "react-i18next";
+import { useLanguage } from "@/hooks/useLanguage";
 import toast from "react-hot-toast";
 
 export default function ProductDetailsPage() {
@@ -17,6 +19,8 @@ export default function ProductDetailsPage() {
   const navigate = useNavigate();
   const addToCart = useCartStore((s) => s.addToCart);
   const items = useCartStore((s) => s.items);
+  const { t } = useTranslation();
+  const { isRTL } = useLanguage();
 
   const [amount, setAmount] = useState(1);
 
@@ -68,7 +72,7 @@ export default function ProductDetailsPage() {
       isAvailable: stockAvailable,
       ...(isWeight ? { weightGrams: amount, weight: amount / 1000 } : { quantity: amount }),
     });
-    toast.success("Added to cart!");
+    toast.success(t('store.added_to_cart'));
     navigate(-1);
   };
 
@@ -89,9 +93,9 @@ export default function ProductDetailsPage() {
     return (
       <div className="flex flex-col items-center justify-center py-20 text-center px-4">
         <AlertCircle size={48} className="text-error mb-4" />
-        <h2 className="text-xl font-bold text-text-primary mb-2">Product not found</h2>
+        <h2 className="text-xl font-bold text-text-primary mb-2">{t('store.not_found')}</h2>
         <button onClick={() => navigate(-1)} className="text-primary font-semibold text-sm">
-          Go back
+          {t('common.go_back')}
         </button>
       </div>
     );
@@ -106,8 +110,8 @@ export default function ProductDetailsPage() {
         onClick={() => navigate(-1)}
         className="flex items-center gap-2 text-text-muted hover:text-text-primary text-sm font-semibold mb-6 transition-colors"
       >
-        <ChevronLeft size={18} />
-        Back
+        <ChevronLeft size={18} className={isRTL ? "rotate-180" : ""} />
+        {t('common.go_back')}
       </button>
 
       <div className="bg-white rounded-3xl shadow-card overflow-hidden">
@@ -122,13 +126,13 @@ export default function ProductDetailsPage() {
           )}
           {!stockAvailable && (
             <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-              <span className="bg-white text-text-primary font-bold px-5 py-2.5 rounded-xl shadow-medium">Out of Stock</span>
+              <span className="bg-white text-text-primary font-bold px-5 py-2.5 rounded-xl shadow-medium">{t('store.out_of_stock')}</span>
             </div>
           )}
           {isWeight && (
             <div className="absolute top-4 left-4 bg-white/95 backdrop-blur-sm text-xs font-bold text-text-secondary px-3 py-1.5 rounded-full flex items-center gap-1.5 shadow-soft">
               <Scale size={12} />
-              Sold by weight
+              {t('store.sold_by_weight')}
             </div>
           )}
         </div>
@@ -139,16 +143,18 @@ export default function ProductDetailsPage() {
             <h1 className="text-xl font-black text-text-primary leading-tight flex-1">{product.name}</h1>
             <div className="text-right flex-shrink-0">
               <span className="text-2xl font-black text-primary">{formatPrice(product.price)}</span>
-              {isWeight && <span className="text-sm text-text-muted ml-1">/kg</span>}
+              {isWeight && <span className="text-sm text-text-muted ml-1">/{t('common.kg')}</span>}
             </div>
           </div>
 
           {/* Stock status */}
           <div className="flex items-center gap-2 mb-4">
             <span className={`w-2 h-2 rounded-full ${stockAvailable ? "bg-success" : "bg-error"}`} />
-            <span className={`text-sm font-semibold ${stockAvailable ? "text-success" : "text-error"}`}>{stockAvailable ? "In Stock" : "Out of Stock"}</span>
-            {stockAvailable && isWeight && <span className="text-xs text-text-muted">· {((product.stockWeightGrams || 0) / 1000).toFixed(1)}kg available</span>}
-            {stockAvailable && !isWeight && <span className="text-xs text-text-muted">· {product.stockQuantity} available</span>}
+            <span className={`text-sm font-semibold ${stockAvailable ? "text-success" : "text-error"}`}>
+              {stockAvailable ? t('product.in_stock') : t('store.out_of_stock')}
+            </span>
+            {stockAvailable && isWeight && <span className="text-xs text-text-muted">· {((product.stockWeightGrams || 0) / 1000).toFixed(1)}{t('common.kg')} {t('product.available')}</span>}
+            {stockAvailable && !isWeight && <span className="text-xs text-text-muted">· {product.stockQuantity} {t('product.available')}</span>}
           </div>
 
           {/* Store link */}
@@ -163,7 +169,7 @@ export default function ProductDetailsPage() {
           {product.description && (
             <>
               <div className="h-px bg-border mb-4" />
-              <h3 className="text-sm font-bold text-text-secondary uppercase tracking-wide mb-2">Description</h3>
+              <h3 className="text-sm font-bold text-text-secondary uppercase tracking-wide mb-2">{t('common.description')}</h3>
               <p className="text-sm text-text-secondary leading-relaxed">{product.description}</p>
             </>
           )}
@@ -174,9 +180,11 @@ export default function ProductDetailsPage() {
               <div className="h-px bg-border my-5" />
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="text-sm font-bold text-text-primary mb-0.5">{isWeight ? "Select Weight" : "Quantity"}</h3>
+                  <h3 className="text-sm font-bold text-text-primary mb-0.5">
+                    {isWeight ? t('product.weight') : t('product.quantity')}
+                  </h3>
                   <p className="text-xs text-text-muted">
-                    {isWeight ? `${(amount / 1000).toFixed(1)} kg selected` : `${amount} item${amount !== 1 ? "s" : ""} selected`}
+                    {isWeight ? `${(amount / 1000).toFixed(1)} ${t('common.kg')} ${t('product.selected')}` : `${amount} ${t('cart.items')} ${t('product.selected')}`}
                   </p>
                 </div>
                 <div className="flex items-center gap-3">
@@ -187,7 +195,9 @@ export default function ProductDetailsPage() {
                   >
                     <Minus size={16} />
                   </motion.button>
-                  <span className="text-lg font-bold text-text-primary min-w-[3rem] text-center">{isWeight ? `${(amount / 1000).toFixed(1)}kg` : amount}</span>
+                  <span className="text-lg font-bold text-text-primary min-w-[3rem] text-center">
+                    {isWeight ? `${(amount / 1000).toFixed(1)}kg` : amount}
+                  </span>
                   <motion.button
                     whileTap={{ scale: 0.9 }}
                     onClick={handleIncrement}
@@ -204,7 +214,7 @@ export default function ProductDetailsPage() {
           {/* Add to cart */}
           <div className="mt-6">
             <Button fullWidth size="lg" onClick={handleAddToCart} disabled={!stockAvailable} icon={<ShoppingCart size={18} />}>
-              {inCart ? "Add More to Cart" : "Add to Cart"}
+              {inCart ? t('store.add_to_cart') : t('store.add_to_cart')}
             </Button>
           </div>
         </div>

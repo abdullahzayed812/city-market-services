@@ -1,15 +1,12 @@
-import apiClient from './apiClient';
-import type { Notification } from '@/types';
+import apiClient from "./apiClient";
+import type { Notification } from "@/types";
 
 export const NotificationService = {
-  getNotifications: async (
-    page = 1,
-    limit = 20,
-  ): Promise<{ items: Notification[]; unread: number }> => {
-    const response = await apiClient.get('/notification/notifications', {
+  getNotifications: async (page = 1, limit = 20): Promise<{ items: Notification[]; unread: number }> => {
+    const response = await apiClient.get("/notification/notifications", {
       params: { page, limit },
     });
-    return response.data?.data;
+    return response.data?.data ?? { items: [], unread: 0 };
   },
 
   markAsRead: async (id: string) => {
@@ -18,7 +15,7 @@ export const NotificationService = {
   },
 
   markAllAsRead: async () => {
-    const response = await apiClient.patch('/notification/notifications/read-all');
+    const response = await apiClient.patch("/notification/notifications/read-all");
     return response.data?.data;
   },
 
@@ -27,10 +24,10 @@ export const NotificationService = {
    * Called after the user grants notification permission and we obtain a token.
    */
   registerDeviceToken: async (token: string): Promise<void> => {
-    await apiClient.post('/notification/device-token', {
+    await apiClient.post("/notification/device-token", {
       token,
-      platform: 'WEB',
-      appType: 'CUSTOMER',
+      platform: "WEB",
+      appType: "CUSTOMER",
     });
   },
 
@@ -41,7 +38,7 @@ export const NotificationService = {
    */
   unregisterDeviceToken: async (token: string): Promise<void> => {
     try {
-      await apiClient.delete('/notification/device-token', { data: { token } });
+      await apiClient.delete("/notification/device-token", { data: { token } });
     } catch {
       // Non-critical — stale tokens are cleaned up automatically by the backend
     }

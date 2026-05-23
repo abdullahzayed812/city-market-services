@@ -126,11 +126,10 @@ export class NotificationService {
     const offset = (page - 1) * limit;
     const [items, total, unread] = await Promise.all([
       this.repo.findByUserId(userId, limit, offset),
-      // Ideally countAll but simpler for now
-      Promise.resolve(0),
+      this.repo.countAll(userId),
       this.repo.countUnread(userId),
     ]);
-    return { items, unread };
+    return { items, total, unread };
   }
 
   async markAsRead(userId: string, notificationId: string) {

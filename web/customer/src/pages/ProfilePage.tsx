@@ -9,17 +9,11 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Modal } from "@/components/ui/Modal";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { useTranslation } from "react-i18next";
+import { useLanguage } from "@/hooks/useLanguage";
 import toast from "react-hot-toast";
 
-const menuItems = [
-  { icon: MapPin, label: "Addresses", to: "/addresses", color: "#10B981" },
-  { icon: Bell, label: "Notifications", to: "/notifications", color: "#3B82F6" },
-  { icon: Globe, label: "Language", to: "/settings/language", color: "#8B5CF6" },
-  { icon: Shield, label: "Terms & Conditions", to: "/terms", color: "#6B7280" },
-  { icon: HelpCircle, label: "Help & Support", to: "/support", color: "#F59E0B" },
-];
-
-function MenuItem({ icon: Icon, label, to, color }: (typeof menuItems)[0]) {
+function MenuItem({ icon: Icon, label, to, color }: { icon: any; label: string; to: string; color: string }) {
   return (
     <Link to={to}>
       <div className="flex items-center gap-3 px-4 py-3.5 hover:bg-gray-50 transition-colors cursor-pointer">
@@ -40,6 +34,16 @@ export default function ProfilePage() {
   const [editOpen, setEditOpen] = useState(false);
   const [editName, setEditName] = useState("");
   const [editPhone, setEditPhone] = useState("");
+  const { t } = useTranslation();
+  const { isRTL } = useLanguage();
+
+  const menuItems = [
+    { icon: MapPin, label: t('profile.addresses'), to: "/addresses", color: "#10B981" },
+    { icon: Bell, label: t('profile.notifications'), to: "/notifications", color: "#3B82F6" },
+    { icon: Globe, label: t('profile.language'), to: "/settings/language", color: "#8B5CF6" },
+    { icon: Shield, label: t('terms.title'), to: "/terms", color: "#6B7280" },
+    { icon: HelpCircle, label: t('common.help_center'), to: "/support", color: "#F59E0B" },
+  ];
 
   const { data: profile, isLoading } = useQuery({
     queryKey: ["profile"],
@@ -51,10 +55,10 @@ export default function ProfilePage() {
     mutationFn: UserService.updateProfile,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["profile"] });
-      toast.success("Profile updated!");
+      toast.success(t('profile.profile_updated'));
       setEditOpen(false);
     },
-    onError: () => toast.error("Failed to update profile"),
+    onError: () => toast.error(t('profile.update_failed')),
   });
 
   const handleSignOut = async () => {
@@ -62,7 +66,7 @@ export default function ProfilePage() {
       if (refreshToken) await AuthService.logout(refreshToken);
     } catch {}
     signOut();
-    toast.success("Signed out");
+    toast.success(t('common.logout'));
     navigate("/");
   };
 
@@ -74,7 +78,7 @@ export default function ProfilePage() {
 
   return (
     <div className="max-w-lg mx-auto px-4 sm:px-6 py-6 animate-fade-in">
-      <h1 className="text-2xl font-black text-text-primary mb-6 px-2">Profile</h1>
+      <h1 className="text-2xl font-black text-text-primary mb-6 px-2">{t('profile.title')}</h1>
 
       {/* Avatar + Info */}
       <div className="bg-white rounded-3xl shadow-card p-6 mb-4">
@@ -92,7 +96,7 @@ export default function ProfilePage() {
               <span className="text-2xl font-black text-white">{(profile?.fullName || user?.name || "U")[0].toUpperCase()}</span>
             </div>
             <div className="flex-1 min-w-0">
-              <h2 className="text-lg font-black text-text-primary">{profile?.fullName || user?.name || "User"}</h2>
+              <h2 className="text-lg font-black text-text-primary">{profile?.fullName || user?.name || t('common.user')}</h2>
               <p className="text-sm text-text-muted truncate">{user?.email}</p>
               {profile?.phone && (
                 <div className="flex items-center gap-1 mt-1">
@@ -127,21 +131,21 @@ export default function ProfilePage() {
           <div className="w-9 h-9 rounded-xl bg-error-light flex items-center justify-center">
             <LogOut size={18} className="text-error" />
           </div>
-          <span className="flex-1 text-sm font-semibold text-error text-left">Sign Out</span>
+          <span className="flex-1 text-sm font-semibold text-error text-start">{t('common.logout')}</span>
         </button>
       </div>
 
       {/* Edit modal */}
-      <Modal open={editOpen} onClose={() => setEditOpen(false)} title="Edit Profile">
+      <Modal open={editOpen} onClose={() => setEditOpen(false)} title={t('profile.edit_profile')}>
         <div className="space-y-4">
-          <Input label="Full Name" value={editName} onChange={(e) => setEditName(e.target.value)} icon={<User size={18} />} />
-          <Input label="Phone" type="tel" value={editPhone} onChange={(e) => setEditPhone(e.target.value)} icon={<Phone size={18} />} />
+          <Input label={t('auth.full_name')} value={editName} onChange={(e) => setEditName(e.target.value)} icon={<User size={18} />} />
+          <Input label={t('auth.phone')} type="tel" value={editPhone} onChange={(e) => setEditPhone(e.target.value)} icon={<Phone size={18} />} />
           <div className="flex gap-3 pt-2">
             <Button variant="ghost" fullWidth onClick={() => setEditOpen(false)}>
-              Cancel
+              {t('common.cancel')}
             </Button>
             <Button fullWidth loading={updateMutation.isPending} onClick={() => updateMutation.mutate({ fullName: editName, phone: editPhone || undefined })}>
-              Save Changes
+              {t('common.save')}
             </Button>
           </div>
         </div>

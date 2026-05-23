@@ -13,6 +13,8 @@ import { MeasurementType } from '@/types';
 import { formatPrice } from '@/lib/utils';
 import { Button } from '@/components/ui/Button';
 import { Skeleton } from '@/components/ui/Skeleton';
+import { useTranslation } from 'react-i18next';
+import { useLanguage } from '@/hooks/useLanguage';
 import toast from 'react-hot-toast';
 import type { Address } from '@/types';
 
@@ -22,6 +24,8 @@ export default function CheckoutPage() {
   const total = useCartStore(selectCartTotal);
   const clearCart = useCartStore((s) => s.clearCart);
   const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null);
+  const { t } = useTranslation();
+  const { isRTL } = useLanguage();
 
   const { data: profile } = useQuery({
     queryKey: ['profile'],
@@ -62,17 +66,17 @@ export default function CheckoutPage() {
     mutationFn: OrderService.createOrder,
     onSuccess: () => {
       clearCart();
-      toast.success('Order placed successfully!');
+      toast.success(t('checkout.success'));
       navigate('/orders');
     },
     onError: (err: any) => {
-      toast.error(err?.response?.data?.message || 'Failed to place order. Please try again.');
+      toast.error(err?.response?.data?.message || t('checkout.failed_to_place_order'));
     },
   });
 
   const handleConfirmOrder = () => {
     if (!selectedAddressId || !selectedAddress) {
-      toast.error('Please select a delivery address');
+      toast.error(t('checkout.select_address'));
       return;
     }
 
@@ -105,9 +109,9 @@ export default function CheckoutPage() {
           onClick={() => navigate(-1)}
           className="w-9 h-9 flex items-center justify-center rounded-xl bg-white shadow-soft text-text-muted hover:text-text-primary transition-colors"
         >
-          <ChevronLeft size={20} />
+          {isRTL ? <ChevronLeft size={20} className="rotate-180" /> : <ChevronLeft size={20} />}
         </button>
-        <h1 className="text-2xl font-black text-text-primary tracking-tight">Checkout</h1>
+        <h1 className="text-2xl font-black text-text-primary tracking-tight">{t('checkout.title')}</h1>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -117,13 +121,13 @@ export default function CheckoutPage() {
           {/* Delivery Address */}
           <section className="bg-white rounded-2xl shadow-card p-5">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="font-bold text-text-primary">Delivery Address</h2>
+              <h2 className="font-bold text-text-primary">{t('checkout.address')}</h2>
               <Link
                 to="/addresses"
                 className="flex items-center gap-1.5 text-sm font-semibold text-primary-darker bg-primary-xlight px-3 py-1.5 rounded-full hover:bg-primary-light transition-colors"
               >
                 <Plus size={14} />
-                Add New
+                {t('addresses.add_new')}
               </Link>
             </div>
 
@@ -133,8 +137,8 @@ export default function CheckoutPage() {
                   <div className="w-12 h-12 bg-primary-xlight rounded-full flex items-center justify-center mb-3">
                     <MapPin size={22} className="text-primary-darker" />
                   </div>
-                  <p className="font-bold text-primary-darker mb-1">Add a delivery address</p>
-                  <p className="text-xs text-text-muted">Tap to add your delivery location</p>
+                  <p className="font-bold text-primary-darker mb-1">{t('addresses.add_new')}</p>
+                  <p className="text-xs text-text-muted">{t('addresses.add_hint')}</p>
                 </div>
               </Link>
             ) : (
@@ -188,17 +192,14 @@ export default function CheckoutPage() {
 
           {/* Payment Method */}
           <section className="bg-white rounded-2xl shadow-card p-5">
-            <h2 className="font-bold text-text-primary mb-4">Payment Method</h2>
+            <h2 className="font-bold text-text-primary mb-4">{t('checkout.payment_method')}</h2>
 
             {hasPenalty ? (
               <div className="flex items-start gap-3 bg-error-light border border-red-200 rounded-xl p-4">
                 <Ban size={20} className="text-error flex-shrink-0 mt-0.5" />
                 <div>
-                  <p className="text-sm font-bold text-error mb-1">COD Blocked</p>
-                  <p className="text-xs text-red-700">
-                    Cash on delivery is unavailable due to a previous order issue. Please
-                    contact support.
-                  </p>
+                  <p className="text-sm font-bold text-error mb-1">{t('checkout.cod_blocked_title')}</p>
+                  <p className="text-xs text-red-700">{t('checkout.cod_blocked_desc')}</p>
                 </div>
               </div>
             ) : (
@@ -207,8 +208,8 @@ export default function CheckoutPage() {
                   <CreditCard size={18} className="text-primary" />
                 </div>
                 <div className="flex-1">
-                  <p className="text-sm font-bold text-text-primary">Cash on Delivery</p>
-                  <p className="text-xs text-text-muted">Pay when your order arrives</p>
+                  <p className="text-sm font-bold text-text-primary">{t('checkout.cash_on_delivery')}</p>
+                  <p className="text-xs text-text-muted">{t('checkout.cash_description')}</p>
                 </div>
                 <div className="w-5 h-5 rounded-full border-2 border-primary flex items-center justify-center">
                   <div className="w-2.5 h-2.5 rounded-full bg-primary" />
@@ -221,7 +222,7 @@ export default function CheckoutPage() {
         {/* Right: Summary */}
         <div className="lg:col-span-1">
           <div className="bg-white rounded-2xl shadow-card p-5 sticky top-24">
-            <h2 className="font-bold text-text-primary mb-4">Order Summary</h2>
+            <h2 className="font-bold text-text-primary mb-4">{t('checkout.order_summary')}</h2>
 
             {/* Items */}
             <div className="space-y-2 mb-4 max-h-40 overflow-y-auto">
@@ -245,14 +246,14 @@ export default function CheckoutPage() {
 
             <div className="space-y-2 mb-4">
               <div className="flex justify-between text-sm">
-                <span className="text-text-muted">Subtotal</span>
+                <span className="text-text-muted">{t('cart.subtotal')}</span>
                 <span className="font-semibold">{formatPrice(total)}</span>
               </div>
               <div className="flex justify-between text-sm">
-                <span className="text-text-muted">Delivery fee</span>
+                <span className="text-text-muted">{t('checkout.delivery_fee')}</span>
                 <span className="font-semibold">
                   {deliveryFeeLoading ? (
-                    <span className="text-text-muted">Calculating...</span>
+                    <span className="text-text-muted">{t('checkout.calculating')}</span>
                   ) : (
                     formatPrice(deliveryFee || 0)
                   )}
@@ -263,7 +264,7 @@ export default function CheckoutPage() {
             <div className="h-px bg-border mb-4" />
 
             <div className="flex justify-between items-center mb-5">
-              <span className="font-bold text-text-primary">Total</span>
+              <span className="font-bold text-text-primary">{t('checkout.grand_total')}</span>
               <span className="text-2xl font-black text-primary">{formatPrice(grandTotal)}</span>
             </div>
 
@@ -275,13 +276,13 @@ export default function CheckoutPage() {
               loading={orderMutation.isPending}
               iconRight={<ArrowRight size={18} />}
             >
-              Confirm Order
+              {t('checkout.confirm_order')}
             </Button>
 
             {hasPenalty && (
               <div className="flex items-center gap-2 mt-3 text-xs text-error">
                 <AlertCircle size={13} />
-                COD unavailable. Contact support.
+                {t('checkout.cod_blocked_desc')}
               </div>
             )}
           </div>

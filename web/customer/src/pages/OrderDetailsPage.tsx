@@ -11,16 +11,10 @@ import { Modal } from "@/components/ui/Modal";
 import { Badge } from "@/components/ui/Badge";
 import { CustomerOrderStatus, VendorOrderStatus } from "@/types";
 import { formatPrice, formatDateTime } from "@/lib/utils";
+import { useTranslation } from "react-i18next";
+import { useLanguage } from "@/hooks/useLanguage";
 import toast from "react-hot-toast";
 import type { VendorOrder } from "@/types";
-
-const ORDER_STEPS = [
-  { key: "placed", label: "Order Placed", icon: ShoppingBag },
-  { key: "confirmed", label: "Confirmed", icon: CheckCircle },
-  { key: "preparing", label: "Preparing", icon: Package },
-  { key: "delivery", label: "Out for Delivery", icon: Truck },
-  { key: "delivered", label: "Delivered", icon: CheckCircle },
-];
 
 const STATUS_STEP_MAP: Record<string, number> = {
   [CustomerOrderStatus.PENDING_VENDOR_CONFIRMATION]: 0,
@@ -31,35 +25,39 @@ const STATUS_STEP_MAP: Record<string, number> = {
   [CustomerOrderStatus.CANCELLED]: -1,
 };
 
-const VENDOR_STATUS_CONFIG: Record<string, { label: string; variant: "success" | "warning" | "error" | "info" }> = {
-  [VendorOrderStatus.PENDING_CONFIRMATION]: { label: "Pending", variant: "warning" },
-  [VendorOrderStatus.CONFIRMED]: { label: "Confirmed", variant: "info" },
-  [VendorOrderStatus.PREPARING]: { label: "Preparing", variant: "info" },
-  [VendorOrderStatus.READY]: { label: "Ready", variant: "success" },
-  [VendorOrderStatus.PICKED_UP]: { label: "Picked Up", variant: "success" },
-  [VendorOrderStatus.DELIVERED]: { label: "Delivered", variant: "success" },
-  [VendorOrderStatus.CANCELLED]: { label: "Cancelled", variant: "error" },
-};
+function useVendorStatusConfig() {
+  const { t } = useTranslation();
+  return {
+    [VendorOrderStatus.PENDING_CONFIRMATION]: { label: t('orders.vendor_status_pending'), variant: "warning" as const },
+    [VendorOrderStatus.CONFIRMED]: { label: t('orders.vendor_status_confirmed'), variant: "info" as const },
+    [VendorOrderStatus.PREPARING]: { label: t('orders.vendor_status_preparing'), variant: "info" as const },
+    [VendorOrderStatus.READY]: { label: t('orders.vendor_status_ready'), variant: "success" as const },
+    [VendorOrderStatus.PICKED_UP]: { label: t('orders.vendor_status_picked_up'), variant: "success" as const },
+    [VendorOrderStatus.DELIVERED]: { label: t('orders.vendor_status_delivered'), variant: "success" as const },
+    [VendorOrderStatus.CANCELLED]: { label: t('orders.vendor_status_cancelled'), variant: "error" as const },
+  };
+}
 
 function RatingModal({ open, onClose, vendor, orderId }: { open: boolean; onClose: () => void; vendor: { id: string; name: string } | null; orderId: string }) {
   const [stars, setStars] = useState(5);
   const [comment, setComment] = useState("");
   const queryClient = useQueryClient();
+  const { t } = useTranslation();
 
   const mutation = useMutation({
     mutationFn: () => RatingService.rateVendor(orderId, vendor!.id, stars, comment || undefined),
     onSuccess: () => {
-      toast.success("Thank you for your review!");
+      toast.success(t('rating.thank_you_generic'));
       queryClient.invalidateQueries({ queryKey: ["order", orderId] });
       onClose();
     },
-    onError: () => toast.error("Failed to submit review"),
+    onError: () => toast.error(t('rating.submit_failed')),
   });
 
   return (
-    <Modal open={open} onClose={onClose} title={`Rate ${vendor?.name}`}>
+    <Modal open={open} onClose={onClose} title={`${t('rating.rate_vendor_title')} ${vendor?.name}`}>
       <div className="text-center">
-        <p className="text-sm text-text-muted mb-4">How was your experience?</p>
+        <p className="text-sm text-text-muted mb-4">{t('rating.rate_experience')}</p>
         <div className="flex justify-center gap-2 mb-5">
           {[1, 2, 3, 4, 5].map((n) => (
             <button key={n} onClick={() => setStars(n)}>
@@ -70,15 +68,15 @@ function RatingModal({ open, onClose, vendor, orderId }: { open: boolean; onClos
         <textarea
           value={comment}
           onChange={(e) => setComment(e.target.value)}
-          placeholder="Add a comment (optional)"
+          placeholder={t('rating.comment_placeholder')}
           className="w-full h-24 px-4 py-3 bg-gray-50 border border-border rounded-xl text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
         />
         <div className="flex gap-3 mt-4">
           <Button variant="ghost" fullWidth onClick={onClose}>
-            Cancel
+            {t('common.cancel')}
           </Button>
           <Button fullWidth loading={mutation.isPending} onClick={() => mutation.mutate()}>
-            Submit Review
+            {t('orders.submit_review')}
           </Button>
         </div>
       </div>
@@ -90,6 +88,17 @@ export default function OrderDetailsPage() {
   const { orderId } = useParams<{ orderId: string }>();
   const navigate = useNavigate();
   const [ratingVendor, setRatingVendor] = useState<{ id: string; name: string } | null>(null);
+  const { t } = useTranslation();
+  const { isRTL } = useLanguage();
+  const VENDOR_STATUS_CONFIG = useVendorStatusConfig();
+
+  const ORDER_STEPS = [
+    { key: "placed", label: t('orders.status_pending'), icon: ShoppingBag },
+    { key: "confirmed", label: t('orders.status_confirmed'), icon: CheckCircle },
+    { key: "preparing", label: t('orders.status_preparing'), icon: Package },
+    { key: "delivery", label: t('orders.status_in_delivery'), icon: Truck },
+    { key: "delivered", label: t('orders.status_delivered'), icon: CheckCircle },
+  ];
 
   const {
     data,
@@ -128,9 +137,9 @@ export default function OrderDetailsPage() {
     return (
       <div className="flex flex-col items-center justify-center py-20 text-center px-4">
         <AlertCircle size={48} className="text-error mb-4" />
-        <h2 className="text-xl font-bold">Order not found</h2>
+        <h2 className="text-xl font-bold">{t('orders.order_not_found')}</h2>
         <button onClick={() => navigate("/orders")} className="mt-4 text-primary font-semibold text-sm">
-          Back to Orders
+          {t('common.go_back')}
         </button>
       </div>
     );
@@ -146,10 +155,10 @@ export default function OrderDetailsPage() {
           onClick={() => navigate("/orders")}
           className="w-9 h-9 flex items-center justify-center rounded-xl bg-white shadow-soft text-text-muted hover:text-text-primary transition-colors"
         >
-          <ChevronLeft size={20} />
+          <ChevronLeft size={20} className={isRTL ? "rotate-180" : ""} />
         </button>
         <div className="flex-1">
-          <h1 className="text-xl font-black text-text-primary">Order #{order.id.slice(-6).toUpperCase()}</h1>
+          <h1 className="text-xl font-black text-text-primary">{t('orders.order_number')}{order.id.slice(-6).toUpperCase()}</h1>
           <div className="flex items-center gap-2 mt-0.5">
             <Clock size={12} className="text-text-muted" />
             <span className="text-xs text-text-muted">{formatDateTime(order.createdAt)}</span>
@@ -167,7 +176,7 @@ export default function OrderDetailsPage() {
       {/* Status & Stepper */}
       <section className="bg-white rounded-2xl shadow-card p-5 mb-4">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="font-bold text-text-primary">Order Status</h2>
+          <h2 className="font-bold text-text-primary">{t('orders.status')}</h2>
           <span
             className="text-xs font-bold px-3 py-1.5 rounded-full"
             style={{
@@ -210,7 +219,7 @@ export default function OrderDetailsPage() {
           <div className="flex items-start gap-3 bg-error-light border border-red-200 rounded-xl p-3 mt-4">
             <Ban size={16} className="text-error flex-shrink-0 mt-0.5" />
             <div>
-              <p className="text-xs font-bold text-error mb-0.5">Cancellation Reason</p>
+              <p className="text-xs font-bold text-error mb-0.5">{t('orders.cancellation_reason')}</p>
               <p className="text-xs text-red-700">{order.cancellationReason}</p>
             </div>
           </div>
@@ -220,7 +229,7 @@ export default function OrderDetailsPage() {
           <Link to={`/orders/${orderId}/proposals`}>
             <motion.div whileHover={{ scale: 1.01 }} className="flex items-center gap-3 bg-amber-50 border border-amber-200 rounded-xl p-3 mt-4 cursor-pointer">
               <AlertCircle size={18} className="text-amber-500 flex-shrink-0" />
-              <p className="text-sm font-bold text-amber-700 flex-1">You have pending proposals to review</p>
+              <p className="text-sm font-bold text-amber-700 flex-1">{t('proposals.info_text')}</p>
               <ChevronLeft size={16} className="text-amber-500 rotate-180" />
             </motion.div>
           </Link>
@@ -237,7 +246,7 @@ export default function OrderDetailsPage() {
                 <Package size={16} className="text-primary" />
               </div>
               <div className="flex-1">
-                <p className="font-bold text-text-primary text-sm">{vo.vendorName || "Vendor"}</p>
+                <p className="font-bold text-text-primary text-sm">{vo.vendorName || t('common.vendor')}</p>
               </div>
               <Badge variant={vcfg.variant}>{vcfg.label}</Badge>
             </div>
@@ -250,17 +259,17 @@ export default function OrderDetailsPage() {
                     <div className="flex flex-wrap gap-2 mt-1">
                       {item.quantity && (
                         <span className="text-xs text-text-muted">
-                          Qty: {item.quantity}
+                          {t('product.quantity')}: {item.quantity}
                           {item.proposedQuantity && item.proposedQuantity !== item.quantity && (
-                            <span className="text-amber-600 font-semibold ml-1">→ Proposed: {item.proposedQuantity}</span>
+                            <span className="text-amber-600 font-semibold ml-1">→ {t('product.proposed_quantity')}: {item.proposedQuantity}</span>
                           )}
                         </span>
                       )}
                       {item.requestedWeightGrams && (
                         <span className="text-xs text-text-muted">
-                          Requested: {(item.requestedWeightGrams / 1000).toFixed(2)}kg
+                          {t('orders.requested')}: {(item.requestedWeightGrams / 1000).toFixed(2)}{t('common.kg')}
                           {item.actualWeightGrams != null && (
-                            <span className="text-primary font-semibold ml-1">Actual: {(item.actualWeightGrams / 1000).toFixed(2)}kg</span>
+                            <span className="text-primary font-semibold ml-1">{t('orders.actual_weight')}: {(item.actualWeightGrams / 1000).toFixed(2)}kg</span>
                           )}
                         </span>
                       )}
@@ -280,11 +289,11 @@ export default function OrderDetailsPage() {
 
             {vo.status === VendorOrderStatus.DELIVERED && (
               <button
-                onClick={() => setRatingVendor({ id: vo.vendorId, name: vo.vendorName || "Vendor" })}
+                onClick={() => setRatingVendor({ id: vo.vendorId, name: vo.vendorName || t('common.vendor') })}
                 className="mt-4 flex items-center gap-2 w-full justify-center py-2.5 bg-accent/10 text-accent text-sm font-bold rounded-xl hover:bg-accent/20 transition-colors"
               >
                 <Star size={15} />
-                Rate {vo.vendorName}
+                {t('rating.rate_vendor')} {vo.vendorName}
               </button>
             )}
           </section>
@@ -297,7 +306,7 @@ export default function OrderDetailsPage() {
           <div className="w-9 h-9 bg-primary-xlight rounded-xl flex items-center justify-center">
             <MapPin size={16} className="text-primary" />
           </div>
-          <h2 className="font-bold text-text-primary text-sm">Delivery Address</h2>
+          <h2 className="font-bold text-text-primary text-sm">{t('checkout.address')}</h2>
         </div>
         <p className="text-sm text-text-secondary leading-relaxed pl-12">{order.deliveryAddress}</p>
       </section>
@@ -308,20 +317,20 @@ export default function OrderDetailsPage() {
           <div className="w-9 h-9 bg-primary-xlight rounded-xl flex items-center justify-center">
             <Receipt size={16} className="text-primary" />
           </div>
-          <h2 className="font-bold text-text-primary text-sm">Payment Summary</h2>
+          <h2 className="font-bold text-text-primary text-sm">{t('orders.payment_summary')}</h2>
         </div>
         <div className="space-y-2 pl-12">
           <div className="flex justify-between text-sm">
-            <span className="text-text-muted">Subtotal</span>
+            <span className="text-text-muted">{t('cart.subtotal')}</span>
             <span className="font-semibold">{formatPrice(order.subtotal)}</span>
           </div>
           <div className="flex justify-between text-sm">
-            <span className="text-text-muted">Delivery fee</span>
+            <span className="text-text-muted">{t('checkout.delivery_fee')}</span>
             <span className="font-semibold">{formatPrice(order.deliveryFee)}</span>
           </div>
           <div className="h-px bg-border my-2" />
           <div className="flex justify-between">
-            <span className="font-bold text-text-primary">Total</span>
+            <span className="font-bold text-text-primary">{t('orders.total_amount')}</span>
             <span className="font-black text-xl text-primary">{formatPrice(order.totalAmount)}</span>
           </div>
         </div>

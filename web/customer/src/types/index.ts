@@ -25,11 +25,16 @@ export enum CustomerOrderStatus {
 }
 
 export enum VendorType {
-  SUPERMARKET = "SUPERMARKET",
-  BAKERY = "BAKERY",
-  BUTCHER = "BUTCHER",
-  GROCERY = "GROCERY",
-  FRUITS = "FRUITS",
+  Supermarket = "Supermarket",
+  Bakery = "Bakery",
+  Butcher = "Butcher",
+  VegFruit = "VegFruit",
+  Pharmacy = "Pharmacy",
+  Poultry = "Poultry",
+  Fish = "Fish",
+  Roastery = "Roastery",
+  Pastry = "Pastry",
+  Stationery = "Stationery",
 }
 
 // ── Core Models ──────────────────────────────────────────────────────────────

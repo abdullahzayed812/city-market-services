@@ -9,6 +9,8 @@ import { Button } from "@/components/ui/Button";
 import { formatPrice, formatDateTime } from "@/lib/utils";
 import { Modal } from "@/components/ui/Modal";
 import { Badge } from "@/components/ui/Badge";
+import { useTranslation } from "react-i18next";
+import { useLanguage } from "@/hooks/useLanguage";
 import toast from "react-hot-toast";
 import type { OrderItemProposal } from "@/types";
 
@@ -18,18 +20,20 @@ enum ProposalType {
   UNAVAILABLE = "UNAVAILABLE",
 }
 
-const TYPE_CONFIG: Record<string, { label: string; color: string }> = {
-  [ProposalType.QUANTITY_REDUCTION]: { label: "Quantity Reduction", color: "#FF9500" },
-  [ProposalType.WEIGHT_ADJUSTMENT]: { label: "Weight Adjustment", color: "#FF9500" },
-  [ProposalType.UNAVAILABLE]: { label: "Unavailable", color: "#EF4444" },
-};
-
 export default function ReviewProposalsPage() {
   const { orderId } = useParams<{ orderId: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [rejectModal, setRejectModal] = useState<{ id: string } | null>(null);
   const [acceptModal, setAcceptModal] = useState<{ id: string } | null>(null);
+  const { t } = useTranslation();
+  const { isRTL } = useLanguage();
+
+  const TYPE_CONFIG: Record<string, { label: string; color: string }> = {
+    [ProposalType.QUANTITY_REDUCTION]: { label: t('proposals.type_quantity_reduction'), color: "#FF9500" },
+    [ProposalType.WEIGHT_ADJUSTMENT]: { label: t('proposals.type_weight_adjustment'), color: "#FF9500" },
+    [ProposalType.UNAVAILABLE]: { label: t('proposals.type_unavailable'), color: "#EF4444" },
+  };
 
   const { data: proposals = [], isLoading } = useQuery<OrderItemProposal[]>({
     queryKey: ["order-proposals", orderId],
@@ -42,10 +46,10 @@ export default function ReviewProposalsPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["order-proposals", orderId] });
       queryClient.invalidateQueries({ queryKey: ["order", orderId] });
-      toast.success("Proposal accepted");
+      toast.success(t('common.accept'));
       setAcceptModal(null);
     },
-    onError: () => toast.error("Failed to accept proposal"),
+    onError: () => toast.error(t('proposals.failed_to_accept')),
   });
 
   const rejectMutation = useMutation({
@@ -53,14 +57,14 @@ export default function ReviewProposalsPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["order-proposals", orderId] });
       queryClient.invalidateQueries({ queryKey: ["order", orderId] });
-      toast.success("Proposal rejected");
+      toast.success(t('common.reject'));
       setRejectModal(null);
       // If no more proposals, go back
       if (proposals.length <= 1) {
         navigate(`/orders/${orderId}`);
       }
     },
-    onError: () => toast.error("Failed to reject proposal"),
+    onError: () => toast.error(t('proposals.failed_to_reject')),
   });
 
   return (
@@ -70,16 +74,16 @@ export default function ReviewProposalsPage() {
           onClick={() => navigate(-1)}
           className="w-9 h-9 flex items-center justify-center rounded-xl bg-white shadow-soft text-text-muted hover:text-text-primary transition-colors"
         >
-          <ChevronLeft size={20} />
+          <ChevronLeft size={20} className={isRTL ? "rotate-180" : ""} />
         </button>
-        <h1 className="text-xl font-black text-text-primary">Review Proposals</h1>
+        <h1 className="text-xl font-black text-text-primary">{t('proposals.title')}</h1>
       </div>
 
       {/* Info banner */}
       <div className="flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-2xl p-4 mb-6">
         <AlertCircle size={20} className="text-amber-500 flex-shrink-0 mt-0.5" />
         <p className="text-sm text-amber-700 leading-relaxed">
-          Some items from your order are unavailable or require adjustments. Please review the vendor's proposals below and decide how to proceed.
+          {t('proposals.info_text')}
         </p>
       </div>
 
@@ -94,9 +98,9 @@ export default function ReviewProposalsPage() {
           <div className="w-20 h-20 bg-success-light rounded-full flex items-center justify-center mb-4">
             <Check size={40} className="text-success" />
           </div>
-          <h3 className="text-lg font-bold text-text-primary mb-2">No pending proposals</h3>
-          <p className="text-sm text-text-muted mb-6">All items have been processed.</p>
-          <Button onClick={() => navigate(-1)}>Go Back</Button>
+          <h3 className="text-lg font-bold text-text-primary mb-2">{t('proposals.no_proposals')}</h3>
+          <p className="text-sm text-text-muted mb-6">{t('proposals.all_processed')}</p>
+          <Button onClick={() => navigate(-1)}>{t('common.go_back')}</Button>
         </div>
       ) : (
         <div className="space-y-5">
@@ -110,7 +114,7 @@ export default function ReviewProposalsPage() {
                     <div>
                       <div className="flex items-center gap-2 mb-1">
                         <Store size={14} className="text-primary" />
-                        <span className="text-xs font-bold text-text-muted uppercase tracking-wider">{proposal.vendorName || "Vendor"}</span>
+                        <span className="text-xs font-bold text-text-muted uppercase tracking-wider">{proposal.vendorName || t('common.vendor')}</span>
                       </div>
                       <h3 className="font-black text-text-primary text-lg leading-tight">{proposal.productName}</h3>
                     </div>
@@ -130,7 +134,7 @@ export default function ReviewProposalsPage() {
                     <div className="bg-gray-50 rounded-2xl p-4 border border-gray-100">
                       <p className="text-[10px] text-text-muted uppercase font-black tracking-widest mb-2 flex items-center gap-1.5">
                         <Tag size={10} />
-                        Original Order
+                        {t('proposals.original_order')}
                       </p>
                       <div className="flex items-baseline gap-1.5">
                         {proposal.originalQuantity ? (
@@ -139,7 +143,7 @@ export default function ReviewProposalsPage() {
                           <span className="text-lg font-black text-text-primary">{((proposal.requestedWeightGrams || 0) / 1000).toFixed(2)}</span>
                         )}
 
-                        <span className="text-xs font-bold text-text-muted">{proposal.originalQuantity ? "Units" : "kg"}</span>
+                        <span className="text-xs font-bold text-text-muted">{proposal.originalQuantity ? t('proposals.units') : t('common.kg')}</span>
                       </div>
                     </div>
 
@@ -147,7 +151,7 @@ export default function ReviewProposalsPage() {
                     <div className="bg-primary-xlight rounded-2xl p-4 border border-primary/10">
                       <p className="text-[10px] text-primary uppercase font-black tracking-widest mb-2 flex items-center gap-1.5">
                         <RefreshCw size={10} />
-                        Vendor Proposes
+                        {t('proposals.review_button')}
                       </p>
                       <div className="flex items-baseline gap-1.5">
                         {proposal.proposedQuantity ? (
@@ -159,7 +163,7 @@ export default function ReviewProposalsPage() {
                         )}
 
                         <span className="text-xs font-bold text-primary/60">
-                          {proposal.proposedQuantity ? "Units" : proposal.proposedWeightGrams ? "kg" : "Unavailable"}
+                          {proposal.proposedQuantity ? t('proposals.units') : proposal.proposedWeightGrams ? t('common.kg') : t('proposals.type_unavailable')}
                         </span>
                       </div>
                     </div>
@@ -171,7 +175,7 @@ export default function ReviewProposalsPage() {
                       <div className="flex items-center justify-between text-sm py-2 px-1 border-b border-gray-50">
                         <div className="flex items-center gap-2 text-text-muted font-medium">
                           <Info size={14} />
-                          Price Difference
+                          {t('proposals.price_difference')}
                         </div>
                         <span className={`font-black ${proposal.priceDifference > 0 ? "text-error" : "text-success"}`}>
                           {proposal.priceDifference > 0 ? "+" : ""}
@@ -182,7 +186,7 @@ export default function ReviewProposalsPage() {
                     <div className="flex items-center justify-between text-sm py-2 px-1 border-b border-gray-50">
                       <div className="flex items-center gap-2 text-text-muted font-medium">
                         <Clock size={14} />
-                        Date
+                        {t('common.date')}
                       </div>
                       <span className="font-bold text-text-primary">{formatDateTime(proposal.createdAt)}</span>
                     </div>
@@ -198,7 +202,7 @@ export default function ReviewProposalsPage() {
                       onClick={() => setRejectModal({ id: proposal.id })}
                       className="rounded-2xl border-2"
                     >
-                      Reject
+                      {t('common.reject')}
                     </Button>
                     <Button
                       fullWidth
@@ -207,7 +211,7 @@ export default function ReviewProposalsPage() {
                       onClick={() => setAcceptModal({ id: proposal.id })}
                       className="rounded-2xl shadow-primary-glow"
                     >
-                      Accept
+                      {t('common.accept')}
                     </Button>
                   </div>
                 </div>
@@ -218,24 +222,24 @@ export default function ReviewProposalsPage() {
       )}
 
       {/* Accept confirmation modal */}
-      <Modal open={!!acceptModal} onClose={() => setAcceptModal(null)} title="Accept Proposal">
+      <Modal open={!!acceptModal} onClose={() => setAcceptModal(null)} title={t('proposals.confirm_accept_title')}>
         <p className="text-sm text-text-muted mb-6 leading-relaxed">
-          Are you sure you want to accept this proposal? Your order total will be adjusted accordingly.
+          {t('proposals.confirm_accept_message')}
         </p>
         <div className="flex gap-3">
           <Button variant="ghost" fullWidth onClick={() => setAcceptModal(null)}>
-            Cancel
+            {t('common.cancel')}
           </Button>
           <Button fullWidth loading={acceptMutation.isPending} onClick={() => acceptModal && acceptMutation.mutate(acceptModal.id)}>
-            Confirm Accept
+            {t('common.confirm')}
           </Button>
         </div>
       </Modal>
 
       {/* Reject confirmation modal */}
-      <Modal open={!!rejectModal} onClose={() => setRejectModal(null)} title="Reject Proposal">
+      <Modal open={!!rejectModal} onClose={() => setRejectModal(null)} title={t('proposals.reject_proposal_title')}>
         <p className="text-sm text-text-muted mb-6 leading-relaxed">
-          Rejecting this proposal will remove the item from your order. Do you want to continue or cancel the entire order?
+          {t('proposals.reject_proposal_message')}
         </p>
         <div className="space-y-3">
           <Button
@@ -245,7 +249,7 @@ export default function ReviewProposalsPage() {
             loading={rejectMutation.isPending}
             onClick={() => rejectModal && rejectMutation.mutate({ id: rejectModal.id, cancel: false })}
           >
-            Remove This Item
+            {t('proposals.cancel_shop_label')}
           </Button>
           <Button
             variant="danger"
@@ -254,10 +258,10 @@ export default function ReviewProposalsPage() {
             loading={rejectMutation.isPending}
             onClick={() => rejectModal && rejectMutation.mutate({ id: rejectModal.id, cancel: true })}
           >
-            Cancel Entire Order
+            {t('proposals.cancel_entire_order_label')}
           </Button>
           <Button variant="ghost" fullWidth onClick={() => setRejectModal(null)}>
-            Cancel
+            {t('common.cancel')}
           </Button>
         </div>
       </Modal>

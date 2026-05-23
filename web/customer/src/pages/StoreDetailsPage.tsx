@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Star, Clock, MapPin, ChevronRight, Package, ArrowLeft, ShoppingCart, ChevronLeft, Info } from "lucide-react";
+import { Star, Clock, ChevronRight, Package, ShoppingCart, ChevronLeft } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { VendorService } from "@/services/api/vendorService";
 import { CatalogService } from "@/services/api/catalogService";
@@ -10,11 +10,15 @@ import { ProductCard } from "@/components/shared/ProductCard";
 import { ProductCardSkeleton, Skeleton } from "@/components/ui/Skeleton";
 import { useCartStore, selectCartTotal, selectCartItemCount } from "@/store/cartStore";
 import { getImageUrl, formatPrice } from "@/lib/utils";
+import { useTranslation } from "react-i18next";
+import { useLanguage } from "@/hooks/useLanguage";
 
 export default function StoreDetailsPage() {
   const { vendorId } = useParams<{ vendorId: string }>();
   const navigate = useNavigate();
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
+  const { t } = useTranslation();
+  const { isRTL } = useLanguage();
 
   const { data: vendor, isLoading: vendorLoading } = useQuery({
     queryKey: ["vendor", vendorId],
@@ -87,7 +91,7 @@ export default function StoreDetailsPage() {
           onClick={() => navigate(-1)}
           className="absolute top-4 left-4 w-9 h-9 bg-black/30 backdrop-blur-sm text-white rounded-xl flex items-center justify-center hover:bg-black/50 transition-colors"
         >
-          <ChevronLeft size={20} />
+          <ChevronLeft size={20} className={isRTL ? "rotate-180" : ""} />
         </button>
 
         {/* Vendor info overlay */}
@@ -95,7 +99,7 @@ export default function StoreDetailsPage() {
           <h1 className="text-2xl font-black text-white tracking-tight drop-shadow-sm">{vendor?.shopName}</h1>
           <div className="flex items-center gap-3 mt-1 flex-wrap">
             <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${vendor?.isOpen !== false ? "bg-success/90 text-white" : "bg-black/50 text-white"}`}>
-              {vendor?.isOpen !== false ? "Open Now" : "Closed"}
+              {vendor?.isOpen !== false ? t('home.open') : t('home.closed')}
             </span>
             {ratingSummary?.data?.averageRating && (
               <span className="flex items-center gap-1 text-white text-sm font-semibold">
@@ -106,7 +110,7 @@ export default function StoreDetailsPage() {
             {vendor?.estimatedDeliveryTime && (
               <span className="flex items-center gap-1 text-white/80 text-xs">
                 <Clock size={12} />
-                {vendor.estimatedDeliveryTime} min
+                {vendor.estimatedDeliveryTime} {t('common.minutes')}
               </span>
             )}
           </div>
@@ -119,7 +123,7 @@ export default function StoreDetailsPage() {
           <aside className="hidden lg:block w-56 flex-shrink-0">
             <div className="bg-white rounded-2xl shadow-card overflow-hidden sticky top-24">
               <div className="p-4 border-b border-border">
-                <h3 className="text-xs font-bold text-text-muted uppercase tracking-wider">Categories</h3>
+                <h3 className="text-xs font-bold text-text-muted uppercase tracking-wider">{t('store.categories')}</h3>
               </div>
               <nav className="py-2">
                 <button
@@ -128,7 +132,7 @@ export default function StoreDetailsPage() {
                     !activeCategory ? "bg-primary-xlight text-primary" : "text-text-secondary hover:bg-gray-50"
                   }`}
                 >
-                  All Products
+                  {t('store.products')}
                 </button>
                 {categories.map((cat) => (
                   <button
@@ -158,7 +162,7 @@ export default function StoreDetailsPage() {
                   !activeCategory ? "bg-primary text-white shadow-soft" : "bg-white text-text-secondary border border-border"
                 }`}
               >
-                All
+                {t('store.all')}
               </button>
               {categories.map((cat) => (
                 <button
@@ -183,13 +187,13 @@ export default function StoreDetailsPage() {
               <Star size={18} className="text-accent" />
             </div>
             <div className="flex-1">
-              <p className="text-sm font-bold text-text-primary">Customer Reviews</p>
+              <p className="text-sm font-bold text-text-primary">{t('store.reviews')}</p>
               {ratingSummary?.data?.averageRating ? (
                 <p className="text-xs text-text-muted">
-                  {Number(ratingSummary.data.averageRating).toFixed(1)} stars · {ratingSummary.data.totalRatings || 0} reviews
+                  {Number(ratingSummary.data.averageRating).toFixed(1)} stars · {ratingSummary.data.totalRatings || 0} {t('store.reviews')}
                 </p>
               ) : (
-                <p className="text-xs text-text-muted">No reviews yet</p>
+                <p className="text-xs text-text-muted">{t('store.no_reviews')}</p>
               )}
             </div>
             <ChevronRight size={18} className="text-text-muted" />
@@ -205,8 +209,8 @@ export default function StoreDetailsPage() {
           ) : products.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 text-center">
               <Package size={48} className="text-primary/30 mb-3" />
-              <p className="text-base font-bold text-text-primary">No products yet</p>
-              <p className="text-sm text-text-muted mt-1">This {activeCategory ? "category" : "store"} has no products available</p>
+              <p className="text-base font-bold text-text-primary">{t('store.no_products')}</p>
+              <p className="text-sm text-text-muted mt-1">{t('store.product_unavailable')}</p>
             </div>
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3">
@@ -237,12 +241,12 @@ export default function StoreDetailsPage() {
                   <ShoppingCart size={16} />
                 </div>
                 <span className="font-bold text-sm">
-                  {cartCount} item{cartCount !== 1 ? "s" : ""}
+                  {cartCount} {t('cart.items')}
                 </span>
               </div>
               <span className="font-black text-lg">{formatPrice(cartTotal)}</span>
               <div className="flex items-center gap-1 font-bold text-sm bg-white/15 px-3 py-1.5 rounded-xl">
-                View Cart <ChevronRight size={15} />
+                {t('cart.title')} <ChevronRight size={15} />
               </div>
             </Link>
           </motion.div>

@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/Button';
 import { AuthService } from '@/services/api/authService';
 import { UserService } from '@/services/api/userService';
 import { useAuthStore } from '@/store/authStore';
+import { useTranslation } from 'react-i18next';
 import toast from 'react-hot-toast';
 
 const schema = z
@@ -30,23 +31,24 @@ const schema = z
 
 type FormData = z.infer<typeof schema>;
 
-const PERKS = [
-  { icon: Zap, text: 'Lightning-fast checkout' },
-  { icon: Leaf, text: 'Farm-fresh produce' },
-  { icon: HeartHandshake, text: 'Trusted local stores' },
-];
-
 export default function RegisterPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const signIn = useAuthStore((s) => s.signIn);
   const [showPass, setShowPass] = useState(false);
   const [loading, setLoading] = useState(false);
+  const { t } = useTranslation();
 
   // Determine where to redirect after registration
   const queryParams = new URLSearchParams(location.search);
   const redirectPath = queryParams.get("redirect");
   const from = (location.state as any)?.from?.pathname || redirectPath || "/";
+
+  const PERKS = [
+    { icon: Zap, text: 'Lightning-fast checkout' },
+    { icon: Leaf, text: 'Farm-fresh produce' },
+    { icon: HeartHandshake, text: 'Trusted local stores' },
+  ];
 
   const {
     register,
@@ -68,11 +70,11 @@ export default function RegisterPage() {
         try {
           await UserService.createCustomer({ fullName: data.fullName, phone: data.phone });
         } catch {}
-        toast.success('Account created successfully!');
+        toast.success(t('auth.register_success'));
         navigate(from, { replace: true });
       }
     } catch (err: any) {
-      toast.error(err?.response?.data?.message || 'Registration failed. Please try again.');
+      toast.error(err?.response?.data?.message || t('auth.register_failed'));
     } finally {
       setLoading(false);
     }
@@ -141,22 +143,22 @@ export default function RegisterPage() {
           </div>
 
           <h1 className="text-3xl font-black text-text-primary tracking-tight mb-1.5">
-            Create account
+            {t('auth.register_button')}
           </h1>
           <p className="text-text-muted text-sm mb-8">
-            Free to join — start shopping in minutes
+            {t('auth.register_subtitle')}
           </p>
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             <Input
-              label="Full Name"
+              label={t('auth.full_name')}
               placeholder="John Smith"
               icon={<User size={18} />}
               error={errors.fullName?.message}
               {...register('fullName')}
             />
             <Input
-              label="Email Address"
+              label={t('auth.email')}
               type="email"
               placeholder="name@example.com"
               icon={<Mail size={18} />}
@@ -164,7 +166,7 @@ export default function RegisterPage() {
               {...register('email')}
             />
             <Input
-              label="Phone (optional)"
+              label={`${t('auth.phone')} (optional)`}
               type="tel"
               placeholder="+1 234 567 8900"
               icon={<Phone size={18} />}
@@ -174,7 +176,7 @@ export default function RegisterPage() {
 
             <div>
               <Input
-                label="Password"
+                label={t('auth.password')}
                 type={showPass ? 'text' : 'password'}
                 placeholder="Minimum 8 characters"
                 icon={<Lock size={18} />}
@@ -193,7 +195,7 @@ export default function RegisterPage() {
             </div>
 
             <Input
-              label="Confirm Password"
+              label={t('auth.confirm_password')}
               type="password"
               placeholder="Repeat your password"
               icon={<Lock size={18} />}
@@ -208,14 +210,14 @@ export default function RegisterPage() {
               loading={loading}
               iconRight={<ArrowRight size={18} />}
             >
-              Create Account
+              {t('auth.register_button')}
             </Button>
           </form>
 
           <p className="mt-7 text-center text-sm text-text-muted">
-            Already have an account?{' '}
+            {t('auth.no_account')}{' '}
             <Link to="/login" className="font-bold text-primary hover:text-primary-dark transition-colors">
-              Sign in
+              {t('common.login')}
             </Link>
           </p>
         </motion.div>

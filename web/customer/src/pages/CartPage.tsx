@@ -6,11 +6,13 @@ import { MeasurementType } from "@/types";
 import { formatPrice, getImageUrl } from "@/lib/utils";
 import { Button } from "@/components/ui/Button";
 import { useAuthStore } from "@/store/authStore";
+import { useTranslation } from "react-i18next";
 
 function CartItemRow({ item }: { item: any }) {
   const updateQuantity = useCartStore((s) => s.updateQuantity);
   const updateWeight = useCartStore((s) => s.updateWeight);
   const removeFromCart = useCartStore((s) => s.removeFromCart);
+  const { t } = useTranslation();
   const isWeight = item.measurementType === MeasurementType.WEIGHT;
   const imageUrl = getImageUrl(item.imageUrl);
 
@@ -68,7 +70,7 @@ function CartItemRow({ item }: { item: any }) {
         <p className="text-xs text-text-muted mb-3 flex items-center gap-1">
           {isWeight && <Scale size={10} />}
           {formatPrice(item.price)}
-          {isWeight ? "/kg" : " each"}
+          {isWeight ? `/${t('common.kg')}` : ` ${t('cart.each')}`}
         </p>
 
         <div className="flex items-center justify-between">
@@ -105,9 +107,9 @@ export default function CartPage() {
   const total = useCartStore(selectCartTotal);
   const itemCount = useCartStore(selectCartItemCount);
   const clearCart = useCartStore((s) => s.clearCart);
+  const { t } = useTranslation();
 
   const handleCheckout = () => navigate('/checkout');
-
 
   if (items.length === 0) {
     return (
@@ -115,10 +117,10 @@ export default function CartPage() {
         <div className="w-28 h-28 bg-primary-xlight rounded-full flex items-center justify-center mb-6">
           <ShoppingCart size={52} className="text-primary" strokeWidth={1.5} />
         </div>
-        <h2 className="text-2xl font-black text-text-primary mb-2">Your cart is empty</h2>
-        <p className="text-text-muted text-sm mb-8 max-w-xs leading-relaxed">Looks like you haven't added anything yet. Start exploring our stores!</p>
+        <h2 className="text-2xl font-black text-text-primary mb-2">{t('cart.empty')}</h2>
+        <p className="text-text-muted text-sm mb-8 max-w-xs leading-relaxed">{t('cart.empty_subtitle')}</p>
         <Link to="/" className="px-8 py-3.5 bg-primary text-white font-bold rounded-2xl hover:bg-primary-dark transition-colors shadow-primary-glow/40">
-          Start Shopping
+          {t('home.stores')}
         </Link>
       </div>
     );
@@ -129,13 +131,13 @@ export default function CartPage() {
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-black text-text-primary tracking-tight">Your Cart</h1>
+          <h1 className="text-2xl font-black text-text-primary tracking-tight">{t('cart.title')}</h1>
           <p className="text-sm text-text-muted mt-0.5">
-            {itemCount} item{itemCount !== 1 ? "s" : ""}
+            {itemCount} {t('cart.items')}
           </p>
         </div>
         <button onClick={clearCart} className="text-sm font-semibold text-error hover:bg-error-light px-3 py-1.5 rounded-xl transition-colors">
-          Clear All
+          {t('cart.clear_all')}
         </button>
       </div>
 
@@ -152,33 +154,33 @@ export default function CartPage() {
         {/* Order summary */}
         <div className="lg:col-span-1">
           <div className="bg-white rounded-2xl shadow-card p-5 sticky top-24">
-            <h2 className="text-base font-bold text-text-primary mb-4">Order Summary</h2>
+            <h2 className="text-base font-bold text-text-primary mb-4">{t('checkout.order_summary')}</h2>
 
             <div className="space-y-2.5 mb-4">
               <div className="flex justify-between text-sm">
-                <span className="text-text-muted">Subtotal ({itemCount} items)</span>
+                <span className="text-text-muted">{t('cart.subtotal')} ({itemCount} items)</span>
                 <span className="font-semibold text-text-primary">{formatPrice(total)}</span>
               </div>
               <div className="flex justify-between text-sm">
-                <span className="text-text-muted">Delivery fee</span>
-                <span className="font-semibold text-primary text-xs">Calculated at checkout</span>
+                <span className="text-text-muted">{t('checkout.delivery_fee')}</span>
+                <span className="font-semibold text-primary text-xs">{t('cart.calculated_at_checkout')}</span>
               </div>
             </div>
 
             <div className="h-px bg-gray-100 mb-4" />
 
             <div className="flex justify-between items-baseline mb-5">
-              <span className="font-bold text-text-primary">Subtotal</span>
+              <span className="font-bold text-text-primary">{t('cart.subtotal')}</span>
               <span className="text-2xl font-black text-primary">{formatPrice(total)}</span>
             </div>
 
             <Button fullWidth size="lg" onClick={handleCheckout} iconRight={<ArrowRight size={18} />}>
-              Proceed to Checkout
+              {t('cart.checkout')}
             </Button>
 
             <div className="mt-3 text-center">
               <Link to="/" className="text-xs text-text-muted hover:text-primary transition-colors">
-                ← Continue shopping
+                {t('cart.continue_shopping')}
               </Link>
             </div>
           </div>

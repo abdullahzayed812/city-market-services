@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { AuthService } from "@/services/api/authService";
 import { useAuthStore } from "@/store/authStore";
+import { useTranslation } from "react-i18next";
 import toast from "react-hot-toast";
 
 const schema = z.object({
@@ -17,18 +18,13 @@ const schema = z.object({
 });
 type FormData = z.infer<typeof schema>;
 
-const PERKS = [
-  { icon: Truck, text: "30-minute delivery" },
-  { icon: ShieldCheck, text: "Fresh quality guaranteed" },
-  { icon: Star, text: "5000+ happy customers" },
-];
-
 export default function LoginPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const signIn = useAuthStore((s) => s.signIn);
   const [showPass, setShowPass] = useState(false);
   const [loading, setLoading] = useState(false);
+  const { t } = useTranslation();
 
   // Determine where to redirect after login
   const queryParams = new URLSearchParams(location.search);
@@ -46,15 +42,21 @@ export default function LoginPage() {
       const result = await AuthService.login(data);
       if (result?.user && result?.accessToken) {
         signIn(result.user, result.accessToken, result.refreshToken);
-        toast.success("Welcome back!");
+        toast.success(t('auth.welcome'));
         navigate(from, { replace: true });
       }
     } catch (err: any) {
-      toast.error(err?.response?.data?.message || "Login failed. Check your credentials.");
+      toast.error(err?.response?.data?.message || t('auth.login_failed'));
     } finally {
       setLoading(false);
     }
   };
+
+  const PERKS = [
+    { icon: Truck, text: t('home.promo_title') },
+    { icon: ShieldCheck, text: "Fresh quality guaranteed" },
+    { icon: Star, text: "5000+ happy customers" },
+  ];
 
   return (
     <div className="min-h-screen flex">
@@ -119,15 +121,15 @@ export default function LoginPage() {
           </div>
 
           <h1 className="text-3xl font-black text-text-primary tracking-tight mb-1.5">
-            Welcome back
+            {t('auth.login_title')}
           </h1>
           <p className="text-text-muted text-sm mb-8">
-            Sign in to your CityMarket account to continue
+            {t('auth.login_subtitle')}
           </p>
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             <Input
-              label="Email Address"
+              label={t('auth.email')}
               type="email"
               placeholder="name@example.com"
               icon={<Mail size={18} />}
@@ -137,7 +139,7 @@ export default function LoginPage() {
 
             <div>
               <Input
-                label="Password"
+                label={t('auth.password')}
                 type={showPass ? "text" : "password"}
                 placeholder="••••••••"
                 icon={<Lock size={18} />}
@@ -151,20 +153,20 @@ export default function LoginPage() {
               />
               <div className="flex justify-end mt-2">
                 <button type="button" className="text-sm font-semibold text-primary hover:text-primary-dark transition-colors">
-                  Forgot password?
+                  {t('auth.forgot_password')}
                 </button>
               </div>
             </div>
 
             <Button type="submit" fullWidth size="lg" loading={loading} iconRight={<ArrowRight size={18} />}>
-              Sign In
+              {t('auth.login_button')}
             </Button>
           </form>
 
           <p className="mt-7 text-center text-sm text-text-muted">
-            Don't have an account?{" "}
+            {t('auth.no_account')}{" "}
             <Link to="/register" className="font-bold text-primary hover:text-primary-dark transition-colors">
-              Create one free
+              {t('auth.register')}
             </Link>
           </p>
         </motion.div>

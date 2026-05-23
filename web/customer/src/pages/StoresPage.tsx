@@ -6,20 +6,23 @@ import { useQuery } from '@tanstack/react-query';
 import { VendorService } from '@/services/api/vendorService';
 import { VendorCard } from '@/components/shared/VendorCard';
 import { VendorCardSkeleton } from '@/components/ui/Skeleton';
+import { useTranslation } from 'react-i18next';
 
 const VENDOR_TYPES = ['All', 'SUPERMARKET', 'BAKERY', 'BUTCHER', 'GROCERY', 'FRUITS'];
-const TYPE_LABELS: Record<string, string> = {
-  All: 'All',
-  SUPERMARKET: 'Supermarkets',
-  BAKERY: 'Bakeries',
-  BUTCHER: 'Butchers',
-  GROCERY: 'Groceries',
-  FRUITS: 'Fruits & Veg',
-};
 
 export default function StoresPage() {
   const [params] = useSearchParams();
   const [activeType, setActiveType] = useState(params.get('type') || 'All');
+  const { t } = useTranslation();
+
+  const TYPE_LABELS: Record<string, string> = {
+    All: t('search.all'),
+    SUPERMARKET: t('home.type_supermarket'),
+    BAKERY: t('home.type_bakery'),
+    BUTCHER: t('home.type_butcher'),
+    GROCERY: t('home.type_other'),
+    FRUITS: t('home.type_vegfruit'),
+  };
 
   const { data: vendors = [], isLoading } = useQuery({
     queryKey: ['vendors'],
@@ -35,9 +38,9 @@ export default function StoresPage() {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
       {/* Header */}
       <div className="mb-6">
-        <h1 className="text-2xl font-black text-text-primary tracking-tight mb-1">All Stores</h1>
+        <h1 className="text-2xl font-black text-text-primary tracking-tight mb-1">{t('home.stores')}</h1>
         <p className="text-sm text-text-muted">
-          {filtered.length} store{filtered.length !== 1 ? 's' : ''} available
+          {filtered.length} {t('stores_page.available')}
         </p>
       </div>
 
@@ -74,9 +77,9 @@ export default function StoresPage() {
           <div className="w-20 h-20 bg-primary-xlight rounded-full flex items-center justify-center mb-4">
             <Store size={36} className="text-primary" />
           </div>
-          <h3 className="text-lg font-bold text-text-primary mb-2">No stores found</h3>
+          <h3 className="text-lg font-bold text-text-primary mb-2">{t('common.no_results')}</h3>
           <p className="text-sm text-text-muted">
-            No stores available in this category yet.
+            {t('stores_page.none_in_category')}
           </p>
         </motion.div>
       ) : (
