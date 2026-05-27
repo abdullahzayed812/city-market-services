@@ -30,12 +30,16 @@ CREATE TABLE vendor_orders (
   delivery_id VARCHAR(36),
   settlement_id VARCHAR(36) DEFAULT NULL,
   cancellation_reason TEXT,
+  vendor_confirmation_deadline TIMESTAMP NULL DEFAULT NULL,
+  customer_decision_deadline TIMESTAMP NULL DEFAULT NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   INDEX idx_customer_order_id (customer_order_id),
   INDEX idx_vendor_id (vendor_id),
   INDEX idx_status (status),
   INDEX idx_settlement_id (settlement_id),
+  INDEX idx_vendor_confirmation_deadline (vendor_confirmation_deadline),
+  INDEX idx_customer_decision_deadline (customer_decision_deadline),
   FOREIGN KEY (customer_order_id) REFERENCES customer_orders(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 

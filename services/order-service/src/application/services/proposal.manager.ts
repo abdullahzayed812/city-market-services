@@ -120,6 +120,10 @@ export class ProposalManager {
       await this.vendorOrderRepo.updateStatus(vendorOrderId, VendorOrderStatus.PROPOSAL_SENT, connection);
       await this.stateManager.recordStatusChange({ vendorOrderId }, VendorOrderStatus.PROPOSAL_SENT, `Proposals sent.`, connection);
 
+      // Cancel vendor confirmation SLA (vendor responded) + schedule customer decision SLA
+      this.stateManager.cancelVendorConfirmationSla(vendorOrderId);
+      this.stateManager.scheduleCustomerDecisionSla(vendorOrderId, lockedVo.vendorId, lockedVo.customerOrderId, co.customerId).catch(() => {});
+
       await this.publisher.publishVendorOrderProposed({
         vendorOrderId,
         customerOrderId: lockedVo.customerOrderId,

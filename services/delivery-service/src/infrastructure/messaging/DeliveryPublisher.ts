@@ -58,4 +58,28 @@ export class DeliveryPublisher {
   async publishDeliveryAccepted(data: { deliveryId: string; officeId: string }): Promise<void> {
     await this.publish(EventType.DELIVERY_ACCEPTED, data);
   }
+
+  async publishSlaTimerStarted(payload: {
+    slaType: string;
+    entityType: string;
+    entityId: string;
+    deadline: string;
+    customerOrderId: string;
+    customerId: string;
+    courierId?: string;
+  }): Promise<void> {
+    await this.publish(EventType.SLA_TIMER_STARTED, payload);
+  }
+
+  async publishSlaDeliveryAcceptanceExpired(data: { deliveryId: string; customerOrderId: string; customerId: string }): Promise<void> {
+    await this.publish(EventType.SLA_DELIVERY_ACCEPTANCE_EXPIRED, data);
+  }
+
+  async publishSlaCourierAssignmentExpired(data: { deliveryId: string; customerOrderId: string; customerId: string }): Promise<void> {
+    await this.publish(EventType.SLA_COURIER_ASSIGNMENT_EXPIRED, data);
+  }
+
+  async publishSlaCourierPickupExpired(data: { deliveryId: string; customerOrderId: string; customerId: string; courierId?: string }): Promise<void> {
+    await this.publish(EventType.SLA_COURIER_PICKUP_EXPIRED, data);
+  }
 }

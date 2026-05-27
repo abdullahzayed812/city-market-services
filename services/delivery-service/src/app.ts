@@ -18,7 +18,9 @@ import { CourierSettlementRepository } from "./infrastructure/repositories/couri
 import { DeliveryOfficeSettlementRepository } from "./infrastructure/repositories/delivery-office-settlement.repository";
 import { DeliveryOfficeRepository } from "./infrastructure/repositories/delivery-office.repository";
 import { DeliveryFeeTierRepository } from "./infrastructure/repositories/delivery-fee-tier.repository";
-import { errorHandler, Database, authenticate, rabbitMQBus, correlation } from "@city-market/shared/node";
+import { errorHandler, Database, authenticate, rabbitMQBus, correlation, createSlaWorker } from "@city-market/shared/node";
+import { DeliverySlaManager } from "./application/services/delivery-sla.manager";
+import { DeliverySlaWorker } from "./application/workers/sla.worker";
 import { EventType } from "@city-market/shared";
 import { OrderReadyConsumer } from "./application/events/order-ready.consumer";
 import { OrderHttpClient } from "./infrastructure/http/order-http-client";
@@ -66,6 +68,17 @@ export const createApp = () => {
     deliveryOfficeRepo,
   );
 
+  const [redisHost, redisPortStr] = (config.redisUrl || "redis://localhost:6379").replace(/^redis:\/\//, "").split(":");
+  const redisConnection = { host: redisHost || "localhost", port: parseInt(redisPortStr || "6379", 10) };
+
+  const slaManager = new DeliverySlaManager(deliveryRepo, publisher, config.redisUrl, config.deliveryAcceptanceSlaMins, config.courierAssignmentSlaMins, config.courierPickupSlaMins);
+  deliveryService.setSlaManager(slaManager);
+
+  const slaWorkerInstance = new DeliverySlaWorker(deliveryRepo, courierRepo, publisher, db);
+  createSlaWorker("sla-delivery", (job) => slaWorkerInstance.handle(job), redisConnection);
+
+  setTimeout(() => slaManager.runStartupRecovery((job) => slaWorkerInstance.handle(job)).catch(console.error), 5000);
+
   const deliveryController = new DeliveryController(deliveryService);
 
   const officeSettlementRepo = new DeliveryOfficeSettlementRepository(db);
@@ -76,13 +89,7 @@ export const createApp = () => {
   const officeSettlementService = new DeliveryOfficeSettlementService(officeSettlementRepo, deliveryOfficeRepo, deliveryRepo, db);
   const officeSettlementController = new DeliveryOfficeSettlementController(officeSettlementService);
 
-  // // Cancel deliveries that exceeded the courier assignment window
-  // const EXPIRY_CHECK_INTERVAL_MS = 60_000;
-  // setInterval(() => {
-  //   deliveryService.cancelExpiredAssignedDeliveries().catch((err) =>
-  //     console.error("[DeliveryService] Assignment expiry check failed:", err.message),
-  //   );
-  // }, EXPIRY_CHECK_INTERVAL_MS);
+  // SLA timers handled by BullMQ — see DeliverySlaManager and DeliverySlaWorker above
 
   // Register Event Consumers
   const orderReadyConsumer = new OrderReadyConsumer(deliveryService);

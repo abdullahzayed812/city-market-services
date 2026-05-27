@@ -15,6 +15,10 @@ export const config = ConfigLoader.load<{
   deliveryServiceClientSecret: string;
   authServiceTokenUrl: string;
   acceptedWindowMinutes: number;
+  redisUrl: string;
+  deliveryAcceptanceSlaMins: number;
+  courierAssignmentSlaMins: number;
+  courierPickupSlaMins: number;
 }>({
   port: { env: "PORT", default: 3006 },
   dbHost: { env: "DB_HOST", default: "localhost" },
@@ -30,6 +34,10 @@ export const config = ConfigLoader.load<{
   deliveryServiceClientId: { env: "DELIVERY_SERVICE_CLIENT_ID", default: "delivery-service-id" },
   deliveryServiceClientSecret: { env: "DELIVERY_SERVICE_CLIENT_SECRET", required: true, sensitive: true },
   authServiceTokenUrl: { env: "AUTH_SERVICE_TOKEN_URL", default: "http://localhost:3001/oauth/token" },
+  redisUrl: { env: "REDIS_URL", default: "redis://localhost:6379" },
+  deliveryAcceptanceSlaMins: { env: "DELIVERY_ACCEPTANCE_SLA_MINUTES", default: 5 },
+  courierAssignmentSlaMins: { env: "COURIER_ASSIGNMENT_SLA_MINUTES", default: 5 },
+  courierPickupSlaMins: { env: "COURIER_PICKUP_SLA_MINUTES", default: 30 },
 });
 
 export const deliveryServiceAuthenticator = new ServiceAuthenticator(

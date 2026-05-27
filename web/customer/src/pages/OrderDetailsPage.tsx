@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronLeft, Package, MapPin, Receipt, Clock, AlertCircle, Star, XCircle, Ban, CheckCircle, Truck, ShoppingBag, RefreshCw } from "lucide-react";
+import { ChevronLeft, Package, MapPin, Receipt, Clock, AlertCircle, Star, XCircle, Ban, CheckCircle, Truck, ShoppingBag, RefreshCw, Timer } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { OrderService } from "@/services/api/orderService";
 import { RatingService } from "@/services/api/ratingService";
@@ -13,6 +13,7 @@ import { CustomerOrderStatus, VendorOrderStatus } from "@/types";
 import { formatPrice, formatDateTime } from "@/lib/utils";
 import { useTranslation } from "react-i18next";
 import { useLanguage } from "@/hooks/useLanguage";
+import { useSlaCountdown } from "@/hooks/useSlaCountdown";
 import toast from "react-hot-toast";
 import type { VendorOrder } from "@/types";
 
@@ -122,6 +123,15 @@ export default function OrderDetailsPage() {
   const currentStep = order?.status ? (STATUS_STEP_MAP[order.status] ?? 0) : 0;
   const isCancelled = order?.status === CustomerOrderStatus.CANCELLED;
   const hasProposals = Array.isArray(proposals) && proposals.length > 0;
+
+  const customerDecisionDeadline = useMemo(() => {
+    const vendorOrders: VendorOrder[] = data?.vendorOrders || [];
+    if (order?.status !== CustomerOrderStatus.WAITING_CUSTOMER_DECISION) return null;
+    const vo = vendorOrders.find((v) => v.customerDecisionDeadline);
+    return vo?.customerDecisionDeadline ?? null;
+  }, [order?.status, data?.vendorOrders]);
+
+  const customerDecisionCountdown = useSlaCountdown(customerDecisionDeadline);
 
   if (isLoading) {
     return (
@@ -233,6 +243,20 @@ export default function OrderDetailsPage() {
               <ChevronLeft size={16} className="text-amber-500 rotate-180" />
             </motion.div>
           </Link>
+        )}
+
+        {customerDecisionCountdown.remainingSeconds > 0 && !customerDecisionCountdown.isExpired && (
+          <div className={`flex items-center gap-3 rounded-xl p-3 mt-4 border ${customerDecisionCountdown.isWarning ? "bg-red-50 border-red-200" : "bg-amber-50 border-amber-200"}`}>
+            <Timer size={18} className={customerDecisionCountdown.isWarning ? "text-red-500 flex-shrink-0" : "text-amber-500 flex-shrink-0"} />
+            <div>
+              <p className={`text-xs font-bold uppercase tracking-wide mb-0.5 ${customerDecisionCountdown.isWarning ? "text-red-700" : "text-amber-700"}`}>
+                {t('orders.decide_before', 'Decide before')}
+              </p>
+              <p className={`text-2xl font-black tabular-nums ${customerDecisionCountdown.isWarning ? "text-red-600" : "text-amber-600"}`}>
+                {customerDecisionCountdown.formattedTime}
+              </p>
+            </div>
+          </div>
         )}
       </section>
 

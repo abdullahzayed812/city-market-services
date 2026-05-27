@@ -38,6 +38,9 @@ export const useOrders = () => {
       EventType.ORDER_PICKED_UP,
       EventType.ORDER_ON_THE_WAY,
       EventType.ORDER_DELIVERED,
+      EventType.SLA_TIMER_STARTED,
+      EventType.SLA_VENDOR_CONFIRMATION_EXPIRED,
+      EventType.SLA_CUSTOMER_DECISION_EXPIRED,
     ];
 
     events.forEach((event) => socket.on(event, handleUpdate));

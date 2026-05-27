@@ -198,6 +198,9 @@ export class OrderService {
       await this.vendorOrderRepo.updateStatus(vendorOrderId, VendorOrderStatus.PREPARING, connection);
       await this.stateManager.recordStatusChange({ vendorOrderId }, VendorOrderStatus.PREPARING, undefined, connection);
 
+      // Cancel vendor confirmation SLA — vendor responded
+      this.stateManager.cancelVendorConfirmationSla(vendorOrderId);
+
       await this.publisher.publishVendorOrderConfirmed({
         vendorOrderId,
         customerOrderId: lockedVo.customerOrderId,

@@ -28,6 +28,9 @@ export interface Delivery {
   pickedUpAt?: Date;
   deliveredAt?: Date;
   notes?: string;
+  acceptanceDeadline?: Date;
+  assignmentDeadline?: Date;
+  pickupDeadline?: Date;
   courierName?: string;
   courierPhone?: string;
   customerPhone?: string;

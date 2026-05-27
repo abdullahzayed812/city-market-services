@@ -28,6 +28,8 @@ export interface VendorOrder {
   totalAmount: number;
   deliveryId?: string;
   cancellationReason?: string;
+  vendorConfirmationDeadline?: Date;
+  customerDecisionDeadline?: Date;
   createdAt: Date;
   updatedAt: Date;
 }

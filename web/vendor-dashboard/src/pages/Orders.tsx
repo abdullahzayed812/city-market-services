@@ -4,17 +4,13 @@ import { useOrders } from "@/hooks/useOrders";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { MoreHorizontal, CheckCircle, XCircle, ChevronDown, Send, AlertCircle } from "lucide-react";
 import { VendorOrderStatus } from "@city-market/shared";
 import type { VendorOrderWithItemsDto, ProposeChangesDto } from "@city-market/shared";
 import { OrderPreparationModal } from "@/features/orders/components/OrderPreparationModal";
+import { SlaCountdownBadge } from "@/components/SlaCountdownBadge";
 
 const Orders = () => {
   const { t } = useTranslation();
@@ -114,7 +110,15 @@ const Orders = () => {
                     <TableCell>{new Date(order.createdAt).toLocaleDateString()}</TableCell>
                     <TableCell>{order.customerName || t("orders.customer")}</TableCell>
                     <TableCell>
-                      <Badge className={getStatusColor(order.status)}>{formatStatus(order.status)}</Badge>
+                      <div className="flex gap-1.5">
+                        <Badge className={getStatusColor(order.status)}>{formatStatus(order.status)}</Badge>
+                        {order.status === VendorOrderStatus.PENDING && (
+                          <SlaCountdownBadge deadline={(order as any).vendorConfirmationDeadline} label={t("orders.confirmBefore", "Confirm")} />
+                        )}
+                        {order.status === VendorOrderStatus.PROPOSAL_SENT && (
+                          <SlaCountdownBadge deadline={(order as any).customerDecisionDeadline} label={t("orders.customerDeciding", "Customer deciding")} />
+                        )}
+                      </div>
                     </TableCell>
                     <TableCell className="text-end">${order.totalAmount}</TableCell>
                     <TableCell>
@@ -138,10 +142,7 @@ const Orders = () => {
                               >
                                 <CheckCircle className="h-4 w-4" /> {t("orders.pendingOrder")}
                               </DropdownMenuItem>
-                              <DropdownMenuItem
-                                className="gap-2 text-destructive"
-                                onClick={() => cancelOrder(order.id)}
-                              >
+                              <DropdownMenuItem className="gap-2 text-destructive" onClick={() => cancelOrder(order.id)}>
                                 <XCircle className="h-4 w-4" /> {t("orders.cancelOrder")}
                               </DropdownMenuItem>
                             </>
@@ -160,10 +161,7 @@ const Orders = () => {
                               >
                                 <CheckCircle className="h-4 w-4" /> {t("orders.prepareOrder")}
                               </DropdownMenuItem>
-                              <DropdownMenuItem
-                                className="gap-2 text-destructive"
-                                onClick={() => cancelOrder(order.id)}
-                              >
+                              <DropdownMenuItem className="gap-2 text-destructive" onClick={() => cancelOrder(order.id)}>
                                 <XCircle className="h-4 w-4" /> {t("orders.cancelOrder")}
                               </DropdownMenuItem>
                             </>
@@ -171,10 +169,7 @@ const Orders = () => {
 
                           {order.status === VendorOrderStatus.PREPARING && (
                             <>
-                              <DropdownMenuItem
-                                className="gap-2 text-blue-600"
-                                onClick={() => handleOpenPreparationModal(order)}
-                              >
+                              <DropdownMenuItem className="gap-2 text-blue-600" onClick={() => handleOpenPreparationModal(order)}>
                                 <Send className="h-4 w-4" /> {t("orders.proposeChanges")}
                               </DropdownMenuItem>
                               <DropdownMenuItem
@@ -222,9 +217,7 @@ const Orders = () => {
                                 <TableRow key={item.id}>
                                   <TableCell>{item.productName}</TableCell>
                                   <TableCell>
-                                    {item.quantity
-                                      ? item.quantity
-                                      : `≈ ${(item.requestedWeightGrams || 0) / 1000} ${t("inventory.units.kg")}`}
+                                    {item.quantity ? item.quantity : `≈ ${(item.requestedWeightGrams || 0) / 1000} ${t("inventory.units.kg")}`}
                                     {item.actualWeightGrams &&
                                       ` (${t("orders.actual")}: ${(item.actualWeightGrams / 1000).toFixed(2)} ${t("inventory.units.kg")})`}
                                   </TableCell>
@@ -260,12 +253,7 @@ const Orders = () => {
       </div>
       {selectedOrder && (
         <>
-          <OrderPreparationModal
-            order={selectedOrder}
-            isOpen={isPreparationModalOpen}
-            onClose={handleCloseModals}
-            onSubmit={handlePreparationSubmit}
-          />
+          <OrderPreparationModal order={selectedOrder} isOpen={isPreparationModalOpen} onClose={handleCloseModals} onSubmit={handlePreparationSubmit} />
         </>
       )}
     </div>

@@ -13,6 +13,8 @@ export interface VendorOrder {
   deliveryId?: string;
   settlementId?: string;
   cancellationReason?: string;
+  vendorConfirmationDeadline?: Date;
+  customerDecisionDeadline?: Date;
   createdAt: Date;
   updatedAt: Date;
 }

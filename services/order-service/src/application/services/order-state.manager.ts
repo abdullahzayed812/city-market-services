@@ -7,8 +7,11 @@ import { OrderStatusHistory } from "../../core/entities/order-status-history.ent
 import { CustomerOrderStatus, VendorOrderStatus, EventType, ProposalStatus } from "@city-market/shared";
 import { OrderPublisher } from "../../infrastructure/messaging/OrderPublisher";
 import { randomUUID } from "crypto";
+import type { OrderSlaManager } from "./order-sla.manager";
 
 export class OrderStateManager {
+  private slaManager?: OrderSlaManager;
+
   constructor(
     private customerOrderRepo: ICustomerOrderRepository,
     private vendorOrderRepo: IVendorOrderRepository,
@@ -16,6 +19,10 @@ export class OrderStateManager {
     private statusHistoryRepo: IOrderStatusHistoryRepository,
     private publisher: OrderPublisher,
   ) {}
+
+  setSlaManager(slaManager: OrderSlaManager): void {
+    this.slaManager = slaManager;
+  }
 
   async recordStatusChange(
     ids: { customerOrderId?: string; vendorOrderId?: string },
@@ -96,6 +103,10 @@ export class OrderStateManager {
       await this.vendorOrderRepo.updateStatus(vendorOrderId, newStatus, connection);
       await this.recordStatusChange({ vendorOrderId }, newStatus, `All proposals processed`, connection);
 
+      if (this.slaManager) {
+        this.slaManager.cancelCustomerDecisionSla(vendorOrderId).catch(() => {});
+      }
+
       const customerOrder = await this.customerOrderRepo.findById(vendorOrder.customerOrderId, connection);
 
       const eventType = this.getEventTypeForVendorStatus(newStatus);
@@ -109,6 +120,27 @@ export class OrderStateManager {
         });
       }
     }
+  }
+
+  async scheduleVendorConfirmationSla(vendorOrderId: string, vendorId: string, customerOrderId: string, customerId: string, vendorUserId?: string): Promise<void> {
+    if (!this.slaManager) return;
+    await this.slaManager.scheduleVendorConfirmationSla({ vendorOrderId, vendorId, vendorUserId, customerOrderId, customerId }).catch(() => {});
+  }
+
+  async cancelVendorConfirmationSla(vendorOrderId: string): Promise<void> {
+    if (!this.slaManager) return;
+    this.slaManager.cancelVendorConfirmationSla(vendorOrderId).catch(() => {});
+  }
+
+  async scheduleCustomerDecisionSla(vendorOrderId: string, vendorId: string, customerOrderId: string, customerId: string): Promise<void> {
+    if (!this.slaManager) return;
+    await this.slaManager.scheduleCustomerDecisionSla({ vendorOrderId, vendorId, customerOrderId, customerId }).catch(() => {});
+  }
+
+  async cancelAllSlasForVendorOrder(vendorOrderId: string): Promise<void> {
+    if (!this.slaManager) return;
+    this.slaManager.cancelVendorConfirmationSla(vendorOrderId).catch(() => {});
+    this.slaManager.cancelCustomerDecisionSla(vendorOrderId).catch(() => {});
   }
 
   isValidVendorStatusTransition(currentStatus: VendorOrderStatus, newStatus: VendorOrderStatus): boolean {

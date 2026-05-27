@@ -13,7 +13,7 @@ import { VendorHttpClient } from "./infrastructure/http/vendor-http-client";
 import { UserHttpClient } from "./infrastructure/http/user-http-client";
 import { OrderPublisher } from "./infrastructure/messaging/OrderPublisher";
 import { EventType } from "@city-market/shared";
-import { errorHandler, Database, rabbitMQBus, authenticate } from "@city-market/shared/node";
+import { errorHandler, Database, rabbitMQBus, authenticate, createSlaWorker } from "@city-market/shared/node";
 import { DeliveryUpdatedConsumer } from "./application/events/delivery-updated.consumer";
 import { DeliveryCancelledByCourierConsumer } from "./application/events/delivery-cancelled-by-courier.consumer";
 import { StockReservedConsumer } from "./application/events/stock-reserved.consumer";
@@ -27,6 +27,8 @@ import { SettlementRepository } from "./infrastructure/repositories/settlement.r
 import { SettlementService } from "./application/services/settlement.service";
 import { SettlementController } from "./presentation/controllers/settlement.controller";
 import { createSettlementRoutes } from "./presentation/routes/settlement.routes";
+import { OrderSlaManager } from "./application/services/order-sla.manager";
+import { OrderSlaWorker } from "./application/workers/sla.worker";
 
 export const createApp = () => {
   const app = express();
@@ -74,6 +76,29 @@ export const createApp = () => {
     userClient,
   );
 
+  const [redisHost, redisPortStr] = (config.redisUrl || "redis://localhost:6379").replace(/^redis:\/\//, "").split(":");
+  const redisConnection = { host: redisHost || "localhost", port: parseInt(redisPortStr || "6379", 10) };
+
+  const slaManager = new OrderSlaManager(vendorOrderRepo, publisher, config.redisUrl, config.vendorConfirmationSlaMins, config.customerDecisionSlaMins);
+  orderService.stateManager.setSlaManager(slaManager);
+
+  const slaWorkerInstance = new OrderSlaWorker(
+    vendorOrderRepo,
+    customerOrderRepo,
+    proposalRepo,
+    statusHistoryRepo,
+    vendorOrderItemRepo,
+    publisher,
+    orderService.stateManager,
+    (orderService as any).proposalManager,
+    db,
+  );
+
+  createSlaWorker("sla-order", (job) => slaWorkerInstance.handle(job), redisConnection);
+
+  // Run startup recovery after a short delay to let the DB pool warm up
+  setTimeout(() => slaManager.runStartupRecovery((job) => slaWorkerInstance.handle(job)).catch(console.error), 5000);
+
   const orderController = new OrderController(orderService);
 
   const deliveryUpdatedConsumer = new DeliveryUpdatedConsumer(orderService);
@@ -92,13 +117,7 @@ export const createApp = () => {
   rabbitMQBus.subscribe(EventType.STOCK_RESERVED, "order_service_stock_reserved", (event) => stockReservedConsumer.handle(event));
   rabbitMQBus.subscribe(EventType.STOCK_REJECTED, "order_service_stock_rejected", (event) => stockRejectedConsumer.handle(event));
 
-  // // Cancel orders that exceeded the customer confirmation window
-  // const EXPIRY_CHECK_INTERVAL_MS = 60_000;
-  // setInterval(() => {
-  //   orderService.cancelExpiredOrders().catch((err) =>
-  //     console.error("[OrderService] Expiry check failed:", err.message),
-  //   );
-  // }, EXPIRY_CHECK_INTERVAL_MS);
+  // SLA timers handled by BullMQ — see OrderSlaManager and OrderSlaWorker above
 
   app.use(authenticate);
 

@@ -16,10 +16,13 @@ import { OrderHttpClient } from "../../infrastructure/http/order-http-client";
 import { VendorHttpClient } from "../../infrastructure/http/vendor-http-client";
 import { UserHttpClient } from "../../infrastructure/http/user-http-client";
 import { DeliveryPublisher } from "../../infrastructure/messaging/DeliveryPublisher";
+import type { DeliverySlaManager } from "./delivery-sla.manager";
 
 const DISTANCE_THRESHOLD_KM = 2.0;
 
 export class DeliveryService {
+  private slaManager?: DeliverySlaManager;
+
   constructor(
     private courierRepo: ICourierRepository,
     private deliveryRepo: IDeliveryRepository,
@@ -32,6 +35,10 @@ export class DeliveryService {
     private feeTierRepo?: IDeliveryFeeTierRepository,
     private officeRepo?: IDeliveryOfficeRepository,
   ) {}
+
+  setSlaManager(slaManager: DeliverySlaManager): void {
+    this.slaManager = slaManager;
+  }
 
   // Courier management
   async registerCourier(dto: RegisterCourierDto): Promise<Courier> {
@@ -190,7 +197,9 @@ export class DeliveryService {
             customerOrderId,
           }),
         );
-        // }
+        eventsToPublish.push(() =>
+          this.slaManager?.scheduleAcceptanceSla({ deliveryId: delivery.id, customerOrderId, customerId: customerOrder.customerId }) ?? Promise.resolve(),
+        );
       } else {
         let lastDeliveryId = "";
         // Separate Delivery per VendorOrder
@@ -213,6 +222,9 @@ export class DeliveryService {
               customerId: customerOrder.customerId,
               customerOrderId,
             }),
+          );
+          eventsToPublish.push(() =>
+            this.slaManager?.scheduleAcceptanceSla({ deliveryId: delivery.id, customerOrderId, customerId: customerOrder.customerId }) ?? Promise.resolve(),
           );
         }
       }
@@ -417,6 +429,7 @@ export class DeliveryService {
 
     if (dto.status === DeliveryStatus.PICKED_UP) {
       updates.pickedUpAt = new Date();
+      this.slaManager?.cancelPickupSla(deliveryId).catch(() => {});
       eventsToPublish.push(() =>
         this.publisher.publishOrderPickedUp({
           deliveryId,
@@ -436,6 +449,7 @@ export class DeliveryService {
       );
     } else if (dto.status === DeliveryStatus.DELIVERED) {
       updates.deliveredAt = new Date();
+      this.slaManager?.cancelAllSlas(deliveryId).catch(() => {});
       if (delivery.courierId) {
         // These are DB updates, should be part of a transaction if updateDeliveryStatus were transactional
         // For now, these are outside of the main delivery update transaction scope.
@@ -480,6 +494,12 @@ export class DeliveryService {
 
     const accepted = await this.deliveryRepo.acceptDelivery(deliveryId, office.id, this.acceptedWindowMinutes);
     if (!accepted) throw new ValidationError("delivery_already_accepted_by_another_office");
+
+    const delivery = await this.deliveryRepo.findById(deliveryId);
+    if (delivery) {
+      this.slaManager?.cancelAcceptanceSla(deliveryId).catch(() => {});
+      this.slaManager?.scheduleAssignmentSla({ deliveryId, customerOrderId: delivery.customerOrderId, customerId: delivery.customerId }).catch(() => {});
+    }
 
     this.publisher.publishDeliveryAccepted({ deliveryId, officeId: office.id }).catch(() => {});
   }
@@ -540,6 +560,10 @@ export class DeliveryService {
           customerOrderId: delivery.customerOrderId,
         }),
       );
+      eventsToPublish.push(() => {
+        this.slaManager?.cancelAssignmentSla(deliveryId).catch(() => {});
+        return this.slaManager?.schedulePickupSla({ deliveryId, customerOrderId: delivery.customerOrderId, customerId: delivery.customerId, courierId: dto.courierId }) ?? Promise.resolve();
+      });
 
       await this.db.commit(connection);
 

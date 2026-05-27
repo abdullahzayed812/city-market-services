@@ -7,10 +7,25 @@ import { deliveryService } from "@/services/api/delivery.service";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { MapPin, Package, Clock, User } from "lucide-react";
+import { MapPin, Package, Clock, User, Timer } from "lucide-react";
 import { DeliveryStatus, EventType } from "@city-market/shared";
 import type { Delivery, Courier } from "@city-market/shared";
 import AssignCourierDialog from "@/features/deliveries/components/AssignCourierDialog";
+import { useSlaCountdown } from "@/hooks/useSlaCountdown";
+
+function SlaCountdownBadge({ deadline, label }: { deadline: string | Date | null | undefined; label: string }) {
+  const { remainingSeconds, isExpired, isWarning, formattedTime } = useSlaCountdown(deadline);
+  if (!deadline || isExpired || remainingSeconds === 0) return null;
+  return (
+    <div className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-bold border ${
+      isWarning ? "bg-red-50 border-red-200 text-red-700" : "bg-amber-50 border-amber-200 text-amber-700"
+    }`}>
+      <Timer className="w-3 h-3 flex-shrink-0" />
+      <span className="uppercase tracking-wide text-[10px]">{label}</span>
+      <span className="tabular-nums font-mono">{formattedTime}</span>
+    </div>
+  );
+}
 
 const Deliveries = () => {
   const { t } = useTranslation();
@@ -47,6 +62,10 @@ const Deliveries = () => {
       EventType.ORDER_PICKED_UP,
       EventType.ORDER_ON_THE_WAY,
       EventType.ORDER_DELIVERED,
+      EventType.SLA_TIMER_STARTED,
+      EventType.SLA_DELIVERY_ACCEPTANCE_EXPIRED,
+      EventType.SLA_COURIER_ASSIGNMENT_EXPIRED,
+      EventType.SLA_COURIER_PICKUP_EXPIRED,
     ];
 
     events.forEach((event) => socket.on(event, handleUpdate));
@@ -147,7 +166,18 @@ const Deliveries = () => {
                   <Package className="w-5 h-5 text-primary" />
                   <CardTitle className="text-lg">Order #{delivery.customerOrderId?.substring(0, 8)}</CardTitle>
                 </div>
-                <Badge className={getStatusColor(delivery.status)}>{formatStatus(delivery.status)}</Badge>
+                <div className="flex items-center gap-2">
+                  <Badge className={getStatusColor(delivery.status)}>{formatStatus(delivery.status)}</Badge>
+                  {delivery.status === DeliveryStatus.PENDING && (
+                    <SlaCountdownBadge deadline={(delivery as any).acceptanceDeadline} label="Accept" />
+                  )}
+                  {delivery.status === DeliveryStatus.ACCEPTED && (
+                    <SlaCountdownBadge deadline={(delivery as any).assignmentDeadline} label="Assign" />
+                  )}
+                  {delivery.status === DeliveryStatus.ASSIGNED && (
+                    <SlaCountdownBadge deadline={(delivery as any).pickupDeadline} label="Pickup" />
+                  )}
+                </div>
               </CardHeader>
               <CardContent className="p-6">
                 <div className="grid md:grid-cols-2 gap-6">

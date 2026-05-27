@@ -93,4 +93,35 @@ export class OrderPublisher {
   async publishGenericEvent(type: EventType, payload: any): Promise<void> {
     await this.publish(type, payload);
   }
+
+  async publishSlaTimerStarted(payload: {
+    slaType: string;
+    entityType: string;
+    entityId: string;
+    deadline: string;
+    customerOrderId: string;
+    customerId: string;
+    vendorId?: string;
+  }): Promise<void> {
+    await this.publish(EventType.SLA_TIMER_STARTED, payload);
+  }
+
+  async publishSlaVendorConfirmationExpired(payload: {
+    vendorOrderId: string;
+    customerOrderId: string;
+    vendorId: string;
+    customerId: string;
+  }): Promise<void> {
+    await this.publish(EventType.SLA_VENDOR_CONFIRMATION_EXPIRED, payload);
+  }
+
+  async publishSlaCustomerDecisionExpired(payload: {
+    vendorOrderId: string;
+    customerOrderId: string;
+    vendorId: string;
+    customerId: string;
+    autoAction: "accepted";
+  }): Promise<void> {
+    await this.publish(EventType.SLA_CUSTOMER_DECISION_EXPIRED, payload);
+  }
 }

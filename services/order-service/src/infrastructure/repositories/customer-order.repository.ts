@@ -53,9 +53,13 @@ export class CustomerOrderRepository implements ICustomerOrderRepository {
   async findByCustomer(customerId: string, limit: number, offset: number, connection?: PoolConnection): Promise<CustomerOrder[]> {
     const conn = connection || this.pool;
     const query = `
-      SELECT * FROM customer_orders 
-      WHERE customer_id = ? 
-      ORDER BY created_at DESC 
+      SELECT co.*,
+        (SELECT MIN(vo.customer_decision_deadline)
+         FROM vendor_orders vo
+         WHERE vo.customer_order_id = co.id AND vo.status = 'PROPOSAL_SENT') AS customer_decision_deadline
+      FROM customer_orders co
+      WHERE co.customer_id = ?
+      ORDER BY co.created_at DESC
       LIMIT ? OFFSET ?
     `;
     const [rows] = await conn.query<RowDataPacket[]>(query, [customerId, limit, offset]);
@@ -144,6 +148,7 @@ export class CustomerOrderRepository implements ICustomerOrderRepository {
       deliveryLongitude: row.delivery_longitude,
       customerNotes: row.customer_notes,
       cancellationReason: row.cancellation_reason,
+      customerDecisionDeadline: row.customer_decision_deadline ?? undefined,
       createdAt: row.created_at,
       updatedAt: row.updated_at,
     };

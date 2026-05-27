@@ -159,6 +159,7 @@ export interface VendorOrder {
   vendorName?: string;
   status: VendorOrderStatus | string;
   cancellationReason?: string;
+  customerDecisionDeadline?: string | Date;
   items: VendorOrderItem[];
   proposals?: OrderItemProposal[];
 }
@@ -182,6 +183,7 @@ export interface CustomerOrder {
   status: CustomerOrderStatus | string;
   totalAmount: number;
   createdAt: string;
+  customerDecisionDeadline?: string | Date;
 }
 
 export interface CreateOrderDto {

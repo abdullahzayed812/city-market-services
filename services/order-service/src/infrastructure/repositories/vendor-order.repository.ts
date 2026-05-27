@@ -113,6 +113,8 @@ export class VendorOrderRepository implements IVendorOrderRepository {
           totalAmount: parseFloat(row.total_amount),
           deliveryId: row.delivery_id,
           cancellationReason: row.cancellation_reason,
+          vendorConfirmationDeadline: row.vendor_confirmation_deadline ?? undefined,
+          customerDecisionDeadline: row.customer_decision_deadline ?? undefined,
           createdAt: row.created_at,
           updatedAt: row.updated_at,
           items: [],
@@ -251,6 +253,44 @@ export class VendorOrderRepository implements IVendorOrderRepository {
     };
   }
 
+  async setDeadline(id: string, field: "vendorConfirmationDeadline" | "customerDecisionDeadline", deadline: Date | null, connection?: PoolConnection): Promise<void> {
+    const conn = connection || this.pool;
+    const col = field === "vendorConfirmationDeadline" ? "vendor_confirmation_deadline" : "customer_decision_deadline";
+    await conn.execute(`UPDATE vendor_orders SET ${col} = ? WHERE id = ?`, [deadline, id]);
+  }
+
+  async findExpiredPending(connection?: PoolConnection): Promise<VendorOrder[]> {
+    const conn = connection || this.pool;
+    const [rows] = await conn.execute<RowDataPacket[]>(
+      `SELECT * FROM vendor_orders WHERE status IN ('PENDING','PREPARING') AND vendor_confirmation_deadline IS NOT NULL AND vendor_confirmation_deadline < NOW()`,
+    );
+    return rows.map((r) => this.mapToEntity(r));
+  }
+
+  async findExpiredProposals(connection?: PoolConnection): Promise<VendorOrder[]> {
+    const conn = connection || this.pool;
+    const [rows] = await conn.execute<RowDataPacket[]>(
+      `SELECT * FROM vendor_orders WHERE status = 'PROPOSAL_SENT' AND customer_decision_deadline IS NOT NULL AND customer_decision_deadline < NOW()`,
+    );
+    return rows.map((r) => this.mapToEntity(r));
+  }
+
+  async findPendingWithFutureDeadline(connection?: PoolConnection): Promise<VendorOrder[]> {
+    const conn = connection || this.pool;
+    const [rows] = await conn.execute<RowDataPacket[]>(
+      `SELECT * FROM vendor_orders WHERE status IN ('PENDING','PREPARING') AND vendor_confirmation_deadline IS NOT NULL AND vendor_confirmation_deadline > NOW()`,
+    );
+    return rows.map((r) => this.mapToEntity(r));
+  }
+
+  async findProposalWithFutureDeadline(connection?: PoolConnection): Promise<VendorOrder[]> {
+    const conn = connection || this.pool;
+    const [rows] = await conn.execute<RowDataPacket[]>(
+      `SELECT * FROM vendor_orders WHERE status = 'PROPOSAL_SENT' AND customer_decision_deadline IS NOT NULL AND customer_decision_deadline > NOW()`,
+    );
+    return rows.map((r) => this.mapToEntity(r));
+  }
+
   public mapToEntity(row: any): VendorOrder {
     return {
       id: row.id,
@@ -264,6 +304,8 @@ export class VendorOrderRepository implements IVendorOrderRepository {
       deliveryId: row.delivery_id,
       settlementId: row.settlement_id,
       cancellationReason: row.cancellation_reason,
+      vendorConfirmationDeadline: row.vendor_confirmation_deadline ?? undefined,
+      customerDecisionDeadline: row.customer_decision_deadline ?? undefined,
       createdAt: row.created_at,
       updatedAt: row.updated_at,
     };

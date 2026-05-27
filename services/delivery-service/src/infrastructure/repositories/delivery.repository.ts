@@ -287,6 +287,60 @@ export class DeliveryRepository implements IDeliveryRepository {
     await (conn as any).query(`UPDATE deliveries SET office_settlement_id = ? WHERE id IN (${placeholders})`, [settlementId, ...deliveryIds]);
   }
 
+  async setDeadline(id: string, field: "acceptanceDeadline" | "assignmentDeadline" | "pickupDeadline", deadline: Date | null, connection?: PoolConnection): Promise<void> {
+    const conn = connection || this.pool;
+    const colMap = { acceptanceDeadline: "acceptance_deadline", assignmentDeadline: "assignment_deadline", pickupDeadline: "pickup_deadline" };
+    await conn.execute(`UPDATE deliveries SET ${colMap[field]} = ? WHERE id = ?`, [deadline, id]);
+  }
+
+  async findExpiredPending(connection?: PoolConnection): Promise<Delivery[]> {
+    const conn = connection || this.pool;
+    const [rows] = await conn.execute<RowDataPacket[]>(
+      `SELECT d.*, c.full_name as courier_name, c.phone as courier_phone FROM deliveries d LEFT JOIN couriers c ON d.courier_id = c.id WHERE d.status = 'PENDING' AND d.acceptance_deadline IS NOT NULL AND d.acceptance_deadline < NOW()`,
+    );
+    return this.mapRowsToDeliveries(rows, conn);
+  }
+
+  async findExpiredAccepted(connection?: PoolConnection): Promise<Delivery[]> {
+    const conn = connection || this.pool;
+    const [rows] = await conn.execute<RowDataPacket[]>(
+      `SELECT d.*, c.full_name as courier_name, c.phone as courier_phone FROM deliveries d LEFT JOIN couriers c ON d.courier_id = c.id WHERE d.status = 'ACCEPTED' AND d.assignment_deadline IS NOT NULL AND d.assignment_deadline < NOW()`,
+    );
+    return this.mapRowsToDeliveries(rows, conn);
+  }
+
+  async findExpiredAssigned(connection?: PoolConnection): Promise<Delivery[]> {
+    const conn = connection || this.pool;
+    const [rows] = await conn.execute<RowDataPacket[]>(
+      `SELECT d.*, c.full_name as courier_name, c.phone as courier_phone FROM deliveries d LEFT JOIN couriers c ON d.courier_id = c.id WHERE d.status = 'ASSIGNED' AND d.pickup_deadline IS NOT NULL AND d.pickup_deadline < NOW()`,
+    );
+    return this.mapRowsToDeliveries(rows, conn);
+  }
+
+  async findPendingWithFutureDeadline(connection?: PoolConnection): Promise<Delivery[]> {
+    const conn = connection || this.pool;
+    const [rows] = await conn.execute<RowDataPacket[]>(
+      `SELECT d.*, c.full_name as courier_name, c.phone as courier_phone FROM deliveries d LEFT JOIN couriers c ON d.courier_id = c.id WHERE d.status = 'PENDING' AND d.acceptance_deadline IS NOT NULL AND d.acceptance_deadline > NOW()`,
+    );
+    return this.mapRowsToDeliveries(rows, conn);
+  }
+
+  async findAcceptedWithFutureDeadline(connection?: PoolConnection): Promise<Delivery[]> {
+    const conn = connection || this.pool;
+    const [rows] = await conn.execute<RowDataPacket[]>(
+      `SELECT d.*, c.full_name as courier_name, c.phone as courier_phone FROM deliveries d LEFT JOIN couriers c ON d.courier_id = c.id WHERE d.status = 'ACCEPTED' AND d.assignment_deadline IS NOT NULL AND d.assignment_deadline > NOW()`,
+    );
+    return this.mapRowsToDeliveries(rows, conn);
+  }
+
+  async findAssignedWithFutureDeadline(connection?: PoolConnection): Promise<Delivery[]> {
+    const conn = connection || this.pool;
+    const [rows] = await conn.execute<RowDataPacket[]>(
+      `SELECT d.*, c.full_name as courier_name, c.phone as courier_phone FROM deliveries d LEFT JOIN couriers c ON d.courier_id = c.id WHERE d.status = 'ASSIGNED' AND d.pickup_deadline IS NOT NULL AND d.pickup_deadline > NOW()`,
+    );
+    return this.mapRowsToDeliveries(rows, conn);
+  }
+
   private mapToEntity(row: any): Delivery {
     return {
       id: row.id,
@@ -312,6 +366,9 @@ export class DeliveryRepository implements IDeliveryRepository {
       pickedUpAt: row.picked_up_at,
       deliveredAt: row.delivered_at,
       notes: row.notes,
+      acceptanceDeadline: row.acceptance_deadline ?? undefined,
+      assignmentDeadline: row.assignment_deadline ?? undefined,
+      pickupDeadline: row.pickup_deadline ?? undefined,
       courierName: row.courier_name,
       courierPhone: row.courier_phone,
       createdAt: row.created_at,

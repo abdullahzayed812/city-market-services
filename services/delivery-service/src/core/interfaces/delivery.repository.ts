@@ -16,4 +16,11 @@ export interface IDeliveryRepository {
   acceptDelivery(id: string, officeId: string, windowMinutes: number, connection?: any): Promise<boolean>;
   markDeliveriesAsCourierSettled(deliveryIds: string[], settlementId: string, connection?: any): Promise<void>;
   markDeliveriesAsOfficeSettled(deliveryIds: string[], settlementId: string, connection?: any): Promise<void>;
+  setDeadline(id: string, field: "acceptanceDeadline" | "assignmentDeadline" | "pickupDeadline", deadline: Date | null, connection?: any): Promise<void>;
+  findExpiredPending(connection?: any): Promise<Delivery[]>;
+  findExpiredAccepted(connection?: any): Promise<Delivery[]>;
+  findExpiredAssigned(connection?: any): Promise<Delivery[]>;
+  findPendingWithFutureDeadline(connection?: any): Promise<Delivery[]>;
+  findAcceptedWithFutureDeadline(connection?: any): Promise<Delivery[]>;
+  findAssignedWithFutureDeadline(connection?: any): Promise<Delivery[]>;
 }

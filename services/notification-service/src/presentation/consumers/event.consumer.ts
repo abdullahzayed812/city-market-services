@@ -232,6 +232,71 @@ export class EventConsumer {
       );
     });
 
+    // 6. SLA Events
+    await rabbitMQBus.subscribe(EventType.SLA_VENDOR_CONFIRMATION_EXPIRED, "notification_sla_vendor_confirmation_expired", async (event: BaseEvent) => {
+      const { vendorOrderId, customerOrderId, customerId } = event.payload;
+      await this.notificationService.sendNotification(
+        customerId,
+        "ORDER_UPDATE",
+        "notification_sla_vendor_cancelled_title",
+        "notification_sla_vendor_cancelled_message",
+        { orderId: customerOrderId, vendorOrderId, type: "ORDER_UPDATE", role: "CUSTOMER" },
+      );
+    });
+
+    await rabbitMQBus.subscribe(EventType.SLA_CUSTOMER_DECISION_EXPIRED, "notification_sla_customer_decision_expired", async (event: BaseEvent) => {
+      const { customerOrderId, customerId } = event.payload;
+      await this.notificationService.sendNotification(
+        customerId,
+        "ORDER_UPDATE",
+        "notification_sla_proposals_auto_accepted_title",
+        "notification_sla_proposals_auto_accepted_message",
+        { orderId: customerOrderId, type: "ORDER_UPDATE", role: "CUSTOMER" },
+      );
+    });
+
+    await rabbitMQBus.subscribe(EventType.SLA_DELIVERY_ACCEPTANCE_EXPIRED, "notification_sla_delivery_acceptance_expired", async (event: BaseEvent) => {
+      const { deliveryId, customerOrderId } = event.payload;
+      await this.notificationService.sendMulticastNotification(
+        AppType.DELIVERY_MANAGER,
+        "ORDER_READY",
+        "notification_sla_delivery_acceptance_expired_title",
+        "notification_sla_delivery_acceptance_expired_message",
+        { deliveryId, orderId: customerOrderId, type: "ORDER_READY", role: "DELIVERY_MANAGER" },
+      );
+    });
+
+    await rabbitMQBus.subscribe(EventType.SLA_COURIER_ASSIGNMENT_EXPIRED, "notification_sla_courier_assignment_expired", async (event: BaseEvent) => {
+      const { deliveryId, customerOrderId } = event.payload;
+      await this.notificationService.sendMulticastNotification(
+        AppType.DELIVERY_MANAGER,
+        "ORDER_READY",
+        "notification_sla_courier_assignment_expired_title",
+        "notification_sla_courier_assignment_expired_message",
+        { deliveryId, orderId: customerOrderId, type: "ORDER_READY", role: "DELIVERY_MANAGER" },
+      );
+    });
+
+    await rabbitMQBus.subscribe(EventType.SLA_COURIER_PICKUP_EXPIRED, "notification_sla_courier_pickup_expired", async (event: BaseEvent) => {
+      const { deliveryId, customerOrderId, customerId } = event.payload;
+      if (customerId) {
+        await this.notificationService.sendNotification(
+          customerId,
+          "DELIVERY_UPDATE",
+          "notification_sla_courier_pickup_expired_title",
+          "notification_sla_courier_pickup_expired_message",
+          { orderId: customerOrderId, deliveryId, type: "DELIVERY_UPDATE", role: "CUSTOMER" },
+        );
+      }
+      await this.notificationService.sendMulticastNotification(
+        AppType.DELIVERY_MANAGER,
+        "ORDER_READY",
+        "notification_sla_courier_pickup_expired_manager_title",
+        "notification_sla_courier_pickup_expired_manager_message",
+        { deliveryId, orderId: customerOrderId, type: "ORDER_READY", role: "DELIVERY_MANAGER" },
+      );
+    });
+
     Logger.info("Notification Service Consumers Started");
   }
 }

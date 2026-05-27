@@ -24,6 +24,9 @@ export interface Delivery {
   totalPrice: number;
   deliveryFee?: number;
   itemsCount: number;
+  acceptanceDeadline?: Date;
+  assignmentDeadline?: Date;
+  pickupDeadline?: Date;
   assignedAt?: Date;
   pickedUpAt?: Date;
   deliveredAt?: Date;

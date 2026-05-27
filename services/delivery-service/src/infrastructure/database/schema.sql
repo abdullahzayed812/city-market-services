@@ -53,12 +53,18 @@ CREATE TABLE deliveries (
   picked_up_at TIMESTAMP NULL,
   delivered_at TIMESTAMP NULL,
   notes TEXT,
+  acceptance_deadline TIMESTAMP NULL DEFAULT NULL,
+  assignment_deadline TIMESTAMP NULL DEFAULT NULL,
+  pickup_deadline TIMESTAMP NULL DEFAULT NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   INDEX idx_customer_order_id (customer_order_id),
   INDEX idx_vendor_order_id (vendor_order_id),
   INDEX idx_courier_id (courier_id),
   INDEX idx_status (status),
+  INDEX idx_acceptance_deadline (acceptance_deadline),
+  INDEX idx_assignment_deadline (assignment_deadline),
+  INDEX idx_pickup_deadline (pickup_deadline),
   FOREIGN KEY (courier_id) REFERENCES couriers(id) ON DELETE SET NULL,
   UNIQUE INDEX unique_delivery_per_vendor_order (customer_order_id, vendor_order_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

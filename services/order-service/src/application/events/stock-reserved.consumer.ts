@@ -41,14 +41,24 @@ export class StockReservedConsumer {
       );
 
       const vendorOrders = await this.vendorOrderRepo.findByCustomerOrder(orderId, connection);
+      const slaSchedules: Array<() => Promise<void>> = [];
+
       for (const vo of vendorOrders) {
         if (vo.status === VendorOrderStatus.DRAFT) {
           await this.vendorOrderRepo.updateStatus(vo.id, VendorOrderStatus.PENDING, connection);
           await this.stateManager.recordStatusChange({ vendorOrderId: vo.id }, VendorOrderStatus.PENDING, "Customer confirmed order", connection);
+          slaSchedules.push(() =>
+            this.stateManager.scheduleVendorConfirmationSla(vo.id, vo.vendorId, orderId, customerOrder.customerId, vo.vendorUserId),
+          );
         }
       }
 
       Logger.info(`[OrderService] Order ${orderId} moved to PENDING_VENDOR_CONFIRMATION and vendor orders to PENDING`);
+
+      // Schedule SLAs after transaction commits
+      for (const schedule of slaSchedules) {
+        schedule().catch((err: any) => Logger.warn(`[SLA] Failed to schedule: ${err.message}`));
+      }
     });
   }
 }
