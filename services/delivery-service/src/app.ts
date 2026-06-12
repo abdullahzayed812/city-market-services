@@ -68,8 +68,8 @@ export const createApp = () => {
     deliveryOfficeRepo,
   );
 
-  const [redisHost, redisPortStr] = (config.redisUrl || "redis://localhost:6379").replace(/^redis:\/\//, "").split(":");
-  const redisConnection = { host: redisHost || "localhost", port: parseInt(redisPortStr || "6379", 10) };
+  const parsedRedisUrl = new URL(config.redisUrl || "redis://localhost:6379");
+  const redisConnection = { host: parsedRedisUrl.hostname || "localhost", port: parseInt(parsedRedisUrl.port || "6379", 10), password: parsedRedisUrl.password || undefined };
 
   const slaManager = new DeliverySlaManager(deliveryRepo, publisher, config.redisUrl, config.deliveryAcceptanceSlaMins, config.courierAssignmentSlaMins, config.courierPickupSlaMins);
   deliveryService.setSlaManager(slaManager);

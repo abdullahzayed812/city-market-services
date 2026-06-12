@@ -76,8 +76,8 @@ export const createApp = () => {
     userClient,
   );
 
-  const [redisHost, redisPortStr] = (config.redisUrl || "redis://localhost:6379").replace(/^redis:\/\//, "").split(":");
-  const redisConnection = { host: redisHost || "localhost", port: parseInt(redisPortStr || "6379", 10) };
+  const parsedRedisUrl = new URL(config.redisUrl || "redis://localhost:6379");
+  const redisConnection = { host: parsedRedisUrl.hostname || "localhost", port: parseInt(parsedRedisUrl.port || "6379", 10), password: parsedRedisUrl.password || undefined };
 
   const slaManager = new OrderSlaManager(vendorOrderRepo, publisher, config.redisUrl, config.vendorConfirmationSlaMins, config.customerDecisionSlaMins);
   orderService.stateManager.setSlaManager(slaManager);

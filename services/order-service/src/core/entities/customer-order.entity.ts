@@ -13,6 +13,7 @@ export interface CustomerOrder {
   deliveryLongitude?: number;
   customerNotes?: string;
   cancellationReason?: string;
+  customerDecisionDeadline?: Date;
   createdAt: Date;
   updatedAt: Date;
 }

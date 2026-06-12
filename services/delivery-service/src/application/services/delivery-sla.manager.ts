@@ -17,8 +17,8 @@ export class DeliverySlaManager {
     private courierAssignmentSlaMins: number,
     private courierPickupSlaMins: number,
   ) {
-    const [host, portStr] = redisUrl.replace(/^redis:\/\//, "").split(":");
-    this.queue = createSlaQueue(QUEUE_NAME, { host: host || "localhost", port: parseInt(portStr || "6379", 10) });
+    const parsedUrl = new URL(redisUrl);
+    this.queue = createSlaQueue(QUEUE_NAME, { host: parsedUrl.hostname || "localhost", port: parseInt(parsedUrl.port || "6379", 10), password: parsedUrl.password || undefined });
   }
 
   getQueue(): Queue<SlaJobData> {

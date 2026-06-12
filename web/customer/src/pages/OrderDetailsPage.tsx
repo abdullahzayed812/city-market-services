@@ -262,7 +262,7 @@ export default function OrderDetailsPage() {
 
       {/* Vendor Orders */}
       {vendorOrders.map((vo) => {
-        const vcfg = VENDOR_STATUS_CONFIG[vo.status] ?? { label: vo.status, variant: "default" as const };
+        const vcfg = VENDOR_STATUS_CONFIG[vo.status as keyof typeof VENDOR_STATUS_CONFIG] ?? { label: vo.status, variant: "default" as const };
         return (
           <section key={vo.id} className="bg-white rounded-2xl shadow-card p-5 mb-4">
             <div className="flex items-center gap-3 mb-4">

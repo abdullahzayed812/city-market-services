@@ -175,7 +175,7 @@ services:
       DB_USER: ${DB_USER:-citymarket}
       DB_PASSWORD: ${DB_PASSWORD}
       DB_NAME: auth_db
-      REDIS_URL: redis://redis:6379
+      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
       JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET}
       JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}
       JWT_SERVICE_ACCESS_SECRET: ${JWT_SERVICE_ACCESS_SECRET}
@@ -216,7 +216,7 @@ services:
       DB_USER: ${DB_USER:-citymarket}
       DB_PASSWORD: ${DB_PASSWORD}
       DB_NAME: user_db
-      REDIS_URL: redis://redis:6379
+      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
       JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET}
       JWT_SERVICE_ACCESS_SECRET: ${JWT_SERVICE_ACCESS_SECRET}
       RABBITMQ_URL: amqp://${RABBITMQ_USER:-guest}:${RABBITMQ_PASSWORD:-guest}@rabbitmq:5672
@@ -236,7 +236,7 @@ services:
       DB_USER: ${DB_USER:-citymarket}
       DB_PASSWORD: ${DB_PASSWORD}
       DB_NAME: vendor_db
-      REDIS_URL: redis://redis:6379
+      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
       AUTH_SERVICE_URL: http://auth-service:3001
       AUTH_SERVICE_TOKEN_URL: http://auth-service:3001/oauth/token
       VENDOR_SERVICE_CLIENT_ID: vendor-service-id
@@ -260,7 +260,7 @@ services:
       DB_USER: ${DB_USER:-citymarket}
       DB_PASSWORD: ${DB_PASSWORD}
       DB_NAME: catalog_db
-      REDIS_URL: redis://redis:6379
+      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
       JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET}
       JWT_SERVICE_ACCESS_SECRET: ${JWT_SERVICE_ACCESS_SECRET}
       RABBITMQ_URL: amqp://${RABBITMQ_USER:-guest}:${RABBITMQ_PASSWORD:-guest}@rabbitmq:5672
@@ -280,7 +280,7 @@ services:
       DB_USER: ${DB_USER:-citymarket}
       DB_PASSWORD: ${DB_PASSWORD}
       DB_NAME: order_db
-      REDIS_URL: redis://redis:6379
+      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
       CATALOG_SERVICE_URL: http://catalog-service:3004
       VENDOR_SERVICE_URL: http://vendor-service:3003
       USER_SERVICE_URL: http://user-service:3002
@@ -308,7 +308,7 @@ services:
       DB_USER: ${DB_USER:-citymarket}
       DB_PASSWORD: ${DB_PASSWORD}
       DB_NAME: delivery_db
-      REDIS_URL: redis://redis:6379
+      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
       ORDER_SERVICE_URL: http://order-service:3005
       VENDOR_SERVICE_URL: http://vendor-service:3003
       USER_SERVICE_URL: http://user-service:3002
@@ -336,7 +336,7 @@ services:
       DB_USER: ${DB_USER:-citymarket}
       DB_PASSWORD: ${DB_PASSWORD}
       DB_NAME: admin_db
-      REDIS_URL: redis://redis:6379
+      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
       ORDER_SERVICE_URL: http://order-service:3005
       VENDOR_SERVICE_URL: http://vendor-service:3003
       DELIVERY_SERVICE_URL: http://delivery-service:3006
@@ -364,7 +364,7 @@ services:
       DB_USER: ${DB_USER:-citymarket}
       DB_PASSWORD: ${DB_PASSWORD}
       DB_NAME: notification_db
-      REDIS_URL: redis://redis:6379
+      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
       RABBITMQ_URL: amqp://${RABBITMQ_USER:-guest}:${RABBITMQ_PASSWORD:-guest}@rabbitmq:5672
       JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET}
       JWT_SERVICE_ACCESS_SECRET: ${JWT_SERVICE_ACCESS_SECRET}
@@ -389,7 +389,7 @@ services:
       DB_USER: ${DB_USER:-citymarket}
       DB_PASSWORD: ${DB_PASSWORD}
       DB_NAME: payment_db
-      REDIS_URL: redis://redis:6379
+      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
       AUTH_SERVICE_TOKEN_URL: http://auth-service:3001/oauth/token
       PAYMENT_SERVICE_CLIENT_ID: payment-service-id
       PAYMENT_SERVICE_CLIENT_SECRET: ${PAYMENT_SERVICE_CLIENT_SECRET}
@@ -411,7 +411,7 @@ services:
       DB_USER: ${DB_USER:-citymarket}
       DB_PASSWORD: ${DB_PASSWORD}
       DB_NAME: rating_db
-      REDIS_URL: redis://redis:6379
+      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
       ORDER_SERVICE_URL: http://order-service:3005
       USER_SERVICE_URL: http://user-service:3002
       VENDOR_SERVICE_URL: http://vendor-service:3003
@@ -439,7 +439,7 @@ services:
       WEBSOCKET_GATEWAY_CLIENT_ID: websocket-gateway-id
       WEBSOCKET_GATEWAY_CLIENT_SECRET: ${WEBSOCKET_GATEWAY_CLIENT_SECRET}
       JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET}
-      REDIS_URL: redis://redis:6379
+      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
       RABBITMQ_URL: amqp://${RABBITMQ_USER:-guest}:${RABBITMQ_PASSWORD:-guest}@rabbitmq:5672
 
   media-service:
