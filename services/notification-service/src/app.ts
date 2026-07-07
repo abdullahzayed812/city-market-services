@@ -11,7 +11,12 @@ export const createApp = (service: NotificationService) => {
   app.use(correlation);
   const controller = new NotificationController(service);
 
-  app.use(cors());
+  app.use(
+    cors({
+      origin: process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(",") : true,
+      credentials: true,
+    }),
+  );
   app.use(express.json());
 
   app.get("/health", (req, res) => {

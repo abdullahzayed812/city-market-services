@@ -15,7 +15,12 @@ import { createRatingRoutes } from "./presentation/routes/rating.routes";
 export const createApp = async () => {
   const app = express();
 
-  app.use(cors());
+  app.use(
+    cors({
+      origin: process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(",") : true,
+      credentials: true,
+    }),
+  );
   app.use(express.json());
 
   const db = new Database({

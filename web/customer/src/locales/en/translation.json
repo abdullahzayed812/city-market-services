@@ -6,6 +6,8 @@
     "save": "Save",
     "cancel": "Cancel",
     "logout": "Logout",
+    "logout_all_devices": "Log Out of All Devices",
+    "logout_all_devices_success": "Logged out of all devices",
     "login": "Login",
     "register": "Register",
     "search": "Search",

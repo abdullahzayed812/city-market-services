@@ -1,21 +1,32 @@
-import { randomUUID } from "crypto";
+import { randomUUID, randomBytes, createHash } from "crypto";
 import * as bcrypt from "bcrypt";
 import * as jwt from "jsonwebtoken";
 import { IUserRepository } from "../../core/interfaces/user.repository";
-import { IRefreshTokenRepository } from "../../core/interfaces/refresh-token.repository";
+import { ISessionRepository } from "../../core/interfaces/session.repository";
 import { RegisterDto, LoginDto, TokenPair, TokenPayload } from "../../core/dto/auth.dto";
+import { DeviceContext } from "../../core/dto/device-context.dto";
+import { Session, SessionSummary } from "../../core/entities/session.entity";
 import { User } from "../../core/entities/user.entity";
-import { RefreshToken } from "../../core/entities/refresh-token.entity";
 import { config } from "../../config/env";
+import { parseDurationMs } from "../../utils/duration";
 import { ValidationError, UnauthorizedError } from "@city-market/shared";
+
+function sha256Hex(value: string): string {
+  return createHash("sha256").update(value).digest("hex");
+}
+
+function stripPasswordHash(user: User): Omit<User, "passwordHash"> {
+  const { passwordHash, ...rest } = user;
+  return rest;
+}
 
 export class AuthService {
   constructor(
     private userRepo: IUserRepository,
-    private refreshTokenRepo: IRefreshTokenRepository,
+    private sessionRepo: ISessionRepository,
   ) {}
 
-  async register(dto: RegisterDto): Promise<TokenPair> {
+  async register(dto: RegisterDto, deviceCtx: DeviceContext): Promise<TokenPair> {
     if (!this.isValidEmail(dto.email)) {
       throw new ValidationError("invalid_email_format");
     }
@@ -39,10 +50,13 @@ export class AuthService {
 
     await this.userRepo.create(user);
 
-    return this.generateTokenPair(user);
+    const safeUser = stripPasswordHash(user);
+    const { session, rawRefreshToken } = await this.createSession(safeUser, deviceCtx);
+    const accessToken = this.issueAccessToken(safeUser, session.id);
+    return { accessToken, refreshToken: rawRefreshToken, user: safeUser };
   }
 
-  async login(dto: LoginDto): Promise<TokenPair> {
+  async login(dto: LoginDto, deviceCtx: DeviceContext): Promise<TokenPair> {
     const user = await this.userRepo.findWithPasswordByEmail(dto.email);
     if (!user) {
       throw new UnauthorizedError("invalid_credentials");
@@ -57,43 +71,49 @@ export class AuthService {
       throw new UnauthorizedError("invalid_credentials");
     }
 
-    // Invalidate any existing session and refresh tokens for this user
-    await this.refreshTokenRepo.deleteByUserId(user.id);
+    // Single active device: revoke every other session before creating the new one
+    await this.sessionRepo.revokeAllForUser(user.id, "new_login_single_device");
 
-    return this.generateTokenPair(user);
+    const safeUser = stripPasswordHash(user);
+    const { session, rawRefreshToken } = await this.createSession(safeUser, deviceCtx);
+    const accessToken = this.issueAccessToken(safeUser, session.id);
+    return { accessToken, refreshToken: rawRefreshToken, user: safeUser };
   }
 
-  async refreshToken(refreshToken: string): Promise<TokenPair> {
-    const tokenRecord = await this.refreshTokenRepo.findByToken(refreshToken);
-    if (!tokenRecord) {
+  async refreshToken(rawToken: string, deviceCtx: DeviceContext): Promise<TokenPair> {
+    const hash = sha256Hex(rawToken);
+    const session = await this.sessionRepo.findByCurrentHash(hash);
+
+    if (!session) {
+      // Check whether this is a replay of an already-rotated (stale) refresh token.
+      const stale = await this.sessionRepo.findByPreviousHash(hash);
+      if (stale && !stale.revoked) {
+        await this.sessionRepo.revokeAllForUser(stale.userId, "reuse_detected");
+      }
       throw new UnauthorizedError("invalid_refresh_token");
     }
 
-    const user = await this.userRepo.findById(tokenRecord.userId);
+    if (session.revoked || session.expiresAt.getTime() < Date.now()) {
+      throw new UnauthorizedError("session_expired_or_revoked");
+    }
+
+    const user = await this.userRepo.findById(session.userId);
     if (!user || !user.isActive) {
       throw new UnauthorizedError("user_not_found_or_inactive");
     }
 
-    // Verify that the session in this refresh token is still the active session
-    let tokenSessionId: string | undefined;
-    try {
-      const decoded = jwt.verify(refreshToken, config.jwtRefreshSecret as any) as TokenPayload;
-      tokenSessionId = decoded.sessionId;
-    } catch {
-      await this.refreshTokenRepo.deleteByUserId(user.id);
-      throw new UnauthorizedError("invalid_refresh_token");
-    }
+    const rawRefreshToken = randomBytes(32).toString("base64url");
+    const newHash = sha256Hex(rawRefreshToken);
 
-    const activeSession = await this.userRepo.findActiveSession(user.id);
-    if (!tokenSessionId || tokenSessionId !== activeSession) {
-      // Another device has logged in — this session is no longer valid
-      await this.refreshTokenRepo.deleteByUserId(user.id);
-      throw new UnauthorizedError("session_invalidated");
-    }
+    await this.sessionRepo.rotate(session.id, {
+      previousTokenHash: session.refreshTokenHash,
+      refreshTokenHash: newHash,
+      lastActivity: new Date(),
+      ipAddress: deviceCtx.ipAddress ?? session.ipAddress ?? null,
+    });
 
-    await this.refreshTokenRepo.deleteByUserId(user.id);
-
-    return this.generateTokenPair(user);
+    const accessToken = this.issueAccessToken(user, session.id);
+    return { accessToken, refreshToken: rawRefreshToken, user };
   }
 
   async validateToken(token: string): Promise<TokenPayload> {
@@ -105,9 +125,19 @@ export class AuthService {
     }
   }
 
-  async logout(userId: string): Promise<void> {
-    await this.refreshTokenRepo.deleteByUserId(userId);
-    await this.userRepo.updateActiveSession(userId, null);
+  /** Revoke only the caller's current session. */
+  async logout(sessionId: string): Promise<void> {
+    await this.sessionRepo.revokeOne(sessionId, "logout");
+  }
+
+  /** Revoke every session belonging to the user (logout on all devices). */
+  async logoutAll(userId: string): Promise<void> {
+    await this.sessionRepo.revokeAllForUser(userId, "logout_all");
+  }
+
+  async listSessions(userId: string, currentSessionId?: string): Promise<SessionSummary[]> {
+    const sessions = await this.sessionRepo.listActiveForUser(userId);
+    return sessions.map((s) => ({ ...s, isCurrent: s.id === currentSessionId }));
   }
 
   async getUsers(
@@ -180,42 +210,45 @@ export class AuthService {
     };
   }
 
-  private async generateTokenPair(user: Omit<User, "passwordHash">): Promise<TokenPair> {
-    const sessionId = randomUUID();
+  private async createSession(
+    user: Omit<User, "passwordHash">,
+    deviceCtx: DeviceContext,
+  ): Promise<{ session: Session; rawRefreshToken: string }> {
+    const rawRefreshToken = randomBytes(32).toString("base64url");
+    const refreshTokenHash = sha256Hex(rawRefreshToken);
+    const now = new Date();
 
-    // Persist the new active session, invalidating any previous one
-    await this.userRepo.updateActiveSession(user.id, sessionId);
+    const session: Session = {
+      id: randomUUID(),
+      userId: user.id,
+      deviceId: deviceCtx.deviceId,
+      platform: deviceCtx.platform ?? null,
+      browser: deviceCtx.browser ?? null,
+      os: deviceCtx.os ?? null,
+      deviceName: deviceCtx.deviceName ?? null,
+      ipAddress: deviceCtx.ipAddress ?? null,
+      refreshTokenHash,
+      previousTokenHash: null,
+      lastActivity: now,
+      expiresAt: new Date(now.getTime() + parseDurationMs(config.refreshExpiry)),
+      revoked: false,
+      createdAt: now,
+    };
 
+    await this.sessionRepo.create(session);
+    return { session, rawRefreshToken };
+  }
+
+  private issueAccessToken(user: Omit<User, "passwordHash">, sessionId: string): string {
     const payload: TokenPayload = {
       userId: user.id,
       email: user.email,
       role: user.role,
       sessionId,
     };
-
-    const accessToken = jwt.sign(
-      payload,
-      config.jwtAccessSecret as any,
-      { expiresIn: config.jwtAccessExpiry } as any,
-    );
-
-    const refreshToken = jwt.sign(
-      payload,
-      config.jwtRefreshSecret as any,
-      { expiresIn: config.jwtRefreshExpiry } as any,
-    );
-
-    const tokenRecord: RefreshToken = {
-      id: randomUUID(),
-      userId: user.id,
-      token: refreshToken,
-      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-      createdAt: new Date(),
-    };
-
-    await this.refreshTokenRepo.create(tokenRecord);
-
-    return { accessToken, refreshToken, user };
+    return jwt.sign(payload, config.jwtAccessSecret as any, {
+      expiresIn: config.jwtAccessExpiry,
+    } as any);
   }
 
   private isValidEmail(email: string): boolean {

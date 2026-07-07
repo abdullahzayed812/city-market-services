@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { authService } from "@/services/api/auth.service";
+import { setAccessToken, setSignOutCallback, silentRefresh } from "@/services/api/client";
 
 interface AuthContextType {
   user: any;
@@ -7,54 +8,70 @@ interface AuthContextType {
   token: string | null;
   login: (credentials: any) => Promise<void>;
   logout: () => void;
+  logoutAllDevices: () => Promise<void>;
   isLoading: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<any>(() => {
-    const savedUser = localStorage.getItem("courier_user");
-    return savedUser ? JSON.parse(savedUser) : null;
-  });
-  const [courier, setCourier] = useState<any>(() => {
-    const savedUser = localStorage.getItem("courier_user");
-    return savedUser ? JSON.parse(savedUser) : null;
-  });
-  const [token, setToken] = useState<string | null>(localStorage.getItem("courier_token"));
+  const [user, setUser] = useState<any>(null);
+  const [courier, setCourier] = useState<any>(null);
+  const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    setIsLoading(false);
+    setSignOutCallback(() => {
+      setToken(null);
+      setUser(null);
+      setCourier(null);
+    });
+
+    // Access token lives only in memory, so a hard page reload loses it —
+    // silently re-establish one from the httpOnly refresh cookie on boot.
+    (async () => {
+      const result = await silentRefresh();
+      if (result?.accessToken) {
+        setToken(result.accessToken);
+        if (result.user) {
+          setUser(result.user);
+          setCourier(result.user);
+        }
+      }
+      setIsLoading(false);
+    })();
   }, []);
 
   const login = async (credentials: any) => {
     const data = await authService.login(credentials);
-
-    localStorage.setItem("courier_token", data.accessToken);
-    if (data.refreshToken) {
-      localStorage.setItem("courier_refresh_token", data.refreshToken);
-    }
+    setAccessToken(data.accessToken);
+    setToken(data.accessToken);
     if (data.user) {
-      localStorage.setItem("courier_user", JSON.stringify(data.user));
       setUser(data.user);
       setCourier(data.user);
     }
-    setToken(data.accessToken);
   };
 
   const logout = async () => {
     try {
-      const refreshToken = localStorage.getItem("courier_refresh_token");
-      if (refreshToken) {
-        await authService.logout(refreshToken);
-      }
+      await authService.logout();
     } catch {
       // ignore — still clear local state
     }
-    localStorage.removeItem("courier_token");
-    localStorage.removeItem("courier_refresh_token");
-    localStorage.removeItem("courier_user");
+    setAccessToken(null);
+    setToken(null);
+    setUser(null);
+    setCourier(null);
+    window.location.href = "/login";
+  };
+
+  const logoutAllDevices = async () => {
+    try {
+      await authService.logoutAll();
+    } catch {
+      // ignore — still clear local state
+    }
+    setAccessToken(null);
     setToken(null);
     setUser(null);
     setCourier(null);
@@ -62,7 +79,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   return (
-    <AuthContext.Provider value={{ user, courier, token, login, logout, isLoading }}>{children}</AuthContext.Provider>
+    <AuthContext.Provider value={{ user, courier, token, login, logout, logoutAllDevices, isLoading }}>
+      {children}
+    </AuthContext.Provider>
   );
 };
 

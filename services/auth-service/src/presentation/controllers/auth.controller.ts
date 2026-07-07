@@ -1,7 +1,11 @@
 import { Request, Response, NextFunction } from "express";
 import { AuthService } from "../../application/services/auth.service";
-import { ApiResponse } from "@city-market/shared";
-import { Logger } from "@city-market/shared/node";
+import { DeviceContext } from "../../core/dto/device-context.dto";
+import { ApiResponse, ValidationError } from "@city-market/shared";
+import { Logger, AuthenticatedRequest } from "@city-market/shared/node";
+import { config } from "../../config/env";
+import { parseDurationMs } from "../../utils/duration";
+import { parseUserAgent } from "../../utils/user-agent";
 
 export class AuthController {
   constructor(private authService: AuthService) { }
@@ -13,14 +17,14 @@ export class AuthController {
       httpOnly: true,
       secure: isProduction,
       sameSite: isProduction ? "strict" : "lax",
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days (match token expiry)
+      maxAge: parseDurationMs(config.jwtAccessExpiry),
     });
 
     res.cookie("refresh_token", tokens.refreshToken, {
       httpOnly: true,
       secure: isProduction,
       sameSite: isProduction ? "strict" : "lax",
-      maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+      maxAge: parseDurationMs(config.refreshExpiry),
     });
   }
 
@@ -29,9 +33,28 @@ export class AuthController {
     res.clearCookie("refresh_token");
   }
 
+  private extractDeviceContext(req: Request): DeviceContext {
+    const deviceId = req.body?.deviceId;
+    if (!deviceId || typeof deviceId !== "string") {
+      throw new ValidationError("device_id_required");
+    }
+
+    const { browser, os } = parseUserAgent(req.headers["user-agent"]);
+
+    return {
+      deviceId,
+      platform: req.body?.platform ?? "web",
+      browser,
+      os,
+      deviceName: req.body?.deviceName,
+      ipAddress: req.ip,
+    };
+  }
+
   register = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const tokens = await this.authService.register(req.body);
+      const deviceCtx = this.extractDeviceContext(req);
+      const tokens = await this.authService.register(req.body, deviceCtx);
       Logger.info("User registered", { email: req.body.email });
       this.setTokenCookies(res, tokens);
       res.status(201).json(ApiResponse.success(tokens, "registration_successful"));
@@ -42,7 +65,8 @@ export class AuthController {
 
   login = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const tokens = await this.authService.login(req.body);
+      const deviceCtx = this.extractDeviceContext(req);
+      const tokens = await this.authService.login(req.body, deviceCtx);
       Logger.info("User logged in", { email: req.body.email });
       this.setTokenCookies(res, tokens);
       res.status(200).json(ApiResponse.success(tokens, "login_successful"));
@@ -57,7 +81,8 @@ export class AuthController {
       if (!refreshToken) {
         return res.status(401).json(ApiResponse.error("no_refresh_token_provided"));
       }
-      const tokens = await this.authService.refreshToken(refreshToken);
+      const deviceCtx = this.extractDeviceContext(req);
+      const tokens = await this.authService.refreshToken(refreshToken, deviceCtx);
       this.setTokenCookies(res, tokens);
       res.json(ApiResponse.success(tokens, "token_refreshed"));
     } catch (error) {
@@ -78,14 +103,35 @@ export class AuthController {
     }
   };
 
-  logout = async (req: Request, res: Response, next: NextFunction) => {
+  logout = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
-      const userId = (req as any).user?.userId;
-      if (userId) {
-        await this.authService.logout(userId);
+      if (req.user?.sessionId) {
+        await this.authService.logout(req.user.sessionId);
       }
       this.clearTokenCookies(res);
       res.json(ApiResponse.success(null, "logged_out_successfully"));
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  logoutAll = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      if (req.user?.userId) {
+        await this.authService.logoutAll(req.user.userId);
+      }
+      this.clearTokenCookies(res);
+      res.json(ApiResponse.success(null, "logged_out_all_devices_successfully"));
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  sessions = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      const userId = req.user!.userId;
+      const sessions = await this.authService.listSessions(userId, req.user!.sessionId);
+      res.json(ApiResponse.success(sessions, "sessions_retrieved_successfully"));
     } catch (error) {
       next(error);
     }

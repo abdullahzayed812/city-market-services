@@ -5,7 +5,7 @@ import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "../components/ui/card";
 import { Label } from "../components/ui/label";
-import { Lock, Mail, Loader2, Store } from "lucide-react";
+import { Lock, Mail, Loader2, Store, Eye, EyeOff } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 const LoginPage: React.FC = () => {
@@ -14,6 +14,7 @@ const LoginPage: React.FC = () => {
   const [password, setPassword] = useState("password123");
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const { login } = useAuth();
   const navigate = useNavigate();
@@ -151,13 +152,22 @@ const LoginPage: React.FC = () => {
                     <Lock className="absolute left-3.5 top-3.5 h-4.5 w-4.5 text-slate-400 group-focus-within:text-orange-600 transition-colors" />
                     <Input
                       id="password"
-                      type="password"
+                      type={showPassword ? "text" : "password"}
                       placeholder={t("auth.password_placeholder")}
-                      className="pl-11 h-12 bg-slate-50 border-slate-200 focus:bg-white focus:border-orange-600 focus:ring-orange-600/20 rounded-xl transition-all"
+                      className="pl-11 pr-11 h-12 bg-slate-50 border-slate-200 focus:bg-white focus:border-orange-600 focus:ring-orange-600/20 rounded-xl transition-all"
                       value={password}
                       onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
                       required
                     />
+                    <button
+                      type="button"
+                      tabIndex={-1}
+                      onClick={() => setShowPassword((v) => !v)}
+                      className="absolute right-3.5 top-3.5 text-slate-400 hover:text-orange-600 transition-colors"
+                      aria-label={showPassword ? "Hide password" : "Show password"}
+                    >
+                      {showPassword ? <EyeOff className="h-4.5 w-4.5" /> : <Eye className="h-4.5 w-4.5" />}
+                    </button>
                   </div>
                 </div>
                 <Button

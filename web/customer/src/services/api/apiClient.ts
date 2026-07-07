@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { getOrCreateDeviceId } from '@/utils/deviceId';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost/api/v1';
 
@@ -7,15 +8,23 @@ export const setSignOutCallback = (fn: () => void) => {
   signOutCallback = fn;
 };
 
+// Access token lives in memory only — never localStorage/sessionStorage.
+// The refresh token lives exclusively in the httpOnly cookie set by the backend.
+let accessToken: string | null = null;
+export const setAccessToken = (token: string | null) => {
+  accessToken = token;
+};
+export const getAccessToken = () => accessToken;
+
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
+  withCredentials: true,
   headers: { 'Content-Type': 'application/json' },
 });
 
 apiClient.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('auth_token');
-    if (token) config.headers.Authorization = `Bearer ${token}`;
+    if (accessToken) config.headers.Authorization = `Bearer ${accessToken}`;
     return config;
   },
   (error) => Promise.reject(error),
@@ -30,9 +39,7 @@ const processQueue = (error: unknown, token: string | null = null) => {
 };
 
 const clearSession = () => {
-  localStorage.removeItem('auth_token');
-  localStorage.removeItem('refresh_token');
-  localStorage.removeItem('user');
+  setAccessToken(null);
   signOutCallback?.();
 };
 
@@ -42,12 +49,6 @@ apiClient.interceptors.response.use(
     const original = error.config;
 
     if (error.response?.status !== 401 || original._retry) {
-      return Promise.reject(error);
-    }
-
-    const refreshToken = localStorage.getItem('refresh_token');
-    if (!refreshToken) {
-      clearSession();
       return Promise.reject(error);
     }
 
@@ -66,16 +67,16 @@ apiClient.interceptors.response.use(
     isRefreshing = true;
 
     try {
+      // Refresh token travels via the httpOnly cookie — only deviceId goes in the body.
       const { data } = await axios.post(
         `${API_BASE_URL}/auth/refresh`,
-        { refreshToken },
-        { headers: { 'Content-Type': 'application/json' } },
+        { deviceId: getOrCreateDeviceId() },
+        { headers: { 'Content-Type': 'application/json' }, withCredentials: true },
       );
-      const { accessToken, refreshToken: newRefreshToken } = data.data;
-      localStorage.setItem('auth_token', accessToken);
-      localStorage.setItem('refresh_token', newRefreshToken);
-      processQueue(null, accessToken);
-      original.headers.Authorization = `Bearer ${accessToken}`;
+      const { accessToken: newAccessToken } = data.data;
+      setAccessToken(newAccessToken);
+      processQueue(null, newAccessToken);
+      original.headers.Authorization = `Bearer ${newAccessToken}`;
       return apiClient(original);
     } catch (refreshError) {
       processQueue(refreshError, null);
@@ -86,5 +87,20 @@ apiClient.interceptors.response.use(
     }
   },
 );
+
+/** Attempt to silently re-establish an access token from the refresh cookie (called once on app bootstrap). */
+export const silentRefresh = async (): Promise<{ accessToken: string; user: unknown } | null> => {
+  try {
+    const { data } = await axios.post(
+      `${API_BASE_URL}/auth/refresh`,
+      { deviceId: getOrCreateDeviceId() },
+      { headers: { 'Content-Type': 'application/json' }, withCredentials: true },
+    );
+    setAccessToken(data.data.accessToken);
+    return data.data;
+  } catch {
+    return null;
+  }
+};
 
 export default apiClient;

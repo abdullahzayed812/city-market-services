@@ -8,6 +8,4 @@ export interface IUserRepository {
   findAll(limit: number, offset: number, role?: string): Promise<Omit<User, "passwordHash">[]>;
   countAll(role?: string): Promise<number>;
   updateActivity(userId: string, isActive: boolean): Promise<void>;
-  updateActiveSession(userId: string, sessionId: string | null): Promise<void>;
-  findActiveSession(userId: string): Promise<string | null>;
 }

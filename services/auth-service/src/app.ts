@@ -5,14 +5,23 @@ import { createAuthRoutes } from "./presentation/routes/auth.routes";
 import { AuthController } from "./presentation/controllers/auth.controller";
 import { AuthService } from "./application/services/auth.service";
 import { UserRepository } from "./infrastructure/repositories/user.repository";
-import { RefreshTokenRepository } from "./infrastructure/repositories/refresh-token.repository";
+import { SessionRepository } from "./infrastructure/repositories/session.repository";
 import { errorHandler, Database, Logger } from "@city-market/shared/node";
 import { config } from "./config/env";
 
 export const createApp = () => {
   const app = express();
 
-  app.use(cors());
+  // auth-service sits behind api-gateway/nginx; trust the first proxy hop so
+  // req.ip reflects the real client IP (recorded on each session row).
+  app.set("trust proxy", 1);
+
+  app.use(
+    cors({
+      origin: process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(",") : true,
+      credentials: true,
+    }),
+  );
   app.use(express.json());
   app.use(express.urlencoded({ extended: true })); // Add this line for form-urlencoded bodies
   app.use(cookieParser());
@@ -27,10 +36,10 @@ export const createApp = () => {
 
   // Repositories
   const userRepo = new UserRepository(db);
-  const refreshTokenRepo = new RefreshTokenRepository(db);
+  const sessionRepo = new SessionRepository(db);
 
   // Services
-  const authService = new AuthService(userRepo, refreshTokenRepo);
+  const authService = new AuthService(userRepo, sessionRepo);
 
   // Controllers
   const authController = new AuthController(authService);

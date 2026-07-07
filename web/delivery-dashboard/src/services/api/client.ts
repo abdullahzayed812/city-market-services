@@ -1,18 +1,32 @@
 import axios from "axios";
+import { getOrCreateDeviceId } from "@/utils/deviceId";
 
 const BASE_URL =
   import.meta.env.VITE_API_BASE_URL ||
   `${window.location.protocol}//${window.location.hostname}:3000/api/v1`;
 
+// Access token lives in memory only — never localStorage/sessionStorage.
+// The refresh token lives exclusively in the httpOnly cookie set by the backend.
+let accessToken: string | null = null;
+export const setAccessToken = (token: string | null) => {
+  accessToken = token;
+};
+export const getAccessToken = () => accessToken;
+
+let signOutCallback: (() => void) | null = null;
+export const setSignOutCallback = (fn: () => void) => {
+  signOutCallback = fn;
+};
+
 const apiClient = axios.create({
   baseURL: BASE_URL,
+  withCredentials: true,
   headers: { "Content-Type": "application/json" },
 });
 
 apiClient.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem("courier_token");
-    if (token) config.headers.Authorization = `Bearer ${token}`;
+    if (accessToken) config.headers.Authorization = `Bearer ${accessToken}`;
     config.headers["Accept-Language"] = localStorage.getItem("i18nextLng") || "ar";
     return config;
   },
@@ -29,9 +43,8 @@ const processQueue = (error: unknown, token: string | null = null) => {
 };
 
 const clearSession = () => {
-  localStorage.removeItem("courier_token");
-  localStorage.removeItem("courier_refresh_token");
-  localStorage.removeItem("courier_user");
+  setAccessToken(null);
+  signOutCallback?.();
   window.location.href = "/login";
 };
 
@@ -44,13 +57,6 @@ apiClient.interceptors.response.use(
       return Promise.reject(error);
     }
 
-    const refreshToken = localStorage.getItem("courier_refresh_token");
-    if (!refreshToken) {
-      clearSession();
-      return Promise.reject(error);
-    }
-
-    // If a refresh is already in-flight, queue this request and wait
     if (isRefreshing) {
       return new Promise<string>((resolve, reject) => {
         failedQueue.push({ resolve, reject });
@@ -66,17 +72,16 @@ apiClient.interceptors.response.use(
     isRefreshing = true;
 
     try {
+      // Refresh token travels via the httpOnly cookie — only deviceId goes in the body.
       const { data } = await axios.post(
         `${BASE_URL}/auth/refresh`,
-        { refreshToken },
-        { headers: { "Content-Type": "application/json" } },
+        { deviceId: getOrCreateDeviceId(), platform: "web" },
+        { headers: { "Content-Type": "application/json" }, withCredentials: true },
       );
-      const { accessToken, refreshToken: newRefreshToken } = data.data;
-      localStorage.setItem("courier_token", accessToken);
-      localStorage.setItem("courier_refresh_token", newRefreshToken);
-      apiClient.defaults.headers.common.Authorization = `Bearer ${accessToken}`;
-      processQueue(null, accessToken);
-      original.headers.Authorization = `Bearer ${accessToken}`;
+      const { accessToken: newAccessToken } = data.data;
+      setAccessToken(newAccessToken);
+      processQueue(null, newAccessToken);
+      original.headers.Authorization = `Bearer ${newAccessToken}`;
       return apiClient(original);
     } catch (refreshError) {
       processQueue(refreshError, null);
@@ -87,5 +92,20 @@ apiClient.interceptors.response.use(
     }
   },
 );
+
+/** Attempt to silently re-establish an access token from the refresh cookie (called once on app bootstrap). */
+export const silentRefresh = async (): Promise<{ accessToken: string; user: any } | null> => {
+  try {
+    const { data } = await axios.post(
+      `${BASE_URL}/auth/refresh`,
+      { deviceId: getOrCreateDeviceId(), platform: "web" },
+      { headers: { "Content-Type": "application/json" }, withCredentials: true },
+    );
+    setAccessToken(data.data.accessToken);
+    return data.data;
+  } catch {
+    return null;
+  }
+};
 
 export default apiClient;

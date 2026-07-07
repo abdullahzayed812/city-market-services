@@ -12,7 +12,6 @@ export const config = ConfigLoader.load<{
   notificationsServiceUrl: string;
   ratingServiceUrl: string;
   mediaServiceUrl: string;
-  jwtSecret: string;
 }>({
   port: { env: "PORT", default: 3000 },
   authServiceUrl: { env: "AUTH_SERVICE_URL", default: "http://localhost:3001", required: true },
@@ -25,5 +24,4 @@ export const config = ConfigLoader.load<{
   notificationsServiceUrl: { env: "NOTIFICATIONS_SERVICE_URL", default: "http://localhost:3008" },
   ratingServiceUrl: { env: "RATING_SERVICE_URL", default: "http://localhost:3010" },
   mediaServiceUrl: { env: "MEDIA_SERVICE_URL", default: "http://localhost:3012" },
-  jwtSecret: { env: "JWT_SECRET", default: "access_secret_key", sensitive: true },
 });

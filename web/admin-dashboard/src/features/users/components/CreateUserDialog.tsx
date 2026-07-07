@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { UserRole } from "@city-market/shared";
@@ -76,9 +77,8 @@ const CreateUserDialog: React.FC<CreateUserDialogProps> = ({
           </div>
           <div className="space-y-2">
             <Label htmlFor="password">{t("auth.password")}</Label>
-            <Input
+            <PasswordInput
               id="password"
-              type="password"
               value={newUser.password}
               onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
             />

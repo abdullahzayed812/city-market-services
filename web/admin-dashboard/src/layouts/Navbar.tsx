@@ -8,9 +8,11 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
 import { Globe, User, LogOut } from 'lucide-react';
+import { useAuth } from '@/components/AuthProvider';
 
 const Navbar: React.FC = () => {
     const { t, i18n } = useTranslation();
+    const { logout, logoutAllDevices } = useAuth();
 
     const toggleLanguage = () => {
         const newLang = i18n.language === 'ar' ? 'en' : 'ar';
@@ -41,9 +43,13 @@ const Navbar: React.FC = () => {
                             <User className="me-2 h-4 w-4" />
                             <span>{t('common.settings')}</span>
                         </DropdownMenuItem>
-                        <DropdownMenuItem className="text-destructive">
+                        <DropdownMenuItem className="text-destructive" onClick={() => logout()}>
                             <LogOut className="me-2 h-4 w-4" />
                             <span>{t('common.logout')}</span>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem className="text-destructive" onClick={() => logoutAllDevices()}>
+                            <LogOut className="me-2 h-4 w-4" />
+                            <span>{t('common.logout_all_devices')}</span>
                         </DropdownMenuItem>
                     </DropdownMenuContent>
                 </DropdownMenu>

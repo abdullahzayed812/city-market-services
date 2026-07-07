@@ -6,6 +6,8 @@
     "save": "حفظ",
     "cancel": "إلغاء",
     "logout": "تسجيل الخروج",
+    "logout_all_devices": "تسجيل الخروج من كل الأجهزة",
+    "logout_all_devices_success": "تم تسجيل الخروج من كل الأجهزة",
     "login": "تسجيل الدخول",
     "register": "إنشاء حساب",
     "search": "بحث",

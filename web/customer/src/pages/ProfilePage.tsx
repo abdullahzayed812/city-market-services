@@ -29,7 +29,7 @@ function MenuItem({ icon: Icon, label, to, color }: { icon: any; label: string; 
 
 export default function ProfilePage() {
   const navigate = useNavigate();
-  const { user, signOut, refreshToken, isAuthenticated } = useAuthStore();
+  const { user, signOut, isAuthenticated } = useAuthStore();
   const queryClient = useQueryClient();
   const [editOpen, setEditOpen] = useState(false);
   const [editName, setEditName] = useState("");
@@ -63,10 +63,19 @@ export default function ProfilePage() {
 
   const handleSignOut = async () => {
     try {
-      if (refreshToken) await AuthService.logout(refreshToken);
+      await AuthService.logout();
     } catch {}
     signOut();
     toast.success(t('common.logout'));
+    navigate("/");
+  };
+
+  const handleSignOutAllDevices = async () => {
+    try {
+      await AuthService.logoutAll();
+    } catch {}
+    signOut();
+    toast.success(t('common.logout_all_devices_success'));
     navigate("/");
   };
 
@@ -132,6 +141,13 @@ export default function ProfilePage() {
             <LogOut size={18} className="text-error" />
           </div>
           <span className="flex-1 text-sm font-semibold text-error text-start">{t('common.logout')}</span>
+        </button>
+        <div className="h-px bg-border-light mx-4" />
+        <button onClick={handleSignOutAllDevices} className="flex items-center gap-3 w-full px-4 py-3.5 hover:bg-error-light transition-colors">
+          <div className="w-9 h-9 rounded-xl bg-error-light flex items-center justify-center">
+            <LogOut size={18} className="text-error" />
+          </div>
+          <span className="flex-1 text-sm font-semibold text-error text-start">{t('common.logout_all_devices')}</span>
         </button>
       </div>
 

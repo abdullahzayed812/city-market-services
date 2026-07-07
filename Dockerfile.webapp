@@ -30,7 +30,7 @@ COPY web/vendor-dashboard/package.json              ./web/vendor-dashboard/
 COPY web/delivery-dashboard/package.json            ./web/delivery-dashboard/
 COPY web/customer/package.json                      ./web/customer/
 
-RUN --mount=type=cache,target=/root/.npm \
+RUN --mount=type=cache,target=/root/.npm,sharing=locked \
     npm ci || npm ci || npm ci
 
 # ── Build @city-market/shared so the symlink resolves ────────────────────────

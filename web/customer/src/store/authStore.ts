@@ -1,48 +1,33 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
-import { setSignOutCallback } from '@/services/api/apiClient';
+import { setSignOutCallback, setAccessToken } from '@/services/api/apiClient';
 import type { User } from '@/types';
 
 interface AuthState {
   token: string | null;
-  refreshToken: string | null;
   user: User | null;
   isAuthenticated: boolean;
-  signIn: (user: User, token: string, refreshToken: string) => void;
+  signIn: (user: User, token: string) => void;
   signOut: () => void;
 }
 
-export const useAuthStore = create<AuthState>()(
-  persist(
-    (set) => ({
-      token: null,
-      refreshToken: null,
-      user: null,
-      isAuthenticated: false,
+// Access token is held only in memory (this store's in-process state, never
+// persisted to localStorage/sessionStorage). The refresh token never reaches
+// JS at all — it lives exclusively in the httpOnly cookie set by the backend.
+export const useAuthStore = create<AuthState>()((set) => ({
+  token: null,
+  user: null,
+  isAuthenticated: false,
 
-      signIn: (user, token, refreshToken) => {
-        localStorage.setItem('auth_token', token);
-        localStorage.setItem('refresh_token', refreshToken);
-        set({ token, refreshToken, user, isAuthenticated: true });
-      },
+  signIn: (user, token) => {
+    setAccessToken(token);
+    set({ token, user, isAuthenticated: true });
+  },
 
-      signOut: () => {
-        localStorage.removeItem('auth_token');
-        localStorage.removeItem('refresh_token');
-        set({ token: null, refreshToken: null, user: null, isAuthenticated: false });
-      },
-    }),
-    {
-      name: 'auth-storage',
-      partialize: (state) => ({
-        token: state.token,
-        refreshToken: state.refreshToken,
-        user: state.user,
-        isAuthenticated: state.isAuthenticated,
-      }),
-    },
-  ),
-);
+  signOut: () => {
+    setAccessToken(null);
+    set({ token: null, user: null, isAuthenticated: false });
+  },
+}));
 
 // Register sign-out callback so API client can trigger it on 401
 setSignOutCallback(() => {

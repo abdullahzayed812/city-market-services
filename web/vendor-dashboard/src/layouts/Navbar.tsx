@@ -7,13 +7,13 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Languages, Bell, User } from "lucide-react";
+import { Languages, Bell, User, LogOut } from "lucide-react";
 import { useAuth } from "@/components/AuthProvider";
 
 const Navbar = () => {
   const { t } = useTranslation();
   const { setLanguage } = useLanguage();
-  const { vendor } = useAuth();
+  const { vendor, logout, logoutAllDevices } = useAuth();
 
   return (
     <header className="h-16 border-b bg-card flex items-center justify-between px-6 sticky top-0 z-10">
@@ -40,12 +40,26 @@ const Navbar = () => {
 
         <div className="h-8 w-px bg-border mx-2" />
 
-        <Button variant="ghost" className="gap-2 px-2">
-          <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-            <User className="w-5 h-5 text-primary" />
-          </div>
-          <span className="font-medium hidden sm:inline-block">{vendor?.shopName}</span>
-        </Button>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" className="gap-2 px-2">
+              <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                <User className="w-5 h-5 text-primary" />
+              </div>
+              <span className="font-medium hidden sm:inline-block">{vendor?.shopName}</span>
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={() => logout()}>
+              <LogOut className="me-2 h-4 w-4" />
+              {t("common.logout")}
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => logoutAllDevices()}>
+              <LogOut className="me-2 h-4 w-4" />
+              {t("common.logout_all_devices")}
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
     </header>
   );

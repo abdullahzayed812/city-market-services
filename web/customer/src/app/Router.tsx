@@ -1,7 +1,8 @@
-import { lazy, Suspense } from 'react';
+import { lazy, Suspense, useEffect, useState } from 'react';
 import { Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { Layout } from '@/components/layout/Layout';
 import { useAuthStore } from '@/store/authStore';
+import { silentRefresh } from '@/services/api/apiClient';
 
 // Lazy-loaded pages
 const HomePage = lazy(() => import('@/pages/HomePage'));
@@ -43,7 +44,34 @@ function GuestOnly() {
   return isAuthenticated ? <Navigate to="/" replace /> : <Outlet />;
 }
 
+// Access tokens live only in memory, so a hard page reload loses them —
+// silently re-establish one from the httpOnly refresh cookie before rendering
+// any auth-gated route.
+function useAuthBootstrap() {
+  const signIn = useAuthStore((s) => s.signIn);
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    (async () => {
+      const result = await silentRefresh();
+      if (result?.user && result?.accessToken) {
+        signIn(result.user as any, result.accessToken);
+      }
+      setReady(true);
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  return ready;
+}
+
 export function AppRouter() {
+  const bootstrapped = useAuthBootstrap();
+
+  if (!bootstrapped) {
+    return <PageLoader />;
+  }
+
   return (
     <Suspense fallback={<PageLoader />}>
       <Routes>

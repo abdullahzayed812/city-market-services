@@ -33,7 +33,12 @@ export const createApp = () => {
   const app = express();
 
   app.use(correlation);
-  app.use(cors());
+  app.use(
+    cors({
+      origin: process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(",") : true,
+      credentials: true,
+    }),
+  );
   app.use(express.json());
 
   const db = new Database({

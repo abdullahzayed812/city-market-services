@@ -33,7 +33,12 @@ import { OrderSlaWorker } from "./application/workers/sla.worker";
 export const createApp = () => {
   const app = express();
 
-  app.use(cors());
+  app.use(
+    cors({
+      origin: process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(",") : true,
+      credentials: true,
+    }),
+  );
   app.use(express.json());
 
   const db = new Database({

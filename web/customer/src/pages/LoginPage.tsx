@@ -41,7 +41,7 @@ export default function LoginPage() {
     try {
       const result = await AuthService.login(data);
       if (result?.user && result?.accessToken) {
-        signIn(result.user, result.accessToken, result.refreshToken);
+        signIn(result.user, result.accessToken);
         toast.success(t('auth.welcome'));
         navigate(from, { replace: true });
       }

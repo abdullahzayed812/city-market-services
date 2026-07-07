@@ -27,7 +27,7 @@ COPY web/vendor-dashboard/package.json              ./web/vendor-dashboard/
 COPY web/delivery-dashboard/package.json            ./web/delivery-dashboard/
 
 # monolith workspace entry exists in root package.json but directory may not exist
-RUN --mount=type=cache,target=/root/.npm \
+RUN --mount=type=cache,target=/root/.npm,sharing=locked \
     npm ci || npm ci || npm ci
 
 # ─── Stage 2: Build ──────────────────────────────────────────────────────────

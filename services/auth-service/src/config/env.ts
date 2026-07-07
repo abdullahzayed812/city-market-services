@@ -8,10 +8,12 @@ const loadedConfig = ConfigLoader.load<{
   dbPassword: string;
   dbName: string;
   jwtAccessSecret: string;
-  jwtRefreshSecret: string;
   jwtServiceAccessSecret: string;
   jwtAccessExpiry: string;
-  jwtRefreshExpiry: string;
+  // refresh tokens are opaque random strings now (not JWTs), so this is the
+  // session/refresh-token lifetime, not a JWT expiry — kept on the same
+  // JWT_REFRESH_EXPIRY env var for backward-compatible env configuration.
+  refreshExpiry: string;
   jwtServiceAccessExpiry: string;
 }>({
   port: { env: "PORT", default: 3001 },
@@ -21,10 +23,9 @@ const loadedConfig = ConfigLoader.load<{
   dbPassword: { env: "DB_PASSWORD", required: true, sensitive: true },
   dbName: { env: "DB_NAME", default: "auth_db" },
   jwtAccessSecret: { env: "JWT_ACCESS_SECRET", required: true, sensitive: true },
-  jwtRefreshSecret: { env: "JWT_REFRESH_SECRET", required: true, sensitive: true },
   jwtServiceAccessSecret: { env: "JWT_SERVICE_ACCESS_SECRET", required: true, sensitive: true },
   jwtAccessExpiry: { env: "JWT_ACCESS_EXPIRY", default: "15m" },
-  jwtRefreshExpiry: { env: "JWT_REFRESH_EXPIRY", default: "7d" },
+  refreshExpiry: { env: "JWT_REFRESH_EXPIRY", default: "30d" },
   jwtServiceAccessExpiry: { env: "JWT_SERVICE_ACCESS_EXPIRY", default: "15m" },
 });
 

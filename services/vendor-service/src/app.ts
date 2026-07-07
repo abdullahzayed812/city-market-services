@@ -22,7 +22,12 @@ export const createApp = () => {
     console.error("Failed to connect to RabbitMQ", err);
   });
 
-  app.use(cors());
+  app.use(
+    cors({
+      origin: process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(",") : true,
+      credentials: true,
+    }),
+  );
   app.use(express.json());
 
   const db = new Database({

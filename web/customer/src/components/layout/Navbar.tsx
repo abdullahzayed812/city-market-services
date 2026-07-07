@@ -17,7 +17,7 @@ import toast from 'react-hot-toast';
 export function Navbar() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { isAuthenticated, user, signOut, refreshToken } = useAuthStore();
+  const { isAuthenticated, user, signOut } = useAuthStore();
   const itemCount = useCartStore(selectCartItemCount);
   const { t } = useTranslation();
   const { language, changeLanguage } = useLanguage();
@@ -36,7 +36,7 @@ export function Navbar() {
 
   const handleSignOut = async () => {
     try {
-      if (refreshToken) await AuthService.logout(refreshToken);
+      await AuthService.logout();
     } catch {}
     signOut();
     toast.success(t('common.logout'));

@@ -4,6 +4,7 @@ export const setupProxy = (basePath: string, targetUrl: string) => {
   return createProxyMiddleware({
     target: targetUrl,
     changeOrigin: true,
+    xfwd: true, // forward X-Forwarded-For/Proto/Port so downstream services see the real client IP
     pathRewrite: {
       [`^${basePath}`]: "/",
     },

@@ -36,6 +36,7 @@ export default function RegisterPage() {
   const location = useLocation();
   const signIn = useAuthStore((s) => s.signIn);
   const [showPass, setShowPass] = useState(false);
+  const [showConfirmPass, setShowConfirmPass] = useState(false);
   const [loading, setLoading] = useState(false);
   const { t } = useTranslation();
 
@@ -66,7 +67,7 @@ export default function RegisterPage() {
         phone: data.phone,
       });
       if (result?.user && result?.accessToken) {
-        signIn(result.user, result.accessToken, result.refreshToken);
+        signIn(result.user, result.accessToken);
         try {
           await UserService.createCustomer({ fullName: data.fullName, phone: data.phone });
         } catch {}
@@ -196,9 +197,18 @@ export default function RegisterPage() {
 
             <Input
               label={t('auth.confirm_password')}
-              type="password"
+              type={showConfirmPass ? 'text' : 'password'}
               placeholder="Repeat your password"
               icon={<Lock size={18} />}
+              iconRight={
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPass(!showConfirmPass)}
+                  className="text-text-muted hover:text-text-primary transition-colors"
+                >
+                  {showConfirmPass ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              }
               error={errors.confirmPassword?.message}
               {...register('confirmPassword')}
             />

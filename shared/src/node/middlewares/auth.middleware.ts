@@ -8,6 +8,7 @@ export interface AuthenticatedRequest extends Request {
     userId: string;
     role: UserRole;
     email?: string;
+    sessionId?: string;
   };
   service?: {
     clientId: string;
@@ -52,9 +53,9 @@ export const authenticate = (req: AuthenticatedRequest, res: Response, next: Nex
     const isUserToken = decoded.userId && decoded.role;
 
     if (isServiceToken) {
-      const serviceSecret = process.env.JWT_SERVICE_ACCESS_SECRET || "service_access_secret_key";
+      const serviceSecret = process.env.JWT_SERVICE_ACCESS_SECRET;
       if (!serviceSecret) {
-        throw new Error("JWT_SERVICE_ACCESS_SECRET is not defined");
+        throw new Error("JWT_SERVICE_ACCESS_SECRET is not configured");
       }
       const servicePayload = jwt.verify(token, serviceSecret) as ServiceTokenPayload;
 
@@ -65,9 +66,9 @@ export const authenticate = (req: AuthenticatedRequest, res: Response, next: Nex
 
       req.authType = "service";
     } else if (isUserToken) {
-      const userSecret = process.env.JWT_ACCESS_SECRET || "access_secret_key";
+      const userSecret = process.env.JWT_ACCESS_SECRET;
       if (!userSecret) {
-        throw new Error("JWT_SECRET is not defined");
+        throw new Error("JWT_ACCESS_SECRET is not configured");
       }
 
       const userPayload = jwt.verify(token, userSecret) as UserTokenPayload;
@@ -76,6 +77,7 @@ export const authenticate = (req: AuthenticatedRequest, res: Response, next: Nex
         userId: userPayload.userId,
         role: userPayload.role,
         email: userPayload.email,
+        sessionId: userPayload.sessionId,
       };
 
       req.authType = "user";
@@ -108,6 +110,23 @@ export const authorize = (...allowedRoles: UserRole[]) => {
 
     if (!allowedRoles.includes(req.user.role)) {
       return next(new UnauthorizedError("Insufficient permissions"));
+    }
+
+    next();
+  };
+};
+
+// Opt-in scope check for service-to-service calls. Not wired into any route by
+// default — services that want to restrict which service clients may call a
+// given route can add this after `authenticate` themselves.
+export const requireScope = (...allowedScopes: string[]) => {
+  return (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    if (req.authType !== "service" || !req.service) {
+      return next(new UnauthorizedError("Service token required"));
+    }
+
+    if (!allowedScopes.includes(req.service.scope)) {
+      return next(new UnauthorizedError("Insufficient scope"));
     }
 
     next();
