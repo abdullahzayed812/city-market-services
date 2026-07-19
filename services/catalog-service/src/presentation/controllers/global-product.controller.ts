@@ -1,9 +1,45 @@
 import { Request, Response, NextFunction } from "express";
 import { CatalogService } from "../../application/services/catalog.service";
-import { ApiResponse } from "@city-market/shared";
+import { ApiResponse, ValidationError, MeasurementType, WeightUnit } from "@city-market/shared";
 
 export class GlobalProductController {
     constructor(private catalogService: CatalogService) { }
+
+    bulkCreate = async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            const { items, globalCategoryId, measurementType, weightUnit } = req.body as {
+                items?: Array<{ name?: string; description?: string; imageUrl?: string }>;
+                globalCategoryId?: string;
+                measurementType?: MeasurementType;
+                weightUnit?: WeightUnit;
+            };
+
+            if (!Array.isArray(items) || items.length === 0) {
+                throw new ValidationError("items_required");
+            }
+            if (!globalCategoryId) {
+                throw new ValidationError("global_category_id_required");
+            }
+            if (!measurementType || !Object.values(MeasurementType).includes(measurementType)) {
+                throw new ValidationError("invalid_measurement_type");
+            }
+
+            const invalidRow = items.findIndex((item) => !item.name || !item.name.trim());
+            if (invalidRow !== -1) {
+                throw new ValidationError(`item_${invalidRow}_missing_name`);
+            }
+
+            const result = await this.catalogService.bulkCreateGlobalProducts(
+                items as Array<{ name: string; description?: string; imageUrl?: string }>,
+                globalCategoryId,
+                measurementType,
+                weightUnit,
+            );
+            res.status(201).json(ApiResponse.success(result, "global_products_bulk_imported"));
+        } catch (error) {
+            next(error);
+        }
+    };
 
     getAll = async (req: Request, res: Response, next: NextFunction) => {
         try {

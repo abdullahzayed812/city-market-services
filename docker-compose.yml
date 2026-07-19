@@ -115,6 +115,7 @@ services:
       ORDER_SERVICE_CLIENT_SECRET: seed-placeholder
       VENDOR_SERVICE_CLIENT_SECRET: seed-placeholder
       DELIVERY_SERVICE_CLIENT_SECRET: seed-placeholder
+      CATALOG_SERVICE_CLIENT_SECRET: seed-placeholder
 
   redis:
     image: redis:7-alpine
@@ -264,6 +265,10 @@ services:
       JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET}
       JWT_SERVICE_ACCESS_SECRET: ${JWT_SERVICE_ACCESS_SECRET}
       RABBITMQ_URL: amqp://${RABBITMQ_USER:-guest}:${RABBITMQ_PASSWORD:-guest}@rabbitmq:5672
+      MEDIA_SERVICE_URL: http://media-service:3012
+      AUTH_SERVICE_TOKEN_URL: http://auth-service:3001/oauth/token
+      CATALOG_SERVICE_CLIENT_ID: catalog-service-id
+      CATALOG_SERVICE_CLIENT_SECRET: ${CATALOG_SERVICE_CLIENT_SECRET}
 
   order-service:
     <<: *rabbitmq-service
@@ -453,11 +458,12 @@ services:
     environment:
       PORT: 3012
       JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET}
+      JWT_SERVICE_ACCESS_SECRET: ${JWT_SERVICE_ACCESS_SECRET}
       R2_ENDPOINT: ${R2_ENDPOINT}
       R2_ACCESS_KEY_ID: ${R2_ACCESS_KEY_ID}
       R2_SECRET_ACCESS_KEY: ${R2_SECRET_ACCESS_KEY}
       R2_BUCKET: ${R2_BUCKET:-citymarket-media}
-      CDN_URL: ${CDN_URL:-https://cdn.citymarket.app}
+      CDN_URL: ${CDN_URL:-https://pub-7511c1b2d5e34cdb8067140032d3eec0.r2.dev}
 
   # ────────────────────────────────────────────
   #  Nginx — API Gateway (replaces api-gateway service)

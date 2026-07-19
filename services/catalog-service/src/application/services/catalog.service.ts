@@ -5,17 +5,40 @@ import { IGlobalProductRepository } from "../../core/interfaces/global-product.r
 import { VendorProduct } from "../../core/entities/vendor-product.entity";
 import { GlobalProduct } from "../../core/entities/global-product.entity";
 import { CreateVendorProductDto, UpdateVendorProductDto, VendorProductFilter } from "../../core/dto/vendor-product.dto";
-import { NotFoundError, CategoryType, MeasurementType, EventType } from "@city-market/shared";
+import { NotFoundError, CategoryType, MeasurementType, WeightUnit, EventType } from "@city-market/shared";
 import { Logger, rabbitMQBus } from "@city-market/shared/node";
+import { MediaClient } from "../../infrastructure/http/media-client";
 
 const LOW_STOCK_THRESHOLD_UNITS = 10;
 const LOW_STOCK_THRESHOLD_GRAMS = 1000;
+const BULK_IMPORT_CONCURRENCY = 5;
+
+export interface BulkGlobalProductImportItem {
+  name: string;
+  description?: string;
+  imageUrl?: string;
+}
+
+export interface BulkGlobalProductImportRowResult {
+  index: number;
+  name: string;
+  status: "ok" | "image_failed" | "error";
+  globalProductId?: string;
+  error?: string;
+}
+
+export interface BulkGlobalProductImportResult {
+  created: number;
+  failed: number;
+  results: BulkGlobalProductImportRowResult[];
+}
 
 export class CatalogService {
   constructor(
     private vendorProductRepo: IVendorProductRepository,
     private categoryRepo: ICategoryRepository,
     private globalProductRepo: IGlobalProductRepository,
+    private mediaClient: MediaClient = new MediaClient(),
   ) {}
 
   async createVendorProduct(dto: CreateVendorProductDto): Promise<VendorProduct> {
@@ -331,6 +354,62 @@ export class CatalogService {
       updatedAt: new Date(),
     };
     return this.globalProductRepo.create(globalProduct);
+  }
+
+  async bulkCreateGlobalProducts(
+    items: BulkGlobalProductImportItem[],
+    globalCategoryId: string,
+    measurementType: MeasurementType,
+    weightUnit?: WeightUnit,
+  ): Promise<BulkGlobalProductImportResult> {
+    const category = await this.categoryRepo.findById(globalCategoryId);
+    if (!category || category.type !== CategoryType.GLOBAL) {
+      throw new Error("invalid_global_category");
+    }
+
+    const results: BulkGlobalProductImportRowResult[] = new Array(items.length);
+
+    for (let start = 0; start < items.length; start += BULK_IMPORT_CONCURRENCY) {
+      const batch = items.slice(start, start + BULK_IMPORT_CONCURRENCY);
+      await Promise.all(
+        batch.map(async (item, offset) => {
+          const index = start + offset;
+          try {
+            const globalProduct = await this.createGlobalProduct({
+              name: item.name,
+              description: item.description,
+              globalCategoryId,
+              measurementType,
+              weightUnit,
+            });
+
+            if (!item.imageUrl) {
+              results[index] = { index, name: item.name, status: "ok", globalProductId: globalProduct.id };
+              return;
+            }
+
+            try {
+              const uploaded = await this.mediaClient.uploadImageFromUrl(item.imageUrl, "globals", globalProduct.id);
+              await this.globalProductRepo.update(globalProduct.id, { imageUrl: uploaded.url });
+              results[index] = { index, name: item.name, status: "ok", globalProductId: globalProduct.id };
+            } catch (imageError: any) {
+              results[index] = {
+                index,
+                name: item.name,
+                status: "image_failed",
+                globalProductId: globalProduct.id,
+                error: imageError?.message || "image_download_failed",
+              };
+            }
+          } catch (error: any) {
+            results[index] = { index, name: item.name, status: "error", error: error?.message || "create_failed" };
+          }
+        }),
+      );
+    }
+
+    const failed = results.filter((r) => r.status === "error").length;
+    return { created: results.length - failed, failed, results };
   }
 
   async getAllGlobalProducts(

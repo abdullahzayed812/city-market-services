@@ -48,6 +48,7 @@ export const createAdminRoutes = (controller: AdminController): Router => {
 
   // Global Product Management
   router.get("/global-products", authorize(UserRole.ADMIN), controller.getGlobalProducts);
+  router.post("/global-products/bulk", authorize(UserRole.ADMIN), controller.bulkCreateGlobalProducts);
   router.post("/global-products", authorize(UserRole.ADMIN), controller.createGlobalProduct);
   router.patch("/global-products/:id", authorize(UserRole.ADMIN), controller.updateGlobalProduct);
   router.delete("/global-products/:id", authorize(UserRole.ADMIN), controller.deleteGlobalProduct);

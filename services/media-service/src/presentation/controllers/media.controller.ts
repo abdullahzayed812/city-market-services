@@ -38,6 +38,40 @@ export class MediaController {
     }
   };
 
+  uploadFromUrl = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      const { imageUrl, folder, entityId } = req.body as {
+        imageUrl?: string;
+        folder?: string;
+        entityId?: string;
+      };
+
+      if (!imageUrl || typeof imageUrl !== "string") {
+        throw new ValidationError("image_url_required");
+      }
+
+      if (!folder || !(ALLOWED_FOLDERS as readonly string[]).includes(folder)) {
+        throw new ValidationError(
+          "invalid_folder_allowed_products_categories_vendors_globals",
+        );
+      }
+
+      if (!entityId || !UUID_REGEX.test(entityId)) {
+        throw new ValidationError("entity_id_must_be_a_valid_uuid");
+      }
+
+      const result = await this.mediaService.uploadImageFromUrl(
+        imageUrl,
+        folder as MediaFolder,
+        entityId,
+      );
+
+      res.status(201).json(ApiResponse.success(result, "media_uploaded"));
+    } catch (error) {
+      next(error);
+    }
+  };
+
   deleteFile = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
       const { key } = req.body as { key?: string };

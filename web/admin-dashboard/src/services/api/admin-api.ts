@@ -18,7 +18,29 @@ import {
   type CreateVendorProductDto,
   type GlobalProduct,
   type User,
+  MeasurementType,
+  WeightUnit,
 } from "@city-market/shared";
+
+export interface BulkGlobalProductImportItem {
+  name: string;
+  description?: string;
+  imageUrl?: string;
+}
+
+export interface BulkGlobalProductImportRowResult {
+  index: number;
+  name: string;
+  status: "ok" | "image_failed" | "error";
+  globalProductId?: string;
+  error?: string;
+}
+
+export interface BulkGlobalProductImportResult {
+  created: number;
+  failed: number;
+  results: BulkGlobalProductImportRowResult[];
+}
 
 export const adminApi = {
   // Dashboard Overview
@@ -147,6 +169,17 @@ export const adminApi = {
     return response.data.data!;
   },
   createGlobalProduct: (body: Partial<GlobalProduct>) => axiosInstance.post<ApiResponse<GlobalProduct>>("/admin/global-products", body),
+  bulkCreateGlobalProducts: async (body: {
+    items: BulkGlobalProductImportItem[];
+    globalCategoryId: string;
+    measurementType: MeasurementType;
+    weightUnit?: WeightUnit;
+  }): Promise<BulkGlobalProductImportResult> => {
+    const response = await axiosInstance.post<ApiResponse<BulkGlobalProductImportResult>>("/admin/global-products/bulk", body, {
+      timeout: 130_000,
+    });
+    return response.data.data!;
+  },
   updateGlobalProduct: (id: string, body: Partial<GlobalProduct>) => axiosInstance.patch<ApiResponse<null>>(`/admin/global-products/${id}`, body),
   deleteGlobalProduct: (id: string) => axiosInstance.delete<ApiResponse<null>>(`/admin/global-products/${id}`),
 };

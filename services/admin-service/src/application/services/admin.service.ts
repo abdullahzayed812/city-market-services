@@ -295,6 +295,11 @@ export class AdminService {
     return this.serviceClient.catalog.createGlobalProduct(data, userId);
   }
 
+  async bulkCreateGlobalProducts(data: any, userId?: string) {
+    Logger.info(`Bulk importing global products (${data?.items?.length ?? 0} rows)`);
+    return this.serviceClient.catalog.bulkCreateGlobalProducts(data, userId);
+  }
+
   async updateGlobalProduct(id: string, data: any, userId?: string) {
     Logger.info(`Updating global product ${id}`);
     return this.serviceClient.catalog.updateGlobalProduct(id, data, userId);

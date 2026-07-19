@@ -17,6 +17,12 @@ const CAT = {
   VEG_FRUIT: "d0eebc99-9c0b-4ef8-bb6d-6bb9bd380b03",
   STATIONERY: "d0eebc99-9c0b-4ef8-bb6d-6bb9bd380b04",
   PASTRY: "d0eebc99-9c0b-4ef8-bb6d-6bb9bd380b05",
+  CANNED: "d0eebc99-9c0b-4ef8-bb6d-6bb9bd380b09",
+  TEA_COFFEE: "d0eebc99-9c0b-4ef8-bb6d-6bb9bd380b10",
+  PAPER: "d0eebc99-9c0b-4ef8-bb6d-6bb9bd380b11",
+  PET: "d0eebc99-9c0b-4ef8-bb6d-6bb9bd380b12",
+  KITCHEN: "d0eebc99-9c0b-4ef8-bb6d-6bb9bd380b13",
+  HOUSEHOLD: "d0eebc99-9c0b-4ef8-bb6d-6bb9bd380b14",
   // The following are also in SEED_DATA.CATEGORIES:
   FROZEN: SEED_DATA.CATEGORIES.FROZEN,
   EGGS: SEED_DATA.CATEGORIES.EGGS,
@@ -171,6 +177,48 @@ const seedDb = async () => {
         color: "#6366F1",
         key: "STATIONERY",
       },
+      {
+        id: CAT.CANNED,
+        name: "معلبات وصوصات",
+        description: "معلبات وصوصات وكاتشب ومايونيز ومرقة جاهزة",
+        color: "#DC2626",
+        key: "CANNED",
+      },
+      {
+        id: CAT.TEA_COFFEE,
+        name: "شاي وقهوة",
+        description: "شاي وقهوة ومشروبات عشبية ساخنة",
+        color: "#65A30D",
+        key: "TEA_COFFEE",
+      },
+      {
+        id: CAT.PAPER,
+        name: "ورقيات",
+        description: "مناديل ورقية وتواليت وفوط مطبخ",
+        color: "#94A3B8",
+        key: "PAPER",
+      },
+      {
+        id: CAT.PET,
+        name: "مستلزمات الحيوانات الأليفة",
+        description: "طعام القطط والكلاب ورمل القطط ومستلزمات الطيور",
+        color: "#F472B6",
+        key: "PET",
+      },
+      {
+        id: CAT.KITCHEN,
+        name: "أدوات المطبخ",
+        description: "أدوات تغليف ومستلزمات مطبخ للاستخدام مرة واحدة",
+        color: "#0D9488",
+        key: "KITCHEN",
+      },
+      {
+        id: CAT.HOUSEHOLD,
+        name: "أدوات منزلية متنوعة",
+        description: "بطاريات ولمبات إضاءة ومستلزمات منزلية متنوعة",
+        color: "#71717A",
+        key: "HOUSEHOLD",
+      },
     ];
 
     const globalCategoryMap: Record<string, string> = {};
@@ -199,9 +247,13 @@ const seedDb = async () => {
       globalMappings: Record<string, string>;
     }[] = [
       {
-        // Supermarkets: dairy, grocery, drinks, cleaning, snacks, eggs, spices, frozen
+        // Supermarkets: dairy, grocery, drinks, cleaning, snacks, eggs, spices, frozen,
+        // canned goods, tea/coffee, paper products, pet supplies, kitchen supplies, household
         ids: [V.SUPER_MARKET_1, V.SUPER_MARKET_2, V.SANAQREH],
-        cats: ["ألبان", "بقالة", "مشروبات", "منظفات", "سناكس", "بيض", "توابل وبهارات", "مجمدات"],
+        cats: [
+          "ألبان", "بقالة", "مشروبات", "منظفات", "سناكس", "بيض", "توابل وبهارات", "مجمدات",
+          "معلبات وصوصات", "شاي وقهوة", "ورقيات", "مستلزمات الحيوانات الأليفة", "أدوات المطبخ", "أدوات منزلية متنوعة",
+        ],
         globalMappings: {
           DAIRY: "ألبان",
           GROCERY: "بقالة",
@@ -211,6 +263,12 @@ const seedDb = async () => {
           EGGS: "بيض",
           SPICES: "توابل وبهارات",
           FROZEN: "مجمدات",
+          CANNED: "معلبات وصوصات",
+          TEA_COFFEE: "شاي وقهوة",
+          PAPER: "ورقيات",
+          PET: "مستلزمات الحيوانات الأليفة",
+          KITCHEN: "أدوات المطبخ",
+          HOUSEHOLD: "أدوات منزلية متنوعة",
         },
       },
       {

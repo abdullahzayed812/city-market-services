@@ -96,6 +96,17 @@ export class CatalogClient extends BaseClient {
     return response.data;
   }
 
+  async bulkCreateGlobalProducts(data: any, userId?: string) {
+    const config = await this.getRequestConfig(userId);
+    // Downloading and processing every row's image can take a while — give this
+    // call more headroom than the default axios timeout.
+    const response = await this.axiosInstance.post(`/global-products/bulk`, data, {
+      ...config,
+      timeout: 120_000,
+    });
+    return response.data;
+  }
+
   async updateGlobalProduct(id: string, data: any, userId?: string) {
     const config = await this.getRequestConfig(userId);
     const response = await this.axiosInstance.patch(`/global-products/${id}`, data, config);

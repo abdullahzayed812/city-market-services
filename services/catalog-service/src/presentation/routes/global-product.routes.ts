@@ -5,6 +5,7 @@ export const createGlobalProductRoutes = (controller: GlobalProductController): 
     const router = Router();
 
     router.get("/global-products", controller.getAll);
+    router.post("/global-products/bulk", controller.bulkCreate);
     router.get("/global-products/:id", controller.getById);
     router.post("/global-products", controller.create);
     router.patch("/global-products/:id", controller.update);

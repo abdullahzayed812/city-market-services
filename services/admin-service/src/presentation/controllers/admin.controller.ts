@@ -374,6 +374,15 @@ export class AdminController {
     }
   };
 
+  bulkCreateGlobalProducts = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      const result = await this.adminService.bulkCreateGlobalProducts(req.body, req.user!.userId);
+      res.json(result);
+    } catch (error) {
+      next(error);
+    }
+  };
+
   updateGlobalProduct = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
       const result = await this.adminService.updateGlobalProduct(req.params.id, req.body, req.user!.userId);

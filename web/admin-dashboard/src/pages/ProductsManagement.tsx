@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useCallback, useEffect, useDeferredValue, memo } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
-import { Plus, Loader2, X, Search } from "lucide-react";
+import { Plus, Loader2, X, Search, FileUp } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 
@@ -10,6 +10,7 @@ import { type VendorProduct, type CreateVendorProductDto, CategoryType } from "@
 import ProductImageModal from "@/components/ProductImageModal";
 import ProductTable from "../features/products/components/ProductTable";
 import ProductFormDialog from "../features/products/components/ProductFormDialog";
+import BulkImportGlobalProductsDialog from "../features/products/components/BulkImportGlobalProductsDialog";
 
 // 1. Isolate the Search Input to prevent parent re-renders while typing
 const SearchFilter = memo(
@@ -70,6 +71,7 @@ const ProductsManagement: React.FC = () => {
   const [selectedVendorCategoryId, setSelectedVendorCategoryId] = useState<string | undefined>(undefined);
   const [selectedVendorId, setSelectedVendorId] = useState<string | undefined>(undefined);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isBulkImportOpen, setIsBulkImportOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<VendorProduct | null>(null);
   const [isImageModalOpen, setIsImageModalOpen] = useState(false);
   const [selectedProductForImage, setSelectedProductForImage] = useState<VendorProduct | null>(null);
@@ -180,9 +182,14 @@ const ProductsManagement: React.FC = () => {
           <h1 className="text-3xl font-bold tracking-tight">{t("common.products")}</h1>
           <p className="text-muted-foreground">{t("products.manage_catalog")}</p>
         </div>
-        <Button onClick={handleOpenAddDialog} className="gap-2">
-          <Plus className="h-4 w-4" /> {t("products.add_new")}
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setIsBulkImportOpen(true)} className="gap-2">
+            <FileUp className="h-4 w-4" /> {t("products.bulk_import", "Bulk Import")}
+          </Button>
+          <Button onClick={handleOpenAddDialog} className="gap-2">
+            <Plus className="h-4 w-4" /> {t("products.add_new")}
+          </Button>
+        </div>
       </div>
 
       <div className="flex flex-wrap gap-4 items-center bg-white p-4 rounded-lg border shadow-sm">
@@ -303,6 +310,8 @@ const ProductsManagement: React.FC = () => {
         vendors={vendors || []}
         onSubmit={handleFormSubmit}
       />
+
+      <BulkImportGlobalProductsDialog open={isBulkImportOpen} onOpenChange={setIsBulkImportOpen} categories={categories || []} />
 
       <ProductImageModal
         isOpen={isImageModalOpen}

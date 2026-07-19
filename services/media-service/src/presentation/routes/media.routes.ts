@@ -15,6 +15,13 @@ export const createMediaRoutes = (controller: MediaController): Router => {
     controller.upload,
   );
 
+  // POST /media/upload-from-url  — body: { imageUrl, folder, entityId } — admin only (bulk import)
+  router.post(
+    "/media/upload-from-url",
+    authorize(UserRole.ADMIN),
+    controller.uploadFromUrl,
+  );
+
   // DELETE /media/file  — body: { key: string }
   router.delete(
     "/media/file",

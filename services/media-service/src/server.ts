@@ -1,5 +1,5 @@
-import { createApp } from "./app.js";
-import { config } from "./config/env.js";
+import { createApp } from "./app";
+import { config } from "./config/env";
 import { Logger } from "@city-market/shared/node";
 
 const app = createApp();
