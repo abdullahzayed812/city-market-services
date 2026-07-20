@@ -17,6 +17,7 @@ import {
   type VendorProduct,
   type CreateVendorProductDto,
   type GlobalProduct,
+  type BulkAddVendorProductsFromGlobalResult,
   type User,
   MeasurementType,
   WeightUnit,
@@ -160,6 +161,12 @@ export const adminApi = {
   deleteVendorProduct: (id: string) => axiosInstance.delete<ApiResponse<null>>(`/admin/products/${id}`),
   updateVendorProductImage: (id: string, imageUrl: string) =>
     axiosInstance.patch<ApiResponse<null>>(`/admin/products/${id}/image`, { imageUrl }),
+  bulkAddVendorProductsFromGlobal: async (vendorId: string, globalProductIds: string[]): Promise<BulkAddVendorProductsFromGlobalResult> => {
+    const response = await axiosInstance.post<ApiResponse<BulkAddVendorProductsFromGlobalResult>>(`/admin/vendors/${vendorId}/products/bulk-add-global`, {
+      items: globalProductIds.map((globalProductId) => ({ globalProductId })),
+    });
+    return response.data.data!;
+  },
 
   // Global Products management
   getGlobalProducts: async (page: number, limit: number, search?: string): Promise<{ data: GlobalProduct[]; total: number }> => {

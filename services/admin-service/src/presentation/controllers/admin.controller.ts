@@ -332,6 +332,15 @@ export class AdminController {
     }
   };
 
+  bulkAddVendorProductsFromGlobal = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      const result = await this.adminService.bulkAddVendorProductsFromGlobal(req.params.vendorId, req.body, req.user!.userId);
+      res.json(result);
+    } catch (error) {
+      next(error);
+    }
+  };
+
   deleteProduct = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
       const result = await this.adminService.deleteProduct(req.params.id, req.user!.userId);

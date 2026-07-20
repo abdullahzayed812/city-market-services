@@ -1,8 +1,9 @@
 import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from "@tanstack/react-query";
 import { productService } from "@/services/api/product.service";
 import { useAuth } from "@/components/AuthProvider";
+import type { BulkAddVendorProductsFromGlobalItem } from "@city-market/shared";
 
-export const useProducts = (globalProductSearch?: string) => {
+export const useProducts = () => {
   const { vendor } = useAuth();
   const vendorId = vendor?.id;
   const queryClient = useQueryClient();
@@ -31,13 +32,6 @@ export const useProducts = (globalProductSearch?: string) => {
     queryKey: ["vendor-categories", vendorId],
     queryFn: () => productService.getVendorCategories(vendorId!),
     enabled: !!vendorId,
-  });
-
-  const createVendorProductMutation = useMutation({
-    mutationFn: (data: any) => productService.createVendorProduct({ ...data, vendorId }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["vendor-products"] });
-    },
   });
 
   const updateVendorProductMutation = useMutation({
@@ -69,25 +63,26 @@ export const useProducts = (globalProductSearch?: string) => {
     },
   });
 
-  const globalProductsQuery = useQuery({
-    queryKey: ["global-products", globalProductSearch],
-    queryFn: () => productService.getGlobalProducts(1, 100, globalProductSearch),
+  const bulkAddProductsFromGlobalMutation = useMutation({
+    mutationFn: (items: BulkAddVendorProductsFromGlobalItem[]) => productService.bulkAddProductsFromGlobal(vendorId!, items),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["vendor-products"] });
+    },
   });
 
   return {
+    vendorId,
     products: productsQuery.data?.pages.flatMap((page) => page?.data || []) || [],
     hasMoreProducts: !!productsQuery.hasNextPage,
     isFetchingNextProductsPage: productsQuery.isFetchingNextPage,
     loadMoreProducts: productsQuery.fetchNextPage,
     globalCategories: globalCategoriesQuery.data || [],
     vendorCategories: vendorCategoriesQuery.data || [],
-    globalProducts: globalProductsQuery.data?.data || [],
     isLoading: productsQuery.isLoading || globalCategoriesQuery.isLoading || vendorCategoriesQuery.isLoading,
-    isGlobalProductsLoading: globalProductsQuery.isLoading || globalProductsQuery.isFetching,
-    createVendorProduct: createVendorProductMutation.mutate,
     updateVendorProduct: updateVendorProductMutation.mutate,
     updateStock: updateStockMutation.mutate,
     deleteVendorProduct: deleteVendorProductMutation.mutate,
     updateProductImage: updateProductImageMutation.mutate,
+    bulkAddProductsFromGlobal: bulkAddProductsFromGlobalMutation.mutateAsync,
   };
 };

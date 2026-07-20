@@ -9,6 +9,7 @@ export const config = ConfigLoader.load<{
   dbName: string;
   rabbitMqUrl: string;
   mediaServiceUrl: string;
+  vendorServiceUrl: string;
   authServiceTokenUrl: string;
   catalogServiceClientId: string;
   catalogServiceClientSecret: string;
@@ -21,6 +22,7 @@ export const config = ConfigLoader.load<{
   dbName: { env: "DB_NAME", default: "catalog_db" },
   rabbitMqUrl: { env: "RABBITMQ_URL", default: "amqp://localhost" },
   mediaServiceUrl: { env: "MEDIA_SERVICE_URL", default: "http://localhost:3012" },
+  vendorServiceUrl: { env: "VENDOR_SERVICE_URL", default: "http://localhost:3003" },
   authServiceTokenUrl: { env: "AUTH_SERVICE_TOKEN_URL", default: "http://localhost:3001/oauth/token" },
   catalogServiceClientId: { env: "CATALOG_SERVICE_CLIENT_ID", default: "catalog-service-id" },
   catalogServiceClientSecret: { env: "CATALOG_SERVICE_CLIENT_SECRET", required: true, sensitive: true },

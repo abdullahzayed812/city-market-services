@@ -1,5 +1,7 @@
 import { Router } from "express";
 import { VendorProductController } from "../controllers/vendor-product.controller";
+import { UserRole } from "@city-market/shared";
+import { authorize } from "@city-market/shared/node";
 
 export const createVendorProductRoutes = (controller: VendorProductController): Router => {
   const router = Router();
@@ -8,6 +10,11 @@ export const createVendorProductRoutes = (controller: VendorProductController): 
   router.get("/products", controller.getAll);
   router.get("/products/search", controller.search);
   router.get("/products/vendor/:vendorId", controller.getByVendor);
+  router.post(
+    "/products/vendor/:vendorId/bulk-add-global",
+    authorize(UserRole.VENDOR, UserRole.ADMIN),
+    controller.bulkAddFromGlobal,
+  );
   router.get("/products/category/:categoryId", controller.getByCategory);
   router.get("/products/:id", controller.getById);
   router.patch("/products/:id", controller.update);

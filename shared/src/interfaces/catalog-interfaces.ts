@@ -85,6 +85,24 @@ export interface VendorProductFilter {
   available?: boolean;
 }
 
+export interface BulkAddVendorProductsFromGlobalItem {
+  globalProductId: string;
+  price?: number;
+  stockQuantity?: number;
+  stockWeightGrams?: number;
+}
+
+export interface BulkAddVendorProductsFromGlobalDto {
+  items: BulkAddVendorProductsFromGlobalItem[];
+}
+
+export interface BulkAddVendorProductsFromGlobalResult {
+  added: number;
+  skipped: number;
+  addedProductIds: string[];
+  skippedProductIds: string[];
+}
+
 export interface CreateCategoryDto {
   name: string;
   type: CategoryType;

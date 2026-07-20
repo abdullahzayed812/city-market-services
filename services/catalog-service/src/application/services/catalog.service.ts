@@ -5,7 +5,15 @@ import { IGlobalProductRepository } from "../../core/interfaces/global-product.r
 import { VendorProduct } from "../../core/entities/vendor-product.entity";
 import { GlobalProduct } from "../../core/entities/global-product.entity";
 import { CreateVendorProductDto, UpdateVendorProductDto, VendorProductFilter } from "../../core/dto/vendor-product.dto";
-import { NotFoundError, CategoryType, MeasurementType, WeightUnit, EventType } from "@city-market/shared";
+import {
+  NotFoundError,
+  CategoryType,
+  MeasurementType,
+  WeightUnit,
+  EventType,
+  type BulkAddVendorProductsFromGlobalItem,
+  type BulkAddVendorProductsFromGlobalResult,
+} from "@city-market/shared";
 import { Logger, rabbitMQBus } from "@city-market/shared/node";
 import { MediaClient } from "../../infrastructure/http/media-client";
 
@@ -191,8 +199,8 @@ export class CatalogService {
       stockQuantity: data.stockQuantity,
       stockWeightGrams: data.stockWeightGrams,
       isAvailable: data.isAvailable,
-      vendorCategoryId: data.vendorCategoryId,
-      globalProductId: data.globalProductId,
+      vendorCategoryId: data.vendorCategoryId || undefined,
+      globalProductId: data.globalProductId || undefined,
     };
 
     await this.vendorProductRepo.update(id, vendorUpdate);
@@ -337,6 +345,26 @@ export class CatalogService {
   async deleteVendorProduct(id: string): Promise<void> {
     await this.getVendorProductById(id);
     await this.vendorProductRepo.delete(id);
+  }
+
+  async bulkAddVendorProductsFromGlobal(
+    vendorId: string,
+    items: BulkAddVendorProductsFromGlobalItem[],
+  ): Promise<BulkAddVendorProductsFromGlobalResult> {
+    const seen = new Set<string>();
+    const uniqueItems = items.filter((item) => {
+      if (seen.has(item.globalProductId)) return false;
+      seen.add(item.globalProductId);
+      return true;
+    });
+
+    const { addedIds, skippedIds } = await this.vendorProductRepo.bulkAddFromGlobalProducts(vendorId, uniqueItems);
+    return {
+      added: addedIds.length,
+      skipped: skippedIds.length,
+      addedProductIds: addedIds,
+      skippedProductIds: skippedIds,
+    };
   }
 
   // --- Global Product Management ---

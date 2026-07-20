@@ -1,5 +1,6 @@
 import { ServiceClient } from "../../infrastructure/http/service-client";
 import { Logger } from "@city-market/shared/node";
+import type { BulkAddVendorProductsFromGlobalItem } from "@city-market/shared";
 
 export interface DashboardStats {
   totalOrders: number;
@@ -278,6 +279,11 @@ export class AdminService {
 
   async deleteProduct(id: string, userId?: string) {
     return this.serviceClient.catalog.deleteProduct(id, userId);
+  }
+
+  async bulkAddVendorProductsFromGlobal(vendorId: string, data: { items: BulkAddVendorProductsFromGlobalItem[] }, userId?: string) {
+    Logger.info(`Bulk adding vendor products from global catalog for vendor ${vendorId} (${data?.items?.length ?? 0} items)`);
+    return this.serviceClient.catalog.bulkAddVendorProductsFromGlobal(vendorId, data, userId);
   }
 
   async updateProductImage(id: string, imageUrl: string, userId?: string) {

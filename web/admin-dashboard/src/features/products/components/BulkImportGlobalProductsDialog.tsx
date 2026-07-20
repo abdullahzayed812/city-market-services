@@ -26,7 +26,7 @@ interface ParsedRow extends BulkGlobalProductImportItem {
 
 const REQUIRED_COLUMNS = ["name"];
 
-function parseCsv(file: File): Promise<{ rows: ParsedRow[]; columnError?: string }> {
+function parseCsv(file: File, t: ReturnType<typeof useTranslation>["t"]): Promise<{ rows: ParsedRow[]; columnError?: string }> {
   return new Promise((resolve) => {
     Papa.parse<Record<string, string>>(file, {
       header: true,
@@ -36,7 +36,13 @@ function parseCsv(file: File): Promise<{ rows: ParsedRow[]; columnError?: string
         const fields = result.meta.fields?.map((f) => f.trim().toLowerCase()) || [];
         const missing = REQUIRED_COLUMNS.filter((col) => !fields.includes(col));
         if (missing.length > 0) {
-          resolve({ rows: [], columnError: `Missing required column(s): ${missing.join(", ")}` });
+          resolve({
+            rows: [],
+            columnError: t("products.bulk_import_missing_columns", {
+              columns: missing.join(", "),
+              defaultValue: `Missing required column(s): ${missing.join(", ")}`,
+            }),
+          });
           return;
         }
 
@@ -44,8 +50,9 @@ function parseCsv(file: File): Promise<{ rows: ParsedRow[]; columnError?: string
           const name = (raw.name || "").trim();
           const imageUrl = (raw.imageurl || raw.image_url || "").trim();
           let error: string | undefined;
-          if (!name) error = "Missing name";
-          else if (imageUrl && !/^https?:\/\//i.test(imageUrl)) error = "Image URL must start with http(s)://";
+          if (!name) error = t("products.bulk_import_row_missing_name", "Missing name");
+          else if (imageUrl && !/^https?:\/\//i.test(imageUrl))
+            error = t("products.bulk_import_row_invalid_image_url", "Image URL must start with http(s)://");
 
           return {
             rowNumber: i + 2, // +1 for header row, +1 for 1-based index
@@ -93,7 +100,7 @@ const BulkImportGlobalProductsDialog: React.FC<BulkImportGlobalProductsDialogPro
     if (!file) return;
     setResult(null);
     setFileName(file.name);
-    const parsed = await parseCsv(file);
+    const parsed = await parseCsv(file, t);
     setColumnError(parsed.columnError);
     setRows(parsed.rows);
   };
@@ -113,12 +120,16 @@ const BulkImportGlobalProductsDialog: React.FC<BulkImportGlobalProductsDialogPro
       onImported?.();
       toast({
         title: t("common.success", "Success"),
-        description: `${importResult.created} product(s) created, ${importResult.failed} failed.`,
+        description: t("products.bulk_import_toast_success", {
+          created: importResult.created,
+          failed: importResult.failed,
+          defaultValue: `${importResult.created} product(s) created, ${importResult.failed} failed.`,
+        }),
       });
     } catch (err: any) {
       toast({
         title: t("common.error", "Error"),
-        description: `Bulk import failed: ${err.message}`,
+        description: `${t("products.bulk_import_toast_failed_prefix", "Bulk import failed")}: ${err.message}`,
         variant: "destructive",
       });
     } finally {
@@ -183,8 +194,8 @@ const BulkImportGlobalProductsDialog: React.FC<BulkImportGlobalProductsDialogPro
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value={WeightUnit.KG}>KG</SelectItem>
-                    <SelectItem value={WeightUnit.GRAM}>Gram</SelectItem>
+                    <SelectItem value={WeightUnit.KG}>{t("products.kg", "KG")}</SelectItem>
+                    <SelectItem value={WeightUnit.GRAM}>{t("products.gram", "Gram")}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -208,8 +219,17 @@ const BulkImportGlobalProductsDialog: React.FC<BulkImportGlobalProductsDialogPro
             <div className="space-y-2">
               <div className="flex items-center gap-2 text-sm">
                 <Badge variant="secondary">{fileName}</Badge>
-                <span className="text-green-600">{validRows.length} valid</span>
-                {invalidRows.length > 0 && <span className="text-red-600">{invalidRows.length} invalid (will be skipped)</span>}
+                <span className="text-green-600">
+                  {t("products.bulk_import_valid_count", { count: validRows.length, defaultValue: `${validRows.length} valid` })}
+                </span>
+                {invalidRows.length > 0 && (
+                  <span className="text-red-600">
+                    {t("products.bulk_import_invalid_count", {
+                      count: invalidRows.length,
+                      defaultValue: `${invalidRows.length} invalid (will be skipped)`,
+                    })}
+                  </span>
+                )}
               </div>
 
               <div className="max-h-64 overflow-y-auto border rounded-md">
@@ -219,7 +239,7 @@ const BulkImportGlobalProductsDialog: React.FC<BulkImportGlobalProductsDialogPro
                       <TableHead className="w-12">#</TableHead>
                       <TableHead>{t("common.name", "Name")}</TableHead>
                       <TableHead>{t("common.description", "Description")}</TableHead>
-                      <TableHead>Image URL</TableHead>
+                      <TableHead>{t("products.image_url_column", "Image URL")}</TableHead>
                       <TableHead>{t("common.status", "Status")}</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -231,7 +251,11 @@ const BulkImportGlobalProductsDialog: React.FC<BulkImportGlobalProductsDialogPro
                         <TableCell className="max-w-[160px] truncate">{row.description || "—"}</TableCell>
                         <TableCell className="max-w-[160px] truncate">{row.imageUrl || "—"}</TableCell>
                         <TableCell>
-                          {row.error ? <span className="text-xs text-red-600">{row.error}</span> : <Badge variant="outline">Ready</Badge>}
+                          {row.error ? (
+                            <span className="text-xs text-red-600">{row.error}</span>
+                          ) : (
+                            <Badge variant="outline">{t("products.ready", "Ready")}</Badge>
+                          )}
                         </TableCell>
                       </TableRow>
                     ))}
@@ -244,8 +268,12 @@ const BulkImportGlobalProductsDialog: React.FC<BulkImportGlobalProductsDialogPro
           {result && (
             <div className="space-y-2">
               <div className="flex gap-3 text-sm">
-                <span className="text-green-600">{result.created} created</span>
-                <span className="text-red-600">{result.failed} failed</span>
+                <span className="text-green-600">
+                  {t("products.bulk_import_created_count", { count: result.created, defaultValue: `${result.created} created` })}
+                </span>
+                <span className="text-red-600">
+                  {t("products.bulk_import_failed_count", { count: result.failed, defaultValue: `${result.failed} failed` })}
+                </span>
               </div>
               <div className="max-h-64 overflow-y-auto border rounded-md">
                 <Table>
@@ -253,7 +281,7 @@ const BulkImportGlobalProductsDialog: React.FC<BulkImportGlobalProductsDialogPro
                     <TableRow>
                       <TableHead>{t("common.name", "Name")}</TableHead>
                       <TableHead>{t("common.status", "Status")}</TableHead>
-                      <TableHead>Details</TableHead>
+                      <TableHead>{t("products.details_column", "Details")}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -261,9 +289,9 @@ const BulkImportGlobalProductsDialog: React.FC<BulkImportGlobalProductsDialogPro
                       <TableRow key={r.index}>
                         <TableCell className="max-w-[160px] truncate">{r.name}</TableCell>
                         <TableCell>
-                          {r.status === "ok" && <Badge>OK</Badge>}
-                          {r.status === "image_failed" && <Badge variant="secondary">Image failed</Badge>}
-                          {r.status === "error" && <Badge variant="destructive">Error</Badge>}
+                          {r.status === "ok" && <Badge>{t("products.status_ok", "OK")}</Badge>}
+                          {r.status === "image_failed" && <Badge variant="secondary">{t("products.image_failed", "Image failed")}</Badge>}
+                          {r.status === "error" && <Badge variant="destructive">{t("common.error", "Error")}</Badge>}
                         </TableCell>
                         <TableCell className="max-w-[220px] truncate text-xs text-gray-500">{r.error || "—"}</TableCell>
                       </TableRow>
@@ -280,13 +308,9 @@ const BulkImportGlobalProductsDialog: React.FC<BulkImportGlobalProductsDialogPro
             {t("common.close", "Close")}
           </Button>
           {!result && (
-            <Button
-              onClick={handleSubmit}
-              disabled={!globalCategoryId || validRows.length === 0 || isSubmitting || !!columnError}
-              className="gap-2"
-            >
+            <Button onClick={handleSubmit} disabled={!globalCategoryId || validRows.length === 0 || isSubmitting || !!columnError} className="gap-2">
               {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
-              {t("products.import_n_products", `Import ${validRows.length} product(s)`)}
+              {t("products.import_n_products", { count: validRows.length, defaultValue: `Import ${validRows.length} product(s)` })}
             </Button>
           )}
         </DialogFooter>

@@ -1,11 +1,15 @@
 import { Response, NextFunction } from "express";
 import { CatalogService } from "../../application/services/catalog.service";
-import { ApiResponse, ValidationError, MeasurementType } from "@city-market/shared";
+import { ApiResponse, ValidationError, ForbiddenError, MeasurementType, UserRole } from "@city-market/shared";
 import { Logger } from "@city-market/shared/node";
 import { AuthenticatedRequest } from "@city-market/shared/node";
+import { VendorClient } from "../../infrastructure/http/vendor-client";
 
 export class VendorProductController {
-  constructor(private catalogService: CatalogService) {}
+  constructor(
+    private catalogService: CatalogService,
+    private vendorClient: VendorClient = new VendorClient(),
+  ) {}
 
   getAll = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
@@ -203,6 +207,37 @@ export class VendorProductController {
     try {
       await this.catalogService.deleteVendorProduct(req.params.id);
       res.json(ApiResponse.success(null, "vendor_product_deleted"));
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  bulkAddFromGlobal = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      const { items } = req.body as {
+        items?: Array<{ globalProductId?: string; price?: number; stockQuantity?: number; stockWeightGrams?: number }>;
+      };
+      if (!Array.isArray(items) || items.length === 0) {
+        throw new ValidationError("items_required");
+      }
+      const invalidIndex = items.findIndex((item) => !item.globalProductId);
+      if (invalidIndex !== -1) {
+        throw new ValidationError(`item_${invalidIndex}_missing_global_product_id`);
+      }
+
+      if (req.user?.role === UserRole.VENDOR) {
+        const authorizationHeader = req.headers.authorization;
+        const ownVendorId = authorizationHeader ? await this.vendorClient.getVendorIdForUser(authorizationHeader) : null;
+        if (!ownVendorId || ownVendorId !== req.params.vendorId) {
+          throw new ForbiddenError("vendor_id_mismatch");
+        }
+      }
+
+      const result = await this.catalogService.bulkAddVendorProductsFromGlobal(
+        req.params.vendorId,
+        items as Array<{ globalProductId: string; price?: number; stockQuantity?: number; stockWeightGrams?: number }>,
+      );
+      res.status(201).json(ApiResponse.success(result, "vendor_products_bulk_added"));
     } catch (error) {
       next(error);
     }

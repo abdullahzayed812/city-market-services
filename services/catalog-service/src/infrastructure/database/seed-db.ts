@@ -251,8 +251,20 @@ const seedDb = async () => {
         // canned goods, tea/coffee, paper products, pet supplies, kitchen supplies, household
         ids: [V.SUPER_MARKET_1, V.SUPER_MARKET_2, V.SANAQREH],
         cats: [
-          "ألبان", "بقالة", "مشروبات", "منظفات", "سناكس", "بيض", "توابل وبهارات", "مجمدات",
-          "معلبات وصوصات", "شاي وقهوة", "ورقيات", "مستلزمات الحيوانات الأليفة", "أدوات المطبخ", "أدوات منزلية متنوعة",
+          "ألبان",
+          "بقالة",
+          "مشروبات",
+          "منظفات",
+          "سناكس",
+          "بيض",
+          "توابل وبهارات",
+          "مجمدات",
+          "معلبات وصوصات",
+          "شاي وقهوة",
+          "ورقيات",
+          "مستلزمات الحيوانات الأليفة",
+          "أدوات المطبخ",
+          "أدوات منزلية متنوعة",
         ],
         globalMappings: {
           DAIRY: "ألبان",
@@ -385,18 +397,18 @@ const seedDb = async () => {
     }
 
     // ── 3. Generate and seed products ─────────────────────────────────────────
-    const globalProducts = ProductFactory.generateGlobalProducts(globalCategoryMap);
-    // Reverse map: globalCategoryId → categoryKey (for realistic per-category pricing)
-    const categoryKeyById = Object.fromEntries(
-      Object.entries(globalCategoryMap).map(([key, id]) => [id, key]),
-    );
-    const vendorProducts = ProductFactory.generateVendorProducts(globalProducts, assignmentRules, categoryKeyById);
+    // const globalProducts = ProductFactory.generateGlobalProducts(globalCategoryMap);
+    // // Reverse map: globalCategoryId → categoryKey (for realistic per-category pricing)
+    // const categoryKeyById = Object.fromEntries(
+    //   Object.entries(globalCategoryMap).map(([key, id]) => [id, key]),
+    // );
+    // const vendorProducts = ProductFactory.generateVendorProducts(globalProducts, assignmentRules, categoryKeyById);
 
-    const seeder = new ProductSeeder(conn);
-    await seeder.seedGlobalProducts(globalProducts);
-    await seeder.seedVendorProducts(vendorProducts);
+    // const seeder = new ProductSeeder(conn);
+    // await seeder.seedGlobalProducts(globalProducts);
+    // await seeder.seedVendorProducts(vendorProducts);
 
-    seeder.logSummary(globalProducts, vendorProducts, Object.keys(globalCategoryMap));
+    // seeder.logSummary(globalProducts, vendorProducts, Object.keys(globalCategoryMap));
 
     console.log("Catalog seeding complete.");
   } catch (error) {

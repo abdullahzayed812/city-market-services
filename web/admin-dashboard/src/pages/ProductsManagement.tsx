@@ -4,11 +4,14 @@ import { Button } from "@/components/ui/button";
 import { Plus, Loader2, X, Search, FileUp } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 
 import { useAdminProducts } from "@/hooks/useAdminProducts";
-import { type VendorProduct, type CreateVendorProductDto, CategoryType } from "@city-market/shared";
+import { useGlobalProducts } from "@/hooks/useGlobalProducts";
+import { type VendorProduct, type CreateVendorProductDto, CategoryType, type GlobalProduct } from "@city-market/shared";
 import ProductImageModal from "@/components/ProductImageModal";
 import ProductTable from "../features/products/components/ProductTable";
+import GlobalProductTable from "../features/products/components/GlobalProductTable";
 import ProductFormDialog from "../features/products/components/ProductFormDialog";
 import BulkImportGlobalProductsDialog from "../features/products/components/BulkImportGlobalProductsDialog";
 
@@ -66,7 +69,7 @@ const SearchFilter = memo(
 );
 
 const ProductsManagement: React.FC = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [selectedGlobalCategoryId, setSelectedGlobalCategoryId] = useState<string | undefined>(undefined);
   const [selectedVendorCategoryId, setSelectedVendorCategoryId] = useState<string | undefined>(undefined);
   const [selectedVendorId, setSelectedVendorId] = useState<string | undefined>(undefined);
@@ -74,11 +77,12 @@ const ProductsManagement: React.FC = () => {
   const [isBulkImportOpen, setIsBulkImportOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<VendorProduct | null>(null);
   const [isImageModalOpen, setIsImageModalOpen] = useState(false);
-  const [selectedProductForImage, setSelectedProductForImage] = useState<VendorProduct | null>(null);
+  const [selectedProductForImage, setSelectedProductForImage] = useState<VendorProduct | GlobalProduct | null>(null);
 
   const [debouncedSearch, setDebouncedSearch] = useState("");
-  // Use deferred value for smoother transitions during heavy updates
   const deferredSearch = useDeferredValue(debouncedSearch);
+
+  const [activeTab, setActiveTab] = useState("vendor");
 
   const {
     products,
@@ -99,6 +103,18 @@ const ProductsManagement: React.FC = () => {
     globalCategoryId: selectedGlobalCategoryId,
     vendorCategoryId: selectedVendorCategoryId,
     vendorId: selectedVendorId,
+    search: deferredSearch,
+  });
+
+  const {
+    products: globalProducts,
+    isFetching: isFetchingGlobal,
+    isFetchingNextProductsPage: isFetchingNextGlobal,
+    hasMoreProducts: hasMoreGlobal,
+    loadMoreProducts: loadMoreGlobal,
+    deleteGlobalProduct,
+  } = useGlobalProducts({
+    initialLimit: 20,
     search: deferredSearch,
   });
 
@@ -141,7 +157,7 @@ const ProductsManagement: React.FC = () => {
     [updateVendorProduct],
   );
 
-  const handleViewImage = useCallback((product: VendorProduct) => {
+  const handleViewImage = useCallback((product: VendorProduct | GlobalProduct) => {
     setSelectedProductForImage(product);
     setIsImageModalOpen(true);
   }, []);
@@ -158,6 +174,13 @@ const ProductsManagement: React.FC = () => {
       deleteVendorProduct(id);
     },
     [deleteVendorProduct],
+  );
+
+  const handleDeleteGlobalProduct = useCallback(
+    (id: string) => {
+      deleteGlobalProduct(id);
+    },
+    [deleteGlobalProduct],
   );
 
   const handleLoadMore = useCallback(() => {
@@ -192,115 +215,149 @@ const ProductsManagement: React.FC = () => {
         </div>
       </div>
 
-      <div className="flex flex-wrap gap-4 items-center bg-white p-4 rounded-lg border shadow-sm">
-        <SearchFilter initialValue={debouncedSearch} onDebouncedChange={setDebouncedSearch} isFetching={isFetching && !isFetchingNextProductsPage} />
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full" dir={i18n.dir()}>
+        <TabsList className="mb-6 grid w-full max-w-[400px] grid-cols-2">
+          <TabsTrigger value="vendor">{t("products.vendor_listing", "Vendor Listings")}</TabsTrigger>
+          <TabsTrigger value="global">{t("products.global_product", "Global Templates")}</TabsTrigger>
+        </TabsList>
 
-        <div className="w-full sm:w-[220px] space-y-1.5">
-          <label className="text-xs font-medium text-gray-500">{t("common.vendor")}</label>
-          <Select
-            value={selectedVendorId || "all"}
-            onValueChange={(val) => {
-              const newVendorId = val === "all" ? undefined : val;
-              setSelectedVendorId(newVendorId);
+        <TabsContent value="vendor" className="space-y-6 mt-0">
+          <div className="flex flex-wrap gap-4 items-center bg-white p-4 rounded-lg border shadow-sm">
+            <SearchFilter initialValue={debouncedSearch} onDebouncedChange={setDebouncedSearch} isFetching={isFetching && !isFetchingNextProductsPage} />
 
-              if (selectedVendorCategoryId) {
-                const category = categories?.find((c) => c.id === selectedVendorCategoryId);
-                if (newVendorId && category?.vendorId !== newVendorId) {
-                  setSelectedVendorCategoryId(undefined);
-                }
-              }
-            }}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder={t("products.select_vendor", "Filter by Vendor")} />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">{t("common.all", "All")}</SelectItem>
-              {vendors?.map((vendor) => (
-                <SelectItem key={vendor.id} value={vendor.id}>
-                  {vendor.shopName}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+            <div className="w-full sm:w-[220px] space-y-1.5">
+              <label className="text-xs font-medium text-gray-500">{t("common.vendor")}</label>
+              <Select
+                value={selectedVendorId || "all"}
+                onValueChange={(val) => {
+                  const newVendorId = val === "all" ? undefined : val;
+                  setSelectedVendorId(newVendorId);
 
-        <div className="w-full sm:w-[220px] space-y-1.5">
-          <label className="text-xs font-medium text-gray-500">{t("common.global_category")}</label>
-          <Select value={selectedGlobalCategoryId || "all"} onValueChange={(val) => setSelectedGlobalCategoryId(val === "all" ? undefined : val)}>
-            <SelectTrigger>
-              <SelectValue placeholder={t("products.filter_by_global", "Filter by Global Category")} />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">{t("common.all", "All")}</SelectItem>
-              {globalCategories.map((cat) => (
-                <SelectItem key={cat.id} value={cat.id}>
-                  {cat.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+                  if (selectedVendorCategoryId) {
+                    const category = categories?.find((c) => c.id === selectedVendorCategoryId);
+                    if (newVendorId && category?.vendorId !== newVendorId) {
+                      setSelectedVendorCategoryId(undefined);
+                    }
+                  }
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder={t("products.select_vendor", "Filter by Vendor")} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">{t("common.all", "All")}</SelectItem>
+                  {vendors?.map((vendor) => (
+                    <SelectItem key={vendor.id} value={vendor.id}>
+                      {vendor.shopName}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
-        <div className="w-full sm:w-[220px] space-y-1.5">
-          <label className="text-xs font-medium text-gray-500">{t("common.vendor_category")}</label>
-          <Select
-            value={selectedVendorCategoryId || "all"}
-            onValueChange={(val) => {
-              if (val === "all") {
+            <div className="w-full sm:w-[220px] space-y-1.5">
+              <label className="text-xs font-medium text-gray-500">{t("common.global_category")}</label>
+              <Select value={selectedGlobalCategoryId || "all"} onValueChange={(val) => setSelectedGlobalCategoryId(val === "all" ? undefined : val)}>
+                <SelectTrigger>
+                  <SelectValue placeholder={t("products.filter_by_global", "Filter by Global Category")} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">{t("common.all", "All")}</SelectItem>
+                  {globalCategories.map((cat) => (
+                    <SelectItem key={cat.id} value={cat.id}>
+                      {cat.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="w-full sm:w-[220px] space-y-1.5">
+              <label className="text-xs font-medium text-gray-500">{t("common.vendor_category")}</label>
+              <Select
+                value={selectedVendorCategoryId || "all"}
+                onValueChange={(val) => {
+                  if (val === "all") {
+                    setSelectedVendorCategoryId(undefined);
+                  } else {
+                    setSelectedVendorCategoryId(val);
+                    const cat = categories?.find((c) => c.id === val);
+                    if (cat && cat.vendorId && cat.vendorId !== selectedVendorId) {
+                      setSelectedVendorId(cat.vendorId);
+                    }
+                  }
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder={t("products.filter_by_vendor_cat", "Filter by Store Category")} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">{t("common.all", "All")}</SelectItem>
+                  {vendorCategories.map((cat) => (
+                    <SelectItem key={cat.id} value={cat.id}>
+                      <div className="flex flex-col">
+                        <span>{cat.name}</span>
+                        <span className="text-[10px] text-gray-400">{vendors?.find((v) => v.id === cat.vendorId)?.shopName || cat.vendorId}</span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <Button
+              variant="ghost"
+              size="sm"
+              className="mt-6 h-10 text-gray-500"
+              onClick={() => {
+                setSelectedGlobalCategoryId(undefined);
                 setSelectedVendorCategoryId(undefined);
-              } else {
-                setSelectedVendorCategoryId(val);
-                const cat = categories?.find((c) => c.id === val);
-                if (cat && cat.vendorId && cat.vendorId !== selectedVendorId) {
-                  setSelectedVendorId(cat.vendorId);
-                }
-              }
-            }}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder={t("products.filter_by_vendor_cat", "Filter by Store Category")} />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">{t("common.all", "All")}</SelectItem>
-              {vendorCategories.map((cat) => (
-                <SelectItem key={cat.id} value={cat.id}>
-                  <div className="flex flex-col">
-                    <span>{cat.name}</span>
-                    <span className="text-[10px] text-gray-400">{vendors?.find((v) => v.id === cat.vendorId)?.shopName || cat.vendorId}</span>
-                  </div>
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+                setSelectedVendorId(undefined);
+                setDebouncedSearch("");
+              }}
+            >
+              {t("common.reset", "Reset")}
+            </Button>
+          </div>
 
-        <Button
-          variant="ghost"
-          size="sm"
-          className="mt-6 h-10 text-gray-500"
-          onClick={() => {
-            setSelectedGlobalCategoryId(undefined);
-            setSelectedVendorCategoryId(undefined);
-            setSelectedVendorId(undefined);
-            setDebouncedSearch("");
-          }}
-        >
-          {t("common.reset", "Reset")}
-        </Button>
-      </div>
+          <ProductTable
+            products={products}
+            onEdit={handleOpenEditDialog}
+            onDelete={handleDeleteProduct}
+            onToggleAvailability={handleToggleAvailability}
+            onUploadImage={handleUploadImage}
+            onViewImage={handleViewImage}
+            hasMore={hasMoreProducts}
+            onLoadMore={handleLoadMore}
+            isFetchingNextPage={isFetchingNextProductsPage}
+          />
+        </TabsContent>
 
-      <ProductTable
-        products={products}
-        onEdit={handleOpenEditDialog}
-        onDelete={handleDeleteProduct}
-        onToggleAvailability={handleToggleAvailability}
-        onUploadImage={handleUploadImage}
-        onViewImage={handleViewImage}
-        hasMore={hasMoreProducts}
-        onLoadMore={handleLoadMore}
-        isFetchingNextPage={isFetchingNextProductsPage}
-      />
+        <TabsContent value="global" className="space-y-6 mt-0">
+          <div className="flex flex-wrap gap-4 items-center bg-white p-4 rounded-lg border shadow-sm">
+            <SearchFilter initialValue={debouncedSearch} onDebouncedChange={setDebouncedSearch} isFetching={isFetchingGlobal && !isFetchingNextGlobal} />
+            <Button
+              variant="ghost"
+              size="sm"
+              className="mt-6 h-10 text-gray-500"
+              onClick={() => {
+                setDebouncedSearch("");
+              }}
+            >
+              {t("common.reset", "Reset")}
+            </Button>
+          </div>
+
+          <GlobalProductTable
+            products={globalProducts}
+            onDelete={handleDeleteGlobalProduct}
+            onViewImage={handleViewImage}
+            hasMore={hasMoreGlobal}
+            onLoadMore={loadMoreGlobal}
+            isFetchingNextPage={isFetchingNextGlobal}
+          />
+        </TabsContent>
+      </Tabs>
 
       <ProductFormDialog
         open={isDialogOpen}

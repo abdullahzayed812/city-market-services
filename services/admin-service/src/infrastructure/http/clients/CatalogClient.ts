@@ -1,4 +1,5 @@
 import { BaseClient } from "./BaseClient";
+import type { BulkAddVendorProductsFromGlobalItem } from "@city-market/shared";
 
 export class CatalogClient extends BaseClient {
   // Category Management
@@ -64,7 +65,7 @@ export class CatalogClient extends BaseClient {
 
   async updateProduct(id: string, data: any, userId?: string) {
     const config = await this.getRequestConfig(userId);
-    const response = await this.axiosInstance.put(`/products/${id}`, data, config);
+    const response = await this.axiosInstance.patch(`/products/${id}`, data, config);
     return response.data;
   }
 
@@ -77,6 +78,12 @@ export class CatalogClient extends BaseClient {
   async updateProductImage(id: string, imageUrl: string, userId?: string) {
     const config = await this.getRequestConfig(userId);
     const response = await this.axiosInstance.patch(`/products/${id}/image`, { imageUrl }, config);
+    return response.data;
+  }
+
+  async bulkAddVendorProductsFromGlobal(vendorId: string, data: { items: BulkAddVendorProductsFromGlobalItem[] }, userId?: string) {
+    const config = await this.getRequestConfig(userId);
+    const response = await this.axiosInstance.post(`/products/vendor/${vendorId}/bulk-add-global`, data, config);
     return response.data;
   }
 

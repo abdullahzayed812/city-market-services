@@ -1,6 +1,12 @@
 import apiClient from "./client";
 import { ApiResponse } from "@city-market/shared";
-import type { VendorProduct, CreateVendorProductDto, UpdateVendorProductDto, Category } from "@city-market/shared";
+import type {
+  VendorProduct,
+  UpdateVendorProductDto,
+  Category,
+  BulkAddVendorProductsFromGlobalItem,
+  BulkAddVendorProductsFromGlobalResult,
+} from "@city-market/shared";
 
 export const productService = {
   getVendorProducts: async (vendorId: string, page: number = 1, limit: number = 20) => {
@@ -8,10 +14,6 @@ export const productService = {
       `/catalog/products/vendor/${vendorId}`,
       { params: { page, limit } },
     );
-    return response.data?.data;
-  },
-  createVendorProduct: async (data: CreateVendorProductDto) => {
-    const response = await apiClient.post<ApiResponse<VendorProduct>>("/catalog/products", data);
     return response.data?.data;
   },
   updateVendorProduct: async (id: string, data: UpdateVendorProductDto) => {
@@ -45,6 +47,13 @@ export const productService = {
     const response = await apiClient.get<ApiResponse<{ data: any[]; total: number }>>("/catalog/global-products", {
       params: { page, limit, search },
     });
+    return response.data?.data;
+  },
+  bulkAddProductsFromGlobal: async (vendorId: string, items: BulkAddVendorProductsFromGlobalItem[]) => {
+    const response = await apiClient.post<ApiResponse<BulkAddVendorProductsFromGlobalResult>>(
+      `/catalog/products/vendor/${vendorId}/bulk-add-global`,
+      { items },
+    );
     return response.data?.data;
   },
 };

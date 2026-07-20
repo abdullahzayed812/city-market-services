@@ -26,7 +26,7 @@ const ProductFormDialog: React.FC<ProductFormDialogProps> = memo(({
   vendors,
   onSubmit,
 }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [productType, setProductType] = useState<"global" | "vendor">("vendor");
   const [availableGlobalProducts, setAvailableGlobalProducts] = useState<GlobalProduct[]>([]);
   const [isLoadingGlobal, setIsLoadingGlobal] = useState(false);
@@ -44,16 +44,21 @@ const ProductFormDialog: React.FC<ProductFormDialogProps> = memo(({
     globalProductId: "",
   });
 
-  useEffect(() => {
-    if (open && productType === "vendor" && !product && availableGlobalProducts.length === 0) {
-      fetchGlobalProducts();
-    }
-  }, [open, productType, product, availableGlobalProducts.length]);
+  const [searchTerm, setSearchTerm] = useState("");
 
-  const fetchGlobalProducts = async () => {
+  useEffect(() => {
+    if (open && productType === "vendor" && !product) {
+      const timer = setTimeout(() => {
+        fetchGlobalProducts(searchTerm);
+      }, 300);
+      return () => clearTimeout(timer);
+    }
+  }, [open, productType, product, searchTerm]);
+
+  const fetchGlobalProducts = async (searchQuery?: string) => {
     setIsLoadingGlobal(true);
     try {
-      const response = await adminApi.getGlobalProducts(1, 100);
+      const response = await adminApi.getGlobalProducts(1, 20, searchQuery);
       setAvailableGlobalProducts(response.data);
     } catch (error) {
       console.error("Failed to fetch global products", error);
@@ -78,6 +83,7 @@ const ProductFormDialog: React.FC<ProductFormDialogProps> = memo(({
         vendorId: product.vendorId || "",
         globalProductId: (product as any).globalProductId || "",
       });
+      setSearchTerm(product.name);
     } else {
       setFormData({
         name: "",
@@ -132,6 +138,7 @@ const ProductFormDialog: React.FC<ProductFormDialogProps> = memo(({
         measurementType: selected.measurementType,
         weightUnit: selected.weightUnit,
       });
+      setSearchTerm(selected.name);
     } else {
       setFormData({
         ...formData,
@@ -151,7 +158,7 @@ const ProductFormDialog: React.FC<ProductFormDialogProps> = memo(({
         </DialogHeader>
 
         {!product && (
-          <Tabs value={productType} onValueChange={(v: string) => setProductType(v as any)} className="w-full">
+          <Tabs value={productType} onValueChange={(v: string) => setProductType(v as any)} className="w-full" dir={i18n.dir()}>
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="vendor">{t("products.vendor_listing")}</TabsTrigger>
               <TabsTrigger value="global">{t("products.global_product")}</TabsTrigger>
@@ -175,7 +182,7 @@ const ProductFormDialog: React.FC<ProductFormDialogProps> = memo(({
                     placeholder={t("products.search_global_placeholder", "Search for products...")}
                     onChange={(e) => {
                       setFormData({ ...formData, name: e.target.value, globalProductId: "" });
-                      // Add debounced search call if Admin implements it later
+                      setSearchTerm(e.target.value);
                     }}
                     onFocus={() => {
                       document.getElementById('admin-autocomplete-dropdown')?.classList.remove('hidden')
@@ -189,8 +196,6 @@ const ProductFormDialog: React.FC<ProductFormDialogProps> = memo(({
                   {!formData.globalProductId && availableGlobalProducts.length > 0 && (
                     <div id="admin-autocomplete-dropdown" className="absolute top-11 left-0 z-50 w-full bg-white border border-gray-200 shadow-md max-h-48 overflow-y-auto rounded-md">
                       {availableGlobalProducts
-                        // Filtering locally since backend search isn't triggered here continuously
-                        .filter(p => p.name.toLowerCase().includes((formData.name || "").toLowerCase()))
                         .map((p: any) => (
                           <div
                             key={p.id}

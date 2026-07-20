@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, memo, useDeferredValue } from "react";
+import { useState, useMemo, useCallback, memo } from "react";
 import { useTranslation } from "react-i18next";
 import { useProducts } from "@/hooks/useProducts";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -10,46 +10,32 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Image as ImageIcon, MoreHorizontal, Plus, Pencil, Trash2 } from "lucide-react";
+import { Image as ImageIcon, MoreHorizontal, Pencil, Trash2, ListPlus } from "lucide-react";
 import VendorProductImageModal from "@/components/ProductImageModal";
 import { MeasurementType } from "@city-market/shared";
 import ProductFormDialog from "@/features/products/components/ProductFormDialog";
+import BulkAddProductsDialog from "@/features/products/components/BulkAddProductsDialog";
 
 const Products = () => {
   const { t } = useTranslation();
-  const [globalProductSearch, setGlobalProductSearch] = useState("");
-  
-  // Use deferred value for the search results fetch
-  const deferredSearch = useDeferredValue(globalProductSearch);
 
   const {
     products,
     vendorCategories,
-    globalProducts,
     isLoading,
-    createVendorProduct,
     updateVendorProduct,
     deleteVendorProduct,
     hasMoreProducts,
     isFetchingNextProductsPage,
     loadMoreProducts,
-    isGlobalProductsLoading,
-  } = useProducts(deferredSearch);
+    bulkAddProductsFromGlobal,
+  } = useProducts();
 
-  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [isBulkAddDialogOpen, setIsBulkAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isImageModalOpen, setIsImageModalOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
   const [editingProduct, setEditingProduct] = useState<any>(null);
-
-  const handleCreateProduct = useCallback((data: any) => {
-    const { measurementType, ...dto } = data;
-    createVendorProduct(dto, {
-      onSuccess: () => {
-        setIsAddDialogOpen(false);
-      },
-    });
-  }, [createVendorProduct]);
 
   const handleUpdateProduct = useCallback((data: any) => {
     const { id, measurementType, ...rest } = data;
@@ -188,29 +174,23 @@ const Products = () => {
           <h1 className="text-3xl font-bold tracking-tight">{t("products.title")}</h1>
           <p className="text-muted-foreground">{t("products.subtitle")}</p>
         </div>
-        <Button className="gap-2" onClick={() => setIsAddDialogOpen(true)}>
-          <Plus className="h-4 w-4" /> {t("products.add_product")}
-        </Button>
+        <div className="flex gap-2">
+          <Button className="gap-2" onClick={() => setIsBulkAddDialogOpen(true)}>
+            <ListPlus className="h-4 w-4" /> {t("products.bulk_add_title", "Add Products")}
+          </Button>
+        </div>
       </div>
 
-      <ProductFormDialog
-        open={isAddDialogOpen}
-        onOpenChange={setIsAddDialogOpen}
-        isCreate={true}
-        product={null}
-        globalProducts={globalProducts}
-        vendorCategories={vendorCategories}
-        onSubmit={handleCreateProduct}
-        isPending={false}
-        onSearchGlobal={setGlobalProductSearch}
-        isGlobalProductsLoading={isGlobalProductsLoading}
+      <BulkAddProductsDialog
+        open={isBulkAddDialogOpen}
+        onOpenChange={setIsBulkAddDialogOpen}
+        onSubmit={bulkAddProductsFromGlobal}
       />
 
       <ProductFormDialog
         open={isEditDialogOpen}
         onOpenChange={setIsEditDialogOpen}
         product={editingProduct}
-        globalProducts={globalProducts}
         vendorCategories={vendorCategories}
         onSubmit={handleUpdateProduct}
         isPending={false}

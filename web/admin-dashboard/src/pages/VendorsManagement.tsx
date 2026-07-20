@@ -5,10 +5,11 @@ import { adminApi } from "@/services/api/admin-api";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Store, Phone, Plus, Edit } from "lucide-react";
+import { Store, Phone, Plus, Edit, PackagePlus } from "lucide-react";
 import { ShopStatus } from "@city-market/shared";
 import { useToast } from "@/hooks/use-toast";
 import VendorFormDialog from "@/features/vendors/components/VendorFormDialog";
+import AddVendorProductsDialog from "@/features/vendors/components/AddVendorProductsDialog";
 import ImageUploader from "@/components/ImageUploader";
 
 const VendorsManagement: React.FC = () => {
@@ -18,6 +19,8 @@ const VendorsManagement: React.FC = () => {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editingVendor, setEditingVendor] = useState<any>(null);
+  const [isAddProductsOpen, setIsAddProductsOpen] = useState(false);
+  const [vendorForProducts, setVendorForProducts] = useState<any>(null);
 
   const { data: vendors, isLoading } = useQuery({
     queryKey: ["adminVendors"],
@@ -153,6 +156,18 @@ const VendorsManagement: React.FC = () => {
                     size="sm"
                     className="me-2"
                     onClick={() => {
+                      setVendorForProducts(vendor);
+                      setIsAddProductsOpen(true);
+                    }}
+                  >
+                    <PackagePlus size={16} className="me-1" />
+                    {t("vendors.add_products", "Add Products")}
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="me-2"
+                    onClick={() => {
                       setEditingVendor(vendor);
                       setIsEditDialogOpen(true);
                     }}
@@ -177,6 +192,16 @@ const VendorsManagement: React.FC = () => {
           </TableBody>
         </Table>
       </div>
+
+      <AddVendorProductsDialog
+        open={isAddProductsOpen}
+        onOpenChange={(open) => {
+          setIsAddProductsOpen(open);
+          if (!open) setVendorForProducts(null);
+        }}
+        vendorId={vendorForProducts?.id}
+        vendorName={vendorForProducts?.shopName}
+      />
     </div>
   );
 };

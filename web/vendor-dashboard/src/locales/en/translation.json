@@ -183,7 +183,13 @@
     "delete_product": "Delete Product",
     "no_products_found": "No products found.",
     "failed_to_load_image": "Failed to load image",
-    "no_image_available": "No image available"
+    "no_image_available": "No image available",
+    "bulk_add_title": "Add Products",
+    "bulk_add_description": "Search the global product catalog, select products, and set a price and stock for each before adding them to your store.",
+    "bulk_add_n": "Add {{count}} product(s)",
+    "bulk_added_count": "added",
+    "bulk_skipped_count": "skipped (already exist)",
+    "bulk_add_failed": "Failed to add products"
   },
   "reviews": {
     "title": "Reviews",
