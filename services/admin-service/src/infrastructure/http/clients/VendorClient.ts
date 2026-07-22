@@ -10,6 +10,12 @@ export class VendorClient extends BaseClient {
     return response.data;
   }
 
+  async getVendorsCount(userId?: string) {
+    const config = await this.getRequestConfig(userId);
+    const response = await this.axiosInstance.get(`/count`, config);
+    return response.data;
+  }
+
   async getVendorById(id: string, userId?: string) {
     const config = await this.getRequestConfig(userId);
     const response = await this.axiosInstance.get(`/${id}`, config);

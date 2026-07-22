@@ -1,7 +1,7 @@
-import { IStorageService } from "../../core/interfaces/storage.interface.js";
-import { MediaFolder, MediaUploadResult } from "../../core/entities/media.entity.js";
-import { ImageOptimizerService } from "./image-optimizer.service.js";
-import { fetchImageFromUrl } from "../../infrastructure/net/safe-url-fetcher.js";
+import { IStorageService } from "../../core/interfaces/storage.interface";
+import { MediaFolder, MediaUploadResult } from "../../core/entities/media.entity";
+import { ImageOptimizerService } from "./image-optimizer.service";
+import { fetchImageFromUrl } from "../../infrastructure/net/safe-url-fetcher";
 
 export class MediaService {
   constructor(

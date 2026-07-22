@@ -41,7 +41,8 @@ const PRICE_RANGES: Record<string, [number, number]> = {
   SPICES:       [30,  320],
   CLEANING:     [15,  180],
   PAPER:        [10,  95],
-  PERSONAL_CARE:[25,  280],
+  PERSONAL_CARE:[10,  180],
+  BEAUTY:       [25,  320],
   BABY:         [35,  420],
   PET:          [40,  260],
   KITCHEN:      [8,   75],
@@ -786,21 +787,14 @@ const GLOBAL_PRODUCTS: Record<string, ProductDef[]> = {
     ]),
   ],
 
-  // ── Personal care & OTC pharmacy ──────────────────────────────────────────
+  // ── Personal care: hygiene, oral care, shaving & OTC pharmacy ──────────────
   PERSONAL_CARE: [
     ...expand([
-      { brand: "بانتين",          product: "شامبو للشعر الجاف والتالف", sizes: ["٢٠٠ مل", "٤٠٠ مل", "٦٠٠ مل"], measure: MeasurementType.UNIT, desc: "شامبو مرطب وترميمي للشعر الجاف من بانتين" },
-      { brand: "بانتين",          product: "بلسم مغذي للشعر",           sizes: ["٢٠٠ مل", "٤٠٠ مل"],           measure: MeasurementType.UNIT, desc: "بلسم مرطب لتسهيل تمشيط الشعر من بانتين" },
-      { brand: "هيد آند شولدرز",  product: "شامبو مضاد للقشرة",        sizes: ["٢٠٠ مل", "٤٠٠ مل", "٦٠٠ مل"], measure: MeasurementType.UNIT, desc: "شامبو يقضي على القشرة من أول استخدام" },
-      { brand: "سانسيلك",         product: "شامبو للشعر العادي",       sizes: ["٢٠٠ مل", "٤٠٠ مل"],           measure: MeasurementType.UNIT, desc: "شامبو يومي للشعر العادي يُنظف ويُلمع من سانسيلك" },
-      { brand: "نيفيا",           product: "كريم ترطيب للبشرة",        sizes: ["٥٠ مل", "١٥٠ مل", "٤٠٠ مل"],  measure: MeasurementType.UNIT, desc: "كريم مرطب للبشرة الجافة يومي وليلي من نيفيا" },
       { brand: "نيفيا",           product: "مزيل عرق رول",             sizes: ["٥٠ مل"],                      measure: MeasurementType.UNIT, desc: "مزيل عرق رول 48 ساعة بلا كحول من نيفيا" },
       { brand: "نيفيا",           product: "غسول استحمام",             sizes: ["٢٥٠ مل", "٥٠٠ مل"],           measure: MeasurementType.UNIT, desc: "جل استحمام كريمي مرطب من نيفيا" },
-      { brand: "نيفيا",           product: "واقي شمس للوجه والجسم",   sizes: ["١٧٥ مل"],                     measure: MeasurementType.UNIT, desc: "كريم واقي شمس SPF50 للوجه والجسم من نيفيا" },
       { brand: "ريكسونا",         product: "مزيل عرق بخاخ",            sizes: ["١٥٠ مل"],                     measure: MeasurementType.UNIT, desc: "مزيل عرق سبراي 48 ساعة بعطر منعش من ريكسونا" },
       { brand: "فا",              product: "صابون استحمام",            sizes: ["١٢٥ جم"],                     measure: MeasurementType.UNIT, desc: "صابون صلب لتنظيف الجسم بعطر منعش من فا" },
       { brand: "دوف",             product: "صابون استحمام كريمي",      sizes: ["١٠٠ جم", "١٢٥ جم"],           measure: MeasurementType.UNIT, desc: "صابون كريمي مرطب للبشرة من دوف" },
-      { brand: "دوف",             product: "شامبو مغذي",               sizes: ["٢٠٠ مل", "٤٠٠ مل"],           measure: MeasurementType.UNIT, desc: "شامبو مغذٍّ بزيوت طبيعية من دوف" },
       { brand: "لوكس",            product: "صابون استحمام",            sizes: ["١٢٥ جم"],                     measure: MeasurementType.UNIT, desc: "صابون فاخر معطر لبشرة ناعمة من لوكس" },
       { brand: "بالموليف",        product: "جل استحمام",               sizes: ["٢٥٠ مل", "٥٠٠ مل"],           measure: MeasurementType.UNIT, desc: "جل استحمام كريمي بعطر الخزامى من بالموليف" },
       { brand: "بالموليف",        product: "صابون سائل لليدين",        sizes: ["٣٠٠ مل"],                     measure: MeasurementType.UNIT, desc: "صابون سائل مطهر لليدين من بالموليف" },
@@ -818,6 +812,27 @@ const GLOBAL_PRODUCTS: Record<string, ProductDef[]> = {
     { name: "مسكن ألم أقراص",          description: "أقراص مسكنة وخافضة للحرارة للبالغين",     measure: MeasurementType.UNIT },
     { name: "فيتامين سي أقراص",        description: "أقراص فيتامين C 500mg لتعزيز المناعة",    measure: MeasurementType.UNIT },
     { name: "مناديل مبللة للكبار",      description: "مناديل مبللة مُطهرة للاستخدام الشخصي",   measure: MeasurementType.UNIT },
+  ],
+
+  // ── Beauty: hair care, skincare, sun protection & cosmetics ────────────────
+  BEAUTY: [
+    ...expand([
+      { brand: "بانتين",          product: "شامبو للشعر الجاف والتالف", sizes: ["٢٠٠ مل", "٤٠٠ مل", "٦٠٠ مل"], measure: MeasurementType.UNIT, desc: "شامبو مرطب وترميمي للشعر الجاف من بانتين" },
+      { brand: "بانتين",          product: "بلسم مغذي للشعر",           sizes: ["٢٠٠ مل", "٤٠٠ مل"],           measure: MeasurementType.UNIT, desc: "بلسم مرطب لتسهيل تمشيط الشعر من بانتين" },
+      { brand: "هيد آند شولدرز",  product: "شامبو مضاد للقشرة",        sizes: ["٢٠٠ مل", "٤٠٠ مل", "٦٠٠ مل"], measure: MeasurementType.UNIT, desc: "شامبو يقضي على القشرة من أول استخدام" },
+      { brand: "سانسيلك",         product: "شامبو للشعر العادي",       sizes: ["٢٠٠ مل", "٤٠٠ مل"],           measure: MeasurementType.UNIT, desc: "شامبو يومي للشعر العادي يُنظف ويُلمع من سانسيلك" },
+      { brand: "دوف",             product: "شامبو مغذي",               sizes: ["٢٠٠ مل", "٤٠٠ مل"],           measure: MeasurementType.UNIT, desc: "شامبو مغذٍّ بزيوت طبيعية من دوف" },
+      { brand: "نيفيا",           product: "كريم ترطيب للبشرة",        sizes: ["٥٠ مل", "١٥٠ مل", "٤٠٠ مل"],  measure: MeasurementType.UNIT, desc: "كريم مرطب للبشرة الجافة يومي وليلي من نيفيا" },
+      { brand: "نيفيا",           product: "لوشن مرطب للجسم",          sizes: ["٢٥٠ مل", "٤٠٠ مل"],           measure: MeasurementType.UNIT, desc: "لوشن مرطب سريع الامتصاص لبشرة ناعمة من نيفيا" },
+      { brand: "نيفيا",           product: "واقي شمس للوجه والجسم",   sizes: ["١٧٥ مل"],                     measure: MeasurementType.UNIT, desc: "كريم واقي شمس SPF50 للوجه والجسم من نيفيا" },
+      { brand: "دابر أملا",       product: "زيت شعر للتغذية واللمعان", sizes: ["٢٠٠ مل"],                     measure: MeasurementType.UNIT, desc: "زيت طبيعي لتغذية الشعر وإصلاح الأطراف من دابر أملا" },
+      { brand: "لوريال",          product: "صبغة شعر دائمة",           sizes: ["علبة واحدة"],                 measure: MeasurementType.UNIT, desc: "صبغة شعر دائمة بتغطية كاملة للشيب من لوريال" },
+      { brand: "أكس",             product: "مزيل عرق بخاخ رجالي",      sizes: ["١٥٠ مل"],                     measure: MeasurementType.UNIT, desc: "بخاخ عطري منعش طويل المفعول من أكس" },
+      { brand: "لاكوست",          product: "عطر رجالي",                sizes: ["١٠٠ مل"],                     measure: MeasurementType.UNIT, desc: "عطر رجالي منعش يدوم طويلاً من لاكوست" },
+    ]),
+    { name: "كريم لليدين",              description: "كريم مرطب مغذٍّ للأيدي الجافة",           measure: MeasurementType.UNIT },
+    { name: "مناديل مزيلة للمكياج",    description: "مناديل مبللة لطيفة لإزالة المكياج",       measure: MeasurementType.UNIT },
+    { name: "طلاء أظافر",               description: "طلاء أظافر لامع بألوان متعددة",           measure: MeasurementType.UNIT },
   ],
 
   // ── Baby products ──────────────────────────────────────────────────────────

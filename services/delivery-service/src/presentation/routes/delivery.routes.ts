@@ -11,6 +11,7 @@ export const createDeliveryRoutes = (controller: DeliveryController, deliveryOff
   // Courier routes
   router.post("/couriers", authorize(UserRole.ADMIN, UserRole.DELIVERY_MANAGER), controller.registerCourier);
   router.get("/couriers", authorize(UserRole.ADMIN, UserRole.DELIVERY_MANAGER), controller.getAllCouriers);
+  router.get("/couriers/count", authorize(UserRole.ADMIN), controller.getCouriersCount);
   router.get("/couriers/me", authorize(UserRole.COURIER), controller.getMyCourier);
   router.get("/couriers/available", authorize(UserRole.ADMIN, UserRole.DELIVERY_MANAGER, UserRole.COURIER), controller.getAvailableCouriers);
   router.patch("/couriers/:id", authorize(UserRole.ADMIN, UserRole.DELIVERY_MANAGER, UserRole.COURIER), controller.updateCourier);

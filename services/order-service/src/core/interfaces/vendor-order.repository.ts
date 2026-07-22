@@ -18,5 +18,7 @@ export interface IVendorOrderRepository {
     findExpiredProposals(connection?: any): Promise<VendorOrder[]>;
     findPendingWithFutureDeadline(connection?: any): Promise<VendorOrder[]>;
     findProposalWithFutureDeadline(connection?: any): Promise<VendorOrder[]>;
+    findExpiredCancellationDecisions(connection?: any): Promise<VendorOrder[]>;
+    findCancellationDecisionsWithFutureDeadline(connection?: any): Promise<VendorOrder[]>;
     mapToEntity(row: any): VendorOrder;
 }

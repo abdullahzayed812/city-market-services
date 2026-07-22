@@ -46,7 +46,8 @@ export class GlobalProductController {
             const page = parseInt(req.query.page as string) || 1;
             const limit = parseInt(req.query.limit as string) || 20;
             const search = req.query.search as string | undefined;
-            const result = await this.catalogService.getAllGlobalProducts(page, limit, search);
+            const globalCategoryId = req.query.globalCategoryId as string | undefined;
+            const result = await this.catalogService.getAllGlobalProducts(page, limit, search, globalCategoryId);
             res.json(ApiResponse.success(result));
         } catch (error) {
             next(error);

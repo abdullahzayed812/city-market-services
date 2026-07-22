@@ -70,6 +70,10 @@ export class VendorService {
     return this.vendorRepo.findAll(limit, offset);
   }
 
+  async countVendors(): Promise<number> {
+    return this.vendorRepo.countAll();
+  }
+
   async getVendorsByIds(ids: string[]): Promise<Vendor[]> {
     return this.vendorRepo.findByIds(ids);
   }

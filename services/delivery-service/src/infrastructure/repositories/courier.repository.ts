@@ -62,6 +62,12 @@ export class CourierRepository implements ICourierRepository {
     return rows.map((row) => this.mapToEntity(row));
   }
 
+  async countAll(connection?: PoolConnection): Promise<number> {
+    const conn = connection || this.pool;
+    const [rows] = await conn.query<RowDataPacket[]>("SELECT COUNT(*) as count FROM couriers");
+    return rows[0].count;
+  }
+
   async findAvailableByOfficeId(deliveryOfficeId: string, connection?: PoolConnection): Promise<Courier[]> {
     const conn = connection || this.pool;
     const query = "SELECT * FROM couriers WHERE delivery_office_id = ? AND is_available = TRUE AND is_active = TRUE";

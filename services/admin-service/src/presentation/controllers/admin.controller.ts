@@ -367,7 +367,8 @@ export class AdminController {
       const page = parseInt(req.query.page as string) || 1;
       const limit = parseInt(req.query.limit as string) || 20;
       const search = req.query.search as string | undefined;
-      const result = await this.adminService.getGlobalProducts(page, limit, search, req.user!.userId);
+      const globalCategoryId = req.query.globalCategoryId as string | undefined;
+      const result = await this.adminService.getGlobalProducts(page, limit, search, req.user!.userId, globalCategoryId);
       res.json(result);
     } catch (error) {
       next(error);

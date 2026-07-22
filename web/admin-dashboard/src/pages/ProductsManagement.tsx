@@ -86,14 +86,14 @@ const ProductsManagement: React.FC = () => {
 
   const {
     products,
+    page: productsPage,
+    totalPages: productsTotalPages,
+    setPage: setProductsPage,
     categories,
     vendors,
     isLoadingProducts,
     isFetching,
     isPlaceholderData,
-    isFetchingNextProductsPage,
-    hasMoreProducts,
-    loadMoreProducts,
     createVendorProduct,
     updateVendorProduct,
     deleteVendorProduct,
@@ -108,10 +108,10 @@ const ProductsManagement: React.FC = () => {
 
   const {
     products: globalProducts,
+    page: globalPage,
+    totalPages: globalTotalPages,
+    setPage: setGlobalPage,
     isFetching: isFetchingGlobal,
-    isFetchingNextProductsPage: isFetchingNextGlobal,
-    hasMoreProducts: hasMoreGlobal,
-    loadMoreProducts: loadMoreGlobal,
     deleteGlobalProduct,
   } = useGlobalProducts({
     initialLimit: 20,
@@ -183,10 +183,6 @@ const ProductsManagement: React.FC = () => {
     [deleteGlobalProduct],
   );
 
-  const handleLoadMore = useCallback(() => {
-    loadMoreProducts();
-  }, [loadMoreProducts]);
-
   if (isLoadingProducts && !isPlaceholderData) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -223,7 +219,7 @@ const ProductsManagement: React.FC = () => {
 
         <TabsContent value="vendor" className="space-y-6 mt-0">
           <div className="flex flex-wrap gap-4 items-center bg-white p-4 rounded-lg border shadow-sm">
-            <SearchFilter initialValue={debouncedSearch} onDebouncedChange={setDebouncedSearch} isFetching={isFetching && !isFetchingNextProductsPage} />
+            <SearchFilter initialValue={debouncedSearch} onDebouncedChange={setDebouncedSearch} isFetching={isFetching} />
 
             <div className="w-full sm:w-[220px] space-y-1.5">
               <label className="text-xs font-medium text-gray-500">{t("common.vendor")}</label>
@@ -327,15 +323,15 @@ const ProductsManagement: React.FC = () => {
             onToggleAvailability={handleToggleAvailability}
             onUploadImage={handleUploadImage}
             onViewImage={handleViewImage}
-            hasMore={hasMoreProducts}
-            onLoadMore={handleLoadMore}
-            isFetchingNextPage={isFetchingNextProductsPage}
+            currentPage={productsPage}
+            totalPages={productsTotalPages}
+            onPageChange={setProductsPage}
           />
         </TabsContent>
 
         <TabsContent value="global" className="space-y-6 mt-0">
           <div className="flex flex-wrap gap-4 items-center bg-white p-4 rounded-lg border shadow-sm">
-            <SearchFilter initialValue={debouncedSearch} onDebouncedChange={setDebouncedSearch} isFetching={isFetchingGlobal && !isFetchingNextGlobal} />
+            <SearchFilter initialValue={debouncedSearch} onDebouncedChange={setDebouncedSearch} isFetching={isFetchingGlobal} />
             <Button
               variant="ghost"
               size="sm"
@@ -352,9 +348,9 @@ const ProductsManagement: React.FC = () => {
             products={globalProducts}
             onDelete={handleDeleteGlobalProduct}
             onViewImage={handleViewImage}
-            hasMore={hasMoreGlobal}
-            onLoadMore={loadMoreGlobal}
-            isFetchingNextPage={isFetchingNextGlobal}
+            currentPage={globalPage}
+            totalPages={globalTotalPages}
+            onPageChange={setGlobalPage}
           />
         </TabsContent>
       </Tabs>

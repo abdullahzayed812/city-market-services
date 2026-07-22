@@ -4,6 +4,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Pagination } from "@/components/ui/pagination";
 import { Image as ImageIcon, MoreHorizontal, Trash, Power, PowerOff, Eye, Upload, Pencil, Loader2 } from "lucide-react";
 import { MeasurementType, type VendorProduct } from "@city-market/shared";
 import { mediaService } from "@/services/api/media.service";
@@ -16,13 +17,13 @@ interface ProductTableProps {
   onToggleAvailability: (product: VendorProduct) => void;
   onUploadImage: (id: string, imageUrl: string) => void;
   onViewImage: (product: VendorProduct) => void;
-  hasMore: boolean;
-  onLoadMore: () => void;
-  isFetchingNextPage: boolean;
+  currentPage: number;
+  totalPages: number;
+  onPageChange: (page: number) => void;
 }
 
 const ProductTable: React.FC<ProductTableProps> = memo(
-  ({ products, onEdit, onDelete, onToggleAvailability, onUploadImage, onViewImage, hasMore, onLoadMore, isFetchingNextPage }) => {
+  ({ products, onEdit, onDelete, onToggleAvailability, onUploadImage, onViewImage, currentPage, totalPages, onPageChange }) => {
     const { t } = useTranslation();
     const { toast } = useToast();
     const inputRefs = useRef<Record<string, HTMLInputElement | null>>({});
@@ -189,13 +190,7 @@ const ProductTable: React.FC<ProductTableProps> = memo(
           </Table>
         </div>
 
-        {hasMore && (
-          <div className="text-center mt-4">
-            <Button onClick={onLoadMore} disabled={isFetchingNextPage}>
-              {isFetchingNextPage ? t("common.loading") : t("common.load_more")}
-            </Button>
-          </div>
-        )}
+        <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={onPageChange} className="mt-4" />
       </div>
     );
   },

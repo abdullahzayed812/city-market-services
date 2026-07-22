@@ -10,6 +10,12 @@ export class OrderClient extends BaseClient {
     return response.data;
   }
 
+  async getOrderStats(userId?: string) {
+    const config = await this.getRequestConfig(userId);
+    const response = await this.axiosInstance.get(`/stats`, config);
+    return response.data;
+  }
+
   async getOrderById(id: string, userId?: string) {
     const config = await this.getRequestConfig(userId);
     const response = await this.axiosInstance.get(`/customer-orders/${id}`, config);

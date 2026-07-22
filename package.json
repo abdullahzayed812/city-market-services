@@ -71,6 +71,7 @@
     "db:seed:user": "cd services/user-service && npm run db:seed",
     "db:seed:vendor": "cd services/vendor-service && npm run db:seed",
     "db:seed:catalog": "cd services/catalog-service && npm run db:seed",
+    "db:import-global-products": "cd services/catalog-service && npm run db:import-global-products --",
     "db:seed:order": "cd services/order-service && npm run db:seed",
     "db:seed:delivery": "cd services/delivery-service && npm run db:seed",
     "db:seed:notification": "cd services/notification-service && npm run db:seed",

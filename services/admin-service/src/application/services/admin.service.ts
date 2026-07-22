@@ -1,14 +1,6 @@
 import { ServiceClient } from "../../infrastructure/http/service-client";
 import { Logger } from "@city-market/shared/node";
-import type { BulkAddVendorProductsFromGlobalItem } from "@city-market/shared";
-
-export interface DashboardStats {
-  totalOrders: number;
-  totalVendors: number;
-  totalCouriers: number;
-  totalUsers: number;
-  revenueToday: number;
-}
+import type { BulkAddVendorProductsFromGlobalItem, DashboardStats } from "@city-market/shared";
 
 export class AdminService {
   constructor(private serviceClient: ServiceClient) { }
@@ -16,24 +8,20 @@ export class AdminService {
   async getDashboardStats(userId?: string): Promise<DashboardStats> {
     Logger.info("Fetching dashboard statistics");
 
-    const [ordersData, vendorsData, couriersData, usersData] = await Promise.all([
-      this.serviceClient.order.getAllOrders(1, 100, userId),
-      this.serviceClient.vendor.getAllVendors(1, 100, userId),
-      this.serviceClient.delivery.getAllCouriers(1, 100, userId),
-      this.serviceClient.auth.getAllUsers(1, 100, userId),
+    const [orderStats, vendorsCount, couriersCount, usersCount] = await Promise.all([
+      this.serviceClient.order.getOrderStats(userId),
+      this.serviceClient.vendor.getVendorsCount(userId),
+      this.serviceClient.delivery.getCouriersCount(userId),
+      this.serviceClient.auth.getUsersCount(userId),
     ]);
 
-    const stats: DashboardStats = {
-      totalOrders: ordersData.data?.length || 0,
-      totalVendors: vendorsData.data?.length || 0,
-      totalCouriers: couriersData.data?.length || 0,
-      totalUsers: usersData?.data?.length || 0,
-      revenueToday: (ordersData.data ?? [])
-        .filter((order: any) => order.status === "DELIVERED")
-        .reduce((sum: any, order: any) => sum + (order.commissionAmount || 0), 0),
+    return {
+      totalOrders: orderStats.data?.totalOrders || 0,
+      revenueToday: orderStats.data?.revenueToday || 0,
+      totalVendors: vendorsCount.data?.total || 0,
+      totalCouriers: couriersCount.data?.total || 0,
+      totalUsers: usersCount.data?.total || 0,
     };
-
-    return stats;
   }
 
   async getAllOrders(page: number = 1, limit: number = 50, userId?: string) {
@@ -281,8 +269,9 @@ export class AdminService {
     return this.serviceClient.catalog.deleteProduct(id, userId);
   }
 
-  async bulkAddVendorProductsFromGlobal(vendorId: string, data: { items: BulkAddVendorProductsFromGlobalItem[] }, userId?: string) {
-    Logger.info(`Bulk adding vendor products from global catalog for vendor ${vendorId} (${data?.items?.length ?? 0} items)`);
+  async bulkAddVendorProductsFromGlobal(vendorId: string, data: { items: BulkAddVendorProductsFromGlobalItem[] } | { globalCategoryId: string }, userId?: string) {
+    const description = "items" in data ? `${data.items.length} items` : `category ${data.globalCategoryId}`;
+    Logger.info(`Bulk adding vendor products from global catalog for vendor ${vendorId} (${description})`);
     return this.serviceClient.catalog.bulkAddVendorProductsFromGlobal(vendorId, data, userId);
   }
 
@@ -291,9 +280,9 @@ export class AdminService {
   }
 
   // Global Product Management
-  async getGlobalProducts(page: number = 1, limit: number = 20, search?: string, userId?: string) {
+  async getGlobalProducts(page: number = 1, limit: number = 20, search?: string, userId?: string, globalCategoryId?: string) {
     Logger.info("Fetching global products");
-    return this.serviceClient.catalog.getGlobalProducts(page, limit, search, userId);
+    return this.serviceClient.catalog.getGlobalProducts(page, limit, search, userId, globalCategoryId);
   }
 
   async createGlobalProduct(data: any, userId?: string) {

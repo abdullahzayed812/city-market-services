@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
 import { adminApi } from "@/services/api/admin-api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users, ShoppingBag, Store, Truck } from "lucide-react";
+import { Users, ShoppingBag, Store, Truck, DollarSign } from "lucide-react";
 
 const Dashboard: React.FC = () => {
   const { t } = useTranslation();
@@ -23,12 +23,12 @@ const Dashboard: React.FC = () => {
     { title: t("dashboard.total_orders"), value: stats?.totalOrders, icon: ShoppingBag, color: "text-emerald-600" },
     { title: t("dashboard.total_vendors"), value: stats?.totalVendors, icon: Store, color: "text-orange-600" },
     { title: t("dashboard.total_couriers"), value: stats?.totalCouriers, icon: Truck, color: "text-purple-600" },
-    // {
-    //   title: t("dashboard.total_revenue"),
-    //   value: `$${stats?.totalRevenue?.toLocaleString()}`,
-    //   icon: DollarSign,
-    //   color: "text-indigo-600",
-    // },
+    {
+      title: t("dashboard.revenue_today"),
+      value: `$${(stats?.revenueToday ?? 0).toLocaleString()}`,
+      icon: DollarSign,
+      color: "text-indigo-600",
+    },
   ];
 
   return (

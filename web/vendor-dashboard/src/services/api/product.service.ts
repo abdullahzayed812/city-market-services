@@ -43,9 +43,9 @@ export const productService = {
     const response = await apiClient.patch<ApiResponse<null>>(`/catalog/products/${id}/image`, { imageUrl });
     return response.data?.data;
   },
-  getGlobalProducts: async (page: number, limit: number, search?: string) => {
+  getGlobalProducts: async (page: number, limit: number, search?: string, globalCategoryId?: string) => {
     const response = await apiClient.get<ApiResponse<{ data: any[]; total: number }>>("/catalog/global-products", {
-      params: { page, limit, search },
+      params: { page, limit, search, globalCategoryId },
     });
     return response.data?.data;
   },
@@ -53,6 +53,13 @@ export const productService = {
     const response = await apiClient.post<ApiResponse<BulkAddVendorProductsFromGlobalResult>>(
       `/catalog/products/vendor/${vendorId}/bulk-add-global`,
       { items },
+    );
+    return response.data?.data;
+  },
+  bulkAddProductsFromCategory: async (vendorId: string, globalCategoryId: string) => {
+    const response = await apiClient.post<ApiResponse<BulkAddVendorProductsFromGlobalResult>>(
+      `/catalog/products/vendor/${vendorId}/bulk-add-global`,
+      { globalCategoryId },
     );
     return response.data?.data;
   },

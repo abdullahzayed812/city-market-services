@@ -81,17 +81,17 @@ export class CatalogClient extends BaseClient {
     return response.data;
   }
 
-  async bulkAddVendorProductsFromGlobal(vendorId: string, data: { items: BulkAddVendorProductsFromGlobalItem[] }, userId?: string) {
+  async bulkAddVendorProductsFromGlobal(vendorId: string, data: { items: BulkAddVendorProductsFromGlobalItem[] } | { globalCategoryId: string }, userId?: string) {
     const config = await this.getRequestConfig(userId);
     const response = await this.axiosInstance.post(`/products/vendor/${vendorId}/bulk-add-global`, data, config);
     return response.data;
   }
 
   // Global Product Management
-  async getGlobalProducts(page: number = 1, limit: number = 20, search?: string, userId?: string) {
+  async getGlobalProducts(page: number = 1, limit: number = 20, search?: string, userId?: string, globalCategoryId?: string) {
     const config = await this.getRequestConfig(userId);
     const response = await this.axiosInstance.get(`/global-products`, {
-      params: { page, limit, search },
+      params: { page, limit, search, globalCategoryId },
       ...config,
     });
     return response.data;

@@ -235,7 +235,7 @@ export interface VendorProductFilter {
   vendorId?: string;
   categoryId?: string;
   globalCategoryId?: string;
-  query?: string;
+  search?: string;
   minPrice?: number;
   maxPrice?: number;
   page?: number;

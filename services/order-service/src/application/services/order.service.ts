@@ -109,16 +109,33 @@ export class OrderService {
 
   async getCustomerOrders(customerId: string, page: number = 1, limit: number = 20) {
     const offset = (page - 1) * limit;
-    const rows = await this.customerOrderRepo.findByCustomer(customerId, limit + 1, offset);
-    const hasNextPage = rows.length > limit;
-    const items = rows.slice(0, limit).map((o) => OrderMapper.mapCustomerOrder(o));
-    return { items, hasNextPage };
+    const [rows, total] = await Promise.all([
+      this.customerOrderRepo.findByCustomer(customerId, limit, offset),
+      this.customerOrderRepo.countByCustomer(customerId),
+    ]);
+    const items = rows.map((o) => OrderMapper.mapCustomerOrder(o));
+    return { items, total };
   }
 
-  async getAllOrders(page: number = 1, limit: number = 20): Promise<CustomerOrder[]> {
+  async getAllOrders(page: number = 1, limit: number = 20): Promise<(CustomerOrder & { customerName?: string })[]> {
     const offset = (page - 1) * limit;
     const orders = await this.customerOrderRepo.findAll(limit, offset);
-    return orders.map((o) => OrderMapper.mapCustomerOrder(o));
+    const mapped = orders.map((o) => OrderMapper.mapCustomerOrder(o));
+
+    const nameByCustomerId = await this.userClient.getCustomerNamesByIds(mapped.map((o) => o.customerId));
+
+    return mapped.map((o) => ({
+      ...o,
+      customerName: nameByCustomerId.get(o.customerId),
+    }));
+  }
+
+  async getOrderStats(): Promise<{ totalOrders: number; revenueToday: number }> {
+    const [totalOrders, revenueToday] = await Promise.all([
+      this.customerOrderRepo.countAll(),
+      this.customerOrderRepo.sumCommissionToday(CustomerOrderStatus.COMPLETED),
+    ]);
+    return { totalOrders, revenueToday };
   }
 
   async getOrderProposals(orderId: string): Promise<OrderItemProposal[]> {
@@ -233,6 +250,12 @@ export class OrderService {
   async rejectProposal(proposalId: string, cancelEntireOrder: boolean = false): Promise<void> {
     return this.db.withTransaction(async (connection: PoolConnection) => {
       await this.proposalManager.reject(proposalId, cancelEntireOrder, connection);
+    });
+  }
+
+  async resolveVendorCancellation(customerOrderId: string, continueOrder: boolean): Promise<void> {
+    return this.db.withTransaction(async (connection: PoolConnection) => {
+      await this.proposalManager.resolveVendorCancellation(customerOrderId, continueOrder, connection);
     });
   }
 

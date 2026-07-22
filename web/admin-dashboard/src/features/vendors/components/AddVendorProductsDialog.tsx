@@ -1,12 +1,14 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Search, X, Plus, Check } from "lucide-react";
-import { type GlobalProduct } from "@city-market/shared";
+import { Pagination } from "@/components/ui/pagination";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Loader2, Search, X, Plus, Check, PackagePlus } from "lucide-react";
+import { type GlobalProduct, CategoryType } from "@city-market/shared";
 import { useGlobalProducts } from "@/hooks/useGlobalProducts";
 import { adminApi } from "@/services/api/admin-api";
 import { useToast } from "@/hooks/use-toast";
@@ -26,8 +28,10 @@ const AddVendorProductsDialog: React.FC<AddVendorProductsDialogProps> = ({ open,
 
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
+  const [globalCategoryId, setGlobalCategoryId] = useState<string>("");
   const [selected, setSelected] = useState<Map<string, GlobalProduct>>(new Map());
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isImportingCategory, setIsImportingCategory] = useState(false);
   const [result, setResult] = useState<{ added: number; skipped: number } | null>(null);
 
   useEffect(() => {
@@ -35,9 +39,20 @@ const AddVendorProductsDialog: React.FC<AddVendorProductsDialogProps> = ({ open,
     return () => clearTimeout(handler);
   }, [searchInput]);
 
-  const { products, isLoadingProducts, isFetchingNextProductsPage, hasMoreProducts, loadMoreProducts } = useGlobalProducts({
+  const { data: categories } = useQuery({
+    queryKey: ["adminCategories"],
+    queryFn: async () => {
+      const response = await adminApi.getCategories();
+      return response.data.data;
+    },
+    enabled: open,
+  });
+  const globalCategories = useMemo(() => categories?.filter((c) => c.type === CategoryType.GLOBAL) ?? [], [categories]);
+
+  const { products, total, isLoadingProducts, page, totalPages, setPage } = useGlobalProducts({
     initialLimit: 20,
     search,
+    globalCategoryId: globalCategoryId || undefined,
     enabled: open,
   });
 
@@ -65,6 +80,7 @@ const AddVendorProductsDialog: React.FC<AddVendorProductsDialogProps> = ({ open,
   const reset = () => {
     setSearchInput("");
     setSearch("");
+    setGlobalCategoryId("");
     setSelected(new Map());
     setResult(null);
   };
@@ -98,6 +114,29 @@ const AddVendorProductsDialog: React.FC<AddVendorProductsDialogProps> = ({ open,
     }
   };
 
+  const handleImportCategory = async () => {
+    if (!vendorId || !globalCategoryId) return;
+    setIsImportingCategory(true);
+    try {
+      const summary = await adminApi.bulkAddVendorProductsFromCategory(vendorId, globalCategoryId);
+      setResult({ added: summary.added, skipped: summary.skipped });
+      queryClient.invalidateQueries({ queryKey: ["adminProducts"] });
+      onAdded?.();
+      toast({
+        title: t("common.success", "Success"),
+        description: `${summary.added} product(s) added, ${summary.skipped} skipped (already existing).`,
+      });
+    } catch (err: any) {
+      toast({
+        title: t("common.error", "Error"),
+        description: `${t("vendors.add_products_failed", "Failed to add products")}: ${err.message}`,
+        variant: "destructive",
+      });
+    } finally {
+      setIsImportingCategory(false);
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-2xl max-h-[85vh] overflow-y-auto">
@@ -125,15 +164,49 @@ const AddVendorProductsDialog: React.FC<AddVendorProductsDialogProps> = ({ open,
             </div>
           )}
 
-          <div className="relative">
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-            <Input
-              placeholder={t("vendors.search_global_products", "Search products by name...")}
-              value={searchInput}
-              onChange={(e) => setSearchInput(e.target.value)}
-              className="ps-9"
-            />
+          <div className="flex flex-col sm:flex-row gap-2">
+            <div className="relative flex-1">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <Input
+                placeholder={t("vendors.search_global_products", "Search products by name...")}
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+                className="ps-9"
+              />
+            </div>
+            <Select value={globalCategoryId || "all"} onValueChange={(val) => setGlobalCategoryId(val === "all" ? "" : val)}>
+              <SelectTrigger className="sm:w-[220px]">
+                <SelectValue placeholder={t("products.filter_by_global", "Filter by Global Category")} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">{t("common.all", "All")}</SelectItem>
+                {globalCategories.map((cat) => (
+                  <SelectItem key={cat.id} value={cat.id}>
+                    {cat.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
+
+          {globalCategoryId && (
+            <div className="flex items-center justify-between gap-3 bg-primary/5 border border-primary/20 rounded-md p-3">
+              <p className="text-sm text-muted-foreground">
+                {t("vendors.category_product_count", { count: total, defaultValue: `${total} product(s) in this category` })}
+              </p>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={handleImportCategory}
+                disabled={total === 0 || isImportingCategory}
+                className="gap-2 flex-shrink-0"
+              >
+                {isImportingCategory ? <Loader2 className="h-4 w-4 animate-spin" /> : <PackagePlus className="h-4 w-4" />}
+                {t("vendors.import_all_from_category", "Import All From Category")}
+              </Button>
+            </div>
+          )}
 
           <div className="border rounded-md max-h-72 overflow-y-auto divide-y">
             {isLoadingProducts && (
@@ -161,14 +234,9 @@ const AddVendorProductsDialog: React.FC<AddVendorProductsDialogProps> = ({ open,
                 </button>
               );
             })}
-            {hasMoreProducts && (
-              <div className="text-center p-2">
-                <Button variant="ghost" size="sm" onClick={loadMoreProducts} disabled={isFetchingNextProductsPage}>
-                  {isFetchingNextProductsPage ? <Loader2 className="h-3 w-3 animate-spin" /> : t("common.load_more")}
-                </Button>
-              </div>
-            )}
           </div>
+
+          <Pagination currentPage={page} totalPages={totalPages} onPageChange={setPage} />
 
           {result && (
             <div className="flex gap-3 text-sm">

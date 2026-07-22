@@ -214,9 +214,16 @@ export class VendorProductController {
 
   bulkAddFromGlobal = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
-      const { items } = req.body as {
+      const { globalCategoryId } = req.body as { globalCategoryId?: string };
+      let items = (req.body as {
         items?: Array<{ globalProductId?: string; price?: number; stockQuantity?: number; stockWeightGrams?: number }>;
-      };
+      }).items;
+
+      if (globalCategoryId) {
+        const categoryProducts = await this.catalogService.getGlobalProductsByCategory(globalCategoryId);
+        items = categoryProducts.map((p) => ({ globalProductId: p.id }));
+      }
+
       if (!Array.isArray(items) || items.length === 0) {
         throw new ValidationError("items_required");
       }

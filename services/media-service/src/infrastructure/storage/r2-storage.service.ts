@@ -4,7 +4,7 @@ import {
   DeleteObjectCommand,
   ListObjectsV2Command,
 } from "@aws-sdk/client-s3";
-import { IStorageService, UploadResult } from "../../core/interfaces/storage.interface.js";
+import { IStorageService, UploadResult } from "../../core/interfaces/storage.interface";
 import { Logger } from "@city-market/shared/node";
 
 export interface R2Config {

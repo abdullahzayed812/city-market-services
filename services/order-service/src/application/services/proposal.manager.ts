@@ -20,6 +20,7 @@ import {
 import { randomUUID } from "crypto";
 import { CommissionCalculator } from "../utils/CommissionCalculator";
 import { CommissionTierService } from "./commission-tier.service";
+import { config } from "../../config/env";
 
 const WEIGHT_TOLERANCE_GRAMS = 100;
 const MAX_WEIGHT_DIFFERENCE_THRESHOLD = 0.3;
@@ -262,7 +263,78 @@ export class ProposalManager {
     }
   }
 
-  private async cancelOrder(co: any, connection: PoolConnection) {
+  /**
+   * A vendor cancelled their entire sub-order (as opposed to proposing item-level changes).
+   * Releases stock, records the reason, recalculates order totals, and — if other vendors are
+   * still active on this order — puts the customer order into WAITING_CUSTOMER_DECISION with an
+   * SLA timer so the customer can choose to continue without this vendor or cancel everything.
+   */
+  async handleVendorCancellation(vendorOrderId: string, reason: string | undefined, connection: PoolConnection): Promise<void> {
+    const vo = await this.vendorOrderRepo.findById(vendorOrderId, connection);
+    if (!vo) return;
+
+    const co = await this.customerOrderRepo.findByIdWithLock(vo.customerOrderId, connection);
+    if (!co) return;
+
+    const lockedVo = await this.vendorOrderRepo.findByIdWithLock(vendorOrderId, connection);
+    if (!lockedVo) return;
+
+    const items = await this.vendorOrderItemRepo.findByVendorOrder(vendorOrderId, connection);
+    for (const item of items) {
+      await this.publisher.publishOrderStockReleaseRequested({
+        orderId: co.id,
+        items: [{ vendorProductId: item.vendorProductId, quantity: item.quantity || 0, weightGrams: item.requestedWeightGrams || 0 }],
+      });
+    }
+
+    await this.vendorOrderRepo.update(vendorOrderId, { cancellationReason: reason || "Cancelled by vendor" }, connection);
+
+    await this.publisher.publishVendorOrderCancelled({
+      vendorOrderId,
+      customerOrderId: co.id,
+      vendorId: lockedVo.vendorId,
+      customerId: co.customerId,
+    });
+
+    await this.recalculateTotals(vendorOrderId, connection);
+
+    const siblings = await this.vendorOrderRepo.findByCustomerOrder(co.id, connection);
+    const stillActive = siblings.some((s) => s.id !== vendorOrderId && s.status !== VendorOrderStatus.CANCELLED);
+
+    if (stillActive) {
+      const deadline = new Date(Date.now() + config.customerDecisionSlaMins * 60_000);
+      await this.vendorOrderRepo.setDeadline(vendorOrderId, "customerDecisionDeadline", deadline, connection);
+      this.stateManager.scheduleVendorCancellationDecisionSla(vendorOrderId, lockedVo.vendorId, co.id, co.customerId).catch(() => {});
+    }
+  }
+
+  /**
+   * Customer's response to a vendor cancellation: continue with the remaining vendors, or cancel
+   * the whole order. Mirrors the two-path branch in reject() for proposal rejections.
+   */
+  async resolveVendorCancellation(customerOrderId: string, continueOrder: boolean, connection: PoolConnection): Promise<void> {
+    const co = await this.customerOrderRepo.findByIdWithLock(customerOrderId, connection);
+    if (!co) throw new NotFoundError("customer_order_not_found");
+
+    const vendorOrders = await this.vendorOrderRepo.findByCustomerOrder(customerOrderId, connection);
+    const pending = vendorOrders.filter((vo) => vo.status === VendorOrderStatus.CANCELLED && vo.customerDecisionDeadline);
+    if (pending.length === 0) throw new ValidationError("no_pending_vendor_cancellation_decision");
+
+    if (continueOrder) {
+      for (const vo of pending) {
+        await this.vendorOrderRepo.setDeadline(vo.id, "customerDecisionDeadline", null, connection);
+        this.stateManager.cancelVendorCancellationDecisionSla(vo.id).catch(() => {});
+      }
+      await this.stateManager.syncCustomerOrderStatus(co.id, connection);
+    } else {
+      for (const vo of pending) {
+        this.stateManager.cancelVendorCancellationDecisionSla(vo.id).catch(() => {});
+      }
+      await this.cancelOrder(co, connection);
+    }
+  }
+
+  async cancelOrder(co: any, connection: PoolConnection) {
     await this.customerOrderRepo.updateStatus(co.id, CustomerOrderStatus.CANCELLED, connection);
     await this.stateManager.recordStatusChange({ customerOrderId: co.id }, CustomerOrderStatus.CANCELLED, "Order cancelled on proposal rejection", connection);
     await this.publisher.publishOrderCancelled(co.id, co.customerId);
@@ -291,7 +363,7 @@ export class ProposalManager {
     }
   }
 
-  private async recalculateTotals(vendorOrderId: string, connection: PoolConnection): Promise<void> {
+  async recalculateTotals(vendorOrderId: string, connection: PoolConnection): Promise<void> {
     const vo = await this.vendorOrderRepo.findById(vendorOrderId, connection);
     if (!vo) return;
 

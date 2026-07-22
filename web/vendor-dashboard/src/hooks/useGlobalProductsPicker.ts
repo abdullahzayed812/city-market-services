@@ -1,40 +1,38 @@
-import { useMemo, useState } from "react";
-import { useInfiniteQuery } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { productService } from "@/services/api/product.service";
 
 interface UseGlobalProductsPickerOptions {
   search?: string;
+  globalCategoryId?: string;
   enabled?: boolean;
   limit?: number;
 }
 
-export const useGlobalProductsPicker = ({ search, enabled = true, limit = 20 }: UseGlobalProductsPickerOptions = {}) => {
-  const [pageLimit] = useState(limit);
+export const useGlobalProductsPicker = ({ search, globalCategoryId, enabled = true, limit = 20 }: UseGlobalProductsPickerOptions = {}) => {
+  const [page, setPage] = useState(1);
 
-  const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading } = useInfiniteQuery({
-    queryKey: ["global-products-picker", { search }],
+  useEffect(() => {
+    setPage(1);
+  }, [search, globalCategoryId]);
+
+  const { data, isLoading } = useQuery({
+    queryKey: ["global-products-picker", { search, globalCategoryId, page }],
     enabled,
-    queryFn: async ({ pageParam = 1 }) => {
-      const response = await productService.getGlobalProducts(pageParam, pageLimit, search);
-      const products = response?.data || [];
-      return {
-        products,
-        currentPage: pageParam,
-        hasMore: products.length === pageLimit,
-      };
-    },
-    getNextPageParam: (lastPage) => (lastPage.hasMore ? lastPage.currentPage + 1 : undefined),
-    initialPageParam: 1,
+    queryFn: () => productService.getGlobalProducts(page, limit, search, globalCategoryId),
     placeholderData: (previousData) => previousData,
   });
 
-  const products = useMemo(() => data?.pages.flatMap((page) => page.products) || [], [data?.pages]);
+  const products = data?.data || [];
+  const total = data?.total || 0;
+  const totalPages = Math.ceil(total / limit);
 
   return {
     products,
+    total,
     isLoading,
-    isFetchingNextPage,
-    hasMore: hasNextPage || false,
-    loadMore: fetchNextPage,
+    page,
+    totalPages,
+    setPage,
   };
 };

@@ -122,10 +122,7 @@ export class CatalogService {
   ): Promise<{ products: VendorProduct[]; total: number }> {
     const offset = (page - 1) * limit;
     const filters: VendorProductFilter = { globalCategoryId, vendorCategoryId, vendorId, search };
-    const [products, total] = await Promise.all([
-      this.vendorProductRepo.findByFilter(filters, limit, offset),
-      this.vendorProductRepo.countByFilter(filters),
-    ]);
+    const [products, total] = await Promise.all([this.vendorProductRepo.findByFilter(filters, limit, offset), this.vendorProductRepo.countByFilter(filters)]);
     return { products, total };
   }
 
@@ -137,18 +134,11 @@ export class CatalogService {
   ): Promise<{ products: VendorProduct[]; total: number }> {
     const offset = (page - 1) * limit;
     const filter: VendorProductFilter = { vendorId, vendorCategoryId };
-    const [products, total] = await Promise.all([
-      this.vendorProductRepo.findByFilter(filter, limit, offset),
-      this.vendorProductRepo.countByFilter(filter),
-    ]);
+    const [products, total] = await Promise.all([this.vendorProductRepo.findByFilter(filter, limit, offset), this.vendorProductRepo.countByFilter(filter)]);
     return { products, total };
   }
 
-  async getVendorProductsByCategory(
-    categoryId: string,
-    page: number,
-    limit: number,
-  ): Promise<{ products: VendorProduct[]; total: number }> {
+  async getVendorProductsByCategory(categoryId: string, page: number, limit: number): Promise<{ products: VendorProduct[]; total: number }> {
     const offset = (page - 1) * limit;
     const [products, total] = await Promise.all([
       this.vendorProductRepo.findByCategory(categoryId, limit, offset),
@@ -157,16 +147,9 @@ export class CatalogService {
     return { products, total };
   }
 
-  async searchVendorProducts(
-    filter: VendorProductFilter,
-    page: number,
-    limit: number,
-  ): Promise<{ products: VendorProduct[]; total: number }> {
+  async searchVendorProducts(filter: VendorProductFilter, page: number, limit: number): Promise<{ products: VendorProduct[]; total: number }> {
     const offset = (page - 1) * limit;
-    const [products, total] = await Promise.all([
-      this.vendorProductRepo.findByFilter(filter, limit, offset),
-      this.vendorProductRepo.countByFilter(filter),
-    ]);
+    const [products, total] = await Promise.all([this.vendorProductRepo.findByFilter(filter, limit, offset), this.vendorProductRepo.countByFilter(filter)]);
     return { products, total };
   }
 
@@ -198,7 +181,7 @@ export class CatalogService {
       price: data.price,
       stockQuantity: data.stockQuantity,
       stockWeightGrams: data.stockWeightGrams,
-      isAvailable: data.isAvailable,
+      isAvailable: (data?.stockQuantity as number) > 0 || (data?.stockWeightGrams as number) > 0,
       vendorCategoryId: data.vendorCategoryId || undefined,
       globalProductId: data.globalProductId || undefined,
     };
@@ -220,12 +203,7 @@ export class CatalogService {
     await this.vendorProductRepo.updatePrice(id, price);
   }
 
-  async decrementVendorStock(
-    id: string,
-    amount: number,
-    type: MeasurementType = MeasurementType.UNIT,
-    vendorUserId?: string,
-  ): Promise<void> {
+  async decrementVendorStock(id: string, amount: number, type: MeasurementType = MeasurementType.UNIT, vendorUserId?: string): Promise<void> {
     // await this.getVendorProductById(id);
     if (type === MeasurementType.UNIT) {
       await this.vendorProductRepo.decrementStock(id, amount);
@@ -255,9 +233,7 @@ export class CatalogService {
     }
 
     if (isLow && product.isAvailable) {
-      Logger.info(
-        `[CatalogService] Low stock detected for product ${product.name} (${product.id}). Remaining: ${remaining}`,
-      );
+      Logger.info(`[CatalogService] Low stock detected for product ${product.name} (${product.id}). Remaining: ${remaining}`);
 
       await rabbitMQBus.publish({
         type: EventType.LOW_STOCK,
@@ -324,9 +300,7 @@ export class CatalogService {
     const shouldBeAvailable = available > 0;
 
     if (product.isAvailable !== shouldBeAvailable) {
-      Logger.info(
-        `[CatalogService] Toggling availability for product ${product.id} to ${shouldBeAvailable} (available: ${available})`,
-      );
+      Logger.info(`[CatalogService] Toggling availability for product ${product.id} to ${shouldBeAvailable} (available: ${available})`);
       await this.vendorProductRepo.update(id, { isAvailable: shouldBeAvailable });
 
       await rabbitMQBus.publish({
@@ -347,10 +321,7 @@ export class CatalogService {
     await this.vendorProductRepo.delete(id);
   }
 
-  async bulkAddVendorProductsFromGlobal(
-    vendorId: string,
-    items: BulkAddVendorProductsFromGlobalItem[],
-  ): Promise<BulkAddVendorProductsFromGlobalResult> {
+  async bulkAddVendorProductsFromGlobal(vendorId: string, items: BulkAddVendorProductsFromGlobalItem[]): Promise<BulkAddVendorProductsFromGlobalResult> {
     const seen = new Set<string>();
     const uniqueItems = items.filter((item) => {
       if (seen.has(item.globalProductId)) return false;
@@ -440,15 +411,15 @@ export class CatalogService {
     return { created: results.length - failed, failed, results };
   }
 
-  async getAllGlobalProducts(
-    page: number,
-    limit: number,
-    search?: string,
-  ): Promise<{ data: GlobalProduct[]; total: number }> {
+  async getGlobalProductsByCategory(globalCategoryId: string): Promise<GlobalProduct[]> {
+    return this.globalProductRepo.findAllByCategory(globalCategoryId);
+  }
+
+  async getAllGlobalProducts(page: number, limit: number, search?: string, globalCategoryId?: string): Promise<{ data: GlobalProduct[]; total: number }> {
     const offset = (page - 1) * limit;
     const [items, total] = await Promise.all([
-      this.globalProductRepo.findAll(limit, offset, search),
-      this.globalProductRepo.count(search),
+      this.globalProductRepo.findAll(limit, offset, search, globalCategoryId),
+      this.globalProductRepo.count(search, globalCategoryId),
     ]);
     return { data: items, total };
   }

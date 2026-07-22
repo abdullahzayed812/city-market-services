@@ -94,6 +94,7 @@
     "total_vendors": "Total Vendors",
     "total_couriers": "Total Couriers",
     "total_revenue": "Total Revenue",
+    "revenue_today": "Revenue Today",
     "revenue_summary": "Revenue Summary",
     "revenue_chart_placeholder": "Revenue Chart Placeholder",
     "recent_activity_placeholder": "Recent Activity Placeholder"
@@ -263,6 +264,7 @@
   },
   "orders": {
     "order_id": "Order ID",
+    "customer": "Customer",
     "customer_id": "Customer ID",
     "total": "Total",
     "details": "Order Details",

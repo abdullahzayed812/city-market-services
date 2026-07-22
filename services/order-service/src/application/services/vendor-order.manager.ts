@@ -41,6 +41,10 @@ export class VendorOrderManager {
     await this.vendorOrderRepo.updateStatus(vendorOrderId, status, connection);
     await this.stateManager.recordStatusChange({ vendorOrderId }, status, notes, connection);
 
+    if (status === VendorOrderStatus.CANCELLED) {
+      await this.proposalManager.handleVendorCancellation(vendorOrderId, notes, connection);
+    }
+
     if (!skipCustomerSync) {
       await this.stateManager.syncCustomerOrderStatus(vo.customerOrderId, connection);
     }

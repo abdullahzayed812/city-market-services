@@ -2,18 +2,22 @@ import { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, X, PackageSearch } from 'lucide-react';
-import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { CatalogService } from '@/services/api/catalogService';
 import { ProductCard } from '@/components/shared/ProductCard';
 import { ProductCardSkeleton } from '@/components/ui/Skeleton';
+import { Pagination } from '@/components/ui/Pagination';
 import { useTranslation } from 'react-i18next';
 import type { Category } from '@/types';
+
+const PAGE_SIZE = 20;
 
 export default function SearchPage() {
   const [params, setParams] = useSearchParams();
   const [query, setQuery] = useState(params.get('q') || '');
   const [debouncedQuery, setDebouncedQuery] = useState(query);
   const [selectedCategory, setSelectedCategory] = useState(params.get('categoryId') || '');
+  const [page, setPage] = useState(1);
   const inputRef = useRef<HTMLInputElement>(null);
   const { t } = useTranslation();
 
@@ -33,32 +37,29 @@ export default function SearchPage() {
     setParams(newParams, { replace: true });
   }, [debouncedQuery, selectedCategory, setParams]);
 
+  useEffect(() => {
+    setPage(1);
+  }, [debouncedQuery, selectedCategory]);
+
   const { data: categories } = useQuery({
     queryKey: ['global-categories'],
     queryFn: CatalogService.getGlobalCategories,
   });
 
-  const {
-    data,
-    isLoading,
-    fetchNextPage,
-    hasNextPage,
-    isFetchingNextPage,
-  } = useInfiniteQuery({
-    queryKey: ['search', debouncedQuery, selectedCategory],
-    queryFn: ({ pageParam }) =>
+  const { data, isLoading } = useQuery({
+    queryKey: ['search', debouncedQuery, selectedCategory, page],
+    queryFn: () =>
       CatalogService.searchVendorProducts({
-        query: debouncedQuery || undefined,
+        search: debouncedQuery || undefined,
         globalCategoryId: selectedCategory || undefined,
-        page: pageParam,
-        limit: 20,
+        page,
+        limit: PAGE_SIZE,
       }),
-    initialPageParam: 1,
-    getNextPageParam: (lastPage, _, lastPageParam) =>
-      lastPage.data?.length === 20 ? lastPageParam + 1 : undefined,
   });
 
-  const products = data?.pages.flatMap((p) => p.data ?? []) ?? [];
+  const products = data?.data ?? [];
+  const total = data?.total ?? 0;
+  const totalPages = Math.ceil(total / PAGE_SIZE);
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
@@ -125,7 +126,7 @@ export default function SearchPage() {
       {(debouncedQuery || selectedCategory) && (
         <div className="flex items-center justify-between mb-4">
           <p className="text-sm text-text-muted">
-            {isLoading ? t('search.searching') : `${products.length} ${t('search.results')}`}
+            {isLoading ? t('search.searching') : `${total} ${t('search.results')}`}
             {debouncedQuery && (
               <span className="font-semibold text-text-primary"> {t('search.in')} "{debouncedQuery}"</span>
             )}
@@ -172,17 +173,12 @@ export default function SearchPage() {
             ))}
           </div>
 
-          {hasNextPage && (
-            <div className="flex justify-center mt-8">
-              <button
-                onClick={() => fetchNextPage()}
-                disabled={isFetchingNextPage}
-                className="px-8 py-3 bg-white border border-border text-sm font-semibold text-text-secondary rounded-xl hover:bg-gray-50 transition-colors disabled:opacity-50"
-              >
-                {isFetchingNextPage ? t('common.loading') : t('store.load_more')}
-              </button>
-            </div>
-          )}
+          <Pagination
+            currentPage={page}
+            totalPages={totalPages}
+            onPageChange={setPage}
+            className="mt-8"
+          />
         </>
       )}
     </div>

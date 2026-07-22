@@ -1,14 +1,18 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
+import { useQuery } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2, Search, X, Plus, Check } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Loader2, Search, X, Plus, Check, PackagePlus } from "lucide-react";
 import { MeasurementType } from "@city-market/shared";
 import type { GlobalProduct, BulkAddVendorProductsFromGlobalItem } from "@city-market/shared";
 import { useGlobalProductsPicker } from "@/hooks/useGlobalProductsPicker";
+import { productService } from "@/services/api/product.service";
+import { Pagination } from "@/components/ui/pagination";
 
 interface SelectedItem {
   product: GlobalProduct;
@@ -21,15 +25,18 @@ interface BulkAddProductsDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSubmit: (items: BulkAddVendorProductsFromGlobalItem[]) => Promise<{ added: number; skipped: number } | undefined>;
+  onImportCategory: (globalCategoryId: string) => Promise<{ added: number; skipped: number } | undefined>;
 }
 
-const BulkAddProductsDialog: React.FC<BulkAddProductsDialogProps> = ({ open, onOpenChange, onSubmit }) => {
+const BulkAddProductsDialog: React.FC<BulkAddProductsDialogProps> = ({ open, onOpenChange, onSubmit, onImportCategory }) => {
   const { t } = useTranslation();
 
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
+  const [globalCategoryId, setGlobalCategoryId] = useState("");
   const [selected, setSelected] = useState<Map<string, SelectedItem>>(new Map());
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isImportingCategory, setIsImportingCategory] = useState(false);
   const [result, setResult] = useState<{ added: number; skipped: number } | null>(null);
 
   useEffect(() => {
@@ -37,7 +44,17 @@ const BulkAddProductsDialog: React.FC<BulkAddProductsDialogProps> = ({ open, onO
     return () => clearTimeout(handler);
   }, [searchInput]);
 
-  const { products, isLoading, isFetchingNextPage, hasMore, loadMore } = useGlobalProductsPicker({ search, enabled: open });
+  const { data: globalCategories } = useQuery({
+    queryKey: ["global-categories"],
+    queryFn: () => productService.getGlobalCategories(),
+    enabled: open,
+  });
+
+  const { products, total, isLoading, page, totalPages, setPage } = useGlobalProductsPicker({
+    search,
+    globalCategoryId: globalCategoryId || undefined,
+    enabled: open,
+  });
 
   const selectedList = useMemo(() => Array.from(selected.values()), [selected]);
 
@@ -77,6 +94,7 @@ const BulkAddProductsDialog: React.FC<BulkAddProductsDialogProps> = ({ open, onO
   const reset = () => {
     setSearchInput("");
     setSearch("");
+    setGlobalCategoryId("");
     setSelected(new Map());
     setResult(null);
   };
@@ -106,6 +124,22 @@ const BulkAddProductsDialog: React.FC<BulkAddProductsDialogProps> = ({ open, onO
       toast.error(err?.response?.data?.message || t("products.bulk_add_failed", "Failed to add products"));
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleImportCategory = async () => {
+    if (!globalCategoryId) return;
+    setIsImportingCategory(true);
+    try {
+      const summary = await onImportCategory(globalCategoryId);
+      if (summary) {
+        setResult(summary);
+        toast.success(`${summary.added} ${t("products.bulk_added_count", "product(s) added")}, ${summary.skipped} ${t("products.bulk_skipped_count", "skipped (already exist)")}`);
+      }
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || t("products.bulk_add_failed", "Failed to add products"));
+    } finally {
+      setIsImportingCategory(false);
     }
   };
 
@@ -166,15 +200,57 @@ const BulkAddProductsDialog: React.FC<BulkAddProductsDialogProps> = ({ open, onO
             </div>
           )}
 
-          <div className="relative">
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-            <Input
-              placeholder={t("products.search_global_placeholder", "Search for products...")}
-              value={searchInput}
-              onChange={(e) => setSearchInput(e.target.value)}
-              className="ps-9"
-            />
+          <div className="flex flex-col sm:flex-row gap-2">
+            <div className="relative flex-1">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <Input
+                placeholder={t("products.search_global_placeholder", "Search for products...")}
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+                className="ps-9"
+              />
+            </div>
+            <Select value={globalCategoryId || "all"} onValueChange={(val) => setGlobalCategoryId(val === "all" ? "" : val)}>
+              <SelectTrigger className="sm:w-[220px]">
+                <SelectValue placeholder={t("products.filter_by_global", "Filter by Global Category")} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">{t("common.all", "All")}</SelectItem>
+                {(globalCategories || []).map((cat) => (
+                  <SelectItem key={cat.id} value={cat.id}>
+                    {cat.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
+
+          {globalCategoryId && (
+            <div className="bg-primary/5 border border-primary/20 rounded-md p-3 space-y-2">
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-sm text-muted-foreground">
+                  {t("vendors.category_product_count", { count: total, defaultValue: `${total} product(s) in this category` })}
+                </p>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={handleImportCategory}
+                  disabled={total === 0 || isImportingCategory}
+                  className="gap-2 flex-shrink-0"
+                >
+                  {isImportingCategory ? <Loader2 className="h-4 w-4 animate-spin" /> : <PackagePlus className="h-4 w-4" />}
+                  {t("vendors.import_all_from_category", "Import All From Category")}
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {t(
+                  "products.import_all_hint",
+                  "Imported products start with price $0 and 0 stock — set them from your Products list afterward.",
+                )}
+              </p>
+            </div>
+          )}
 
           <div className="border rounded-md max-h-64 overflow-y-auto divide-y">
             {isLoading && (
@@ -202,14 +278,9 @@ const BulkAddProductsDialog: React.FC<BulkAddProductsDialogProps> = ({ open, onO
                 </button>
               );
             })}
-            {hasMore && (
-              <div className="text-center p-2">
-                <Button variant="ghost" size="sm" onClick={() => loadMore()} disabled={isFetchingNextPage}>
-                  {isFetchingNextPage ? <Loader2 className="h-3 w-3 animate-spin" /> : t("common.load_more")}
-                </Button>
-              </div>
-            )}
           </div>
+
+          <Pagination currentPage={page} totalPages={totalPages} onPageChange={setPage} />
 
           {result && (
             <div className="flex gap-3 text-sm">

@@ -23,6 +23,7 @@ const CAT = {
   PET: "d0eebc99-9c0b-4ef8-bb6d-6bb9bd380b12",
   KITCHEN: "d0eebc99-9c0b-4ef8-bb6d-6bb9bd380b13",
   HOUSEHOLD: "d0eebc99-9c0b-4ef8-bb6d-6bb9bd380b14",
+  BEAUTY: "d0eebc99-9c0b-4ef8-bb6d-6bb9bd380b15",
   // The following are also in SEED_DATA.CATEGORIES:
   FROZEN: SEED_DATA.CATEGORIES.FROZEN,
   EGGS: SEED_DATA.CATEGORIES.EGGS,
@@ -72,20 +73,7 @@ const seedDb = async () => {
         color: "#06B6D4",
         key: "DRINKS",
       },
-      {
-        id: CAT.EGGS,
-        name: "بيض",
-        description: "بيض بلدي وأبيض وأنواع مختلفة",
-        color: "#FDE68A",
-        key: "EGGS",
-      },
-      {
-        id: CAT.SPICES,
-        name: "توابل",
-        description: "بهارات وتوابل وأعشاب مجففة",
-        color: "#92400E",
-        key: "SPICES",
-      },
+
       {
         id: SEED_DATA.CATEGORIES.CLEANING,
         name: "منظفات",
@@ -96,9 +84,16 @@ const seedDb = async () => {
       {
         id: SEED_DATA.CATEGORIES.PERSONAL_CARE,
         name: "عناية شخصية",
-        description: "عناية بالشعر والبشرة والأسنان وأدوية بدون وصفة",
+        description: "صابون ومعجون أسنان وأدوات حلاقة ومستلزمات نظافة وأدوية بدون وصفة",
         color: "#EF4444",
         key: "PERSONAL_CARE",
+      },
+      {
+        id: CAT.BEAUTY,
+        name: "عناية بالجمال",
+        description: "شامبو وبلسم وكريمات ترطيب وواقي شمس ومستحضرات تجميل",
+        color: "#F43F5E",
+        key: "BEAUTY",
       },
       {
         id: CAT.BABY,
@@ -141,20 +136,6 @@ const seedDb = async () => {
         description: "بقلاوة وكنافة وحلويات شرقية طازجة",
         color: "#EC4899",
         key: "PASTRY",
-      },
-      {
-        id: CAT.SNACKS,
-        name: "سناكس",
-        description: "شيبس وبسكويت وحلويات مغلفة",
-        color: "#A855F7",
-        key: "SNACKS",
-      },
-      {
-        id: CAT.ROASTERY,
-        name: "تسالي",
-        description: "مكسرات وبذور محمصة وفواكه مجففة وقهوة مطحونة",
-        color: "#78350F",
-        key: "ROASTERY",
       },
       {
         id: CAT.VEG_FRUIT,
@@ -247,40 +228,33 @@ const seedDb = async () => {
       globalMappings: Record<string, string>;
     }[] = [
       {
-        // Supermarkets: dairy, grocery, drinks, cleaning, snacks, eggs, spices, frozen,
-        // canned goods, tea/coffee, paper products, pet supplies, kitchen supplies, household
+        // Supermarkets: broad, simplified aisle structure (5 sections) that groups
+        // every global category a supermarket carries — food, drinks, home care,
+        // personal care, and beauty — instead of one vendor category per global category.
         ids: [V.SUPER_MARKET_1, V.SUPER_MARKET_2, V.SANAQREH],
-        cats: [
-          "ألبان",
-          "بقالة",
-          "مشروبات",
-          "منظفات",
-          "سناكس",
-          "بيض",
-          "توابل وبهارات",
-          "مجمدات",
-          "معلبات وصوصات",
-          "شاي وقهوة",
-          "ورقيات",
-          "مستلزمات الحيوانات الأليفة",
-          "أدوات المطبخ",
-          "أدوات منزلية متنوعة",
-        ],
+        cats: ["الأغذية", "المشروبات", "العناية المنزلية", "العناية الشخصية", "العناية بالجمال"],
         globalMappings: {
-          DAIRY: "ألبان",
-          GROCERY: "بقالة",
-          DRINKS: "مشروبات",
-          CLEANING: "منظفات",
-          SNACKS: "سناكس",
-          EGGS: "بيض",
-          SPICES: "توابل وبهارات",
-          FROZEN: "مجمدات",
-          CANNED: "معلبات وصوصات",
-          TEA_COFFEE: "شاي وقهوة",
-          PAPER: "ورقيات",
-          PET: "مستلزمات الحيوانات الأليفة",
-          KITCHEN: "أدوات المطبخ",
-          HOUSEHOLD: "أدوات منزلية متنوعة",
+          // الأغذية: everything edible/pantry — dairy, grocery, snacks, eggs, spices, frozen, canned, tea/coffee
+          DAIRY: "الأغذية",
+          GROCERY: "الأغذية",
+          SNACKS: "الأغذية",
+          EGGS: "الأغذية",
+          SPICES: "الأغذية",
+          FROZEN: "الأغذية",
+          CANNED: "الأغذية",
+          TEA_COFFEE: "الأغذية",
+          // المشروبات: water, juices, sodas, hot drinks
+          DRINKS: "المشروبات",
+          // العناية المنزلية: cleaning, paper products, pet supplies, kitchen disposables, misc household
+          CLEANING: "العناية المنزلية",
+          PAPER: "العناية المنزلية",
+          PET: "العناية المنزلية",
+          KITCHEN: "العناية المنزلية",
+          HOUSEHOLD: "العناية المنزلية",
+          // العناية الشخصية: hygiene & health — soap, toothpaste, shaving, OTC medicine
+          PERSONAL_CARE: "العناية الشخصية",
+          // العناية بالجمال: shampoo, skincare, sun protection, cosmetics
+          BEAUTY: "العناية بالجمال",
         },
       },
       {

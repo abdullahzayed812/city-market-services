@@ -10,4 +10,7 @@ export interface ICustomerOrderRepository {
   updateStatus(id: string, status: string, connection?: any): Promise<void>;
   update(id: string, data: Partial<CustomerOrder>, connection?: any): Promise<void>;
   conditionalUpdateStatusToReady(id: string, connection?: any): Promise<number>;
+  countAll(connection?: any): Promise<number>;
+  countByCustomer(customerId: string, connection?: any): Promise<number>;
+  sumCommissionToday(status: string, connection?: any): Promise<number>;
 }

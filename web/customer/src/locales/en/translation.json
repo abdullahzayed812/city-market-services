@@ -220,7 +220,14 @@
     "vendor_status_cancelled": "Cancelled",
     "order_not_found": "Order not found",
     "requested": "Requested",
-    "submit_review": "Submit Review"
+    "submit_review": "Submit Review",
+    "vendor_cancelled_decision_banner": "{{vendor}} cancelled their part of your order. Tap to decide what happens next.",
+    "vendor_cancelled_title": "Vendor Cancelled Part of Your Order",
+    "vendor_cancelled_message": "{{vendor}} has cancelled their part of your order. You can continue with your remaining items, or cancel the entire order.",
+    "continue_without_vendor": "Continue Without This Vendor",
+    "cancel_entire_order": "Cancel Entire Order",
+    "cancellation_decision_recorded": "Your decision has been recorded",
+    "cancellation_decision_failed": "Failed to record your decision. Please try again."
   },
   "proposals": {
     "title": "Review Proposals",

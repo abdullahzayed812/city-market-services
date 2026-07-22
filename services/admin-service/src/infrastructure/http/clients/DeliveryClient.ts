@@ -10,6 +10,12 @@ export class DeliveryClient extends BaseClient {
     return response.data;
   }
 
+  async getCouriersCount(userId?: string) {
+    const config = await this.getRequestConfig(userId);
+    const response = await this.axiosInstance.get(`/couriers/count`, config);
+    return response.data;
+  }
+
   async getAvailableCouriers(userId?: string) {
     const config = await this.getRequestConfig(userId);
     const response = await this.axiosInstance.get(`/couriers/available`, config);

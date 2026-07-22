@@ -1,12 +1,12 @@
 import express from "express";
 import cors from "cors";
-import { createMediaRoutes } from "./presentation/routes/media.routes.js";
-import { MediaController } from "./presentation/controllers/media.controller.js";
-import { MediaService } from "./application/services/media.service.js";
-import { ImageOptimizerService } from "./application/services/image-optimizer.service.js";
-import { R2StorageService } from "./infrastructure/storage/r2-storage.service.js";
+import { createMediaRoutes } from "./presentation/routes/media.routes";
+import { MediaController } from "./presentation/controllers/media.controller";
+import { MediaService } from "./application/services/media.service";
+import { ImageOptimizerService } from "./application/services/image-optimizer.service";
+import { R2StorageService } from "./infrastructure/storage/r2-storage.service";
 import { errorHandler, authenticate } from "@city-market/shared/node";
-import { config } from "./config/env.js";
+import { config } from "./config/env";
 
 export const createApp = () => {
   const app = express();

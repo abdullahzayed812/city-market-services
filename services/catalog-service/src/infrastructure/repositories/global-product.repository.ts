@@ -31,16 +31,30 @@ export class GlobalProductRepository implements IGlobalProductRepository {
     return rows.length > 0 ? this.mapToEntity(rows[0]) : null;
   }
 
-  async findAll(limit: number, offset: number, search?: string): Promise<GlobalProduct[]> {
+  async findAll(limit: number, offset: number, search?: string, globalCategoryId?: string): Promise<GlobalProduct[]> {
     let query = "SELECT * FROM global_products";
+    const conditions: string[] = [];
     const params: any[] = [];
     if (search) {
-      query += " WHERE name LIKE ?";
+      conditions.push("name LIKE ?");
       params.push(`%${search}%`);
+    }
+    if (globalCategoryId) {
+      conditions.push("global_category_id = ?");
+      params.push(globalCategoryId);
+    }
+    if (conditions.length > 0) {
+      query += " WHERE " + conditions.join(" AND ");
     }
     query += " LIMIT ? OFFSET ?";
     params.push(limit, offset);
     const [rows] = await this.pool.query<RowDataPacket[]>(query, params);
+    return rows.map((row) => this.mapToEntity(row));
+  }
+
+  async findAllByCategory(globalCategoryId: string): Promise<GlobalProduct[]> {
+    const query = "SELECT * FROM global_products WHERE global_category_id = ?";
+    const [rows] = await this.pool.execute<RowDataPacket[]>(query, [globalCategoryId]);
     return rows.map((row) => this.mapToEntity(row));
   }
 
@@ -76,12 +90,20 @@ export class GlobalProductRepository implements IGlobalProductRepository {
     await this.pool.execute(query, [id]);
   }
 
-  async count(search?: string): Promise<number> {
+  async count(search?: string, globalCategoryId?: string): Promise<number> {
     let query = "SELECT COUNT(*) as count FROM global_products";
+    const conditions: string[] = [];
     const params: any[] = [];
     if (search) {
-      query += " WHERE name LIKE ?";
+      conditions.push("name LIKE ?");
       params.push(`%${search}%`);
+    }
+    if (globalCategoryId) {
+      conditions.push("global_category_id = ?");
+      params.push(globalCategoryId);
+    }
+    if (conditions.length > 0) {
+      query += " WHERE " + conditions.join(" AND ");
     }
     const [rows] = await this.pool.execute<RowDataPacket[]>(query, params);
     return rows[0].count;

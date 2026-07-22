@@ -49,7 +49,7 @@ const OrdersManagement: React.FC = () => {
           <TableHeader>
             <TableRow>
               <TableHead>{t("orders.order_id")}</TableHead>
-              <TableHead>{t("orders.customer_id")}</TableHead>
+              <TableHead>{t("orders.customer")}</TableHead>
               <TableHead>{t("orders.total")}</TableHead>
               <TableHead>{t("common.status")}</TableHead>
               <TableHead>{t("orders.created_at")}</TableHead>
@@ -60,7 +60,7 @@ const OrdersManagement: React.FC = () => {
             {orders?.map((order) => (
               <TableRow key={order.id}>
                 <TableCell className="font-mono text-xs">{order.id}</TableCell>
-                <TableCell className="font-mono text-xs">{order.customerId}</TableCell>
+                <TableCell>{order.customerName || order.customerId}</TableCell>
                 <TableCell>${order.totalAmount?.toFixed(2) ?? order.subtotal?.toFixed(2)}</TableCell>
                 <TableCell>
                   <Badge variant="outline">{order.status}</Badge>

@@ -151,6 +151,10 @@ export class AuthService {
     return { data: users, total };
   }
 
+  async countUsers(role?: string): Promise<number> {
+    return this.userRepo.countAll(role);
+  }
+
   async getUserById(id: string): Promise<Omit<User, "passwordHash"> | null> {
     return this.userRepo.findById(id);
   }

@@ -177,19 +177,19 @@ export class VendorOrderRepository implements IVendorOrderRepository {
       fields.push("cancellation_reason = ?");
       values.push(data.cancellationReason);
     }
-    if (data.subtotal) {
+    if (data.subtotal !== undefined) {
       fields.push("subtotal = ?");
       values.push(data.subtotal);
     }
-    if (data.commissionAmount) {
+    if (data.commissionAmount !== undefined) {
       fields.push("commission_amount = ?");
       values.push(data.commissionAmount);
     }
-    if (data.totalAmount) {
+    if (data.totalAmount !== undefined) {
       fields.push("total_amount = ?");
       values.push(data.totalAmount);
     }
-    if (data.commissionPercentage) {
+    if (data.commissionPercentage !== undefined) {
       fields.push("commission_percentage = ?");
       values.push(data.commissionPercentage);
     }
@@ -287,6 +287,22 @@ export class VendorOrderRepository implements IVendorOrderRepository {
     const conn = connection || this.pool;
     const [rows] = await conn.execute<RowDataPacket[]>(
       `SELECT * FROM vendor_orders WHERE status = 'PROPOSAL_SENT' AND customer_decision_deadline IS NOT NULL AND customer_decision_deadline > NOW()`,
+    );
+    return rows.map((r) => this.mapToEntity(r));
+  }
+
+  async findExpiredCancellationDecisions(connection?: PoolConnection): Promise<VendorOrder[]> {
+    const conn = connection || this.pool;
+    const [rows] = await conn.execute<RowDataPacket[]>(
+      `SELECT * FROM vendor_orders WHERE status = 'CANCELLED' AND customer_decision_deadline IS NOT NULL AND customer_decision_deadline < NOW()`,
+    );
+    return rows.map((r) => this.mapToEntity(r));
+  }
+
+  async findCancellationDecisionsWithFutureDeadline(connection?: PoolConnection): Promise<VendorOrder[]> {
+    const conn = connection || this.pool;
+    const [rows] = await conn.execute<RowDataPacket[]>(
+      `SELECT * FROM vendor_orders WHERE status = 'CANCELLED' AND customer_decision_deadline IS NOT NULL AND customer_decision_deadline > NOW()`,
     );
     return rows.map((r) => this.mapToEntity(r));
   }

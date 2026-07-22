@@ -94,6 +94,7 @@
     "total_vendors": "إجمالي التجار",
     "total_couriers": "إجمالي المناديب",
     "total_revenue": "إجمالي الإيرادات",
+    "revenue_today": "إيرادات اليوم",
     "revenue_summary": "ملخص الإيرادات",
     "revenue_chart_placeholder": "مكان مخطط الإيرادات",
     "recent_activity_placeholder": "مكان النشاط الأخير"
@@ -263,6 +264,7 @@
   },
   "orders": {
     "order_id": "رقم الطلب",
+    "customer": "العميل",
     "customer_id": "رقم العميل",
     "total": "الإجمالي",
     "details": "تفاصيل الطلب",

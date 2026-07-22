@@ -12,9 +12,9 @@ export const OrderService = {
     });
     return response.data?.data?.deliveryFee;
   },
-  getMyOrders: async (page: number): Promise<{ items: CustomerOrder[]; hasNextPage: boolean }> => {
+  getMyOrders: async (page: number, limit = 20): Promise<{ items: CustomerOrder[]; total: number }> => {
     const response = await apiClient.get('/orders/customer-orders', {
-      params: { page, limit: 20 },
+      params: { page, limit },
     });
     return response.data.data!;
   },
@@ -33,6 +33,12 @@ export const OrderService = {
   rejectProposal: async (proposalId: string, cancelEntireOrder = false) => {
     const response = await apiClient.post(`/orders/proposals/${proposalId}/reject`, {
       cancelEntireOrder,
+    });
+    return response.data?.data;
+  },
+  resolveVendorCancellation: async (orderId: string, continueOrder: boolean) => {
+    const response = await apiClient.post(`/orders/customer-orders/${orderId}/resolve-cancellation`, {
+      continueOrder,
     });
     return response.data?.data;
   },

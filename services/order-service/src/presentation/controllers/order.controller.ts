@@ -18,6 +18,15 @@ export class OrderController {
     }
   };
 
+  getStats = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      const stats = await this.orderService.getOrderStats();
+      res.json(ApiResponse.success(stats));
+    } catch (error) {
+      next(error);
+    }
+  };
+
   getVendorOrderById = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
       const order = await this.orderService.getVendorOrderById(req.params.id, req.user?.userId);
@@ -97,6 +106,15 @@ export class OrderController {
     try {
       const proposals = await this.orderService.getOrderProposals(req.params.id);
       res.json(ApiResponse.success(proposals));
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  resolveVendorCancellation = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      await this.orderService.resolveVendorCancellation(req.params.id, req.body.continueOrder);
+      res.json(ApiResponse.success(null, "vendor_cancellation_resolved"));
     } catch (error) {
       next(error);
     }

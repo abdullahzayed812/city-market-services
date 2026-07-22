@@ -99,19 +99,19 @@ export class CustomerOrderRepository implements ICustomerOrderRepository {
       fields.push("cancellation_reason = ?");
       values.push(data.cancellationReason);
     }
-    if (data.subtotal) {
+    if (data.subtotal !== undefined) {
       fields.push("subtotal = ?");
       values.push(data.subtotal);
     }
-    if (data.deliveryFee) {
+    if (data.deliveryFee !== undefined) {
       fields.push("delivery_fee = ?");
       values.push(data.deliveryFee);
     }
-    if (data.commissionAmount) {
+    if (data.commissionAmount !== undefined) {
       fields.push("commission_amount = ?");
       values.push(data.commissionAmount);
     }
-    if (data.totalAmount) {
+    if (data.totalAmount !== undefined) {
       fields.push("total_amount = ?");
       values.push(data.totalAmount);
     }
@@ -132,6 +132,29 @@ export class CustomerOrderRepository implements ICustomerOrderRepository {
         `;
     const [result] = await conn.execute(query, [CustomerOrderStatus.READY, id, CustomerOrderStatus.READY]);
     return (result as mysql.ResultSetHeader).affectedRows;
+  }
+
+  async countAll(connection?: PoolConnection): Promise<number> {
+    const conn = connection || this.pool;
+    const [rows] = await conn.query<RowDataPacket[]>("SELECT COUNT(*) as count FROM customer_orders");
+    return rows[0].count;
+  }
+
+  async countByCustomer(customerId: string, connection?: PoolConnection): Promise<number> {
+    const conn = connection || this.pool;
+    const [rows] = await conn.query<RowDataPacket[]>("SELECT COUNT(*) as count FROM customer_orders WHERE customer_id = ?", [customerId]);
+    return rows[0].count;
+  }
+
+  async sumCommissionToday(status: string, connection?: PoolConnection): Promise<number> {
+    const conn = connection || this.pool;
+    const query = `
+      SELECT COALESCE(SUM(commission_amount), 0) as total
+      FROM customer_orders
+      WHERE status = ? AND created_at >= CURDATE()
+    `;
+    const [rows] = await conn.query<RowDataPacket[]>(query, [status]);
+    return parseFloat(rows[0].total);
   }
 
   private mapToEntity(row: any): CustomerOrder {

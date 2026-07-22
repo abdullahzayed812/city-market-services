@@ -10,6 +10,7 @@ export const createOrderRoutes = (controller: OrderController): Router => {
   router.get("/customer-orders", controller.getMyOrders);
   router.get("/customer-orders/:id", controller.getCustomerOrderById);
   router.get("/customer-orders/:id/proposals", controller.getOrderProposals);
+  router.post("/customer-orders/:id/resolve-cancellation", controller.resolveVendorCancellation);
   router.patch("/customer-orders/:id/status", controller.updateCustomerOrderStatus);
   // Vendor Routes
   router.get("/vendor/:vendorId", controller.getVendorOrders); // restored
@@ -24,6 +25,7 @@ export const createOrderRoutes = (controller: OrderController): Router => {
   router.post("/proposals/:id/reject", controller.rejectProposal);
 
   // Admin/Service Routes
+  router.get("/stats", controller.getStats);
   router.get("/", controller.getAllOrders);
 
   return router;

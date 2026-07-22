@@ -24,4 +24,22 @@ export class UserHttpClient {
       return false;
     }
   }
+
+  async getCustomerNamesByIds(customerIds: string[]): Promise<Map<string, string>> {
+    const uniqueIds = [...new Set(customerIds)];
+    if (uniqueIds.length === 0) return new Map();
+
+    try {
+      const config = await this.getRequestConfig();
+      const response = await this.axiosInstance.get(`${this.baseUrl}/customers`, {
+        params: { ids: uniqueIds.join(",") },
+        ...config,
+      });
+      const customers = response.data?.data ?? [];
+      return new Map(customers.map((c: any) => [c.userId, c.fullName]));
+    } catch (error: any) {
+      Logger.warn(`Failed to fetch customer names: ${error.message}`);
+      return new Map();
+    }
+  }
 }

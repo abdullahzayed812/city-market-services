@@ -124,4 +124,14 @@ export class OrderPublisher {
   }): Promise<void> {
     await this.publish(EventType.SLA_CUSTOMER_DECISION_EXPIRED, payload);
   }
+
+  async publishSlaVendorCancellationDecisionExpired(payload: {
+    vendorOrderId: string;
+    customerOrderId: string;
+    vendorId: string;
+    customerId: string;
+    autoAction: "continued";
+  }): Promise<void> {
+    await this.publish(EventType.SLA_VENDOR_CANCELLATION_DECISION_EXPIRED, payload);
+  }
 }

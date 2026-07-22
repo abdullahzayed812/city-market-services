@@ -1,5 +1,5 @@
 import sharp from "sharp";
-import { ImageVariant, IMAGE_VARIANTS } from "../../core/entities/media.entity.js";
+import { ImageVariant, IMAGE_VARIANTS } from "../../core/entities/media.entity";
 
 export class ImageOptimizerService {
   async processAll(buffer: Buffer): Promise<Record<ImageVariant, Buffer>> {

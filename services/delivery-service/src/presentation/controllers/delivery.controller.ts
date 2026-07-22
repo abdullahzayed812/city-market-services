@@ -31,6 +31,15 @@ export class DeliveryController {
     }
   };
 
+  getCouriersCount = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      const total = await this.deliveryService.countCouriers();
+      res.json(ApiResponse.success({ total }));
+    } catch (error) {
+      next(error);
+    }
+  };
+
   getMyCourier = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
       const courier = await this.deliveryService.getCourierByUserId(req.user!.userId);

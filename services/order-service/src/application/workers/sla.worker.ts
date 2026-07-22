@@ -30,6 +30,8 @@ export class OrderSlaWorker {
       await this.handleVendorConfirmationExpired(entityId);
     } else if (slaType === "customer_decision") {
       await this.handleCustomerDecisionExpired(entityId);
+    } else if (slaType === "vendor_cancellation_decision") {
+      await this.handleVendorCancellationDecisionExpired(entityId);
     }
   }
 
@@ -97,6 +99,38 @@ export class OrderSlaWorker {
         vendorId: vo.vendorId,
         customerId: co.customerId,
         autoAction: "accepted",
+      });
+    });
+  }
+
+  private async handleVendorCancellationDecisionExpired(vendorOrderId: string): Promise<void> {
+    Logger.warn(`[SLA] vendor_cancellation_decision expired for vendor-order:${vendorOrderId}`);
+
+    await this.db.withTransaction(async (connection) => {
+      const vo = await this.vendorOrderRepo.findByIdWithLock(vendorOrderId, connection);
+      if (!vo) return;
+
+      if (vo.status !== VendorOrderStatus.CANCELLED || !vo.customerDecisionDeadline) {
+        Logger.info(`[SLA] vendor_cancellation_decision for ${vendorOrderId} skipped — already resolved`);
+        return;
+      }
+
+      const co = await this.customerOrderRepo.findByIdWithLock(vo.customerOrderId, connection);
+      if (!co) return;
+
+      const terminalStatuses = [CustomerOrderStatus.COMPLETED, CustomerOrderStatus.CANCELLED, CustomerOrderStatus.CANCELLED_BY_CUSTOMER];
+      if (terminalStatuses.includes(co.status)) return;
+
+      // Conservative default: auto-continue without the cancelled vendor
+      await this.vendorOrderRepo.setDeadline(vendorOrderId, "customerDecisionDeadline", null, connection);
+      await this.stateManager.syncCustomerOrderStatus(vo.customerOrderId, connection);
+
+      await this.publisher.publishSlaVendorCancellationDecisionExpired({
+        vendorOrderId,
+        customerOrderId: vo.customerOrderId,
+        vendorId: vo.vendorId,
+        customerId: co.customerId,
+        autoAction: "continued",
       });
     });
   }

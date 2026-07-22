@@ -120,6 +120,53 @@ export class OrderSlaManager {
     Logger.info(`[SLA] Cancelled customer_decision for vendor-order:${vendorOrderId}`);
   }
 
+  async scheduleVendorCancellationDecisionSla(params: {
+    vendorOrderId: string;
+    vendorId: string;
+    customerOrderId: string;
+    customerId: string;
+  }): Promise<void> {
+    const deadline = new Date(Date.now() + this.customerDecisionSlaMins * 60_000);
+    const delayMs = this.customerDecisionSlaMins * 60_000;
+
+    await this.vendorOrderRepo.setDeadline(params.vendorOrderId, "customerDecisionDeadline", deadline);
+
+    const jobId = slaJobId("vendor_cancellation_decision", params.vendorOrderId);
+    await this.queue.add(
+      "vendor_cancellation_decision",
+      {
+        slaType: "vendor_cancellation_decision",
+        entityId: params.vendorOrderId,
+        entityType: "vendor_order",
+        customerOrderId: params.customerOrderId,
+        customerId: params.customerId,
+        vendorId: params.vendorId,
+        scheduledAt: new Date().toISOString(),
+      },
+      { jobId, delay: delayMs },
+    );
+
+    await this.publisher.publishSlaTimerStarted({
+      slaType: "vendor_cancellation_decision",
+      entityType: "vendor_order",
+      entityId: params.vendorOrderId,
+      deadline: deadline.toISOString(),
+      customerOrderId: params.customerOrderId,
+      customerId: params.customerId,
+      vendorId: params.vendorId,
+    });
+
+    Logger.info(`[SLA] Scheduled vendor_cancellation_decision for vendor-order:${params.vendorOrderId} deadline:${deadline.toISOString()}`);
+  }
+
+  async cancelVendorCancellationDecisionSla(vendorOrderId: string): Promise<void> {
+    const jobId = slaJobId("vendor_cancellation_decision", vendorOrderId);
+    const job = await this.queue.getJob(jobId);
+    if (job) await job.remove();
+    await this.vendorOrderRepo.setDeadline(vendorOrderId, "customerDecisionDeadline", null);
+    Logger.info(`[SLA] Cancelled vendor_cancellation_decision for vendor-order:${vendorOrderId}`);
+  }
+
   async runStartupRecovery(handler: (job: Job<SlaJobData>) => Promise<void>): Promise<void> {
     Logger.info("[SLA] Running order SLA startup recovery...");
 
@@ -156,6 +203,24 @@ export class OrderSlaManager {
       if (!existing) {
         await this.queue.add("customer_decision", { slaType: "customer_decision", entityId: vo.id, entityType: "vendor_order", customerOrderId: vo.customerOrderId, customerId: "", vendorId: vo.vendorId, scheduledAt: "" }, { jobId, delay: delayMs });
         Logger.info(`[SLA] Recovery: re-enqueued customer_decision for vendor-order:${vo.id} in ${Math.round(delayMs / 1000)}s`);
+      }
+    }
+
+    const expiredCancellationDecisions = await this.vendorOrderRepo.findExpiredCancellationDecisions();
+    for (const vo of expiredCancellationDecisions) {
+      Logger.warn(`[SLA] Startup: auto-processing expired vendor_cancellation_decision for vendor-order:${vo.id}`);
+      await handler({ data: { slaType: "vendor_cancellation_decision", entityId: vo.id, entityType: "vendor_order", customerOrderId: vo.customerOrderId, customerId: "", vendorId: vo.vendorId, scheduledAt: "" } } as Job<SlaJobData>);
+    }
+
+    const futureCancellationDecisions = await this.vendorOrderRepo.findCancellationDecisionsWithFutureDeadline();
+    for (const vo of futureCancellationDecisions) {
+      if (!vo.customerDecisionDeadline) continue;
+      const delayMs = Math.max(0, vo.customerDecisionDeadline.getTime() - Date.now());
+      const jobId = slaJobId("vendor_cancellation_decision", vo.id);
+      const existing = await this.queue.getJob(jobId);
+      if (!existing) {
+        await this.queue.add("vendor_cancellation_decision", { slaType: "vendor_cancellation_decision", entityId: vo.id, entityType: "vendor_order", customerOrderId: vo.customerOrderId, customerId: "", vendorId: vo.vendorId, scheduledAt: "" }, { jobId, delay: delayMs });
+        Logger.info(`[SLA] Recovery: re-enqueued vendor_cancellation_decision for vendor-order:${vo.id} in ${Math.round(delayMs / 1000)}s`);
       }
     }
 

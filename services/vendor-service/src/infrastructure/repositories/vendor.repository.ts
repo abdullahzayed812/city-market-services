@@ -59,6 +59,11 @@ export class VendorRepository implements IVendorRepository {
     return rows.map((row) => this.mapToEntity(row));
   }
 
+  async countAll(): Promise<number> {
+    const [rows] = await this.pool.query<RowDataPacket[]>("SELECT COUNT(*) as count FROM vendors");
+    return rows[0].count;
+  }
+
   async findByStatus(status: string): Promise<Vendor[]> {
     const query = "SELECT * FROM vendors WHERE status = ?";
     const [rows] = await this.pool.execute<RowDataPacket[]>(query, [status]);

@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -15,9 +16,10 @@ import {
   Volume2,
   VolumeX,
 } from "lucide-react";
-import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { NotificationService } from "@/services/api/notificationService";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { Pagination } from "@/components/ui/Pagination";
 import { formatDate, formatDateTime } from "@/lib/utils";
 import { useAuthStore } from "@/store/authStore";
 import { useNotificationStore } from "@/store/notificationStore";
@@ -160,6 +162,8 @@ function NotificationItem({ notification: n, onMarkRead }: NotificationItemProps
 
 // ── Main page ─────────────────────────────────────────────────────────────────
 
+const PAGE_SIZE = 20;
+
 export default function NotificationsPage() {
   const navigate = useNavigate();
   const { isAuthenticated } = useAuthStore();
@@ -167,12 +171,11 @@ export default function NotificationsPage() {
   const queryClient = useQueryClient();
   const { t } = useTranslation();
   const { isRTL } = useLanguage();
+  const [page, setPage] = useState(1);
 
-  const { data, isLoading, fetchNextPage, hasNextPage, isFetchingNextPage } = useInfiniteQuery({
-    queryKey: ["notifications"],
-    queryFn: ({ pageParam = 1 }) => NotificationService.getNotifications(pageParam as number, 20),
-    initialPageParam: 1,
-    getNextPageParam: (lastPage, pages) => (lastPage.items.length === 20 ? pages.length + 1 : undefined),
+  const { data, isLoading } = useQuery({
+    queryKey: ["notifications", page],
+    queryFn: () => NotificationService.getNotifications(page, PAGE_SIZE),
     enabled: isAuthenticated,
   });
 
@@ -200,8 +203,8 @@ export default function NotificationsPage() {
     },
   });
 
-  // Flatten paginated notifications
-  const allNotifications = data?.pages.flatMap((p) => p.items) ?? [];
+  const allNotifications = data?.items ?? [];
+  const totalPages = Math.ceil((data?.total ?? 0) / PAGE_SIZE);
   const unreadCount = countData?.unread ?? 0;
   const groups = groupNotifications(allNotifications);
 
@@ -300,18 +303,7 @@ export default function NotificationsPage() {
             ))}
           </AnimatePresence>
 
-          {/* Load more */}
-          {hasNextPage && (
-            <div className="flex justify-center pt-2">
-              <button
-                onClick={() => fetchNextPage()}
-                disabled={isFetchingNextPage}
-                className="px-6 py-2.5 text-sm font-semibold text-primary bg-primary-xlight hover:bg-primary-light rounded-xl transition-colors disabled:opacity-50"
-              >
-                {isFetchingNextPage ? t("common.loading") : t("store.load_more")}
-              </button>
-            </div>
-          )}
+          <Pagination currentPage={page} totalPages={totalPages} onPageChange={setPage} className="pt-2" />
         </div>
       )}
     </div>

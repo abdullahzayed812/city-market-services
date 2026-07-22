@@ -4,6 +4,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Pagination } from "@/components/ui/pagination";
 import { Image as ImageIcon, MoreHorizontal, Trash, Eye } from "lucide-react";
 import { type GlobalProduct, MeasurementType } from "@city-market/shared";
 
@@ -11,13 +12,13 @@ interface GlobalProductTableProps {
     products: GlobalProduct[];
     onDelete: (id: string) => void;
     onViewImage: (product: GlobalProduct) => void;
-    hasMore: boolean;
-    onLoadMore: () => void;
-    isFetchingNextPage: boolean;
+    currentPage: number;
+    totalPages: number;
+    onPageChange: (page: number) => void;
 }
 
 const GlobalProductTable: React.FC<GlobalProductTableProps> = memo(
-    ({ products, onDelete, onViewImage, hasMore, onLoadMore, isFetchingNextPage }) => {
+    ({ products, onDelete, onViewImage, currentPage, totalPages, onPageChange }) => {
         const { t } = useTranslation();
 
         return (
@@ -93,13 +94,7 @@ const GlobalProductTable: React.FC<GlobalProductTableProps> = memo(
                     </Table>
                 </div>
 
-                {hasMore && (
-                    <div className="text-center mt-4">
-                        <Button onClick={onLoadMore} disabled={isFetchingNextPage}>
-                            {isFetchingNextPage ? t("common.loading") : t("common.load_more")}
-                        </Button>
-                    </div>
-                )}
+                <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={onPageChange} className="mt-4" />
             </div>
         );
     },

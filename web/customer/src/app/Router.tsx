@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect, useState } from 'react';
-import { Routes, Route, Navigate, Outlet } from 'react-router-dom';
+import { Routes, Route, Navigate, Outlet, useLocation } from 'react-router-dom';
 import { Layout } from '@/components/layout/Layout';
 import { useAuthStore } from '@/store/authStore';
 import { silentRefresh } from '@/services/api/apiClient';
@@ -44,6 +44,18 @@ function GuestOnly() {
   return isAuthenticated ? <Navigate to="/" replace /> : <Outlet />;
 }
 
+// Resets scroll position on every route change — without this, a new page
+// opens wherever the previous page happened to be scrolled to.
+function ScrollToTop() {
+  const { pathname } = useLocation();
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [pathname]);
+
+  return null;
+}
+
 // Access tokens live only in memory, so a hard page reload loses them —
 // silently re-establish one from the httpOnly refresh cookie before rendering
 // any auth-gated route.
@@ -73,41 +85,44 @@ export function AppRouter() {
   }
 
   return (
-    <Suspense fallback={<PageLoader />}>
-      <Routes>
-        {/* Guest-only: redirect to home when already signed in */}
-        <Route element={<GuestOnly />}>
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/register" element={<RegisterPage />} />
-        </Route>
-
-        {/* Public standalone route */}
-        <Route path="/terms" element={<TermsPage />} />
-
-        {/* All app routes require authentication */}
-        <Route element={<RequireAuth />}>
-          <Route element={<Layout />}>
-            <Route path="/" element={<HomePage />} />
-            <Route path="/search" element={<SearchPage />} />
-            <Route path="/stores" element={<StoresPage />} />
-            <Route path="/store/:vendorId" element={<StoreDetailsPage />} />
-            <Route path="/store/:vendorId/reviews" element={<VendorReviewsPage />} />
-            <Route path="/product/:productId" element={<ProductDetailsPage />} />
-            <Route path="/cart" element={<CartPage />} />
-            <Route path="/checkout" element={<CheckoutPage />} />
-            <Route path="/orders" element={<OrdersPage />} />
-            <Route path="/orders/:orderId" element={<OrderDetailsPage />} />
-            <Route path="/orders/:orderId/proposals" element={<ReviewProposalsPage />} />
-            <Route path="/profile" element={<ProfilePage />} />
-            <Route path="/addresses" element={<AddressesPage />} />
-            <Route path="/notifications" element={<NotificationsPage />} />
-            <Route path="/settings/language" element={<LanguageSettingsPage />} />
+    <>
+      <ScrollToTop />
+      <Suspense fallback={<PageLoader />}>
+        <Routes>
+          {/* Guest-only: redirect to home when already signed in */}
+          <Route element={<GuestOnly />}>
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/register" element={<RegisterPage />} />
           </Route>
-        </Route>
 
-        {/* Catch-all */}
-        <Route path="*" element={<Navigate to="/login" replace />} />
-      </Routes>
-    </Suspense>
+          {/* Public standalone route */}
+          <Route path="/terms" element={<TermsPage />} />
+
+          {/* All app routes require authentication */}
+          <Route element={<RequireAuth />}>
+            <Route element={<Layout />}>
+              <Route path="/" element={<HomePage />} />
+              <Route path="/search" element={<SearchPage />} />
+              <Route path="/stores" element={<StoresPage />} />
+              <Route path="/store/:vendorId" element={<StoreDetailsPage />} />
+              <Route path="/store/:vendorId/reviews" element={<VendorReviewsPage />} />
+              <Route path="/product/:productId" element={<ProductDetailsPage />} />
+              <Route path="/cart" element={<CartPage />} />
+              <Route path="/checkout" element={<CheckoutPage />} />
+              <Route path="/orders" element={<OrdersPage />} />
+              <Route path="/orders/:orderId" element={<OrderDetailsPage />} />
+              <Route path="/orders/:orderId/proposals" element={<ReviewProposalsPage />} />
+              <Route path="/profile" element={<ProfilePage />} />
+              <Route path="/addresses" element={<AddressesPage />} />
+              <Route path="/notifications" element={<NotificationsPage />} />
+              <Route path="/settings/language" element={<LanguageSettingsPage />} />
+            </Route>
+          </Route>
+
+          {/* Catch-all */}
+          <Route path="*" element={<Navigate to="/login" replace />} />
+        </Routes>
+      </Suspense>
+    </>
   );
 }

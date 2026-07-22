@@ -1,5 +1,5 @@
-import { useState, useCallback, useMemo } from "react";
-import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useState, useCallback, useEffect } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { adminApi } from "@/services/api/admin-api";
 import type { VendorProduct, CreateVendorProductDto } from "@city-market/shared";
 import { useToast } from "@/hooks/use-toast";
@@ -16,34 +16,22 @@ export const useAdminProducts = ({ initialLimit = 20, globalCategoryId, vendorCa
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [limit] = useState(initialLimit);
+  const [page, setPage] = useState(1);
+
+  useEffect(() => {
+    setPage(1);
+  }, [globalCategoryId, vendorCategoryId, vendorId, search]);
 
   // --- Fetching Vendor Products ---
-  const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading, isFetching, isPlaceholderData, error } = useInfiniteQuery({
-    queryKey: ["adminProducts", { globalCategoryId, vendorCategoryId, vendorId, search }],
-    queryFn: async ({ pageParam = 1 }) => {
-      const response = await adminApi.getVendorProducts(pageParam, limit, { globalCategoryId, vendorCategoryId, vendorId, search });
-
-      return {
-        products: response?.data,
-        currentPage: pageParam,
-        hasMore: response.hasMore,
-      };
-    },
-    getNextPageParam: (lastPage) => {
-      return lastPage.hasMore ? lastPage.currentPage + 1 : undefined;
-    },
-    initialPageParam: 1,
+  const { data, isLoading, isFetching, isPlaceholderData, error } = useQuery({
+    queryKey: ["adminProducts", { globalCategoryId, vendorCategoryId, vendorId, search, page }],
+    queryFn: () => adminApi.getVendorProducts(page, limit, { globalCategoryId, vendorCategoryId, vendorId, search }),
     placeholderData: (previousData) => previousData,
   });
 
-  const products = useMemo(() => data?.pages.flatMap((page) => page.products) || [], [data?.pages]);
-  const hasMoreProducts = hasNextPage || false;
-
-  const loadMoreProducts = useCallback(() => {
-    if (hasMoreProducts && !isFetchingNextPage) {
-      fetchNextPage();
-    }
-  }, [hasMoreProducts, isFetchingNextPage, fetchNextPage]);
+  const products = data?.data ?? [];
+  const total = data?.total ?? 0;
+  const totalPages = Math.ceil(total / limit);
 
   // --- Fetching Categories ---
   const { data: categories, isLoading: isLoadingCategories } = useQuery({
@@ -141,17 +129,17 @@ export const useAdminProducts = ({ initialLimit = 20, globalCategoryId, vendorCa
 
   return {
     products,
+    total,
+    page,
+    totalPages,
+    setPage,
     categories,
     vendors,
     isLoadingProducts: isLoading,
-    isFetchingProducts: isFetchingNextPage, // This was already named incorrectly in return
     isFetching,
     isPlaceholderData,
     isLoadingCategories,
     isLoadingVendors,
-    isFetchingNextProductsPage: isFetchingNextPage,
-    hasMoreProducts,
-    loadMoreProducts,
     createVendorProduct,
     updateVendorProduct,
     deleteVendorProduct,

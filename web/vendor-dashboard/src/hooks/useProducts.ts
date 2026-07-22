@@ -1,26 +1,21 @@
-import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from "@tanstack/react-query";
+import { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { productService } from "@/services/api/product.service";
 import { useAuth } from "@/components/AuthProvider";
 import type { BulkAddVendorProductsFromGlobalItem } from "@city-market/shared";
+
+const PAGE_SIZE = 20;
 
 export const useProducts = () => {
   const { vendor } = useAuth();
   const vendorId = vendor?.id;
   const queryClient = useQueryClient();
+  const [page, setPage] = useState(1);
 
-  const productsQuery = useInfiniteQuery({
-    queryKey: ["vendor-products", "infinite", vendorId],
-    queryFn: ({ pageParam = 1 }) => productService.getVendorProducts(vendorId!, pageParam, 20),
-    getNextPageParam: (lastPage) => {
-      if (!lastPage || !lastPage.data || typeof lastPage.total !== "number") return undefined;
-      const { page, limit, total } = lastPage;
-      if (page * limit < total) {
-        return page + 1;
-      }
-      return undefined;
-    },
+  const productsQuery = useQuery({
+    queryKey: ["vendor-products", vendorId, page],
+    queryFn: () => productService.getVendorProducts(vendorId!, page, PAGE_SIZE),
     enabled: !!vendorId,
-    initialPageParam: 1,
   });
 
   const globalCategoriesQuery = useQuery({
@@ -70,12 +65,19 @@ export const useProducts = () => {
     },
   });
 
+  const bulkAddProductsFromCategoryMutation = useMutation({
+    mutationFn: (globalCategoryId: string) => productService.bulkAddProductsFromCategory(vendorId!, globalCategoryId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["vendor-products"] });
+    },
+  });
+
   return {
     vendorId,
-    products: productsQuery.data?.pages.flatMap((page) => page?.data || []) || [],
-    hasMoreProducts: !!productsQuery.hasNextPage,
-    isFetchingNextProductsPage: productsQuery.isFetchingNextPage,
-    loadMoreProducts: productsQuery.fetchNextPage,
+    products: productsQuery.data?.data || [],
+    page,
+    totalPages: Math.ceil((productsQuery.data?.total || 0) / PAGE_SIZE),
+    setPage,
     globalCategories: globalCategoriesQuery.data || [],
     vendorCategories: vendorCategoriesQuery.data || [],
     isLoading: productsQuery.isLoading || globalCategoriesQuery.isLoading || vendorCategoriesQuery.isLoading,
@@ -84,5 +86,6 @@ export const useProducts = () => {
     deleteVendorProduct: deleteVendorProductMutation.mutate,
     updateProductImage: updateProductImageMutation.mutate,
     bulkAddProductsFromGlobal: bulkAddProductsFromGlobalMutation.mutateAsync,
+    bulkAddProductsFromCategory: bulkAddProductsFromCategoryMutation.mutateAsync,
   };
 };

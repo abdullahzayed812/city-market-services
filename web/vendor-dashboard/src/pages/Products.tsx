@@ -11,6 +11,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Image as ImageIcon, MoreHorizontal, Pencil, Trash2, ListPlus } from "lucide-react";
+import { Pagination } from "@/components/ui/pagination";
 import VendorProductImageModal from "@/components/ProductImageModal";
 import { MeasurementType } from "@city-market/shared";
 import ProductFormDialog from "@/features/products/components/ProductFormDialog";
@@ -25,10 +26,11 @@ const Products = () => {
     isLoading,
     updateVendorProduct,
     deleteVendorProduct,
-    hasMoreProducts,
-    isFetchingNextProductsPage,
-    loadMoreProducts,
+    page,
+    totalPages,
+    setPage,
     bulkAddProductsFromGlobal,
+    bulkAddProductsFromCategory,
   } = useProducts();
 
   const [isBulkAddDialogOpen, setIsBulkAddDialogOpen] = useState(false);
@@ -185,6 +187,7 @@ const Products = () => {
         open={isBulkAddDialogOpen}
         onOpenChange={setIsBulkAddDialogOpen}
         onSubmit={bulkAddProductsFromGlobal}
+        onImportCategory={bulkAddProductsFromCategory}
       />
 
       <ProductFormDialog
@@ -198,13 +201,7 @@ const Products = () => {
 
       {productList}
 
-      {hasMoreProducts && (
-        <div className="flex justify-center pt-4">
-          <Button variant="outline" onClick={() => loadMoreProducts()} disabled={isFetchingNextProductsPage}>
-            {isFetchingNextProductsPage ? t("common.loading", "Loading...") : t("common.load_more", "Load More")}
-          </Button>
-        </div>
-      )}
+      <Pagination currentPage={page} totalPages={totalPages} onPageChange={setPage} className="pt-4" />
 
       <VendorProductImageModal
         isOpen={isImageModalOpen}

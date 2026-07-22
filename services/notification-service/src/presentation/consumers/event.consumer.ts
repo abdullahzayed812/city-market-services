@@ -102,6 +102,23 @@ export class EventConsumer {
       },
     );
 
+    await rabbitMQBus.subscribe(
+      EventType.VENDOR_ORDER_CANCELLED,
+      "notification_vendor_order_cancelled",
+      async (event: BaseEvent) => {
+        const { customerOrderId, customerId } = event.payload;
+        if (customerId) {
+          await this.notificationService.sendNotification(
+            customerId,
+            "ORDER_UPDATE",
+            "notification_vendor_order_cancelled_title",
+            "notification_vendor_order_cancelled_message",
+            { orderId: customerOrderId, type: "ORDER_UPDATE", role: "CUSTOMER" },
+          );
+        }
+      },
+    );
+
     await rabbitMQBus.subscribe(EventType.DELIVERY_CREATED, "notification_delivery_created", async (event: BaseEvent) => {
       const { deliveryId, customerOrderId } = event.payload;
 
@@ -254,6 +271,21 @@ export class EventConsumer {
         { orderId: customerOrderId, type: "ORDER_UPDATE", role: "CUSTOMER" },
       );
     });
+
+    await rabbitMQBus.subscribe(
+      EventType.SLA_VENDOR_CANCELLATION_DECISION_EXPIRED,
+      "notification_sla_vendor_cancellation_decision_expired",
+      async (event: BaseEvent) => {
+        const { customerOrderId, customerId } = event.payload;
+        await this.notificationService.sendNotification(
+          customerId,
+          "ORDER_UPDATE",
+          "notification_sla_vendor_cancellation_auto_continued_title",
+          "notification_sla_vendor_cancellation_auto_continued_message",
+          { orderId: customerOrderId, type: "ORDER_UPDATE", role: "CUSTOMER" },
+        );
+      },
+    );
 
     await rabbitMQBus.subscribe(EventType.SLA_DELIVERY_ACCEPTANCE_EXPIRED, "notification_sla_delivery_acceptance_expired", async (event: BaseEvent) => {
       const { deliveryId, customerOrderId } = event.payload;

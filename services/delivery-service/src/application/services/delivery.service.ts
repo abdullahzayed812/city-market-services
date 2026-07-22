@@ -78,6 +78,10 @@ export class DeliveryService {
     return this.courierRepo.findAll(limit, offset);
   }
 
+  async countCouriers(): Promise<number> {
+    return this.courierRepo.countAll();
+  }
+
   async getCourierById(id: string): Promise<Courier> {
     const courier = await this.courierRepo.findById(id);
     if (!courier) {

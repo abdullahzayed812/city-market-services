@@ -4,6 +4,7 @@ import { Logger } from "../utils/logger.js";
 export type SlaType =
   | "vendor_confirmation"
   | "customer_decision"
+  | "vendor_cancellation_decision"
   | "delivery_acceptance"
   | "courier_assignment"
   | "courier_pickup";

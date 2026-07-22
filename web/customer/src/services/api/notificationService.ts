@@ -2,11 +2,11 @@ import apiClient from "./apiClient";
 import type { Notification } from "@/types";
 
 export const NotificationService = {
-  getNotifications: async (page = 1, limit = 20): Promise<{ items: Notification[]; unread: number }> => {
+  getNotifications: async (page = 1, limit = 20): Promise<{ items: Notification[]; total: number; unread: number }> => {
     const response = await apiClient.get("/notification/notifications", {
       params: { page, limit },
     });
-    return response.data?.data ?? { items: [], unread: 0 };
+    return response.data?.data ?? { items: [], total: 0, unread: 0 };
   },
 
   markAsRead: async (id: string) => {

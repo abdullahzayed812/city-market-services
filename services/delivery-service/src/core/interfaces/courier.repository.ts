@@ -7,6 +7,7 @@ export interface ICourierRepository {
   findAvailable(connection?: any): Promise<Courier[]>;
   findAvailableByOfficeId(deliveryOfficeId: string, connection?: any): Promise<Courier[]>;
   findAll(limit: number, offset: number, connection?: any): Promise<Courier[]>;
+  countAll(connection?: any): Promise<number>;
   findByOfficeId(deliveryOfficeId: string, limit: number, offset: number, connection?: any): Promise<Courier[]>;
   update(id: string, data: Partial<Courier>, connection?: any): Promise<void>;
   updateAvailability(id: string, isAvailable: boolean, connection?: any): Promise<void>;

@@ -1,17 +1,20 @@
-import { useMemo } from "react";
+import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Package, Clock, Calendar, ChevronRight, Timer } from "lucide-react";
-import { useInfiniteQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { OrderService } from "@/services/api/orderService";
 import { useAuthStore } from "@/store/authStore";
 import { CustomerOrderStatus } from "@/types";
 import { formatPrice } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { Button } from "@/components/ui/Button";
+import { Pagination } from "@/components/ui/Pagination";
 import { useTranslation } from "react-i18next";
 import { useSlaCountdown } from "@/hooks/useSlaCountdown";
 import type { CustomerOrder } from "@/types";
+
+const PAGE_SIZE = 20;
 
 function OrderCard({ order }: { order: CustomerOrder }) {
   const { t } = useTranslation();
@@ -99,16 +102,16 @@ export default function OrdersPage() {
   const navigate = useNavigate();
   const { isAuthenticated } = useAuthStore();
   const { t } = useTranslation();
+  const [page, setPage] = useState(1);
 
-  const { data, isLoading, fetchNextPage, hasNextPage, isFetchingNextPage } = useInfiniteQuery({
-    queryKey: ["my-orders"],
-    queryFn: ({ pageParam }) => OrderService.getMyOrders(pageParam),
-    initialPageParam: 1,
-    getNextPageParam: (lastPage, _, lastPageParam) => (lastPage.hasNextPage ? lastPageParam + 1 : undefined),
+  const { data, isLoading } = useQuery({
+    queryKey: ["my-orders", page],
+    queryFn: () => OrderService.getMyOrders(page, PAGE_SIZE),
     enabled: isAuthenticated,
   });
 
-  const orders = useMemo(() => data?.pages.flatMap((p) => p.items ?? []) ?? [], [data]);
+  const orders = data?.items ?? [];
+  const totalPages = Math.ceil((data?.total ?? 0) / PAGE_SIZE);
 
   return (
     <div className="max-w-3xl mx-auto px-4 sm:px-6 py-6 animate-fade-in">
@@ -137,17 +140,7 @@ export default function OrdersPage() {
             ))}
           </div>
 
-          {hasNextPage && (
-            <div className="flex justify-center mt-6">
-              <button
-                onClick={() => fetchNextPage()}
-                disabled={isFetchingNextPage}
-                className="px-6 py-3 bg-white border border-border text-sm font-semibold rounded-xl hover:bg-gray-50 transition-colors disabled:opacity-50"
-              >
-                {isFetchingNextPage ? t("common.loading") : t("store.load_more")}
-              </button>
-            </div>
-          )}
+          <Pagination currentPage={page} totalPages={totalPages} onPageChange={setPage} className="mt-6" />
         </>
       )}
     </div>

@@ -220,7 +220,14 @@
     "vendor_status_cancelled": "ملغي",
     "order_not_found": "الطلب غير موجود",
     "requested": "المطلوب",
-    "submit_review": "إرسال التقييم"
+    "submit_review": "إرسال التقييم",
+    "vendor_cancelled_decision_banner": "ألغى {{vendor}} جزءه من طلبك. اضغط لتحديد ما سيحدث بعد ذلك.",
+    "vendor_cancelled_title": "ألغى أحد المتاجر جزءًا من طلبك",
+    "vendor_cancelled_message": "ألغى {{vendor}} جزءه من طلبك. يمكنك المتابعة بالعناصر المتبقية، أو إلغاء الطلب بالكامل.",
+    "continue_without_vendor": "المتابعة بدون هذا المتجر",
+    "cancel_entire_order": "إلغاء الطلب بالكامل",
+    "cancellation_decision_recorded": "تم تسجيل قرارك",
+    "cancellation_decision_failed": "فشل تسجيل قرارك. الرجاء المحاولة مرة أخرى."
   },
   "proposals": {
     "title": "مراجعة العروض",

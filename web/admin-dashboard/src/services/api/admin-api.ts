@@ -147,14 +147,12 @@ export const adminApi = {
     page: number,
     limit: number,
     filters?: { globalCategoryId?: string; vendorCategoryId?: string; vendorId?: string; search?: string },
-  ): Promise<{ data: VendorProduct[]; hasMore: boolean }> => {
+  ): Promise<{ data: VendorProduct[]; total: number }> => {
     const response = await axiosInstance.get<ApiResponse<{ data: VendorProduct[]; total: number }>>("/admin/products", {
       params: { page, limit, ...filters },
     });
 
-    const { data: itemsData, total } = response.data.data!;
-    const hasMore = page * limit < total;
-    return { data: itemsData, hasMore };
+    return response.data.data!;
   },
   createVendorProduct: (body: CreateVendorProductDto) => axiosInstance.post<ApiResponse<VendorProduct>>("/admin/products", body),
   updateVendorProduct: (id: string, body: Partial<VendorProduct>) => axiosInstance.put<ApiResponse<null>>(`/admin/products/${id}`, body),
@@ -167,11 +165,17 @@ export const adminApi = {
     });
     return response.data.data!;
   },
+  bulkAddVendorProductsFromCategory: async (vendorId: string, globalCategoryId: string): Promise<BulkAddVendorProductsFromGlobalResult> => {
+    const response = await axiosInstance.post<ApiResponse<BulkAddVendorProductsFromGlobalResult>>(`/admin/vendors/${vendorId}/products/bulk-add-global`, {
+      globalCategoryId,
+    });
+    return response.data.data!;
+  },
 
   // Global Products management
-  getGlobalProducts: async (page: number, limit: number, search?: string): Promise<{ data: GlobalProduct[]; total: number }> => {
+  getGlobalProducts: async (page: number, limit: number, search?: string, globalCategoryId?: string): Promise<{ data: GlobalProduct[]; total: number }> => {
     const response = await axiosInstance.get<ApiResponse<{ data: GlobalProduct[]; total: number }>>("/admin/global-products", {
-      params: { page, limit, search },
+      params: { page, limit, search, globalCategoryId },
     });
     return response.data.data!;
   },

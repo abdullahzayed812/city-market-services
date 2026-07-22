@@ -149,6 +149,16 @@ export class AuthController {
     }
   };
 
+  getUsersCount = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const role = req.query.role as string;
+      const total = await this.authService.countUsers(role);
+      res.json(ApiResponse.success({ total }));
+    } catch (error) {
+      next(error);
+    }
+  };
+
   getUserById = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const { id } = req.params;

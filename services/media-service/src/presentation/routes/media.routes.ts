@@ -1,8 +1,8 @@
 import { Router } from "express";
-import { MediaController } from "../controllers/media.controller.js";
+import { MediaController } from "../controllers/media.controller";
 import { UserRole } from "@city-market/shared";
 import { authorize } from "@city-market/shared/node";
-import { uploadMemory } from "../middlewares/upload.middleware.js";
+import { uploadMemory } from "../middlewares/upload.middleware";
 
 export const createMediaRoutes = (controller: MediaController): Router => {
   const router = Router();

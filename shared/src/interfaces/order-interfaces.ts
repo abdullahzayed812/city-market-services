@@ -4,6 +4,7 @@ import { ProposalType, ProposalStatus } from "../enums/proposal-enums";
 export interface CustomerOrder {
   id: string;
   customerId: string;
+  customerName?: string;
   status: CustomerOrderStatus;
   subtotal: number;
   deliveryFee: number;

@@ -88,7 +88,9 @@ function RatingModal({ open, onClose, vendor, orderId }: { open: boolean; onClos
 export default function OrderDetailsPage() {
   const { orderId } = useParams<{ orderId: string }>();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [ratingVendor, setRatingVendor] = useState<{ id: string; name: string } | null>(null);
+  const [showCancellationDecision, setShowCancellationDecision] = useState(false);
   const { t } = useTranslation();
   const { isRTL } = useLanguage();
   const VENDOR_STATUS_CONFIG = useVendorStatusConfig();
@@ -132,6 +134,23 @@ export default function OrderDetailsPage() {
   }, [order?.status, data?.vendorOrders]);
 
   const customerDecisionCountdown = useSlaCountdown(customerDecisionDeadline);
+
+  const cancelledVendorPendingDecision = useMemo(() => {
+    const vendorOrders: VendorOrder[] = data?.vendorOrders || [];
+    if (order?.status !== CustomerOrderStatus.WAITING_CUSTOMER_DECISION) return null;
+    return vendorOrders.find((v) => v.status === VendorOrderStatus.CANCELLED && v.customerDecisionDeadline) ?? null;
+  }, [order?.status, data?.vendorOrders]);
+
+  const resolveCancellationMutation = useMutation({
+    mutationFn: (continueOrder: boolean) => OrderService.resolveVendorCancellation(orderId!, continueOrder),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["order", orderId] });
+      queryClient.invalidateQueries({ queryKey: ["orders"] });
+      toast.success(t('orders.cancellation_decision_recorded'));
+      setShowCancellationDecision(false);
+    },
+    onError: () => toast.error(t('orders.cancellation_decision_failed')),
+  });
 
   if (isLoading) {
     return (
@@ -243,6 +262,20 @@ export default function OrderDetailsPage() {
               <ChevronLeft size={16} className="text-amber-500 rotate-180" />
             </motion.div>
           </Link>
+        )}
+
+        {cancelledVendorPendingDecision && (
+          <motion.div
+            whileHover={{ scale: 1.01 }}
+            onClick={() => setShowCancellationDecision(true)}
+            className="flex items-center gap-3 bg-red-50 border border-red-200 rounded-xl p-3 mt-4 cursor-pointer"
+          >
+            <Ban size={18} className="text-red-500 flex-shrink-0" />
+            <p className="text-sm font-bold text-red-700 flex-1">
+              {t('orders.vendor_cancelled_decision_banner', { vendor: cancelledVendorPendingDecision.vendorName || t('common.vendor') })}
+            </p>
+            <ChevronLeft size={16} className="text-red-500 rotate-180" />
+          </motion.div>
         )}
 
         {customerDecisionCountdown.remainingSeconds > 0 && !customerDecisionCountdown.isExpired && (
@@ -362,6 +395,36 @@ export default function OrderDetailsPage() {
 
       {/* Rating modal */}
       <RatingModal open={!!ratingVendor} onClose={() => setRatingVendor(null)} vendor={ratingVendor} orderId={orderId!} />
+
+      {/* Vendor-cancelled decision modal */}
+      <Modal open={showCancellationDecision} onClose={() => setShowCancellationDecision(false)} title={t('orders.vendor_cancelled_title')}>
+        <p className="text-sm text-text-muted mb-6 leading-relaxed">
+          {t('orders.vendor_cancelled_message', { vendor: cancelledVendorPendingDecision?.vendorName || t('common.vendor') })}
+        </p>
+        <div className="space-y-3">
+          <Button
+            variant="outline"
+            fullWidth
+            className="h-12 border-2"
+            loading={resolveCancellationMutation.isPending}
+            onClick={() => resolveCancellationMutation.mutate(true)}
+          >
+            {t('orders.continue_without_vendor')}
+          </Button>
+          <Button
+            variant="danger"
+            fullWidth
+            className="h-12"
+            loading={resolveCancellationMutation.isPending}
+            onClick={() => resolveCancellationMutation.mutate(false)}
+          >
+            {t('orders.cancel_entire_order')}
+          </Button>
+          <Button variant="ghost" fullWidth onClick={() => setShowCancellationDecision(false)}>
+            {t('common.cancel')}
+          </Button>
+        </div>
+      </Modal>
     </div>
   );
 }

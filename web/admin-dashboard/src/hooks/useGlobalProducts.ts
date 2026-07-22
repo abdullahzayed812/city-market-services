@@ -1,46 +1,35 @@
-import { useState, useCallback, useMemo } from "react";
-import { useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useState, useCallback, useEffect } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { adminApi } from "@/services/api/admin-api";
 import { useToast } from "@/hooks/use-toast";
 
 interface UseGlobalProductsOptions {
     initialLimit?: number;
     search?: string;
+    globalCategoryId?: string;
     enabled?: boolean;
 }
 
-export const useGlobalProducts = ({ initialLimit = 20, search, enabled = true }: UseGlobalProductsOptions = {}) => {
+export const useGlobalProducts = ({ initialLimit = 20, search, globalCategoryId, enabled = true }: UseGlobalProductsOptions = {}) => {
     const { toast } = useToast();
     const queryClient = useQueryClient();
     const [limit] = useState(initialLimit);
+    const [page, setPage] = useState(1);
 
-    const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading, isFetching, isPlaceholderData, error } = useInfiniteQuery({
-        queryKey: ["globalProducts", { search }],
+    useEffect(() => {
+        setPage(1);
+    }, [search, globalCategoryId]);
+
+    const { data, isLoading, isFetching, isPlaceholderData, error } = useQuery({
+        queryKey: ["globalProducts", { search, globalCategoryId, page }],
         enabled,
-        queryFn: async ({ pageParam = 1 }) => {
-            const response = await adminApi.getGlobalProducts(pageParam, limit, search);
-
-            return {
-                products: response.data,
-                currentPage: pageParam,
-                hasMore: response.data.length === limit,
-            };
-        },
-        getNextPageParam: (lastPage) => {
-            return lastPage.hasMore ? lastPage.currentPage + 1 : undefined;
-        },
-        initialPageParam: 1,
+        queryFn: () => adminApi.getGlobalProducts(page, limit, search, globalCategoryId),
         placeholderData: (previousData) => previousData,
     });
 
-    const products = useMemo(() => data?.pages.flatMap((page) => page.products) || [], [data?.pages]);
-    const hasMoreProducts = hasNextPage || false;
-
-    const loadMoreProducts = useCallback(() => {
-        if (hasMoreProducts && !isFetchingNextPage) {
-            fetchNextPage();
-        }
-    }, [hasMoreProducts, isFetchingNextPage, fetchNextPage]);
+    const products = data?.data ?? [];
+    const total = data?.total ?? 0;
+    const totalPages = Math.ceil(total / limit);
 
     // --- Delete Global Product ---
     const deleteGlobalProductMutation = useMutation({
@@ -63,12 +52,13 @@ export const useGlobalProducts = ({ initialLimit = 20, search, enabled = true }:
 
     return {
         products,
+        total,
+        page,
+        totalPages,
+        setPage,
         isLoadingProducts: isLoading,
         isFetching,
         isPlaceholderData,
-        isFetchingNextProductsPage: isFetchingNextPage,
-        hasMoreProducts,
-        loadMoreProducts,
         deleteGlobalProduct,
         error,
     };

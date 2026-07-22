@@ -28,6 +28,15 @@ export class VendorController {
     }
   };
 
+  getCount = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      const total = await this.vendorService.countVendors();
+      res.json(ApiResponse.success({ total }));
+    } catch (error) {
+      next(error);
+    }
+  };
+
   getMyVendor = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
       const vendor = await this.vendorService.getVendorByUserId(req.user!.userId);

@@ -1,8 +1,8 @@
 import { Response, NextFunction } from "express";
-import { MediaService } from "../../application/services/media.service.js";
+import { MediaService } from "../../application/services/media.service";
 import { ApiResponse, ValidationError } from "@city-market/shared";
 import { AuthenticatedRequest } from "@city-market/shared/node";
-import { MediaFolder, ALLOWED_FOLDERS } from "../../core/entities/media.entity.js";
+import { MediaFolder, ALLOWED_FOLDERS } from "../../core/entities/media.entity";
 
 const UUID_REGEX =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;

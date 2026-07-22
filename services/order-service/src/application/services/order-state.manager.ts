@@ -56,11 +56,13 @@ export class OrderStateManager {
 
     const allConfirmed = nonCancelledVendorOrders.length > 0 && nonCancelledVendorOrders.every((vo) => vo.status === VendorOrderStatus.CONFIRMED);
     const allCancelled = vendorOrders.length > 0 && vendorOrders.every((vo) => vo.status === VendorOrderStatus.CANCELLED);
+    const hasPendingCancellationDecision = vendorOrders.some((vo) => vo.status === VendorOrderStatus.CANCELLED && !!vo.customerDecisionDeadline);
 
     let newStatus: CustomerOrderStatus | null = null;
     if (allCancelled) newStatus = CustomerOrderStatus.CANCELLED;
     else if (allConfirmed) newStatus = CustomerOrderStatus.READY;
-    else if (vendorOrders.some((vo) => vo.status === VendorOrderStatus.PROPOSAL_SENT)) newStatus = CustomerOrderStatus.WAITING_CUSTOMER_DECISION;
+    else if (hasPendingCancellationDecision || vendorOrders.some((vo) => vo.status === VendorOrderStatus.PROPOSAL_SENT))
+      newStatus = CustomerOrderStatus.WAITING_CUSTOMER_DECISION;
     else if (vendorOrders.some((vo) => vo.status === VendorOrderStatus.PREPARING)) newStatus = CustomerOrderStatus.PREPARING;
     else if (vendorOrders.some((vo) => vo.status === VendorOrderStatus.PENDING)) newStatus = CustomerOrderStatus.PENDING_VENDOR_CONFIRMATION;
 
@@ -141,6 +143,17 @@ export class OrderStateManager {
     if (!this.slaManager) return;
     this.slaManager.cancelVendorConfirmationSla(vendorOrderId).catch(() => {});
     this.slaManager.cancelCustomerDecisionSla(vendorOrderId).catch(() => {});
+    this.slaManager.cancelVendorCancellationDecisionSla(vendorOrderId).catch(() => {});
+  }
+
+  async scheduleVendorCancellationDecisionSla(vendorOrderId: string, vendorId: string, customerOrderId: string, customerId: string): Promise<void> {
+    if (!this.slaManager) return;
+    await this.slaManager.scheduleVendorCancellationDecisionSla({ vendorOrderId, vendorId, customerOrderId, customerId }).catch(() => {});
+  }
+
+  async cancelVendorCancellationDecisionSla(vendorOrderId: string): Promise<void> {
+    if (!this.slaManager) return;
+    this.slaManager.cancelVendorCancellationDecisionSla(vendorOrderId).catch(() => {});
   }
 
   isValidVendorStatusTransition(currentStatus: VendorOrderStatus, newStatus: VendorOrderStatus): boolean {
