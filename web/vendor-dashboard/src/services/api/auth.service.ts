@@ -1,4 +1,4 @@
-import apiClient from "./client";
+import apiClient, { APP_ID } from "./client";
 import { getOrCreateDeviceId } from "@/utils/deviceId";
 
 export const authService = {
@@ -7,6 +7,7 @@ export const authService = {
       ...credentials,
       deviceId: getOrCreateDeviceId(),
       platform: "web",
+      appId: APP_ID,
     });
     return response.data?.data;
   },
@@ -15,19 +16,20 @@ export const authService = {
       ...data,
       deviceId: getOrCreateDeviceId(),
       platform: "web",
+      appId: APP_ID,
     });
     return response.data?.data;
   },
   logout: async () => {
-    const response = await apiClient.post("/auth/logout");
+    const response = await apiClient.post("/auth/logout", { appId: APP_ID });
     return response.data?.data;
   },
   logoutAll: async () => {
-    const response = await apiClient.post("/auth/logout-all");
+    const response = await apiClient.post("/auth/logout-all", { appId: APP_ID });
     return response.data?.data;
   },
   refreshToken: async () => {
-    const response = await apiClient.post("/auth/refresh", { deviceId: getOrCreateDeviceId(), platform: "web" });
+    const response = await apiClient.post("/auth/refresh", { deviceId: getOrCreateDeviceId(), platform: "web", appId: APP_ID });
     return response.data?.data;
   },
 };

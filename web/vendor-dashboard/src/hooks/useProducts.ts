@@ -59,14 +59,16 @@ export const useProducts = () => {
   });
 
   const bulkAddProductsFromGlobalMutation = useMutation({
-    mutationFn: (items: BulkAddVendorProductsFromGlobalItem[]) => productService.bulkAddProductsFromGlobal(vendorId!, items),
+    mutationFn: ({ items, vendorCategoryId }: { items: BulkAddVendorProductsFromGlobalItem[]; vendorCategoryId?: string }) =>
+      productService.bulkAddProductsFromGlobal(vendorId!, items, vendorCategoryId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["vendor-products"] });
     },
   });
 
   const bulkAddProductsFromCategoryMutation = useMutation({
-    mutationFn: (globalCategoryId: string) => productService.bulkAddProductsFromCategory(vendorId!, globalCategoryId),
+    mutationFn: ({ globalCategoryId, vendorCategoryId }: { globalCategoryId: string; vendorCategoryId?: string }) =>
+      productService.bulkAddProductsFromCategory(vendorId!, globalCategoryId, vendorCategoryId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["vendor-products"] });
     },

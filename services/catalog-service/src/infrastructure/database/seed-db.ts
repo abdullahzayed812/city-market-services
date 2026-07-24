@@ -95,13 +95,13 @@ const seedDb = async () => {
         color: "#F43F5E",
         key: "BEAUTY",
       },
-      {
-        id: CAT.BABY,
-        name: "مستلزمات أطفال",
-        description: "حفاضات وحليب أطفال ومستلزمات العناية بالرضع",
-        color: "#FCA5A5",
-        key: "BABY",
-      },
+      // {
+      //   id: CAT.BABY,
+      //   name: "مستلزمات أطفال",
+      //   description: "حفاضات وحليب أطفال ومستلزمات العناية بالرضع",
+      //   color: "#FCA5A5",
+      //   key: "BABY",
+      // },
       {
         id: SEED_DATA.CATEGORIES.MEAT,
         name: "لحوم",
@@ -158,48 +158,48 @@ const seedDb = async () => {
         color: "#6366F1",
         key: "STATIONERY",
       },
-      {
-        id: CAT.CANNED,
-        name: "معلبات وصوصات",
-        description: "معلبات وصوصات وكاتشب ومايونيز ومرقة جاهزة",
-        color: "#DC2626",
-        key: "CANNED",
-      },
-      {
-        id: CAT.TEA_COFFEE,
-        name: "شاي وقهوة",
-        description: "شاي وقهوة ومشروبات عشبية ساخنة",
-        color: "#65A30D",
-        key: "TEA_COFFEE",
-      },
-      {
-        id: CAT.PAPER,
-        name: "ورقيات",
-        description: "مناديل ورقية وتواليت وفوط مطبخ",
-        color: "#94A3B8",
-        key: "PAPER",
-      },
-      {
-        id: CAT.PET,
-        name: "مستلزمات الحيوانات الأليفة",
-        description: "طعام القطط والكلاب ورمل القطط ومستلزمات الطيور",
-        color: "#F472B6",
-        key: "PET",
-      },
-      {
-        id: CAT.KITCHEN,
-        name: "أدوات المطبخ",
-        description: "أدوات تغليف ومستلزمات مطبخ للاستخدام مرة واحدة",
-        color: "#0D9488",
-        key: "KITCHEN",
-      },
-      {
-        id: CAT.HOUSEHOLD,
-        name: "أدوات منزلية متنوعة",
-        description: "بطاريات ولمبات إضاءة ومستلزمات منزلية متنوعة",
-        color: "#71717A",
-        key: "HOUSEHOLD",
-      },
+      // {
+      //   id: CAT.CANNED,
+      //   name: "معلبات وصوصات",
+      //   description: "معلبات وصوصات وكاتشب ومايونيز ومرقة جاهزة",
+      //   color: "#DC2626",
+      //   key: "CANNED",
+      // },
+      // {
+      //   id: CAT.TEA_COFFEE,
+      //   name: "شاي وقهوة",
+      //   description: "شاي وقهوة ومشروبات عشبية ساخنة",
+      //   color: "#65A30D",
+      //   key: "TEA_COFFEE",
+      // },
+      // {
+      //   id: CAT.PAPER,
+      //   name: "ورقيات",
+      //   description: "مناديل ورقية وتواليت وفوط مطبخ",
+      //   color: "#94A3B8",
+      //   key: "PAPER",
+      // },
+      // {
+      //   id: CAT.PET,
+      //   name: "مستلزمات الحيوانات الأليفة",
+      //   description: "طعام القطط والكلاب ورمل القطط ومستلزمات الطيور",
+      //   color: "#F472B6",
+      //   key: "PET",
+      // },
+      // {
+      //   id: CAT.KITCHEN,
+      //   name: "أدوات المطبخ",
+      //   description: "أدوات تغليف ومستلزمات مطبخ للاستخدام مرة واحدة",
+      //   color: "#0D9488",
+      //   key: "KITCHEN",
+      // },
+      // {
+      //   id: CAT.HOUSEHOLD,
+      //   name: "أدوات منزلية متنوعة",
+      //   description: "بطاريات ولمبات إضاءة ومستلزمات منزلية متنوعة",
+      //   color: "#71717A",
+      //   key: "HOUSEHOLD",
+      // },
     ];
 
     const globalCategoryMap: Record<string, string> = {};
@@ -327,7 +327,7 @@ const seedDb = async () => {
       {
         // Veg & fruit shops: produce, herbs, and eggs (sold alongside veg)
         ids: [V.AWLAD_RAGAB, V.MAZAARE_AL_KHEIR],
-        cats: ["خضروات طازجة", "فاكهة طازجة", "أعشاب طازجة", "بيض بلدي"],
+        cats: ["خضروات طازجة", "فاكهة طازجة"],
         globalMappings: {
           VEG_FRUIT: "خضروات طازجة",
           EGGS: "بيض بلدي",

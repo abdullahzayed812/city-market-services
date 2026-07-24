@@ -5,11 +5,13 @@ import { adminApi } from "@/services/api/admin-api";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Eye } from "lucide-react";
+import { Eye, Copy } from "lucide-react";
 import OrderDetailsDialog from "@/features/orders/components/OrderDetailsDialog";
+import { useToast } from "@/hooks/use-toast";
 
 const OrdersManagement: React.FC = () => {
   const { t } = useTranslation();
+  const { toast } = useToast();
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
   const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false);
 
@@ -38,6 +40,11 @@ const OrdersManagement: React.FC = () => {
     setIsDetailsDialogOpen(true);
   };
 
+  const handleCopyId = (id: string) => {
+    navigator.clipboard.writeText(id);
+    toast({ description: t("orders.order_id_copied", "Order ID copied to clipboard") });
+  };
+
   if (isLoading) return <div className="p-8 text-center">{t("common.loading")}</div>;
 
   return (
@@ -59,7 +66,17 @@ const OrdersManagement: React.FC = () => {
           <TableBody>
             {orders?.map((order) => (
               <TableRow key={order.id}>
-                <TableCell className="font-mono text-xs">{order.id}</TableCell>
+                <TableCell className="font-mono text-xs">
+                  <button
+                    type="button"
+                    onClick={() => handleCopyId(order.id)}
+                    title={order.id}
+                    className="inline-flex items-center gap-1.5 text-gray-600 hover:text-primary transition-colors"
+                  >
+                    #{order.id.slice(0, 8)}
+                    <Copy className="h-3 w-3 opacity-50" />
+                  </button>
+                </TableCell>
                 <TableCell>{order.customerName || order.customerId}</TableCell>
                 <TableCell>${order.totalAmount?.toFixed(2) ?? order.subtotal?.toFixed(2)}</TableCell>
                 <TableCell>

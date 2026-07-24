@@ -1,7 +1,7 @@
 export interface CreateCustomerDto {
   userId: string;
   fullName: string;
-  phone?: string;
+  phone: string;
 }
 
 export interface UpdateCustomerDto {

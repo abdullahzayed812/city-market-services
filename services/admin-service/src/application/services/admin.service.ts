@@ -1,6 +1,12 @@
+import { randomUUID } from "crypto";
 import { ServiceClient } from "../../infrastructure/http/service-client";
 import { Logger } from "@city-market/shared/node";
 import type { BulkAddVendorProductsFromGlobalItem, DashboardStats } from "@city-market/shared";
+
+// auth-service's /register requires a deviceId (it's built around a real client device
+// bootstrapping a session). These admin-initiated account creations aren't tied to any
+// device — there's no real client to source one from — so synthesize one per call.
+const adminDeviceContext = () => ({ deviceId: randomUUID(), platform: "web" as const });
 
 export class AdminService {
   constructor(private serviceClient: ServiceClient) { }
@@ -141,13 +147,14 @@ export class AdminService {
   // Creation Management
   async registerUser(data: any, userId?: string) {
     Logger.info("Registering new user via Admin");
-    return this.serviceClient.auth.register(data, userId);
+    return this.serviceClient.auth.register({ ...data, ...adminDeviceContext() }, userId);
   }
 
   async createCourier(data: any, userId?: string) {
     Logger.info("Creating new courier via Admin");
     // 1. Register user
     const userData = {
+      ...adminDeviceContext(),
       email: data.email,
       password: data.password,
       role: "COURIER",
@@ -172,6 +179,7 @@ export class AdminService {
     Logger.info("Creating new vendor via Admin");
     // 1. Register user
     const userData = {
+      ...adminDeviceContext(),
       email: data.email,
       password: data.password,
       role: "VENDOR",

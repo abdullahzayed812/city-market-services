@@ -94,6 +94,8 @@ export interface BulkAddVendorProductsFromGlobalItem {
 
 export interface BulkAddVendorProductsFromGlobalDto {
   items: BulkAddVendorProductsFromGlobalItem[];
+  /** Applied to every product in the batch (both the explicit-items and import-all-from-category paths). */
+  vendorCategoryId?: string;
 }
 
 export interface BulkAddVendorProductsFromGlobalResult {

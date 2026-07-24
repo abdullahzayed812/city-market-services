@@ -1,5 +1,6 @@
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import MainLayout from "./layouts/MainLayout.tsx";
+import NotFoundPage from "./pages/NotFoundPage.tsx";
 import Dashboard from "./pages/Dashboard.tsx";
 import UsersManagement from "./pages/UsersManagement.tsx";
 import OrdersManagement from "./pages/OrdersManagement.tsx";
@@ -43,6 +44,7 @@ function App() {
               <Route path="categories" element={<CategoriesManagement />} />
               <Route path="settings" element={<div>Settings Page (Coming Soon)</div>} />
             </Route>
+            <Route path="*" element={<NotFoundPage />} />
           </Routes>
         </Router>
       </SocketProvider>

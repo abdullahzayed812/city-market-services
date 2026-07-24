@@ -20,6 +20,11 @@ export class UserService {
     const existing = await this.customerRepo.findByUserId(dto.userId);
     if (existing) throw new ValidationError("customer_already_exists");
 
+    if (!dto.phone) throw new ValidationError("phone_required");
+
+    const existingPhone = await this.customerRepo.findByPhone(dto.phone);
+    if (existingPhone) throw new ValidationError("phone_already_registered");
+
     const customer: Customer = {
       id: randomUUID(),
       userId: dto.userId,
@@ -29,6 +34,11 @@ export class UserService {
       updatedAt: new Date(),
     };
     return this.customerRepo.create(customer);
+  }
+
+  async isPhoneAvailable(phone: string): Promise<boolean> {
+    const existing = await this.customerRepo.findByPhone(phone);
+    return !existing;
   }
 
   async getCustomerById(id: string): Promise<Customer> {
@@ -48,7 +58,13 @@ export class UserService {
   }
 
   async updateCustomer(id: string, dto: UpdateCustomerDto): Promise<void> {
-    await this.getCustomerById(id);
+    const customer = await this.getCustomerById(id);
+
+    if (dto.phone && dto.phone !== customer.phone) {
+      const existingPhone = await this.customerRepo.findByPhone(dto.phone);
+      if (existingPhone && existingPhone.id !== id) throw new ValidationError("phone_already_registered");
+    }
+
     await this.customerRepo.update(id, dto);
   }
 

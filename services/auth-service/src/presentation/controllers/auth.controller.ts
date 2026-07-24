@@ -10,17 +10,30 @@ import { parseUserAgent } from "../../utils/user-agent";
 export class AuthController {
   constructor(private authService: AuthService) { }
 
-  private setTokenCookies(res: Response, tokens: { accessToken: string; refreshToken: string }) {
-    const isProduction = process.env.NODE_ENV === "production";
+  /**
+   * Cookie names are namespaced per calling app (falls back to "default" for clients that
+   * don't send one, e.g. mobile — which ignores these cookies entirely and reads tokens from
+   * the response body instead). Without this, every web app hitting this backend host would
+   * share one "refresh_token" cookie, since the browser's cookie jar is keyed by domain, not
+   * by which frontend origin made the request. See DeviceContext.appId.
+   */
+  private cookieNames(appId?: string) {
+    const ns = appId && typeof appId === "string" ? appId : "default";
+    return { access: `access_token_${ns}`, refresh: `refresh_token_${ns}` };
+  }
 
-    res.cookie("access_token", tokens.accessToken, {
+  private setTokenCookies(res: Response, tokens: { accessToken: string; refreshToken: string }, appId?: string) {
+    const isProduction = process.env.NODE_ENV === "production";
+    const { access, refresh } = this.cookieNames(appId);
+
+    res.cookie(access, tokens.accessToken, {
       httpOnly: true,
       secure: isProduction,
       sameSite: isProduction ? "strict" : "lax",
       maxAge: parseDurationMs(config.jwtAccessExpiry),
     });
 
-    res.cookie("refresh_token", tokens.refreshToken, {
+    res.cookie(refresh, tokens.refreshToken, {
       httpOnly: true,
       secure: isProduction,
       sameSite: isProduction ? "strict" : "lax",
@@ -28,9 +41,10 @@ export class AuthController {
     });
   }
 
-  private clearTokenCookies(res: Response) {
-    res.clearCookie("access_token");
-    res.clearCookie("refresh_token");
+  private clearTokenCookies(res: Response, appId?: string) {
+    const { access, refresh } = this.cookieNames(appId);
+    res.clearCookie(access);
+    res.clearCookie(refresh);
   }
 
   private extractDeviceContext(req: Request): DeviceContext {
@@ -48,6 +62,7 @@ export class AuthController {
       os,
       deviceName: req.body?.deviceName,
       ipAddress: req.ip,
+      appId: req.body?.appId,
     };
   }
 
@@ -56,7 +71,7 @@ export class AuthController {
       const deviceCtx = this.extractDeviceContext(req);
       const tokens = await this.authService.register(req.body, deviceCtx);
       Logger.info("User registered", { email: req.body.email });
-      this.setTokenCookies(res, tokens);
+      this.setTokenCookies(res, tokens, deviceCtx.appId);
       res.status(201).json(ApiResponse.success(tokens, "registration_successful"));
     } catch (error) {
       next(error);
@@ -68,7 +83,7 @@ export class AuthController {
       const deviceCtx = this.extractDeviceContext(req);
       const tokens = await this.authService.login(req.body, deviceCtx);
       Logger.info("User logged in", { email: req.body.email });
-      this.setTokenCookies(res, tokens);
+      this.setTokenCookies(res, tokens, deviceCtx.appId);
       res.status(200).json(ApiResponse.success(tokens, "login_successful"));
     } catch (error) {
       next(error);
@@ -77,13 +92,13 @@ export class AuthController {
 
   refresh = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const refreshToken = req.body.refreshToken || req.cookies?.refresh_token;
+      const deviceCtx = this.extractDeviceContext(req);
+      const refreshToken = req.body.refreshToken || req.cookies?.[this.cookieNames(deviceCtx.appId).refresh];
       if (!refreshToken) {
         return res.status(401).json(ApiResponse.error("no_refresh_token_provided"));
       }
-      const deviceCtx = this.extractDeviceContext(req);
       const tokens = await this.authService.refreshToken(refreshToken, deviceCtx);
-      this.setTokenCookies(res, tokens);
+      this.setTokenCookies(res, tokens, deviceCtx.appId);
       res.json(ApiResponse.success(tokens, "token_refreshed"));
     } catch (error) {
       next(error);
@@ -92,7 +107,8 @@ export class AuthController {
 
   validate = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const token = req.headers.authorization?.replace("Bearer ", "") || req.cookies?.access_token;
+      const appId = (req.query.appId as string) || req.body?.appId;
+      const token = req.headers.authorization?.replace("Bearer ", "") || req.cookies?.[this.cookieNames(appId).access];
       if (!token) {
         return res.status(401).json(ApiResponse.error("no_token_provided"));
       }
@@ -108,7 +124,7 @@ export class AuthController {
       if (req.user?.sessionId) {
         await this.authService.logout(req.user.sessionId);
       }
-      this.clearTokenCookies(res);
+      this.clearTokenCookies(res, req.body?.appId);
       res.json(ApiResponse.success(null, "logged_out_successfully"));
     } catch (error) {
       next(error);
@@ -120,7 +136,7 @@ export class AuthController {
       if (req.user?.userId) {
         await this.authService.logoutAll(req.user.userId);
       }
-      this.clearTokenCookies(res);
+      this.clearTokenCookies(res, req.body?.appId);
       res.json(ApiResponse.success(null, "logged_out_all_devices_successfully"));
     } catch (error) {
       next(error);

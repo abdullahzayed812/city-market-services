@@ -49,17 +49,17 @@ export const productService = {
     });
     return response.data?.data;
   },
-  bulkAddProductsFromGlobal: async (vendorId: string, items: BulkAddVendorProductsFromGlobalItem[]) => {
+  bulkAddProductsFromGlobal: async (vendorId: string, items: BulkAddVendorProductsFromGlobalItem[], vendorCategoryId?: string) => {
     const response = await apiClient.post<ApiResponse<BulkAddVendorProductsFromGlobalResult>>(
       `/catalog/products/vendor/${vendorId}/bulk-add-global`,
-      { items },
+      { items, vendorCategoryId },
     );
     return response.data?.data;
   },
-  bulkAddProductsFromCategory: async (vendorId: string, globalCategoryId: string) => {
+  bulkAddProductsFromCategory: async (vendorId: string, globalCategoryId: string, vendorCategoryId?: string) => {
     const response = await apiClient.post<ApiResponse<BulkAddVendorProductsFromGlobalResult>>(
       `/catalog/products/vendor/${vendorId}/bulk-add-global`,
-      { globalCategoryId },
+      { globalCategoryId, vendorCategoryId },
     );
     return response.data?.data;
   },

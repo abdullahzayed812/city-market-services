@@ -1,5 +1,9 @@
 {
   "common": {
+    "not_found_title": "Page Not Found",
+    "not_found_message": "The page you're looking for doesn't exist or may have been moved.",
+    "go_home": "Go to Home",
+    "go_back": "Go Back",
     "dashboard": "Dashboard",
     "users": "Users",
     "orders": "Orders",
@@ -264,6 +268,7 @@
   },
   "orders": {
     "order_id": "Order ID",
+    "order_id_copied": "Order ID copied to clipboard",
     "customer": "Customer",
     "customer_id": "Customer ID",
     "total": "Total",

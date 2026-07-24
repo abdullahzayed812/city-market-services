@@ -4,6 +4,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Pagination } from "@/components/ui/pagination";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -29,6 +30,7 @@ const AddVendorProductsDialog: React.FC<AddVendorProductsDialogProps> = ({ open,
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
   const [globalCategoryId, setGlobalCategoryId] = useState<string>("");
+  const [vendorCategoryId, setVendorCategoryId] = useState<string>("");
   const [selected, setSelected] = useState<Map<string, GlobalProduct>>(new Map());
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isImportingCategory, setIsImportingCategory] = useState(false);
@@ -48,6 +50,10 @@ const AddVendorProductsDialog: React.FC<AddVendorProductsDialogProps> = ({ open,
     enabled: open,
   });
   const globalCategories = useMemo(() => categories?.filter((c) => c.type === CategoryType.GLOBAL) ?? [], [categories]);
+  const vendorCategories = useMemo(
+    () => categories?.filter((c) => c.type === CategoryType.VENDOR && c.vendorId === vendorId) ?? [],
+    [categories, vendorId],
+  );
 
   const { products, total, isLoadingProducts, page, totalPages, setPage } = useGlobalProducts({
     initialLimit: 20,
@@ -81,6 +87,7 @@ const AddVendorProductsDialog: React.FC<AddVendorProductsDialogProps> = ({ open,
     setSearchInput("");
     setSearch("");
     setGlobalCategoryId("");
+    setVendorCategoryId("");
     setSelected(new Map());
     setResult(null);
   };
@@ -94,7 +101,7 @@ const AddVendorProductsDialog: React.FC<AddVendorProductsDialogProps> = ({ open,
     if (!vendorId || selected.size === 0) return;
     setIsSubmitting(true);
     try {
-      const summary = await adminApi.bulkAddVendorProductsFromGlobal(vendorId, Array.from(selected.keys()));
+      const summary = await adminApi.bulkAddVendorProductsFromGlobal(vendorId, Array.from(selected.keys()), vendorCategoryId || undefined);
       setResult({ added: summary.added, skipped: summary.skipped });
       setSelected(new Map());
       queryClient.invalidateQueries({ queryKey: ["adminProducts"] });
@@ -118,7 +125,7 @@ const AddVendorProductsDialog: React.FC<AddVendorProductsDialogProps> = ({ open,
     if (!vendorId || !globalCategoryId) return;
     setIsImportingCategory(true);
     try {
-      const summary = await adminApi.bulkAddVendorProductsFromCategory(vendorId, globalCategoryId);
+      const summary = await adminApi.bulkAddVendorProductsFromCategory(vendorId, globalCategoryId, vendorCategoryId || undefined);
       setResult({ added: summary.added, skipped: summary.skipped });
       queryClient.invalidateQueries({ queryKey: ["adminProducts"] });
       onAdded?.();
@@ -187,6 +194,29 @@ const AddVendorProductsDialog: React.FC<AddVendorProductsDialogProps> = ({ open,
                 ))}
               </SelectContent>
             </Select>
+          </div>
+
+          <div className="space-y-1.5">
+            <Label>{t("products.store_category", "Store Category")}</Label>
+            <Select value={vendorCategoryId || "none"} onValueChange={(val) => setVendorCategoryId(val === "none" ? "" : val)}>
+              <SelectTrigger>
+                <SelectValue placeholder={t("products.select_store_category", "Select store category")} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">{t("common.none", "None")}</SelectItem>
+                {vendorCategories.map((cat) => (
+                  <SelectItem key={cat.id} value={cat.id}>
+                    {cat.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              {t(
+                "vendors.add_products_store_category_hint",
+                "Applied to every product added in this batch. Only this vendor's own categories are listed — if empty, they haven't created any yet.",
+              )}
+            </p>
           </div>
 
           {globalCategoryId && (

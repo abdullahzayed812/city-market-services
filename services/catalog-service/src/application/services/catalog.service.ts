@@ -321,13 +321,29 @@ export class CatalogService {
     await this.vendorProductRepo.delete(id);
   }
 
-  async bulkAddVendorProductsFromGlobal(vendorId: string, items: BulkAddVendorProductsFromGlobalItem[]): Promise<BulkAddVendorProductsFromGlobalResult> {
+  async bulkAddVendorProductsFromGlobal(
+    vendorId: string,
+    items: BulkAddVendorProductsFromGlobalItem[],
+    vendorCategoryId?: string,
+  ): Promise<BulkAddVendorProductsFromGlobalResult> {
+    // Only trust a vendorCategoryId that's actually one of this vendor's own VENDOR-type
+    // categories — otherwise silently drop it rather than failing the whole batch.
+    let validatedVendorCategoryId: string | undefined;
+    if (vendorCategoryId) {
+      const ownVendorCategories = await this.categoryRepo.findByType(CategoryType.VENDOR, vendorId);
+      if (ownVendorCategories.some((c) => c.id === vendorCategoryId)) {
+        validatedVendorCategoryId = vendorCategoryId;
+      }
+    }
+
     const seen = new Set<string>();
-    const uniqueItems = items.filter((item) => {
-      if (seen.has(item.globalProductId)) return false;
-      seen.add(item.globalProductId);
-      return true;
-    });
+    const uniqueItems = items
+      .filter((item) => {
+        if (seen.has(item.globalProductId)) return false;
+        seen.add(item.globalProductId);
+        return true;
+      })
+      .map((item) => ({ ...item, vendorCategoryId: validatedVendorCategoryId }));
 
     const { addedIds, skippedIds } = await this.vendorProductRepo.bulkAddFromGlobalProducts(vendorId, uniqueItems);
     return {

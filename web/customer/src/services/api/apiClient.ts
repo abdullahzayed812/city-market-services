@@ -3,6 +3,10 @@ import { getOrCreateDeviceId } from '@/utils/deviceId';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost/api/v1';
 
+// Namespaces this app's auth cookies on the backend so logging into another dashboard in the
+// same browser (which shares one cookie jar for this backend host) can't clobber this app's session.
+export const APP_ID = 'customer-web';
+
 let signOutCallback: (() => void) | null = null;
 export const setSignOutCallback = (fn: () => void) => {
   signOutCallback = fn;
@@ -70,7 +74,7 @@ apiClient.interceptors.response.use(
       // Refresh token travels via the httpOnly cookie — only deviceId goes in the body.
       const { data } = await axios.post(
         `${API_BASE_URL}/auth/refresh`,
-        { deviceId: getOrCreateDeviceId() },
+        { deviceId: getOrCreateDeviceId(), appId: APP_ID },
         { headers: { 'Content-Type': 'application/json' }, withCredentials: true },
       );
       const { accessToken: newAccessToken } = data.data;
@@ -88,19 +92,34 @@ apiClient.interceptors.response.use(
   },
 );
 
-/** Attempt to silently re-establish an access token from the refresh cookie (called once on app bootstrap). */
-export const silentRefresh = async (): Promise<{ accessToken: string; user: unknown } | null> => {
-  try {
-    const { data } = await axios.post(
-      `${API_BASE_URL}/auth/refresh`,
-      { deviceId: getOrCreateDeviceId() },
-      { headers: { 'Content-Type': 'application/json' }, withCredentials: true },
-    );
-    setAccessToken(data.data.accessToken);
-    return data.data;
-  } catch {
-    return null;
-  }
+/**
+ * Attempt to silently re-establish an access token from the refresh cookie (called on app
+ * bootstrap). Deduped into a single in-flight request — StrictMode double-invoking the
+ * bootstrap effect (or anything else calling this twice back-to-back) must not fire two
+ * concurrent /auth/refresh calls, since the loser would present an already-rotated token.
+ */
+let silentRefreshPromise: Promise<{ accessToken: string; user: unknown } | null> | null = null;
+
+export const silentRefresh = (): Promise<{ accessToken: string; user: unknown } | null> => {
+  if (silentRefreshPromise) return silentRefreshPromise;
+
+  silentRefreshPromise = (async () => {
+    try {
+      const { data } = await axios.post(
+        `${API_BASE_URL}/auth/refresh`,
+        { deviceId: getOrCreateDeviceId(), appId: APP_ID },
+        { headers: { 'Content-Type': 'application/json' }, withCredentials: true },
+      );
+      setAccessToken(data.data.accessToken);
+      return data.data;
+    } catch {
+      return null;
+    } finally {
+      silentRefreshPromise = null;
+    }
+  })();
+
+  return silentRefreshPromise;
 };
 
 export default apiClient;

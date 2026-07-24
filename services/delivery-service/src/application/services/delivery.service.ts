@@ -8,7 +8,7 @@ import { Courier } from "../../core/entities/courier.entity";
 import { Delivery } from "../../core/entities/delivery.entity";
 import { RegisterCourierDto, UpdateCourierDto } from "../../core/dto/courier.dto";
 import { CreateDeliveryDto, AssignCourierDto, UpdateDeliveryStatusDto } from "../../core/dto/delivery.dto";
-import { DeliveryStatus, PickupLocation, UserRole } from "@city-market/shared";
+import { DeliveryStatus, PickupLocation, UserRole, VendorOrderStatus } from "@city-market/shared";
 import { ValidationError, NotFoundError } from "@city-market/shared";
 import { EventType } from "@city-market/shared";
 import { RabbitMQBus, Logger, Database } from "@city-market/shared/node";
@@ -163,7 +163,13 @@ export class DeliveryService {
       }
 
       const customerOrder = orderData.order;
-      const vendorOrders = orderData.vendorOrders;
+      const vendorOrders = (orderData.vendorOrders || []).filter((vo: any) => vo.status !== VendorOrderStatus.CANCELLED);
+
+      if (vendorOrders.length === 0) {
+        Logger.warn(`No non-cancelled vendor orders for Customer Order ${customerOrderId}. Skipping delivery creation.`);
+        await this.db.commit(connection);
+        return createdDeliveries;
+      }
 
       // Concurrent batch fetch of unique vendors to prevent N+1 HTTP calls
       const uniqueVendorIds = Array.from(new Set(vendorOrders.map((vo: any) => vo.vendorId)));
@@ -344,6 +350,10 @@ export class DeliveryService {
         this.userClient.getCustomerPhone(delivery.customerId),
       ]);
       if (orderData && orderData.vendorOrders) {
+        const cancelledVendorOrderIds = new Set(
+          orderData.vendorOrders.filter((vo: any) => vo.status === VendorOrderStatus.CANCELLED).map((vo: any) => vo.id),
+        );
+        delivery.pickupLocations = delivery.pickupLocations.filter((pl) => !cancelledVendorOrderIds.has(pl.vendorOrderId));
         const deliveryVendorOrderIds = delivery.pickupLocations.map((pl) => pl.vendorOrderId);
         delivery.vendorOrders = orderData.vendorOrders.filter((vo: any) => deliveryVendorOrderIds.includes(vo.id));
       }
@@ -400,6 +410,10 @@ export class DeliveryService {
             this.userClient.getCustomerPhone(delivery.customerId),
           ]);
           if (orderData && orderData.vendorOrders) {
+            const cancelledVendorOrderIds = new Set(
+              orderData.vendorOrders.filter((vo: any) => vo.status === VendorOrderStatus.CANCELLED).map((vo: any) => vo.id),
+            );
+            delivery.pickupLocations = delivery.pickupLocations.filter((pl) => !cancelledVendorOrderIds.has(pl.vendorOrderId));
             const deliveryVendorOrderIds = delivery.pickupLocations.map((pl) => pl.vendorOrderId);
             delivery.vendorOrders = orderData.vendorOrders.filter((vo: any) => deliveryVendorOrderIds.includes(vo.id));
           }
@@ -417,7 +431,11 @@ export class DeliveryService {
 
   async updateDeliveryStatus(deliveryId: string, dto: UpdateDeliveryStatusDto): Promise<void> {
     const delivery = await this.getDeliveryById(deliveryId);
-    const vendorOrdersIds = delivery?.pickupLocations?.map((location: PickupLocation) => location?.vendorOrderId);
+    // Prefer the status-filtered vendor orders (excludes any cancelled after this delivery was
+    // created); fall back to raw pickup locations only if order-data enrichment failed above.
+    const vendorOrdersIds = delivery.vendorOrders
+      ? delivery.vendorOrders.map((vo: any) => vo.id)
+      : delivery?.pickupLocations?.map((location: PickupLocation) => location?.vendorOrderId);
 
     if (!this.isValidStatusTransition(delivery.status, dto.status)) {
       throw new ValidationError(`Cannot transition from ${delivery.status} to ${dto.status}`);

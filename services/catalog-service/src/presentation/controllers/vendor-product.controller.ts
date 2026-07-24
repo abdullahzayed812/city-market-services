@@ -214,7 +214,7 @@ export class VendorProductController {
 
   bulkAddFromGlobal = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
-      const { globalCategoryId } = req.body as { globalCategoryId?: string };
+      const { globalCategoryId, vendorCategoryId } = req.body as { globalCategoryId?: string; vendorCategoryId?: string };
       let items = (req.body as {
         items?: Array<{ globalProductId?: string; price?: number; stockQuantity?: number; stockWeightGrams?: number }>;
       }).items;
@@ -243,6 +243,7 @@ export class VendorProductController {
       const result = await this.catalogService.bulkAddVendorProductsFromGlobal(
         req.params.vendorId,
         items as Array<{ globalProductId: string; price?: number; stockQuantity?: number; stockWeightGrams?: number }>,
+        vendorCategoryId,
       );
       res.status(201).json(ApiResponse.success(result, "vendor_products_bulk_added"));
     } catch (error) {

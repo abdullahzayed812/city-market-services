@@ -25,6 +25,6 @@ export interface IVendorProductRepository {
   commitWeightStock(id: string, actualWeight: number, reservedWeight: number): Promise<void>;
   bulkAddFromGlobalProducts(
     vendorId: string,
-    items: Array<{ globalProductId: string; price?: number; stockQuantity?: number; stockWeightGrams?: number }>,
+    items: Array<{ globalProductId: string; price?: number; stockQuantity?: number; stockWeightGrams?: number; vendorCategoryId?: string }>,
   ): Promise<{ addedIds: string[]; skippedIds: string[] }>;
 }

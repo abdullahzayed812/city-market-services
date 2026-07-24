@@ -253,7 +253,7 @@ export class VendorProductRepository implements IVendorProductRepository {
 
   async bulkAddFromGlobalProducts(
     vendorId: string,
-    items: Array<{ globalProductId: string; price?: number; stockQuantity?: number; stockWeightGrams?: number }>,
+    items: Array<{ globalProductId: string; price?: number; stockQuantity?: number; stockWeightGrams?: number; vendorCategoryId?: string }>,
   ): Promise<{ addedIds: string[]; skippedIds: string[] }> {
     if (items.length === 0) {
       return { addedIds: [], skippedIds: [] };
@@ -287,7 +287,7 @@ export class VendorProductRepository implements IVendorProductRepository {
         const stockQuantity = item.stockQuantity ?? 0;
         const stockWeightGrams = item.stockWeightGrams ?? 0;
         const isAvailable = stockQuantity > 0 || stockWeightGrams > 0;
-        return [randomUUID(), vendorId, item.globalProductId, null, price, stockQuantity, stockWeightGrams, 0, isAvailable];
+        return [randomUUID(), vendorId, item.globalProductId, item.vendorCategoryId ?? null, price, stockQuantity, stockWeightGrams, 0, isAvailable];
       });
       await connection.query(
         `INSERT INTO vendor_products

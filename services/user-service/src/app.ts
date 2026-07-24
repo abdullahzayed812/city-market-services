@@ -45,6 +45,10 @@ export const createApp = () => {
     deliveryCancelledConsumer.handle(event),
   );
 
+  // Public — called before an account exists, so it must run ahead of the global
+  // authenticate middleware below.
+  app.get("/customers/check-phone", userController.checkPhoneAvailable);
+
   app.use(authenticate);
 
   app.use("/", createUserRoutes(userController));

@@ -2,7 +2,14 @@ import apiClient from './apiClient';
 import type { Customer, Address, CreateAddressDto } from '@/types';
 
 export const UserService = {
-  createCustomer: async (dto: { fullName: string; phone?: string }): Promise<Customer> => {
+  // Public — safe to call before the auth account exists (used as a pre-check on
+  // registration so we don't create an orphaned auth account for a phone that's
+  // already taken).
+  checkPhoneAvailable: async (phone: string): Promise<boolean> => {
+    const response = await apiClient.get('/users/customers/check-phone', { params: { phone } });
+    return !!response.data?.data?.available;
+  },
+  createCustomer: async (dto: { fullName: string; phone: string }): Promise<Customer> => {
     const response = await apiClient.post('/users/customers', dto);
     return response.data?.data;
   },

@@ -159,15 +159,25 @@ export const adminApi = {
   deleteVendorProduct: (id: string) => axiosInstance.delete<ApiResponse<null>>(`/admin/products/${id}`),
   updateVendorProductImage: (id: string, imageUrl: string) =>
     axiosInstance.patch<ApiResponse<null>>(`/admin/products/${id}/image`, { imageUrl }),
-  bulkAddVendorProductsFromGlobal: async (vendorId: string, globalProductIds: string[]): Promise<BulkAddVendorProductsFromGlobalResult> => {
+  bulkAddVendorProductsFromGlobal: async (
+    vendorId: string,
+    globalProductIds: string[],
+    vendorCategoryId?: string,
+  ): Promise<BulkAddVendorProductsFromGlobalResult> => {
     const response = await axiosInstance.post<ApiResponse<BulkAddVendorProductsFromGlobalResult>>(`/admin/vendors/${vendorId}/products/bulk-add-global`, {
       items: globalProductIds.map((globalProductId) => ({ globalProductId })),
+      vendorCategoryId,
     });
     return response.data.data!;
   },
-  bulkAddVendorProductsFromCategory: async (vendorId: string, globalCategoryId: string): Promise<BulkAddVendorProductsFromGlobalResult> => {
+  bulkAddVendorProductsFromCategory: async (
+    vendorId: string,
+    globalCategoryId: string,
+    vendorCategoryId?: string,
+  ): Promise<BulkAddVendorProductsFromGlobalResult> => {
     const response = await axiosInstance.post<ApiResponse<BulkAddVendorProductsFromGlobalResult>>(`/admin/vendors/${vendorId}/products/bulk-add-global`, {
       globalCategoryId,
+      vendorCategoryId,
     });
     return response.data.data!;
   },

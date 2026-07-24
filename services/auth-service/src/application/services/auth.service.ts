@@ -9,11 +9,16 @@ import { Session, SessionSummary } from "../../core/entities/session.entity";
 import { User } from "../../core/entities/user.entity";
 import { config } from "../../config/env";
 import { parseDurationMs } from "../../utils/duration";
-import { ValidationError, UnauthorizedError } from "@city-market/shared";
+import { ValidationError, UnauthorizedError, UserRole } from "@city-market/shared";
 
 function sha256Hex(value: string): string {
   return createHash("sha256").update(value).digest("hex");
 }
+
+// Tolerate near-simultaneous refresh calls that race the same pre-rotation token
+// (e.g. React StrictMode double-invoking a mount effect, or two tabs refreshing at
+// once) instead of treating the loser as a stolen/replayed token.
+const REFRESH_REUSE_GRACE_MS = 10_000;
 
 function stripPasswordHash(user: User): Omit<User, "passwordHash"> {
   const { passwordHash, ...rest } = user;
@@ -29,6 +34,10 @@ export class AuthService {
   async register(dto: RegisterDto, deviceCtx: DeviceContext): Promise<TokenPair> {
     if (!this.isValidEmail(dto.email)) {
       throw new ValidationError("invalid_email_format");
+    }
+
+    if (!dto.role || !Object.values(UserRole).includes(dto.role)) {
+      throw new ValidationError("invalid_or_missing_role");
     }
 
     const existingUser = await this.userRepo.findByEmail(dto.email);
@@ -82,15 +91,25 @@ export class AuthService {
 
   async refreshToken(rawToken: string, deviceCtx: DeviceContext): Promise<TokenPair> {
     const hash = sha256Hex(rawToken);
-    const session = await this.sessionRepo.findByCurrentHash(hash);
+    let session = await this.sessionRepo.findByCurrentHash(hash);
 
     if (!session) {
-      // Check whether this is a replay of an already-rotated (stale) refresh token.
+      // Not the current token — check whether it's the token we just rotated away from.
       const stale = await this.sessionRepo.findByPreviousHash(hash);
-      if (stale && !stale.revoked) {
-        await this.sessionRepo.revokeAllForUser(stale.userId, "reuse_detected");
+      const withinGraceWindow = !!stale && Date.now() - stale.lastActivity.getTime() < REFRESH_REUSE_GRACE_MS;
+
+      if (!stale || stale.revoked || !withinGraceWindow) {
+        // Unknown token, or a stale token reused well after rotation — treat as a replay/theft.
+        if (stale && !stale.revoked) {
+          await this.sessionRepo.revokeAllForUser(stale.userId, "reuse_detected");
+        }
+        throw new UnauthorizedError("invalid_refresh_token");
       }
-      throw new UnauthorizedError("invalid_refresh_token");
+
+      // Benign race: another concurrent request already rotated this token moments ago
+      // (duplicate mount effect, second tab, etc). Resync onto that session instead of
+      // punishing this caller as a replay — the rest of the flow rotates it again below.
+      session = stale;
     }
 
     if (session.revoked || session.expiresAt.getTime() < Date.now()) {

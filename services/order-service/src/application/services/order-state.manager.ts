@@ -60,9 +60,9 @@ export class OrderStateManager {
 
     let newStatus: CustomerOrderStatus | null = null;
     if (allCancelled) newStatus = CustomerOrderStatus.CANCELLED;
-    else if (allConfirmed) newStatus = CustomerOrderStatus.READY;
     else if (hasPendingCancellationDecision || vendorOrders.some((vo) => vo.status === VendorOrderStatus.PROPOSAL_SENT))
       newStatus = CustomerOrderStatus.WAITING_CUSTOMER_DECISION;
+    else if (allConfirmed) newStatus = CustomerOrderStatus.READY;
     else if (vendorOrders.some((vo) => vo.status === VendorOrderStatus.PREPARING)) newStatus = CustomerOrderStatus.PREPARING;
     else if (vendorOrders.some((vo) => vo.status === VendorOrderStatus.PENDING)) newStatus = CustomerOrderStatus.PENDING_VENDOR_CONFIRMATION;
 

@@ -10,12 +10,12 @@ export const setupProxy = (basePath: string, targetUrl: string) => {
     },
     on: {
       proxyReq: (proxyReq: any, req: any, res: any) => {
-        let token = req.headers.authorization;
-
-        // If no Authorization header, check for access_token cookie
-        if (!token && req.cookies && req.cookies.access_token) {
-          token = `Bearer ${req.cookies.access_token}`;
-        }
+        // Auth relies solely on the Authorization header. There used to be a fallback to an
+        // `access_token` cookie here, but that cookie is now namespaced per calling app
+        // (see auth.controller.ts) and this generic proxy has no way to know which app's
+        // cookie applies to a given request — falling back to an unscoped name would silently
+        // authenticate as whichever web app logged in last in that browser.
+        const token = req.headers.authorization;
 
         if (token) {
           proxyReq.setHeader("Authorization", token);

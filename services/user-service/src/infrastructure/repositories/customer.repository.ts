@@ -39,6 +39,11 @@ export class CustomerRepository implements ICustomerRepository {
     return rows.length > 0 ? this.mapToEntity(rows[0]) : null;
   }
 
+  async findByPhone(phone: string): Promise<Customer | null> {
+    const [rows] = await this.pool.execute<RowDataPacket[]>(`${BASE_QUERY} WHERE c.phone = ?`, [phone]);
+    return rows.length > 0 ? this.mapToEntity(rows[0]) : null;
+  }
+
   async findByIds(ids: string[]): Promise<Customer[]> {
     if (ids.length === 0) return [];
     const placeholders = ids.map(() => "?").join(", ");

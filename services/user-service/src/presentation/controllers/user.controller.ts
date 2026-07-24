@@ -1,11 +1,24 @@
-import { Response, NextFunction } from "express";
+import { Request, Response, NextFunction } from "express";
 import { UserService } from "../../application/services/user.service";
-import { ApiResponse } from "@city-market/shared";
+import { ApiResponse, ValidationError } from "@city-market/shared";
 import { Logger } from "@city-market/shared/node";
 import { AuthenticatedRequest } from "@city-market/shared/node";
 
 export class UserController {
   constructor(private userService: UserService) {}
+
+  // Public — called before registration, so no token exists yet. Mounted ahead of
+  // the global `authenticate` middleware in app.ts.
+  checkPhoneAvailable = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const phone = req.query.phone as string;
+      if (!phone) throw new ValidationError("phone_required");
+      const available = await this.userService.isPhoneAvailable(phone);
+      res.json(ApiResponse.success({ available }));
+    } catch (error) {
+      next(error);
+    }
+  };
 
   createCustomer = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {

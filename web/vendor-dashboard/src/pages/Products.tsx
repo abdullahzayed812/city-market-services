@@ -186,6 +186,7 @@ const Products = () => {
       <BulkAddProductsDialog
         open={isBulkAddDialogOpen}
         onOpenChange={setIsBulkAddDialogOpen}
+        vendorCategories={vendorCategories}
         onSubmit={bulkAddProductsFromGlobal}
         onImportCategory={bulkAddProductsFromCategory}
       />

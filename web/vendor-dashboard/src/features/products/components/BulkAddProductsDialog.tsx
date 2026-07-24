@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Loader2, Search, X, Plus, Check, PackagePlus } from "lucide-react";
 import { MeasurementType } from "@city-market/shared";
-import type { GlobalProduct, BulkAddVendorProductsFromGlobalItem } from "@city-market/shared";
+import type { GlobalProduct, BulkAddVendorProductsFromGlobalItem, Category } from "@city-market/shared";
 import { useGlobalProductsPicker } from "@/hooks/useGlobalProductsPicker";
 import { productService } from "@/services/api/product.service";
 import { Pagination } from "@/components/ui/pagination";
@@ -24,16 +24,21 @@ interface SelectedItem {
 interface BulkAddProductsDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSubmit: (items: BulkAddVendorProductsFromGlobalItem[]) => Promise<{ added: number; skipped: number } | undefined>;
-  onImportCategory: (globalCategoryId: string) => Promise<{ added: number; skipped: number } | undefined>;
+  vendorCategories: Category[];
+  onSubmit: (payload: {
+    items: BulkAddVendorProductsFromGlobalItem[];
+    vendorCategoryId?: string;
+  }) => Promise<{ added: number; skipped: number } | undefined>;
+  onImportCategory: (payload: { globalCategoryId: string; vendorCategoryId?: string }) => Promise<{ added: number; skipped: number } | undefined>;
 }
 
-const BulkAddProductsDialog: React.FC<BulkAddProductsDialogProps> = ({ open, onOpenChange, onSubmit, onImportCategory }) => {
+const BulkAddProductsDialog: React.FC<BulkAddProductsDialogProps> = ({ open, onOpenChange, vendorCategories, onSubmit, onImportCategory }) => {
   const { t } = useTranslation();
 
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
   const [globalCategoryId, setGlobalCategoryId] = useState("");
+  const [vendorCategoryId, setVendorCategoryId] = useState("");
   const [selected, setSelected] = useState<Map<string, SelectedItem>>(new Map());
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isImportingCategory, setIsImportingCategory] = useState(false);
@@ -95,6 +100,7 @@ const BulkAddProductsDialog: React.FC<BulkAddProductsDialogProps> = ({ open, onO
     setSearchInput("");
     setSearch("");
     setGlobalCategoryId("");
+    setVendorCategoryId("");
     setSelected(new Map());
     setResult(null);
   };
@@ -114,7 +120,7 @@ const BulkAddProductsDialog: React.FC<BulkAddProductsDialogProps> = ({ open, onO
         stockQuantity: item.product.measurementType === MeasurementType.WEIGHT ? undefined : item.stockQuantity,
         stockWeightGrams: item.product.measurementType === MeasurementType.WEIGHT ? item.stockWeightGrams : undefined,
       }));
-      const summary = await onSubmit(items);
+      const summary = await onSubmit({ items, vendorCategoryId: vendorCategoryId || undefined });
       if (summary) {
         setResult(summary);
         setSelected(new Map());
@@ -131,7 +137,7 @@ const BulkAddProductsDialog: React.FC<BulkAddProductsDialogProps> = ({ open, onO
     if (!globalCategoryId) return;
     setIsImportingCategory(true);
     try {
-      const summary = await onImportCategory(globalCategoryId);
+      const summary = await onImportCategory({ globalCategoryId, vendorCategoryId: vendorCategoryId || undefined });
       if (summary) {
         setResult(summary);
         toast.success(`${summary.added} ${t("products.bulk_added_count", "product(s) added")}, ${summary.skipped} ${t("products.bulk_skipped_count", "skipped (already exist)")}`);
@@ -223,6 +229,26 @@ const BulkAddProductsDialog: React.FC<BulkAddProductsDialogProps> = ({ open, onO
                 ))}
               </SelectContent>
             </Select>
+          </div>
+
+          <div className="space-y-1.5">
+            <Label>{t("products.store_category", "Store Category")}</Label>
+            <Select value={vendorCategoryId || "none"} onValueChange={(val) => setVendorCategoryId(val === "none" ? "" : val)}>
+              <SelectTrigger>
+                <SelectValue placeholder={t("products.select_store_category", "Select store category")} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">{t("common.none", "None")}</SelectItem>
+                {vendorCategories.map((cat) => (
+                  <SelectItem key={cat.id} value={cat.id}>
+                    {cat.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              {t("products.bulk_add_store_category_hint", "Applied to every product added in this batch — you can change it per product afterward.")}
+            </p>
           </div>
 
           {globalCategoryId && (

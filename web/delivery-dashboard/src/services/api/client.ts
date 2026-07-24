@@ -5,6 +5,10 @@ const BASE_URL =
   import.meta.env.VITE_API_BASE_URL ||
   `${window.location.protocol}//${window.location.hostname}:3000/api/v1`;
 
+// Namespaces this app's auth cookies on the backend so logging into another dashboard in the
+// same browser (which shares one cookie jar for this backend host) can't clobber this app's session.
+export const APP_ID = "delivery-dashboard";
+
 // Access token lives in memory only — never localStorage/sessionStorage.
 // The refresh token lives exclusively in the httpOnly cookie set by the backend.
 let accessToken: string | null = null;
@@ -75,7 +79,7 @@ apiClient.interceptors.response.use(
       // Refresh token travels via the httpOnly cookie — only deviceId goes in the body.
       const { data } = await axios.post(
         `${BASE_URL}/auth/refresh`,
-        { deviceId: getOrCreateDeviceId(), platform: "web" },
+        { deviceId: getOrCreateDeviceId(), platform: "web", appId: APP_ID },
         { headers: { "Content-Type": "application/json" }, withCredentials: true },
       );
       const { accessToken: newAccessToken } = data.data;
@@ -93,19 +97,34 @@ apiClient.interceptors.response.use(
   },
 );
 
-/** Attempt to silently re-establish an access token from the refresh cookie (called once on app bootstrap). */
-export const silentRefresh = async (): Promise<{ accessToken: string; user: any } | null> => {
-  try {
-    const { data } = await axios.post(
-      `${BASE_URL}/auth/refresh`,
-      { deviceId: getOrCreateDeviceId(), platform: "web" },
-      { headers: { "Content-Type": "application/json" }, withCredentials: true },
-    );
-    setAccessToken(data.data.accessToken);
-    return data.data;
-  } catch {
-    return null;
-  }
+/**
+ * Attempt to silently re-establish an access token from the refresh cookie (called on app
+ * bootstrap). Deduped into a single in-flight request — StrictMode double-invoking the
+ * bootstrap effect (or anything else calling this twice back-to-back) must not fire two
+ * concurrent /auth/refresh calls, since the loser would present an already-rotated token.
+ */
+let silentRefreshPromise: Promise<{ accessToken: string; user: any } | null> | null = null;
+
+export const silentRefresh = (): Promise<{ accessToken: string; user: any } | null> => {
+  if (silentRefreshPromise) return silentRefreshPromise;
+
+  silentRefreshPromise = (async () => {
+    try {
+      const { data } = await axios.post(
+        `${BASE_URL}/auth/refresh`,
+        { deviceId: getOrCreateDeviceId(), platform: "web", appId: APP_ID },
+        { headers: { "Content-Type": "application/json" }, withCredentials: true },
+      );
+      setAccessToken(data.data.accessToken);
+      return data.data;
+    } catch {
+      return null;
+    } finally {
+      silentRefreshPromise = null;
+    }
+  })();
+
+  return silentRefreshPromise;
 };
 
 export default apiClient;

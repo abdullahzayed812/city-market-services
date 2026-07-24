@@ -23,6 +23,7 @@ const NotificationsPage = lazy(() => import('@/pages/NotificationsPage'));
 const VendorReviewsPage = lazy(() => import('@/pages/VendorReviewsPage'));
 const TermsPage = lazy(() => import('@/pages/TermsPage'));
 const LanguageSettingsPage = lazy(() => import('@/pages/LanguageSettingsPage'));
+const NotFoundPage = lazy(() => import('@/pages/NotFoundPage'));
 
 function PageLoader() {
   return (
@@ -120,7 +121,7 @@ export function AppRouter() {
           </Route>
 
           {/* Catch-all */}
-          <Route path="*" element={<Navigate to="/login" replace />} />
+          <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </Suspense>
     </>

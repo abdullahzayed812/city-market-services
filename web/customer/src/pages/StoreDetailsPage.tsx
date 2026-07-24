@@ -8,6 +8,7 @@ import { CatalogService } from "@/services/api/catalogService";
 import { RatingService } from "@/services/api/ratingService";
 import { ProductCard } from "@/components/shared/ProductCard";
 import { ProductCardSkeleton, Skeleton } from "@/components/ui/Skeleton";
+import { Pagination } from "@/components/ui/Pagination";
 import { useCartStore, selectCartTotal, selectCartItemCount } from "@/store/cartStore";
 import { getImageUrl, formatPrice } from "@/lib/utils";
 import { useTranslation } from "react-i18next";
@@ -17,6 +18,8 @@ export default function StoreDetailsPage() {
   const { vendorId } = useParams<{ vendorId: string }>();
   const navigate = useNavigate();
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const PRODUCTS_PER_PAGE = 20;
   const { t } = useTranslation();
   const { isRTL } = useLanguage();
 
@@ -33,10 +36,15 @@ export default function StoreDetailsPage() {
   });
 
   const { data: productsData, isLoading: productsLoading } = useQuery({
-    queryKey: ["vendor-products", vendorId, activeCategory],
-    queryFn: () => CatalogService.getVendorProductsByVendor(vendorId!, 1, 20, activeCategory || undefined),
+    queryKey: ["vendor-products", vendorId, activeCategory, page],
+    queryFn: () => CatalogService.getVendorProductsByVendor(vendorId!, page, PRODUCTS_PER_PAGE, activeCategory || undefined),
     enabled: !!vendorId,
   });
+
+  const handleCategoryChange = (categoryId: string | null) => {
+    setActiveCategory(categoryId);
+    setPage(1);
+  };
 
   const { data: ratingSummary } = useQuery({
     queryKey: ["vendor-rating", vendorId],
@@ -51,6 +59,7 @@ export default function StoreDetailsPage() {
   const hasCartItems = vendorCartItems.length > 0;
 
   const products = productsData?.data ?? [];
+  const totalPages = Math.ceil((productsData?.total ?? 0) / PRODUCTS_PER_PAGE);
   const imageUrl = getImageUrl(vendor?.storeImage);
 
   if (vendorLoading) {
@@ -127,7 +136,7 @@ export default function StoreDetailsPage() {
               </div>
               <nav className="py-2">
                 <button
-                  onClick={() => setActiveCategory(null)}
+                  onClick={() => handleCategoryChange(null)}
                   className={`w-full flex items-center gap-3 px-4 py-3 text-sm font-semibold transition-colors text-left ${
                     !activeCategory ? "bg-primary-xlight text-primary" : "text-text-secondary hover:bg-gray-50"
                   }`}
@@ -137,7 +146,7 @@ export default function StoreDetailsPage() {
                 {categories.map((cat) => (
                   <button
                     key={cat.id}
-                    onClick={() => setActiveCategory(cat.id === activeCategory ? null : cat.id)}
+                    onClick={() => handleCategoryChange(cat.id === activeCategory ? null : cat.id)}
                     className={`w-full flex items-center gap-3 px-4 py-3 text-sm font-semibold transition-colors text-left ${
                       activeCategory === cat.id ? "bg-primary-xlight text-primary" : "text-text-secondary hover:bg-gray-50"
                     }`}
@@ -157,7 +166,7 @@ export default function StoreDetailsPage() {
           {categories.length > 0 && (
             <div className="flex gap-2 overflow-x-auto pb-4 scrollbar-hide -mx-4 px-4 lg:hidden mb-4">
               <button
-                onClick={() => setActiveCategory(null)}
+                onClick={() => handleCategoryChange(null)}
                 className={`flex-shrink-0 px-4 py-2 rounded-full text-sm font-semibold transition-colors ${
                   !activeCategory ? "bg-primary text-white shadow-soft" : "bg-white text-text-secondary border border-border"
                 }`}
@@ -167,7 +176,7 @@ export default function StoreDetailsPage() {
               {categories.map((cat) => (
                 <button
                   key={cat.id}
-                  onClick={() => setActiveCategory(cat.id === activeCategory ? null : cat.id)}
+                  onClick={() => handleCategoryChange(cat.id === activeCategory ? null : cat.id)}
                   className={`flex-shrink-0 px-4 py-2 rounded-full text-sm font-semibold transition-colors ${
                     activeCategory === cat.id ? "bg-primary text-white shadow-soft" : "bg-white text-text-secondary border border-border"
                   }`}
@@ -213,11 +222,14 @@ export default function StoreDetailsPage() {
               <p className="text-sm text-text-muted mt-1">{t('store.product_unavailable')}</p>
             </div>
           ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3">
-              {products.map((product) => (
-                <ProductCard key={product.id} product={product} />
-              ))}
-            </div>
+            <>
+              <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3">
+                {products.map((product) => (
+                  <ProductCard key={product.id} product={product} />
+                ))}
+              </div>
+              <Pagination currentPage={page} totalPages={totalPages} onPageChange={setPage} className="mt-6" />
+            </>
           )}
         </div>
       </div>

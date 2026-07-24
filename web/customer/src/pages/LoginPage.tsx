@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Mail, Lock, ArrowRight, Eye, EyeOff, ShoppingBag, Truck, ShieldCheck, Star } from "lucide-react";
@@ -12,11 +12,10 @@ import { useAuthStore } from "@/store/authStore";
 import { useTranslation } from "react-i18next";
 import toast from "react-hot-toast";
 
-const schema = z.object({
-  email: z.string().email("Invalid email address"),
-  password: z.string().min(6, "Password must be at least 6 characters"),
-});
-type FormData = z.infer<typeof schema>;
+type FormData = {
+  email: string;
+  password: string;
+};
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -30,6 +29,15 @@ export default function LoginPage() {
   const queryParams = new URLSearchParams(location.search);
   const redirectPath = queryParams.get("redirect");
   const from = (location.state as any)?.from?.pathname || redirectPath || "/";
+
+  const schema = useMemo(
+    () =>
+      z.object({
+        email: z.string().email(t('auth.validation_email_invalid')),
+        password: z.string().min(6, t('auth.login_validation_password_min')),
+      }),
+    [t],
+  );
 
   const { register, handleSubmit, formState: { errors } } = useForm<FormData>({
     resolver: zodResolver(schema),
@@ -54,8 +62,8 @@ export default function LoginPage() {
 
   const PERKS = [
     { icon: Truck, text: t('home.promo_title') },
-    { icon: ShieldCheck, text: "Fresh quality guaranteed" },
-    { icon: Star, text: "5000+ happy customers" },
+    { icon: ShieldCheck, text: t('auth.perk_fresh_quality') },
+    { icon: Star, text: t('auth.perk_happy_customers') },
   ];
 
   return (
@@ -78,11 +86,11 @@ export default function LoginPage() {
         {/* Main copy */}
         <div className="relative z-10">
           <h2 className="text-4xl xl:text-5xl font-black text-white leading-[1.1] tracking-tight mb-5">
-            Fresh groceries,<br />
-            <span className="text-white/75">delivered fast</span>
+            {t('auth.login_hero_title_line1')}<br />
+            <span className="text-white/75">{t('auth.login_hero_title_line2')}</span>
           </h2>
           <p className="text-white/65 text-base leading-relaxed mb-10 max-w-xs">
-            Shop from the best local stores and get everything delivered to your door.
+            {t('auth.login_hero_subtitle')}
           </p>
           <div className="space-y-3.5">
             {PERKS.map(({ icon: Icon, text }) => (
@@ -98,7 +106,7 @@ export default function LoginPage() {
 
         {/* Bottom tagline */}
         <p className="relative z-10 text-white/40 text-xs">
-          © {new Date().getFullYear()} CityMarket. All rights reserved.
+          {t('auth.copyright', { year: new Date().getFullYear() })}
         </p>
       </div>
 
@@ -131,7 +139,7 @@ export default function LoginPage() {
             <Input
               label={t('auth.email')}
               type="email"
-              placeholder="name@example.com"
+              placeholder={t('auth.email_placeholder')}
               icon={<Mail size={18} />}
               error={errors.email?.message}
               {...register("email")}
