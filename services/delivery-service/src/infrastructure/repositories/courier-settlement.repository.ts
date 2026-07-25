@@ -43,7 +43,10 @@ export class CourierSettlementRepository implements ICourierSettlementRepository
   async findByCourier(courierId: string, limit: number, offset: number, connection?: PoolConnection): Promise<CourierSettlement[]> {
     const conn = connection || this.pool;
     const [rows] = await (conn as any).query(
-      "SELECT * FROM courier_settlements WHERE courier_id = ? ORDER BY created_at DESC LIMIT ? OFFSET ?",
+      `SELECT cs.*, c.full_name as courier_name FROM courier_settlements cs
+       INNER JOIN couriers c ON c.id = cs.courier_id
+       WHERE cs.courier_id = ?
+       ORDER BY cs.created_at DESC LIMIT ? OFFSET ?`,
       [courierId, limit, offset],
     );
     return rows.map((r: any) => this.mapToEntity(r));
@@ -52,7 +55,7 @@ export class CourierSettlementRepository implements ICourierSettlementRepository
   async findByOfficeId(deliveryOfficeId: string, limit: number, offset: number, connection?: PoolConnection): Promise<CourierSettlement[]> {
     const conn = connection || this.pool;
     const [rows] = await (conn as any).query(
-      `SELECT cs.* FROM courier_settlements cs
+      `SELECT cs.*, c.full_name as courier_name FROM courier_settlements cs
        INNER JOIN couriers c ON c.id = cs.courier_id
        WHERE c.delivery_office_id = ?
        ORDER BY cs.created_at DESC LIMIT ? OFFSET ?`,
@@ -64,7 +67,9 @@ export class CourierSettlementRepository implements ICourierSettlementRepository
   async findAll(limit: number, offset: number, connection?: PoolConnection): Promise<CourierSettlement[]> {
     const conn = connection || this.pool;
     const [rows] = await (conn as any).query(
-      "SELECT * FROM courier_settlements ORDER BY created_at DESC LIMIT ? OFFSET ?",
+      `SELECT cs.*, c.full_name as courier_name FROM courier_settlements cs
+       INNER JOIN couriers c ON c.id = cs.courier_id
+       ORDER BY cs.created_at DESC LIMIT ? OFFSET ?`,
       [limit, offset],
     );
     return rows.map((r: any) => this.mapToEntity(r));
@@ -105,6 +110,7 @@ export class CourierSettlementRepository implements ICourierSettlementRepository
     return {
       id: row.id,
       courierId: row.courier_id,
+      courierName: row.courier_name,
       status: row.status as CourierSettlementStatus,
       periodStart: row.period_start,
       periodEnd: row.period_end,

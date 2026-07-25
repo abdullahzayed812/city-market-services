@@ -124,8 +124,7 @@ const CourierSettlementsTab: React.FC = () => {
   });
 
   const createMutation = useMutation({
-    mutationFn: (data: { courierId: string; periodStart: string; periodEnd: string; notes: string }) =>
-      deliveryService.createCourierSettlement(data),
+    mutationFn: (data: { courierId: string; periodStart: string; periodEnd: string; notes: string }) => deliveryService.createCourierSettlement(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["courierSettlements"] });
       queryClient.invalidateQueries({ queryKey: ["allCouriersPendingEarnings"] });
@@ -241,6 +240,7 @@ const CourierSettlementsTab: React.FC = () => {
               <TableHeader>
                 <TableRow>
                   <TableHead>ID</TableHead>
+                  <TableHead>{t("common.courier", "Courier")}</TableHead>
                   <TableHead>{t("financial.period", "Period")}</TableHead>
                   <TableHead>{t("financial.delivery_fees", "Fees")}</TableHead>
                   <TableHead>{t("financial.net_payout", "Net Payout")}</TableHead>
@@ -253,6 +253,7 @@ const CourierSettlementsTab: React.FC = () => {
                 {settlementsData?.map((s: any) => (
                   <TableRow key={s.id}>
                     <TableCell className="font-mono text-xs">{s.id.split("-")[0]}…</TableCell>
+                    <TableCell className="font-medium">{s.courierName}</TableCell>
                     <TableCell className="text-sm">
                       {new Date(s.periodStart).toLocaleDateString()} – {new Date(s.periodEnd).toLocaleDateString()}
                     </TableCell>
@@ -279,7 +280,7 @@ const CourierSettlementsTab: React.FC = () => {
                 ))}
                 {(!settlementsData || settlementsData.length === 0) && (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center py-10 text-gray-400">
+                    <TableCell colSpan={8} className="text-center py-10 text-gray-400">
                       <Clock className="h-8 w-8 mx-auto mb-2 opacity-30" />
                       {t("financial.no_settlement_history", "No settlements yet")}
                     </TableCell>

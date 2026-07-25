@@ -6,6 +6,7 @@ export enum CourierSettlementStatus {
 export interface CourierSettlement {
   id: string;
   courierId: string;
+  courierName?: string;
   status: CourierSettlementStatus;
   periodStart: Date;
   periodEnd: Date;
