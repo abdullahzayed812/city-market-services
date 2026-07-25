@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import { useAuth } from "@/components/AuthProvider";
 import { vendorService } from "@/services/api/vendor.service";
 import { mediaService } from "@/services/api/media.service";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,12 +16,11 @@ import { type UpdateVendorDto } from "@city-market/shared";
 
 const Profile = () => {
   const { t } = useTranslation();
-  const { vendor } = useAuth();
-  const queryClient = useQueryClient();
+  const { vendor, refreshVendor } = useAuth();
   const imageInputRef = useRef<HTMLInputElement>(null);
   const [profileData, setProfileData] = useState({
-    name: "",
-    description: "",
+    shopName: "",
+    shopDescription: "",
     address: "",
     phone: "",
   });
@@ -32,8 +31,8 @@ const Profile = () => {
     if (vendor) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setProfileData({
-        name: vendor.shopName || "",
-        description: vendor.description || "",
+        shopName: vendor.shopName || "",
+        shopDescription: vendor.shopDescription || "",
         address: vendor.address || "",
         phone: vendor.phone || "",
       });
@@ -48,15 +47,19 @@ const Profile = () => {
 
   const updateProfileMutation = useMutation({
     mutationFn: (data: UpdateVendorDto) => vendorService.updateProfile(vendor?.id, data),
-    onSuccess: () => {
+    onSuccess: async () => {
+      await refreshVendor();
       toast.success(t("common.profile_updated"));
+    },
+    onError: (error: any) => {
+      toast.error(error?.response?.data?.message || t("common.profile_update_failed"));
     },
   });
 
   const updateImageMutation = useMutation({
     mutationFn: (imageUrl: string) => vendorService.updateImage(vendor?.id, imageUrl),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["vendor-profile"] });
+    onSuccess: async () => {
+      await refreshVendor();
       toast.success(t("common.image_uploaded"));
     },
     onError: (error: any) => {
@@ -148,7 +151,7 @@ const Profile = () => {
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
                   <Label htmlFor="name">{t("common.store_name")}</Label>
-                  <Input id="name" value={profileData.name} onChange={(e) => setProfileData({ ...profileData, name: e.target.value })} />
+                  <Input id="name" value={profileData.shopName} onChange={(e) => setProfileData({ ...profileData, shopName: e.target.value })} />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="phone">{t("common.phone")}</Label>
@@ -172,7 +175,7 @@ const Profile = () => {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="description">{t("common.description")}</Label>
-                <Input id="description" value={profileData.description} onChange={(e) => setProfileData({ ...profileData, description: e.target.value })} />
+                <Input id="description" value={profileData.shopDescription} onChange={(e) => setProfileData({ ...profileData, shopDescription: e.target.value })} />
               </div>
               <Button onClick={handleUpdateProfile} disabled={updateProfileMutation.isPending}>
                 {t("common.save_changes")}

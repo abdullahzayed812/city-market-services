@@ -10,6 +10,7 @@ interface AuthContextType {
   login: (credentials: any) => Promise<void>;
   logout: () => void;
   logoutAllDevices: () => Promise<void>;
+  refreshVendor: () => Promise<void>;
   isLoading: boolean;
 }
 
@@ -90,8 +91,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     window.location.href = "/login";
   };
 
+  const refreshVendor = async () => {
+    const vendorProfile = await vendorService.getMyProfile();
+    setVendor(vendorProfile);
+  };
+
   return (
-    <AuthContext.Provider value={{ user, vendor, token, login, logout, logoutAllDevices, isLoading }}>
+    <AuthContext.Provider value={{ user, vendor, token, login, logout, logoutAllDevices, refreshVendor, isLoading }}>
       {children}
     </AuthContext.Provider>
   );
