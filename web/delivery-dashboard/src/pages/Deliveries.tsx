@@ -17,9 +17,11 @@ function SlaCountdownBadge({ deadline, label }: { deadline: string | Date | null
   const { remainingSeconds, isExpired, isWarning, formattedTime } = useSlaCountdown(deadline);
   if (!deadline || isExpired || remainingSeconds === 0) return null;
   return (
-    <div className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-bold border ${
-      isWarning ? "bg-red-50 border-red-200 text-red-700" : "bg-amber-50 border-amber-200 text-amber-700"
-    }`}>
+    <div
+      className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-bold border ${
+        isWarning ? "bg-red-50 border-red-200 text-red-700" : "bg-amber-50 border-amber-200 text-amber-700"
+      }`}
+    >
       <Timer className="w-3 h-3 flex-shrink-0" />
       <span className="uppercase tracking-wide text-[10px]">{label}</span>
       <span className="tabular-nums font-mono">{formattedTime}</span>
@@ -82,13 +84,13 @@ const Deliveries = () => {
     // },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["deliveries"] });
-      toast({ title: t("common.success", "Success"), description: t("deliveries.delivery_accepted", "Delivery accepted") });
+      toast({ title: t("common.success"), description: t("deliveries.delivery_accepted") });
     },
     onError: (err: any) => {
       queryClient.invalidateQueries({ queryKey: ["deliveries"] });
       toast({
-        title: t("common.error", "Error"),
-        description: err.response?.data?.message || t("deliveries.failed_accept", "Failed to accept delivery"),
+        title: t("common.error"),
+        description: err.response?.data?.message || t("deliveries.failed_accept"),
         variant: "destructive",
       });
     },
@@ -164,18 +166,18 @@ const Deliveries = () => {
               <CardHeader className="flex flex-row items-center justify-between bg-muted/30 py-4">
                 <div className="flex items-center gap-2">
                   <Package className="w-5 h-5 text-primary" />
-                  <CardTitle className="text-lg">Order #{delivery.customerOrderId?.substring(0, 8)}</CardTitle>
+                  <CardTitle className="text-lg">{t("orders.order_number", { id: delivery.customerOrderId?.substring(0, 8) })}</CardTitle>
                 </div>
                 <div className="flex items-center gap-2">
                   <Badge className={getStatusColor(delivery.status)}>{formatStatus(delivery.status)}</Badge>
                   {delivery.status === DeliveryStatus.PENDING && (
-                    <SlaCountdownBadge deadline={(delivery as any).acceptanceDeadline} label="Accept" />
+                    <SlaCountdownBadge deadline={(delivery as any).acceptanceDeadline} label={t("orders.sla_accept")} />
                   )}
                   {delivery.status === DeliveryStatus.ACCEPTED && (
-                    <SlaCountdownBadge deadline={(delivery as any).assignmentDeadline} label="Assign" />
+                    <SlaCountdownBadge deadline={(delivery as any).assignmentDeadline} label={t("orders.sla_assign")} />
                   )}
                   {delivery.status === DeliveryStatus.ASSIGNED && (
-                    <SlaCountdownBadge deadline={(delivery as any).pickupDeadline} label="Pickup" />
+                    <SlaCountdownBadge deadline={(delivery as any).pickupDeadline} label={t("orders.sla_pickup")} />
                   )}
                 </div>
               </CardHeader>
@@ -212,7 +214,7 @@ const Deliveries = () => {
                       <div className="flex items-center gap-3">
                         <User className="w-4 h-4 text-muted-foreground" />
                         <p className="text-sm">
-                          {t("common.courier")}: {delivery.courierId} (ID)
+                          {t("common.courier")}: {delivery.courierName}
                         </p>
                       </div>
                     )}
@@ -223,7 +225,7 @@ const Deliveries = () => {
                         disabled={acceptMutation.isPending}
                         onClick={() => acceptMutation.mutate(delivery.id)}
                       >
-                        {t("deliveries.accept", "Accept")}
+                        {t("deliveries.accept")}
                       </Button>
                     )}
                     {delivery.status === DeliveryStatus.ACCEPTED && (
@@ -234,7 +236,7 @@ const Deliveries = () => {
                           setIsAssignDialogOpen(true);
                         }}
                       >
-                        {t("deliveries.assign_courier", "Assign Courier")}
+                        {t("deliveries.assign_courier")}
                       </Button>
                     )}
                   </div>
@@ -250,7 +252,7 @@ const Deliveries = () => {
                       <div key={vo.id} className="bg-muted/20 p-3 rounded-lg border">
                         <div className="flex items-center gap-2 mb-2">
                           <User className="w-3 h-3 text-muted-foreground" />
-                          <span className="text-xs font-bold text-primary">{vo.vendorName || "Vendor"}</span>
+                          <span className="text-xs font-bold text-primary">{vo.vendorName || t("common.vendor")}</span>
                         </div>
                         <div className="space-y-1">
                           {vo.items?.map((item: any) => (

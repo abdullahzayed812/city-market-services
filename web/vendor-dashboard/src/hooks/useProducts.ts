@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
+import { toast } from "sonner";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { productService } from "@/services/api/product.service";
 import { useAuth } from "@/components/AuthProvider";
@@ -7,6 +9,7 @@ import type { BulkAddVendorProductsFromGlobalItem } from "@city-market/shared";
 const PAGE_SIZE = 20;
 
 export const useProducts = () => {
+  const { t } = useTranslation();
   const { vendor } = useAuth();
   const vendorId = vendor?.id;
   const queryClient = useQueryClient();
@@ -33,6 +36,10 @@ export const useProducts = () => {
     mutationFn: ({ id, data }: { id: string; data: any }) => productService.updateVendorProduct(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["vendor-products"] });
+      toast.success(t("products.product_updated_success"));
+    },
+    onError: (err: any) => {
+      toast.error(err?.response?.data?.message || t("products.product_update_failed"));
     },
   });
 
@@ -41,6 +48,10 @@ export const useProducts = () => {
       productService.updateVendorProductStock(id, stock, weight),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["vendor-products"] });
+      toast.success(t("products.stock_updated_success"));
+    },
+    onError: (err: any) => {
+      toast.error(err?.response?.data?.message || t("products.stock_update_failed"));
     },
   });
 
@@ -48,6 +59,10 @@ export const useProducts = () => {
     mutationFn: (id: string) => productService.deleteVendorProduct(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["vendor-products"] });
+      toast.success(t("products.product_deleted_success"));
+    },
+    onError: (err: any) => {
+      toast.error(err?.response?.data?.message || t("products.product_delete_failed"));
     },
   });
 
@@ -55,6 +70,10 @@ export const useProducts = () => {
     mutationFn: ({ id, imageUrl }: { id: string; imageUrl: string }) => productService.updateProductImage(id, imageUrl),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["vendor-products"] });
+      toast.success(t("products.image_updated_success"));
+    },
+    onError: (err: any) => {
+      toast.error(err?.response?.data?.message || t("products.image_update_failed"));
     },
   });
 

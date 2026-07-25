@@ -107,13 +107,13 @@ const AddVendorProductsDialog: React.FC<AddVendorProductsDialogProps> = ({ open,
       queryClient.invalidateQueries({ queryKey: ["adminProducts"] });
       onAdded?.();
       toast({
-        title: t("common.success", "Success"),
-        description: `${summary.added} product(s) added, ${summary.skipped} skipped (already existing).`,
+        title: t("common.success"),
+        description: t("vendors.add_products_success", { added: summary.added, skipped: summary.skipped }),
       });
     } catch (err: any) {
       toast({
-        title: t("common.error", "Error"),
-        description: `${t("vendors.add_products_failed", "Failed to add products")}: ${err.message}`,
+        title: t("common.error"),
+        description: `${t("vendors.add_products_failed")}: ${err.message}`,
         variant: "destructive",
       });
     } finally {
@@ -130,13 +130,13 @@ const AddVendorProductsDialog: React.FC<AddVendorProductsDialogProps> = ({ open,
       queryClient.invalidateQueries({ queryKey: ["adminProducts"] });
       onAdded?.();
       toast({
-        title: t("common.success", "Success"),
-        description: `${summary.added} product(s) added, ${summary.skipped} skipped (already existing).`,
+        title: t("common.success"),
+        description: t("vendors.add_products_success", { added: summary.added, skipped: summary.skipped }),
       });
     } catch (err: any) {
       toast({
-        title: t("common.error", "Error"),
-        description: `${t("vendors.add_products_failed", "Failed to add products")}: ${err.message}`,
+        title: t("common.error"),
+        description: `${t("vendors.add_products_failed")}: ${err.message}`,
         variant: "destructive",
       });
     } finally {

@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { adminApi } from "@/services/api/admin-api";
 import { useToast } from "@/hooks/use-toast";
@@ -11,6 +12,7 @@ interface UseGlobalProductsOptions {
 }
 
 export const useGlobalProducts = ({ initialLimit = 20, search, globalCategoryId, enabled = true }: UseGlobalProductsOptions = {}) => {
+    const { t } = useTranslation();
     const { toast } = useToast();
     const queryClient = useQueryClient();
     const [limit] = useState(initialLimit);
@@ -36,10 +38,10 @@ export const useGlobalProducts = ({ initialLimit = 20, search, globalCategoryId,
         mutationFn: (id: string) => adminApi.deleteGlobalProduct(id),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["globalProducts"] });
-            toast({ title: "Success", description: "Global template deleted successfully." });
+            toast({ title: t("common.success"), description: t("products.global_product_deleted_success") });
         },
         onError: (err: any) => {
-            toast({ title: "Error", description: `Failed to delete template: ${err.message}`, variant: "destructive" });
+            toast({ title: t("common.error"), description: `${t("products.global_product_delete_failed")}: ${err.message}`, variant: "destructive" });
         },
     });
 

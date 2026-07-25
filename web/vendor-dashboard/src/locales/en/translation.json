@@ -55,6 +55,7 @@
     "day": "Day",
     "no_working_hours": "No working hours set.",
     "profile_updated": "Profile updated successfully",
+    "profile_update_failed": "Failed to update profile",
     "image_uploaded": "Store image uploaded successfully",
     "upload_failed": "Failed to upload image",
     "no_payout_history": "No payout history found."
@@ -193,7 +194,15 @@
     "bulk_add_n": "Add {{count}} product(s)",
     "bulk_added_count": "added",
     "bulk_skipped_count": "skipped (already exist)",
-    "bulk_add_failed": "Failed to add products"
+    "bulk_add_failed": "Failed to add products",
+    "product_updated_success": "Product updated successfully",
+    "product_update_failed": "Failed to update product",
+    "product_deleted_success": "Product deleted successfully",
+    "product_delete_failed": "Failed to delete product",
+    "stock_updated_success": "Stock updated successfully",
+    "stock_update_failed": "Failed to update stock",
+    "image_updated_success": "Product image updated successfully",
+    "image_update_failed": "Failed to update image"
   },
   "reviews": {
     "title": "Reviews",

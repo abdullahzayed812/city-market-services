@@ -8,11 +8,13 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Label } from "@/components/ui/label";
 import { Truck } from "lucide-react";
 import { useAuth } from "@/components/AuthProvider";
+import { useToast } from "@/hooks/use-toast";
 
 const LoginPage = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { login } = useAuth();
+  const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [email, setEmail] = useState("deliverymanager@citymarket.com");
   const [password, setPassword] = useState("password123");
@@ -22,9 +24,14 @@ const LoginPage = () => {
     setIsLoading(true);
     try {
       await login({ email, password });
+      toast({ title: t("common.success"), description: t("auth.login_success") });
       navigate("/");
-    } catch (error) {
-      console.error("Login failed:", error);
+    } catch (error: any) {
+      toast({
+        title: t("common.error"),
+        description: error.response?.data?.message || t("auth.login_failed"),
+        variant: "destructive",
+      });
     } finally {
       setIsLoading(false);
     }
@@ -63,8 +70,7 @@ const LoginPage = () => {
               />
             </div>
             <Button className="w-full" type="submit" disabled={isLoading}>
-              {isLoading ? t("common.loading") : t("common.logout").replace(t("common.logout"), "Login")}{" "}
-              {/* Simple fallback if login translation missing */}
+              {isLoading ? t("common.loading") : t("common.login")}
             </Button>
           </form>
         </CardContent>

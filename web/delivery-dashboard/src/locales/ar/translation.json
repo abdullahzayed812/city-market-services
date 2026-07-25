@@ -4,6 +4,9 @@
     "not_found_message": "الصفحة التي تبحث عنها غير موجودة أو ربما تم نقلها.",
     "go_home": "الذهاب إلى الرئيسية",
     "go_back": "الرجوع",
+    "success": "نجاح",
+    "error": "خطأ",
+    "login": "تسجيل الدخول",
     "dashboard": "لوحة التحكم",
     "deliveries": "الطلبات",
     "earnings": "الأرباح",
@@ -37,6 +40,7 @@
     "vehicle": "المركبة",
     "rating": "التقييم",
     "total_deliveries": "إجمالي الطلبات",
+    "vendor": "المتجر",
     "notifications": "التنبيهات",
     "new_order_alerts": "تنبيهات الطلبات الجديدة",
     "new_order_alerts_desc": "تلقي تنبيهات للطلبات الجديدة المسندة إليك.",
@@ -48,6 +52,11 @@
     "appearance": "المظهر",
     "dark_mode": "الوضع الليلي",
     "dark_mode_desc": "التبديل بين الوضع الفاتح والمظلم."
+  },
+  "auth": {
+    "login_success": "تم تسجيل الدخول بنجاح",
+    "login_failed": "فشل تسجيل الدخول",
+    "invalid_credentials": "البريد الإلكتروني أو كلمة المرور غير صحيحة"
   },
   "dashboard": {
     "active_couriers": "المناديب النشطين",
@@ -71,7 +80,7 @@
     "create_settlement": "إنشاء تسوية",
     "create_office_settlement": "إنشاء تسوية للمكتب",
     "create_office_settlement_description": "إنشاء تسوية مدفوعات لمكتب التوصيل. سيؤدي هذا إلى تجميع جميع التوصيلات المكتملة وغير المسواة ضمن النطاق الزمني المحدد.",
-    "create_settlement_description": "إنشاء تسوية مدفوعات لـ <strong>{{name}}</strong>. سيؤدي هذا إلى تجميع جميع التوصيلات المكتملة وغير المسواة ضمن النطاق الزمني المحدد.",
+    "create_settlement_description": "إنشاء تسوية مدفوعات لـ {{name}}. سيؤدي هذا إلى تجميع جميع التوصيلات المكتملة وغير المسواة ضمن النطاق الزمني المحدد.",
     "period": "الفترة",
     "period_start": "بداية الفترة",
     "period_end": "نهاية الفترة",
@@ -103,12 +112,23 @@
     "on_the_way": "في الطريق",
     "delivered": "تم التوصيل",
     "assigned": "تم تعيين مندوب",
+    "accepted": "تم القبول",
     "pending": "قيد الانتظار",
     "failed": "فشل",
     "order_items": "عناصر الطلب",
+    "order_number": "الطلب #{{id}}",
     "no_items": "لم يتم العثور على عناصر.",
     "items_price": "سعر المنتجات",
     "total_price": "السعر الإجمالي",
-    "delivery_fee": "رسوم التوصيل"
+    "delivery_fee": "رسوم التوصيل",
+    "sla_accept": "قبول",
+    "sla_assign": "تعيين",
+    "sla_pickup": "استلام"
+  },
+  "deliveries": {
+    "accept": "قبول",
+    "assign_courier": "تعيين مندوب",
+    "delivery_accepted": "تم قبول الطلب",
+    "failed_accept": "فشل قبول الطلب"
   }
 }

@@ -37,7 +37,7 @@ const ProductTable: React.FC<ProductTableProps> = memo(
         const result = await mediaService.upload(file, "products", productId);
         onUploadImage(productId, result.url);
       } catch (err: any) {
-        toast({ title: "Upload failed", description: err?.response?.data?.message || err.message, variant: "destructive" });
+        toast({ title: t("common.upload_failed"), description: err?.response?.data?.message || err.message, variant: "destructive" });
       } finally {
         setUploadingId(null);
         const input = inputRefs.current[productId];

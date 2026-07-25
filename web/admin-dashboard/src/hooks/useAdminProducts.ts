@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { adminApi } from "@/services/api/admin-api";
 import type { VendorProduct, CreateVendorProductDto } from "@city-market/shared";
@@ -13,6 +14,7 @@ interface UseAdminProductsOptions {
 }
 
 export const useAdminProducts = ({ initialLimit = 20, globalCategoryId, vendorCategoryId, vendorId, search }: UseAdminProductsOptions = {}) => {
+  const { t } = useTranslation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [limit] = useState(initialLimit);
@@ -56,10 +58,10 @@ export const useAdminProducts = ({ initialLimit = 20, globalCategoryId, vendorCa
     mutationFn: (newProduct: CreateVendorProductDto) => adminApi.createVendorProduct(newProduct),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["adminProducts"] });
-      toast({ title: "Success", description: "Vendor product created successfully." });
+      toast({ title: t("common.success"), description: t("products.vendor_product_created_success") });
     },
     onError: (err: any) => {
-      toast({ title: "Error", description: `Failed to create vendor product: ${err.message}`, variant: "destructive" });
+      toast({ title: t("common.error"), description: `${t("products.vendor_product_create_failed")}: ${err.message}`, variant: "destructive" });
     },
   });
 
@@ -75,10 +77,10 @@ export const useAdminProducts = ({ initialLimit = 20, globalCategoryId, vendorCa
     mutationFn: ({ id, data: updatedData }: { id: string; data: Partial<VendorProduct> }) => adminApi.updateVendorProduct(id, updatedData),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["adminProducts"] });
-      toast({ title: "Success", description: "Vendor product updated successfully." });
+      toast({ title: t("common.success"), description: t("products.vendor_product_updated_success") });
     },
     onError: (err: any) => {
-      toast({ title: "Error", description: `Failed to update vendor product: ${err.message}`, variant: "destructive" });
+      toast({ title: t("common.error"), description: `${t("products.vendor_product_update_failed")}: ${err.message}`, variant: "destructive" });
     },
   });
 
@@ -94,10 +96,10 @@ export const useAdminProducts = ({ initialLimit = 20, globalCategoryId, vendorCa
     mutationFn: (id: string) => adminApi.deleteVendorProduct(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["adminProducts"] });
-      toast({ title: "Success", description: "Vendor product deleted successfully." });
+      toast({ title: t("common.success"), description: t("products.vendor_product_deleted_success") });
     },
     onError: (err: any) => {
-      toast({ title: "Error", description: `Failed to delete vendor product: ${err.message}`, variant: "destructive" });
+      toast({ title: t("common.error"), description: `${t("products.vendor_product_delete_failed")}: ${err.message}`, variant: "destructive" });
     },
   });
 
@@ -113,10 +115,10 @@ export const useAdminProducts = ({ initialLimit = 20, globalCategoryId, vendorCa
     mutationFn: ({ id, imageUrl }: { id: string; imageUrl: string }) => adminApi.updateVendorProductImage(id, imageUrl),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["adminProducts"] });
-      toast({ title: "Success", description: "Product image updated successfully." });
+      toast({ title: t("common.success"), description: t("products.image_updated_success") });
     },
     onError: (err: any) => {
-      toast({ title: "Error", description: `Failed to update image: ${err.message}`, variant: "destructive" });
+      toast({ title: t("common.error"), description: `${t("products.image_update_failed")}: ${err.message}`, variant: "destructive" });
     },
   });
 

@@ -4,6 +4,9 @@
     "not_found_message": "The page you're looking for doesn't exist or may have been moved.",
     "go_home": "Go to Home",
     "go_back": "Go Back",
+    "success": "Success",
+    "error": "Error",
+    "login": "Login",
     "dashboard": "Dashboard",
     "deliveries": "Deliveries",
     "earnings": "Earnings",
@@ -37,6 +40,7 @@
     "vehicle": "Vehicle",
     "rating": "Rating",
     "total_deliveries": "Total Deliveries",
+    "vendor": "Vendor",
     "notifications": "Notifications",
     "new_order_alerts": "New Order Alerts",
     "new_order_alerts_desc": "Receive alerts for new assigned deliveries.",
@@ -48,6 +52,11 @@
     "appearance": "Appearance",
     "dark_mode": "Dark Mode",
     "dark_mode_desc": "Toggle between light and dark themes."
+  },
+  "auth": {
+    "login_success": "Login successful",
+    "login_failed": "Login failed",
+    "invalid_credentials": "Invalid email or password"
   },
   "dashboard": {
     "active_couriers": "Active Couriers",
@@ -71,7 +80,7 @@
     "create_settlement": "Create Settlement",
     "create_office_settlement": "Create Office Settlement",
     "create_office_settlement_description": "Create a payout settlement for the delivery office. This will group all completed, unsettled deliveries within the specified date range.",
-    "create_settlement_description": "Create a payout settlement for <strong>{{name}}</strong>. This will group all completed, unsettled deliveries within the specified date range.",
+    "create_settlement_description": "Create a payout settlement for {{name}}. This will group all completed, unsettled deliveries within the specified date range.",
     "period": "Period",
     "period_start": "Period Start",
     "period_end": "Period End",
@@ -103,12 +112,23 @@
     "on_the_way": "On the Way",
     "delivered": "Delivered",
     "assigned": "Assigned",
+    "accepted": "Accepted",
     "pending": "Pending",
     "failed": "Failed",
     "order_items": "Order Items",
+    "order_number": "Order #{{id}}",
     "no_items": "No items found.",
     "items_price": "Items price",
     "total_price": "Total price",
-    "delivery_fee": "Delivery fee"
+    "delivery_fee": "Delivery fee",
+    "sla_accept": "Accept",
+    "sla_assign": "Assign",
+    "sla_pickup": "Pickup"
+  },
+  "deliveries": {
+    "accept": "Accept",
+    "assign_courier": "Assign Courier",
+    "delivery_accepted": "Delivery accepted",
+    "failed_accept": "Failed to accept delivery"
   }
 }

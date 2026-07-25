@@ -1,4 +1,5 @@
 import React, { useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Loader2, Upload } from "lucide-react";
 import { mediaService, type MediaUploadResult } from "@/services/api/media.service";
 import { useToast } from "@/hooks/use-toast";
@@ -13,6 +14,7 @@ interface ImageUploaderProps {
 }
 
 const ImageUploader: React.FC<ImageUploaderProps> = ({ folder, entityId, currentImageUrl, onComplete, className, children }) => {
+  const { t } = useTranslation();
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const { toast } = useToast();
@@ -25,7 +27,7 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ folder, entityId, current
       const result = await mediaService.upload(file, folder, entityId);
       onComplete(result);
     } catch (err: any) {
-      toast({ title: "Upload failed", description: err?.response?.data?.message || err.message, variant: "destructive" });
+      toast({ title: t("common.upload_failed"), description: err?.response?.data?.message || err.message, variant: "destructive" });
     } finally {
       setUploading(false);
       if (inputRef.current) inputRef.current.value = "";

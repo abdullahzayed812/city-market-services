@@ -58,6 +58,7 @@
     "vendor_category": "فئة المتجر",
     "none": "لا يوجد",
     "error": "حدث خطأ",
+    "upload_failed": "فشل الرفع",
     "phone": "رقم الهاتف",
     "quantity": "الكمية",
     "reset": "إعادة تعيين",
@@ -77,7 +78,9 @@
     "protected_by": "محمي بواسطة CityMarket Security",
     "login_button": "تسجيل الدخول",
     "first_name": "الاسم الأول",
-    "last_name": "الاسم الأخير"
+    "last_name": "الاسم الأخير",
+    "login_failed": "فشل تسجيل الدخول",
+    "invalid_credentials": "بيانات الاعتماد غير صحيحة"
   },
   "roles": {
     "customer": "عميل",
@@ -157,7 +160,17 @@
     "bulk_import_failed_count": "{{count}} فشل",
     "details_column": "التفاصيل",
     "status_ok": "تم",
-    "image_failed": "فشل تحميل الصورة"
+    "image_failed": "فشل تحميل الصورة",
+    "vendor_product_created_success": "تم إنشاء منتج المتجر بنجاح.",
+    "vendor_product_create_failed": "فشل إنشاء منتج المتجر",
+    "vendor_product_updated_success": "تم تحديث منتج المتجر بنجاح.",
+    "vendor_product_update_failed": "فشل تحديث منتج المتجر",
+    "vendor_product_deleted_success": "تم حذف منتج المتجر بنجاح.",
+    "vendor_product_delete_failed": "فشل حذف منتج المتجر",
+    "image_updated_success": "تم تحديث صورة المنتج بنجاح.",
+    "image_update_failed": "فشل تحديث الصورة",
+    "global_product_deleted_success": "تم حذف القالب العام بنجاح.",
+    "global_product_delete_failed": "فشل حذف القالب"
   },
   "categories": {
     "manage": "إدارة الفئات العامة والفئات الخاصة بالتجار.",
@@ -215,7 +228,7 @@
     "net_payout": "صافي الدفع",
     "after_platform_commission": "بعد عمولة المنصة",
     "create_settlement": "إنشاء تسوية",
-    "create_settlement_description": "إنشاء تسوية مدفوعات لـ <strong>{{name}}</strong>. سيؤدي هذا إلى تجميع جميع الطلبات المسلمة وغير المسواة ضمن النطاق الزمني المحدد.",
+    "create_settlement_description": "إنشاء تسوية مدفوعات لـ {{name}}. سيؤدي هذا إلى تجميع جميع الطلبات المسلمة وغير المسواة ضمن النطاق الزمني المحدد.",
     "marketplace_context": "سياق السوق (تحليلات)",
     "total_lifetime_orders": "إجمالي الطلبات مدى الحياة",
     "avg_commission": "متوسط العمولة",
@@ -316,6 +329,7 @@
     "products_added": "تمت الإضافة",
     "products_skipped": "تم التجاوز (موجود بالفعل)",
     "add_products_failed": "فشلت إضافة المنتجات",
+    "add_products_success": "تمت إضافة {{added}} منتج، وتخطي {{skipped}} (موجود مسبقاً).",
     "types": {
       "supermarket": "سوبر ماركت",
       "vegfruit": "خضروات وفواكه",

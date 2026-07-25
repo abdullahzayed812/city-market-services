@@ -58,6 +58,7 @@
     "vendor_category": "Store Category",
     "none": "None",
     "error": "Error occurred",
+    "upload_failed": "Upload failed",
     "phone": "Phone Number",
     "quantity": "Quantity",
     "reset": "Reset",
@@ -77,7 +78,9 @@
     "protected_by": "Protected by CityMarket Security",
     "login_button": "Log In",
     "first_name": "First Name",
-    "last_name": "Last Name"
+    "last_name": "Last Name",
+    "login_failed": "Login failed",
+    "invalid_credentials": "Invalid credentials"
   },
   "roles": {
     "customer": "Customer",
@@ -157,7 +160,17 @@
     "bulk_import_failed_count": "{{count}} failed",
     "details_column": "Details",
     "status_ok": "OK",
-    "image_failed": "Image failed"
+    "image_failed": "Image failed",
+    "vendor_product_created_success": "Vendor product created successfully.",
+    "vendor_product_create_failed": "Failed to create vendor product",
+    "vendor_product_updated_success": "Vendor product updated successfully.",
+    "vendor_product_update_failed": "Failed to update vendor product",
+    "vendor_product_deleted_success": "Vendor product deleted successfully.",
+    "vendor_product_delete_failed": "Failed to delete vendor product",
+    "image_updated_success": "Product image updated successfully.",
+    "image_update_failed": "Failed to update image",
+    "global_product_deleted_success": "Global template deleted successfully.",
+    "global_product_delete_failed": "Failed to delete template"
   },
   "categories": {
     "manage": "Manage global and vendor-specific categories.",
@@ -215,7 +228,7 @@
     "net_payout": "Net Payout",
     "after_platform_commission": "After platform commission",
     "create_settlement": "Create Settlement",
-    "create_settlement_description": "Create a payout settlement for <strong>{{name}}</strong>. This will group all delivered, unsettled orders within the specified date range.",
+    "create_settlement_description": "Create a payout settlement for {{name}}. This will group all delivered, unsettled orders within the specified date range.",
     "marketplace_context": "Marketplace Context (Analytics)",
     "total_lifetime_orders": "Total Lifetime Orders",
     "avg_commission": "Avg. Commission",
@@ -316,6 +329,7 @@
     "products_added": "added",
     "products_skipped": "skipped (already exist)",
     "add_products_failed": "Failed to add products",
+    "add_products_success": "{{added}} product(s) added, {{skipped}} skipped (already existing).",
     "types": {
       "supermarket": "Supermarket",
       "vegfruit": "Vegetables & Fruit",

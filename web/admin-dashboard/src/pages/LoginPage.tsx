@@ -28,8 +28,8 @@ const LoginPage: React.FC = () => {
     } catch (error: any) {
       toast({
         variant: "destructive",
-        title: "Login failed",
-        description: error.response?.data?.message || "Invalid credentials",
+        title: t("auth.login_failed"),
+        description: error.response?.data?.message || t("auth.invalid_credentials"),
       });
     } finally {
       setIsLoading(false);
