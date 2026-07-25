@@ -161,8 +161,16 @@ export class OrderService {
     const offset = (page - 1) * limit;
     const rows = await this.vendorOrderRepo.findByVendorWithItems(vendorId, limit + 1, offset);
     const hasNextPage = rows.length > limit;
-    const items = rows.slice(0, limit).map((vo) => OrderMapper.mapVendorOrderWithItems(vo));
-    return { items, hasNextPage };
+    const pageRows = rows.slice(0, limit);
+    const items = pageRows.map((vo) => OrderMapper.mapVendorOrderWithItems(vo));
+
+    const nameByCustomerId = await this.userClient.getCustomerNamesByIds(pageRows.map((vo) => vo.customerId!));
+    const itemsWithNames = items.map((item) => ({
+      ...item,
+      customerName: nameByCustomerId.get(item.customerId!),
+    }));
+
+    return { items: itemsWithNames, hasNextPage };
   }
 
   async getVendorFinancials(vendorId: string, periodStart?: Date, periodEnd?: Date) {

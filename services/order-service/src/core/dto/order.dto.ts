@@ -48,4 +48,6 @@ export interface OrderWithItems {
 
 export interface VendorOrderWithItemsDto extends VendorOrder {
   items: VendorOrderItem[];
+  customerId?: string;
+  customerName?: string;
 }

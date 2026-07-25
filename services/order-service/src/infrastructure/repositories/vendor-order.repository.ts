@@ -73,6 +73,7 @@ export class VendorOrderRepository implements IVendorOrderRepository {
     const query = `
       SELECT
         vo.*,
+        co.customer_id AS customer_id,
         voi.id AS item_id,
         voi.product_id AS item_product_id,
         voi.product_name AS item_product_name,
@@ -82,6 +83,7 @@ export class VendorOrderRepository implements IVendorOrderRepository {
         voi.unit_price AS item_unit_price,
         voi.total_price AS item_total_price
       FROM vendor_orders vo
+      INNER JOIN customer_orders co ON co.id = vo.customer_order_id
       LEFT JOIN vendor_order_items voi ON vo.id = voi.vendor_order_id
       WHERE vo.id IN (
         SELECT id FROM (
@@ -106,6 +108,7 @@ export class VendorOrderRepository implements IVendorOrderRepository {
         order = {
           id: row.id,
           customerOrderId: row.customer_order_id,
+          customerId: row.customer_id,
           vendorId: row.vendor_id,
           status: row.status,
           subtotal: parseFloat(row.subtotal),
