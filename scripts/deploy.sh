@@ -71,9 +71,13 @@ if [[ "$ENABLE_SSL" == "true" ]]; then
     --standalone \
     --non-interactive \
     --agree-tos \
+    --expand \
     --email "admin@${DOMAIN}" \
     -d "$DOMAIN" \
-    -d "www.${DOMAIN}"
+    -d "www.${DOMAIN}" \
+    -d "admin.${DOMAIN}" \
+    -d "vendor.${DOMAIN}" \
+    -d "delivery.${DOMAIN}"
 
   # Inject actual domain into SSL config
   sed "s/DOMAIN_PLACEHOLDER/$DOMAIN/g" \
