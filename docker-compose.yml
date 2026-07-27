@@ -492,6 +492,10 @@ services:
       - customer-web
     ports:
       - "80:80"
+      - "443:443"
+    volumes:
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+      - /var/www/certbot:/var/www/certbot:ro
 
   # ────────────────────────────────────────────
   #  Web apps (each served by their own nginx)

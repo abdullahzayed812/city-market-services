@@ -153,7 +153,12 @@ sudo apt-get update && sudo apt-get install -y certbot
 
 This obtains a certificate, switches the nginx config to the SSL version, and adds automatic renewal via cron.
 
-**Manual SSL switch** (if you already have a cert):
+Port 443 and the `/etc/letsencrypt` + `/var/www/certbot` volume mounts are
+already configured on the nginx service in `docker-compose.yml`, so `--ssl`
+handles the whole switch.
+
+**Manual SSL switch** (if you already have a cert and want to skip
+`deploy.sh --ssl`):
 
 ```bash
 # Replace DOMAIN_PLACEHOLDER with your actual domain
@@ -162,22 +167,6 @@ sed "s/DOMAIN_PLACEHOLDER/yourdomain.com/g" nginx/nginx.ssl.conf > nginx/nginx.a
 # Copy into the running nginx container
 docker cp nginx/nginx.active.conf $(docker compose ps -q nginx):/etc/nginx/conf.d/default.conf
 docker compose exec nginx nginx -s reload
-```
-
-Expose port 443 in docker-compose.yml for the nginx service:
-
-```yaml
-ports:
-  - "80:80"
-  - "443:443"
-```
-
-And mount the certificate directory:
-
-```yaml
-volumes:
-  - /etc/letsencrypt:/etc/letsencrypt:ro
-  - /var/www/certbot:/var/www/certbot:ro
 ```
 
 ---

@@ -82,9 +82,12 @@ if [[ "$ENABLE_SSL" == "true" ]]; then
   # Update docker-compose nginx build to use the SSL config
   export NGINX_CONF=nginx.active.conf
 
-  # Add certbot renewal cron
+  # Add certbot renewal cron.
+  # The cert was issued with --standalone, which needs port 80 free, but nginx
+  # holds it permanently once deployed — so nginx must be stopped for the
+  # renewal attempt and restarted regardless of whether renewal actually ran.
   if ! crontab -l 2>/dev/null | grep -q "certbot renew"; then
-    (crontab -l 2>/dev/null; echo "0 2 * * * certbot renew --quiet && docker compose -f $PROJECT_DIR/docker-compose.yml restart nginx") | crontab -
+    (crontab -l 2>/dev/null; echo "0 2 * * * docker compose -f $PROJECT_DIR/docker-compose.yml stop nginx; certbot renew --quiet; docker compose -f $PROJECT_DIR/docker-compose.yml start nginx") | crontab -
     echo "    Certbot auto-renewal cron added."
   fi
 

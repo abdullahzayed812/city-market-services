@@ -22,21 +22,30 @@ export class AuthController {
     return { access: `access_token_${ns}`, refresh: `refresh_token_${ns}` };
   }
 
-  private setTokenCookies(res: Response, tokens: { accessToken: string; refreshToken: string }, appId?: string) {
-    const isProduction = process.env.NODE_ENV === "production";
+  private setTokenCookies(
+    req: Request,
+    res: Response,
+    tokens: { accessToken: string; refreshToken: string },
+    appId?: string,
+  ) {
+    // Gate on the actual connection, not NODE_ENV: a prod build served over plain HTTP
+    // (e.g. before SSL is enabled, see DEPLOYMENT.md) must not mark cookies Secure, or
+    // the browser silently refuses to store them and every refresh 401s after reload.
+    // req.secure respects `trust proxy` + X-Forwarded-Proto (set in app.ts).
+    const secure = req.secure;
     const { access, refresh } = this.cookieNames(appId);
 
     res.cookie(access, tokens.accessToken, {
       httpOnly: true,
-      secure: isProduction,
-      sameSite: isProduction ? "strict" : "lax",
+      secure,
+      sameSite: "lax",
       maxAge: parseDurationMs(config.jwtAccessExpiry),
     });
 
     res.cookie(refresh, tokens.refreshToken, {
       httpOnly: true,
-      secure: isProduction,
-      sameSite: isProduction ? "strict" : "lax",
+      secure,
+      sameSite: "lax",
       maxAge: parseDurationMs(config.refreshExpiry),
     });
   }
@@ -71,7 +80,7 @@ export class AuthController {
       const deviceCtx = this.extractDeviceContext(req);
       const tokens = await this.authService.register(req.body, deviceCtx);
       Logger.info("User registered", { email: req.body.email });
-      this.setTokenCookies(res, tokens, deviceCtx.appId);
+      this.setTokenCookies(req, res, tokens, deviceCtx.appId);
       res.status(201).json(ApiResponse.success(tokens, "registration_successful"));
     } catch (error) {
       next(error);
@@ -83,7 +92,7 @@ export class AuthController {
       const deviceCtx = this.extractDeviceContext(req);
       const tokens = await this.authService.login(req.body, deviceCtx);
       Logger.info("User logged in", { email: req.body.email });
-      this.setTokenCookies(res, tokens, deviceCtx.appId);
+      this.setTokenCookies(req, res, tokens, deviceCtx.appId);
       res.status(200).json(ApiResponse.success(tokens, "login_successful"));
     } catch (error) {
       next(error);
@@ -98,7 +107,7 @@ export class AuthController {
         return res.status(401).json(ApiResponse.error("no_refresh_token_provided"));
       }
       const tokens = await this.authService.refreshToken(refreshToken, deviceCtx);
-      this.setTokenCookies(res, tokens, deviceCtx.appId);
+      this.setTokenCookies(req, res, tokens, deviceCtx.appId);
       res.json(ApiResponse.success(tokens, "token_refreshed"));
     } catch (error) {
       next(error);
