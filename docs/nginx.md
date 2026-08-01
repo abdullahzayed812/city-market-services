@@ -254,10 +254,77 @@ server {
 
 `DOMAIN_PLACEHOLDER` is a literal string replaced at deploy time by `deploy.sh` with your real domain.
 
-Certificate renewal runs automatically via a cron job added by `deploy.sh`:
+The certificate is obtained with `certbot --standalone`, which needs port 80
+free to run its own temporary webserver for the challenge — it can't share
+port 80 with a running nginx. So renewal has to stop nginx first:
 ```
-0 2 * * * certbot renew --quiet && docker compose restart nginx
+0 2 * * * docker compose stop nginx; certbot renew --quiet; docker compose start nginx
 ```
+This means nginx is briefly down (a few seconds) once a day for the renewal
+check, not just when a renewal actually happens.
+
+---
+
+### Subdomain HTTPS Server Blocks
+
+`nginx.conf` (HTTP) already had separate `server` blocks routing
+`admin.`/`vendor.`/`delivery.citymarket.tech` to their dashboard containers.
+`nginx.ssl.conf` originally didn't — it had only one HTTPS server block, for
+the main domain. That meant enabling SSL would have silently broken the
+dashboards: a request to `https://admin.citymarket.tech` doesn't match the
+main block's `server_name`, so nginx would fall back to serving it from the
+*first* server block on port 443 (the customer-web one) instead of 404ing or
+erroring — the wrong app, with no visible failure.
+
+The fix mirrors the HTTP config: one HTTPS server block per dashboard
+subdomain, each with its own `server_name` and `proxy_pass` to the matching
+container, reusing the same certificate:
+
+```nginx
+server {
+    listen 443 ssl;
+    http2 on;
+    server_name admin.DOMAIN_PLACEHOLDER;
+
+    ssl_certificate     /etc/letsencrypt/live/DOMAIN_PLACEHOLDER/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/DOMAIN_PLACEHOLDER/privkey.pem;
+    ssl_trusted_certificate /etc/letsencrypt/live/DOMAIN_PLACEHOLDER/chain.pem;
+    ssl_protocols       TLSv1.2 TLSv1.3;
+    # ...same TLS hardening as the main block
+
+    location / {
+        set $upstream http://admin-dashboard:80;
+        proxy_pass $upstream;
+    }
+}
+```
+
+Repeated for `vendor.DOMAIN_PLACEHOLDER` → `vendor-dashboard:80` and
+`delivery.DOMAIN_PLACEHOLDER` → `delivery-dashboard:80`.
+
+`ssl_certificate`/`ssl_protocols`/etc. are declared again in each new block
+because nginx doesn't inherit `ssl_*` directives across sibling `server`
+blocks — only from an enclosing `http {}` block, which this file doesn't
+define (it's included into one by the base nginx image).
+
+A single Let's Encrypt certificate covers all five hostnames — one cert with
+five Subject Alternative Names, not five separate certs. `deploy.sh` requests
+it with `--expand` (needed to widen an already-issued cert instead of
+failing) and all five `-d` flags:
+
+```bash
+certbot certonly --standalone --expand \
+  -d "$DOMAIN" -d "www.$DOMAIN" \
+  -d "admin.$DOMAIN" -d "vendor.$DOMAIN" -d "delivery.$DOMAIN"
+```
+
+Admin/vendor/delivery dashboards also stay reachable directly on their host
+ports (`8080`/`8083`/`8082`) — that mapping was deliberately kept rather than
+removed, since these ports are what local development uses to reach the
+dashboards without any hostname/SSL setup at all. Production hardening for
+these ports is done at the firewall (`ufw deny`, see `DEPLOYMENT.md` §11 —
+access them via SSH tunnel instead), not by removing them from
+`docker-compose.yml`, so the same compose file works for both environments.
 
 ---
 

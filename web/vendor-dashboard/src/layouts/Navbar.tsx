@@ -7,10 +7,14 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Languages, Bell, User, LogOut } from "lucide-react";
+import { Languages, Bell, User, LogOut, Menu } from "lucide-react";
 import { useAuth } from "@/components/AuthProvider";
 
-const Navbar = () => {
+interface NavbarProps {
+  onMenuClick: () => void;
+}
+
+const Navbar = ({ onMenuClick }: NavbarProps) => {
   const { t } = useTranslation();
   const { setLanguage } = useLanguage();
   const { vendor, logout, logoutAllDevices } = useAuth();
@@ -18,6 +22,10 @@ const Navbar = () => {
   return (
     <header className="h-16 border-b bg-card flex items-center justify-between px-6 sticky top-0 z-10">
       <div className="flex items-center gap-4">
+        <Button variant="ghost" size="icon" className="lg:hidden" onClick={onMenuClick}>
+          <Menu className="w-5 h-5" />
+          <span className="sr-only">{t("common.menu", "Menu")}</span>
+        </Button>
         <h2 className="text-lg font-semibold hidden md:block">{t("common.dashboard")}</h2>
       </div>
 

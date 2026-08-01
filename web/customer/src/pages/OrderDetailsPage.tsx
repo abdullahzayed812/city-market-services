@@ -39,6 +39,18 @@ function useVendorStatusConfig() {
   };
 }
 
+function useCustomerStatusConfig() {
+  const { t } = useTranslation();
+  return {
+    [CustomerOrderStatus.PENDING_VENDOR_CONFIRMATION]: t('orders.status_pending'),
+    [CustomerOrderStatus.WAITING_CUSTOMER_DECISION]: t('orders.status_waiting_customer_decision'),
+    [CustomerOrderStatus.READY]: t('orders.status_ready'),
+    [CustomerOrderStatus.IN_DELIVERY]: t('orders.status_in_delivery'),
+    [CustomerOrderStatus.COMPLETED]: t('orders.status_completed'),
+    [CustomerOrderStatus.CANCELLED]: t('orders.status_cancelled'),
+  };
+}
+
 function RatingModal({ open, onClose, vendor, orderId }: { open: boolean; onClose: () => void; vendor: { id: string; name: string } | null; orderId: string }) {
   const [stars, setStars] = useState(5);
   const [comment, setComment] = useState("");
@@ -94,6 +106,7 @@ export default function OrderDetailsPage() {
   const { t } = useTranslation();
   const { isRTL } = useLanguage();
   const VENDOR_STATUS_CONFIG = useVendorStatusConfig();
+  const CUSTOMER_STATUS_CONFIG = useCustomerStatusConfig();
 
   const ORDER_STEPS = [
     { key: "placed", label: t('orders.status_pending'), icon: ShoppingBag },
@@ -213,7 +226,7 @@ export default function OrderDetailsPage() {
               color: isCancelled ? "#EF4444" : "#10B981",
             }}
           >
-            {order.status?.replace(/_/g, " ")}
+            {order.status ? (CUSTOMER_STATUS_CONFIG[order.status as keyof typeof CUSTOMER_STATUS_CONFIG] ?? order.status) : ""}
           </span>
         </div>
 
@@ -326,7 +339,7 @@ export default function OrderDetailsPage() {
                         <span className="text-xs text-text-muted">
                           {t('orders.requested')}: {(item.requestedWeightGrams / 1000).toFixed(2)}{t('common.kg')}
                           {item.actualWeightGrams != null && (
-                            <span className="text-primary font-semibold ml-1">{t('orders.actual_weight')}: {(item.actualWeightGrams / 1000).toFixed(2)}kg</span>
+                            <span className="text-primary font-semibold ml-1">{t('orders.actual_weight')}: {(item.actualWeightGrams / 1000).toFixed(2)}{t('common.kg')}</span>
                           )}
                         </span>
                       )}

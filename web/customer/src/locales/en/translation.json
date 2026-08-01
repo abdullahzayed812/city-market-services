@@ -258,7 +258,8 @@
     "continue_without_vendor": "Continue Without This Vendor",
     "cancel_entire_order": "Cancel Entire Order",
     "cancellation_decision_recorded": "Your decision has been recorded",
-    "cancellation_decision_failed": "Failed to record your decision. Please try again."
+    "cancellation_decision_failed": "Failed to record your decision. Please try again.",
+    "decide_before": "Decide before"
   },
   "proposals": {
     "title": "Review Proposals",

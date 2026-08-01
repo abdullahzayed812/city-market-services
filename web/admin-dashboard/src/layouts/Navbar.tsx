@@ -7,10 +7,14 @@ import {
     DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
-import { Globe, User, LogOut } from 'lucide-react';
+import { Globe, User, LogOut, Menu } from 'lucide-react';
 import { useAuth } from '@/components/AuthProvider';
 
-const Navbar: React.FC = () => {
+interface NavbarProps {
+    onMenuClick: () => void;
+}
+
+const Navbar: React.FC<NavbarProps> = ({ onMenuClick }) => {
     const { t, i18n } = useTranslation();
     const { logout, logoutAllDevices } = useAuth();
 
@@ -22,6 +26,10 @@ const Navbar: React.FC = () => {
     return (
         <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-6">
             <div className="flex items-center">
+                <Button variant="ghost" size="icon" className="lg:hidden me-2" onClick={onMenuClick}>
+                    <Menu className="h-5 w-5" />
+                    <span className="sr-only">{t('common.menu', 'Menu')}</span>
+                </Button>
                 <h1 className="text-lg font-semibold text-gray-800">
                     {/* Page title could go here */}
                 </h1>

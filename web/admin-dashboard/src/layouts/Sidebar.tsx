@@ -4,8 +4,17 @@ import { useTranslation } from "react-i18next";
 import { LayoutDashboard, Users, ShoppingBag, Truck, BarChart3, Settings, Building, Box, Percent, PackageCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-const Sidebar: React.FC = () => {
+interface SidebarProps {
+  isOpen: boolean;
+  onClose: () => void;
+}
+
+const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
   const { t } = useTranslation();
+
+  const handleNavClick = () => {
+    if (window.innerWidth < 1024) onClose();
+  };
 
   const navItems = [
     { name: t("common.dashboard"), href: "/", icon: LayoutDashboard },
@@ -23,15 +32,23 @@ const Sidebar: React.FC = () => {
   ];
 
   return (
-    <aside className="w-64 bg-white border-e border-gray-200 flex flex-col">
+    <aside
+      className={cn(
+        "fixed inset-y-0 start-0 z-50 w-64 bg-white border-e border-gray-200 flex flex-col transform transition-transform duration-200 ease-in-out",
+        isOpen ? "translate-x-0" : "-translate-x-full rtl:translate-x-full",
+        "lg:static lg:z-auto lg:translate-x-0",
+        !isOpen && "lg:hidden",
+      )}
+    >
       <div className="h-16 flex items-center px-6 border-b border-gray-200">
         <span className="text-xl font-bold text-primary">{t("common.admin_title")}</span>
       </div>
-      <nav className="flex-1 px-4 py-4 space-y-1">
+      <nav className="flex-1 px-4 py-4 space-y-1 overflow-y-auto">
         {navItems.map((item) => (
           <NavLink
             key={item.name}
             to={item.href}
+            onClick={handleNavClick}
             className={({ isActive }: { isActive: boolean }) =>
               cn(
                 "flex items-center px-4 py-2 text-sm font-medium rounded-md transition-colors",

@@ -49,8 +49,8 @@ export class RabbitMQBus {
 
   async publish(event: BaseEvent): Promise<void> {
     if (!this.isConnected || !this.channel) {
-      Logger.warn(`RabbitMQ not connected, dropping event ${event.type}`);
-      return;
+      Logger.error(`RabbitMQ not connected, cannot publish event ${event.type}`);
+      throw new Error(`RabbitMQ not connected, cannot publish event ${event.type}`);
     }
 
     try {
@@ -66,6 +66,7 @@ export class RabbitMQBus {
       Logger.info(`Published event ${event.type}`);
     } catch (error) {
       Logger.error(`Failed to publish event ${event.type}`, error);
+      throw error;
     }
   }
 

@@ -258,7 +258,8 @@
     "continue_without_vendor": "المتابعة بدون هذا المتجر",
     "cancel_entire_order": "إلغاء الطلب بالكامل",
     "cancellation_decision_recorded": "تم تسجيل قرارك",
-    "cancellation_decision_failed": "فشل تسجيل قرارك. الرجاء المحاولة مرة أخرى."
+    "cancellation_decision_failed": "فشل تسجيل قرارك. الرجاء المحاولة مرة أخرى.",
+    "decide_before": "قرر قبل"
   },
   "proposals": {
     "title": "مراجعة العروض",
@@ -269,6 +270,7 @@
     "proposed_quantity": "الكمية المقترحة",
     "review_button": "مراجعة عروض المتجر",
     "type_quantity_reduction": "تخفيض الكمية",
+    "type_weight_reduction": "تخفيض الوزن",
     "type_unavailable": "غير متوفر",
     "status_pending": "قيد الانتظار",
     "status_accepted": "مقبول",
