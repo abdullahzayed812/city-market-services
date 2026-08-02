@@ -252,7 +252,36 @@ server {
 | `ssl_stapling on` | Nginx attaches OCSP status to the response — client skips a separate CA request |
 | HSTS `max-age=63072000` | Tells browsers to enforce HTTPS for this domain for 2 years |
 
-`DOMAIN_PLACEHOLDER` is a literal string replaced at deploy time by `deploy.sh` with your real domain.
+`DOMAIN_PLACEHOLDER` is a literal string, substituted with your real domain at
+**image build time**, not at container runtime. `nginx/Dockerfile` takes two
+build args, `ENABLE_SSL` and `DOMAIN`, and bakes the resulting config in as
+`/etc/nginx/conf.d/default.conf`:
+
+```dockerfile
+ARG ENABLE_SSL=false
+ARG DOMAIN=localhost
+...
+RUN if [ "$ENABLE_SSL" = "true" ]; then \
+      sed "s/DOMAIN_PLACEHOLDER/$DOMAIN/g" /tmp/nginx.ssl.conf > /etc/nginx/conf.d/default.conf; \
+    else \
+      cp /tmp/nginx.conf /etc/nginx/conf.d/default.conf; \
+    fi
+```
+
+`docker-compose.yml` passes both as build args, reading them from `.env`
+(`ENABLE_SSL: ${ENABLE_SSL:-false}`, `DOMAIN: ${DOMAIN:-localhost}`). `deploy.sh
+--ssl` writes `ENABLE_SSL=true` and `DOMAIN=...` into `.env` once certs are
+obtained, so **every subsequent build reproduces the SSL config automatically
+— including a plain `deploy.sh --update` with no `--ssl` flag**. This matters
+because Compose only reuses an existing container when its image is
+unchanged; if `docker compose build --pull` happens to pull a new base image
+layer, the nginx container gets recreated from scratch. Baking the config in
+at build time (rather than patching a running container with `docker cp`,
+which was the previous approach) means that recreation can never silently
+drop back to HTTP-only — the freshly built image already has the right
+config either way. `--ssl` itself only needs to be passed again when you
+actually want to (re-)run the certbot step, e.g. for first setup or a manual
+renewal — it's not required just to keep HTTPS across ordinary rebuilds.
 
 The certificate is obtained with `certbot --standalone`, which needs port 80
 free to run its own temporary webserver for the challenge — it can't share

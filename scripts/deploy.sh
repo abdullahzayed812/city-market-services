@@ -12,11 +12,15 @@ COMPOSE="docker compose"
 PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 # ── Parse flags ───────────────────────────────────────────────────────────────
-ENABLE_SSL=false
+# RUN_SSL_SETUP: did the user pass --ssl *this invocation* (drives the
+# certbot/downtime dance below). Kept separate from ENABLE_SSL, which reflects
+# the persisted .env state and can be true here even without --ssl on a
+# routine `--update` run — see the "Load .env" step further down.
+RUN_SSL_SETUP=false
 UPDATE_MODE=false
 for arg in "$@"; do
   case $arg in
-    --ssl)    ENABLE_SSL=true  ;;
+    --ssl)    RUN_SSL_SETUP=true ;;
     --update) UPDATE_MODE=true ;;
   esac
 done
@@ -53,9 +57,20 @@ fi
 
 # Load .env for this script
 set -a; source .env; set +a
+: "${ENABLE_SSL:=false}"
+
+# Persist a KEY=VALUE into .env, updating it in place if already present.
+set_env_var() {
+  local key=$1 value=$2
+  if grep -q "^${key}=" .env; then
+    sed -i "s|^${key}=.*|${key}=${value}|" .env
+  else
+    echo "${key}=${value}" >> .env
+  fi
+}
 
 # ── SSL setup ─────────────────────────────────────────────────────────────────
-if [[ "$ENABLE_SSL" == "true" ]]; then
+if [[ "$RUN_SSL_SETUP" == "true" ]]; then
   DOMAIN="${DOMAIN:?DOMAIN must be set in .env}"
   echo "==> Setting up SSL for $DOMAIN ..."
 
@@ -79,12 +94,11 @@ if [[ "$ENABLE_SSL" == "true" ]]; then
     -d "vendor.${DOMAIN}" \
     -d "delivery.${DOMAIN}"
 
-  # Inject actual domain into SSL config
-  sed "s/DOMAIN_PLACEHOLDER/$DOMAIN/g" \
-    nginx/nginx.ssl.conf > nginx/nginx.active.conf
-
-  # Update docker-compose nginx build to use the SSL config
-  export NGINX_CONF=nginx.active.conf
+  # Persist so future builds (even plain `--update`, without --ssl) keep
+  # baking the HTTPS config into the nginx image — see nginx/Dockerfile.
+  set_env_var ENABLE_SSL true
+  set_env_var DOMAIN "$DOMAIN"
+  export ENABLE_SSL=true
 
   # Add certbot renewal cron.
   # The cert was issued with --standalone, which needs port 80 free, but nginx
@@ -141,14 +155,6 @@ $COMPOSE run --rm auth-service node -e "
 # ── Start all services ─────────────────────────────────────────────────────────
 echo "==> Starting all services ..."
 $COMPOSE up -d
-
-# ── Mount SSL config if enabled ───────────────────────────────────────────────
-if [[ "$ENABLE_SSL" == "true" ]] && [[ -f nginx/nginx.active.conf ]]; then
-  echo "==> Switching nginx to SSL config ..."
-  docker cp nginx/nginx.active.conf \
-    "$(docker compose ps -q nginx)":/etc/nginx/conf.d/default.conf
-  $COMPOSE exec nginx nginx -s reload
-fi
 
 # ── Health check ──────────────────────────────────────────────────────────────
 echo ""

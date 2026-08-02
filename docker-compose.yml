@@ -473,6 +473,9 @@ services:
     build:
       context: ./nginx
       dockerfile: Dockerfile
+      args:
+        ENABLE_SSL: ${ENABLE_SSL:-false}
+        DOMAIN: ${DOMAIN:-localhost}
     restart: unless-stopped
     networks:
       - citymarket
