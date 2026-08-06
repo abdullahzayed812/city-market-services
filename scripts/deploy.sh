@@ -51,8 +51,12 @@ if grep -q "change_me" .env; then
   echo "  WARNING: .env contains placeholder values (change_me_*)."
   echo "           Update them before deploying to production."
   echo ""
-  read -rp "  Continue anyway? [y/N] " CONT
-  [[ "$CONT" =~ ^[Yy]$ ]] || exit 1
+  if [[ -t 0 ]]; then
+    read -rp "  Continue anyway? [y/N] " CONT
+    [[ "$CONT" =~ ^[Yy]$ ]] || exit 1
+  else
+    echo "  Non-interactive run — continuing anyway (placeholder values still unresolved)."
+  fi
 fi
 
 # Load .env for this script
