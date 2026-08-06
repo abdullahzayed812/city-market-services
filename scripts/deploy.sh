@@ -108,7 +108,9 @@ if [[ "$RUN_SSL_SETUP" == "true" ]]; then
   # The cert was issued with --standalone, which needs port 80 free, but nginx
   # holds it permanently once deployed — so nginx must be stopped for the
   # renewal attempt and restarted regardless of whether renewal actually ran.
-  if ! crontab -l 2>/dev/null | grep -q "certbot renew"; then
+  if ! command -v crontab >/dev/null 2>&1; then
+    echo "    crontab not available — skipping certbot auto-renewal cron."
+  elif ! crontab -l 2>/dev/null | grep -q "certbot renew"; then
     (crontab -l 2>/dev/null; echo "0 2 * * * docker compose -f $PROJECT_DIR/docker-compose.yml stop nginx; certbot renew --quiet; docker compose -f $PROJECT_DIR/docker-compose.yml start nginx") | crontab -
     echo "    Certbot auto-renewal cron added."
   fi
@@ -174,7 +176,9 @@ FAILED=0
 
 check() {
   local label=$1 url=$2
-  if curl -sf "$url" -o /dev/null --max-time 5; then
+  # -k: these hit localhost directly, so the cert (issued for $DOMAIN, not
+  # "localhost") will never validate here — that's expected, not a failure.
+  if curl -sfk "$url" -o /dev/null --max-time 5; then
     echo "    [OK]  $label"
   else
     echo "    [FAIL] $label — $url"
@@ -196,7 +200,9 @@ if [[ "$FAILED" -gt 0 ]]; then
 fi
 
 # ── Add daily backup cron ─────────────────────────────────────────────────────
-if ! crontab -l 2>/dev/null | grep -q "backup-mysql.sh"; then
+if ! command -v crontab >/dev/null 2>&1; then
+  echo "==> crontab not available — skipping daily backup cron."
+elif ! crontab -l 2>/dev/null | grep -q "backup-mysql.sh"; then
   (crontab -l 2>/dev/null; echo "0 3 * * * $PROJECT_DIR/scripts/backup-mysql.sh >> /var/log/citymarket-backup.log 2>&1") | crontab -
   echo "==> Daily backup cron added (3 AM)."
 fi
