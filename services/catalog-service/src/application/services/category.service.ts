@@ -1,10 +1,8 @@
-import fs from "fs/promises";
-import path from "path";
 import { randomUUID } from "crypto";
 import { ICategoryRepository } from "../../core/interfaces/category.repository";
 import { Category } from "../../core/entities/category.entity";
 import { NotFoundError, CategoryType, UserRole } from "@city-market/shared";
-import { Logger } from "@city-market/shared/node";
+import { MediaClient } from "../../infrastructure/http/media-client";
 
 export interface CreateCategoryDto {
   name: string;
@@ -16,7 +14,10 @@ export interface CreateCategoryDto {
 }
 
 export class CategoryService {
-  constructor(private categoryRepo: ICategoryRepository) {}
+  constructor(
+    private categoryRepo: ICategoryRepository,
+    private mediaClient: MediaClient = new MediaClient(),
+  ) {}
 
   async createCategory(dto: CreateCategoryDto, userRole: UserRole, userId?: string): Promise<Category> {
     // Admin can create anything. Vendors can only create VENDOR categories for themselves.
@@ -74,24 +75,17 @@ export class CategoryService {
   }
 
   async updateCategory(id: string, data: Partial<Category>): Promise<void> {
-    await this.getCategoryById(id);
+    const existing = await this.getCategoryById(id);
     await this.categoryRepo.update(id, data);
+    if (data.iconUrl) {
+      await this.mediaClient.deleteOldImage(existing.iconUrl, data.iconUrl);
+    }
   }
 
   async updateCategoryIcon(id: string, iconUrl: string): Promise<void> {
     const category = await this.getCategoryById(id);
-
-    if (category.iconUrl) {
-      try {
-        const oldIconPath = path.join(process.cwd(), category.iconUrl.replace("/catalog", ""));
-        await fs.unlink(oldIconPath);
-        Logger.info("Old category icon deleted", { path: oldIconPath });
-      } catch (error) {
-        Logger.error("Failed to delete old category icon", { error });
-      }
-    }
-
     await this.categoryRepo.update(id, { iconUrl });
+    await this.mediaClient.deleteOldImage(category.iconUrl, iconUrl);
   }
 
   async deleteCategory(id: string): Promise<void> {

@@ -11,6 +11,7 @@ export const config = ConfigLoader.load<{
   vendorServiceClientId: string;
   vendorServiceClientSecret: string;
   authServiceTokenUrl: string;
+  mediaServiceUrl: string;
 }>({
   port: { env: "PORT", default: 3003 },
   dbHost: { env: "DB_HOST", default: "localhost" },
@@ -19,6 +20,7 @@ export const config = ConfigLoader.load<{
   dbPassword: { env: "DB_PASSWORD", required: true, sensitive: true },
   dbName: { env: "DB_NAME", default: "vendor_db" },
   authServiceUrl: { env: "AUTH_SERVICE_URL", default: "http://localhost:3001" },
+  mediaServiceUrl: { env: "MEDIA_SERVICE_URL", default: "http://localhost:3012" },
   vendorServiceClientId: { env: "VENDOR_SERVICE_CLIENT_ID", default: "vendor-service-id" },
   vendorServiceClientSecret: { env: "VENDOR_SERVICE_CLIENT_SECRET", required: true, sensitive: true },
   authServiceTokenUrl: { env: "AUTH_SERVICE_TOKEN_URL", default: "http://localhost:3001/oauth/token" },

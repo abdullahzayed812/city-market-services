@@ -245,6 +245,7 @@ services:
       JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET}
       JWT_SERVICE_ACCESS_SECRET: ${JWT_SERVICE_ACCESS_SECRET}
       RABBITMQ_URL: amqp://${RABBITMQ_USER:-guest}:${RABBITMQ_PASSWORD:-guest}@rabbitmq:5672
+      MEDIA_SERVICE_URL: http://media-service:3012
 
   catalog-service:
     <<: *rabbitmq-service

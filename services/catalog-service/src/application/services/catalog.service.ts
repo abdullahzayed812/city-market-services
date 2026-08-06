@@ -267,7 +267,9 @@ export class CatalogService {
 
   async updateVendorProductImage(id: string, imageUrl: string): Promise<void> {
     const product = await this.getVendorProductById(id);
+    const globalProduct = await this.globalProductRepo.findById(product.globalProductId);
     await this.globalProductRepo.update(product.globalProductId, { imageUrl });
+    await this.mediaClient.deleteOldImage(globalProduct?.imageUrl, imageUrl);
   }
 
   async reserveStock(id: string, quantity: number, weightGrams: number): Promise<boolean> {
@@ -449,8 +451,11 @@ export class CatalogService {
   }
 
   async updateGlobalProduct(id: string, data: Partial<GlobalProduct>): Promise<void> {
-    await this.getGlobalProductById(id);
+    const existing = await this.getGlobalProductById(id);
     await this.globalProductRepo.update(id, data);
+    if (data.imageUrl) {
+      await this.mediaClient.deleteOldImage(existing.imageUrl, data.imageUrl);
+    }
   }
 
   async deleteGlobalProduct(id: string): Promise<void> {

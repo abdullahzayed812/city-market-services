@@ -1,10 +1,5 @@
-import { catalogServiceAuthenticator, config } from "../../config/env";
+import { vendorServiceAuthenticator, config } from "../../config/env";
 import { Logger } from "@city-market/shared/node";
-
-export interface MediaUploadResult {
-  url: string;
-  sizes: { small: string; medium: string; large: string };
-}
 
 // Media URLs are full CDN URLs (https://cdn.example.com/{key}); R2 keys are the path.
 export function extractMediaKey(url: string | null | undefined): string | null {
@@ -17,29 +12,8 @@ export function extractMediaKey(url: string | null | undefined): string | null {
 }
 
 export class MediaClient {
-  async uploadImageFromUrl(imageUrl: string, folder: string, entityId: string): Promise<MediaUploadResult> {
-    const serviceToken = await catalogServiceAuthenticator.getServiceToken();
-
-    const response = await fetch(`${config.mediaServiceUrl}/media/upload-from-url`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${serviceToken}`,
-      },
-      body: JSON.stringify({ imageUrl, folder, entityId }),
-    });
-
-    if (!response.ok) {
-      const body = await response.text().catch(() => "");
-      throw new Error(`media_upload_failed_${response.status}: ${body}`);
-    }
-
-    const json = (await response.json()) as { data: MediaUploadResult };
-    return json.data;
-  }
-
   async deleteFile(key: string): Promise<void> {
-    const serviceToken = await catalogServiceAuthenticator.getServiceToken();
+    const serviceToken = await vendorServiceAuthenticator.getServiceToken();
 
     const response = await fetch(`${config.mediaServiceUrl}/media/file`, {
       method: "DELETE",

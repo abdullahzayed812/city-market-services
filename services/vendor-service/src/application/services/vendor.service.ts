@@ -9,12 +9,14 @@ import { ValidationError, NotFoundError } from "@city-market/shared";
 import { Logger } from "@city-market/shared/node";
 import { EventType } from "@city-market/shared";
 import { VendorPublisher } from "../../infrastructure/messaging/VendorPublisher";
+import { MediaClient } from "../../infrastructure/http/media-client";
 
 export class VendorService {
   constructor(
     private vendorRepo: IVendorRepository,
     private workingHoursRepo: IWorkingHoursRepository,
-    private publisher: VendorPublisher
+    private publisher: VendorPublisher,
+    private mediaClient: MediaClient = new MediaClient(),
   ) { }
 
   async createVendor(dto: CreateVendorDto): Promise<Vendor> {
@@ -114,8 +116,9 @@ export class VendorService {
   }
 
   async updateStoreImage(id: string, imagePath: string): Promise<void> {
-    await this.getVendorById(id);
+    const vendor = await this.getVendorById(id);
     await this.vendorRepo.update(id, { storeImage: imagePath });
+    await this.mediaClient.deleteOldImage(vendor.storeImage, imagePath);
   }
 
   async updateVendorRating(id: string, averageRating: number, totalRatings: number): Promise<void> {

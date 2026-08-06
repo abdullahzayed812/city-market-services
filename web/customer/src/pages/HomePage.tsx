@@ -56,16 +56,16 @@ function SectionHeader({ title, to, icon }: { title: string; to: string; icon?: 
 function CategoryPill({ category, onPress }: { category: Category; onPress: () => void }) {
   return (
     <motion.button whileHover={{ scale: 1.06, y: -2 }} whileTap={{ scale: 0.94 }} onClick={onPress} className="flex flex-col items-center gap-2 flex-shrink-0">
-      <div className="w-[72px] h-[72px] rounded-2xl flex items-center justify-center overflow-hidden shadow-card transition-shadow hover:shadow-card-hover bg-white">
+      <div className="w-24 h-24 rounded-2xl flex items-center justify-center overflow-hidden shadow-card transition-shadow hover:shadow-card-hover bg-white">
         {category.imageUrl ? (
-          <img src={getImageUrl(category.imageUrl)} alt={category.name} className="w-10 h-10 object-contain" />
+          <img src={getImageUrl(category.imageUrl)} alt={category.name} className="w-[68px] h-[68px] object-contain" />
         ) : (
-          <span className="text-2xl font-black" style={{ color: category.color || "#10B981" }}>
+          <span className="text-3xl font-black" style={{ color: category.color || "#10B981" }}>
             {category.name[0]}
           </span>
         )}
       </div>
-      <span className="text-xs font-semibold text-text-secondary text-center w-[76px] leading-tight line-clamp-2">{category.name}</span>
+      <span className="text-xs font-semibold text-text-secondary text-center w-24 leading-tight line-clamp-2">{category.name}</span>
     </motion.button>
   );
 }
