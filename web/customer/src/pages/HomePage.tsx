@@ -47,7 +47,7 @@ function SectionHeader({ title, to, icon }: { title: string; to: string; icon?: 
         <h2 className="text-lg font-bold text-text-primary tracking-tight">{title}</h2>
       </div>
       <Link to={to} className="flex items-center gap-1 text-sm font-semibold text-primary hover:text-primary-dark transition-colors">
-        {t('common.see_all')} <ChevronRight size={15} />
+        {t("common.see_all")} <ChevronRight size={15} />
       </Link>
     </div>
   );
@@ -148,7 +148,7 @@ export default function HomePage() {
               className="inline-flex items-center gap-2 bg-white/15 backdrop-blur-sm text-white/95 text-xs font-bold px-3.5 py-1.5 rounded-full mb-5 border border-white/20"
             >
               <span className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse-soft" />
-              {t('home.promo_subtitle')}
+              {t("home.promo_subtitle")}
             </motion.div>
 
             {/* Headline */}
@@ -161,15 +161,15 @@ export default function HomePage() {
               {isAuthenticated && user?.name ? (
                 <>
                   <span className="text-white/60 text-lg sm:text-xl font-bold block mb-2 tracking-wide">
-                    {t('home.welcome')} {user.name.split(" ")[0]} 👋
+                    {t("home.welcome")} {user.name.split(" ")[0]} 👋
                   </span>
-                  {t('home.hero_headline')}
+                  {t("home.hero_headline")}
                 </>
               ) : (
-                <>{t('home.hero_headline')}</>
+                <>{t("home.hero_headline")}</>
               )}
               <br />
-              <span className="text-accent">{t('home.hero_subline')}</span>
+              <span className="text-accent">{t("home.hero_subline")}</span>
             </motion.h1>
 
             <motion.p
@@ -178,7 +178,7 @@ export default function HomePage() {
               transition={{ delay: 0.2 }}
               className="text-white/75 text-sm sm:text-base mb-8 max-w-md leading-relaxed"
             >
-              {t('home.hero_description')}
+              {t("home.hero_description")}
             </motion.p>
 
             {/* Search bar */}
@@ -194,7 +194,7 @@ export default function HomePage() {
                 <input
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder={t('home.search_placeholder')}
+                  placeholder={t("home.search_placeholder")}
                   className="w-full h-12 pl-11 pr-4 rtl:pl-4 rtl:pr-11 bg-white rounded-2xl text-sm font-medium text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-white/50 shadow-float"
                 />
               </div>
@@ -203,7 +203,7 @@ export default function HomePage() {
                 type="submit"
                 className="h-12 px-5 bg-accent text-white font-bold rounded-2xl shadow-accent-glow hover:bg-accent-dark transition-colors flex items-center gap-1.5 flex-shrink-0"
               >
-                {t('common.search')}
+                {t("common.search")}
                 <ArrowRight size={15} />
               </motion.button>
             </motion.form>
@@ -234,7 +234,7 @@ export default function HomePage() {
         {/* ── Categories ── */}
         {categories.length > 0 && (
           <section className="py-8">
-            <SectionHeader title={t('home.categories')} to="/search" />
+            <SectionHeader title={t("home.categories")} to="/search" />
             <div className="flex gap-4 overflow-x-auto pb-3 scrollbar-hide -mx-4 px-4">
               {categories.map((cat) => (
                 <CategoryPill key={cat.id} category={cat} onPress={() => navigate(`/search?categoryId=${cat.id}`)} />
@@ -242,33 +242,6 @@ export default function HomePage() {
             </div>
           </section>
         )}
-
-        {/* ── Promo banner ──
-        <section className="mb-8">
-          <motion.div
-            whileHover={{ scale: 1.01 }}
-            whileTap={{ scale: 0.99 }}
-            className="relative overflow-hidden rounded-3xl cursor-pointer bg-accent-gradient p-6 sm:p-8"
-          >
-            <div className="absolute -right-8 -top-8 w-44 h-44 rounded-full bg-white/10" />
-            <div className="absolute -right-2 bottom-0 w-28 h-28 rounded-full bg-black/[0.06]" />
-
-            <div className="relative z-10 flex items-center justify-between gap-4">
-              <div>
-                <div className="inline-flex items-center gap-1.5 bg-white/20 text-white text-[10px] font-bold px-2.5 py-1 rounded-full mb-2 uppercase tracking-widest">
-                  <span className="w-1 h-1 rounded-full bg-white animate-pulse-soft" />
-                  {t('home.promo_tag')}
-                </div>
-                <h3 className="text-2xl sm:text-3xl font-black text-white leading-tight mb-1 tracking-tight">{t('home.promo_title')}</h3>
-                <p className="text-white/80 text-sm">{t('home.promo_subtitle')}</p>
-              </div>
-              <div className="flex-shrink-0 w-16 h-16 sm:w-20 sm:h-20 bg-white/15 rounded-2xl flex items-center justify-center">
-                <Gift size={32} className="text-white" strokeWidth={1.5} />
-              </div>
-            </div>
-          </motion.div>
-        </section>
-        */}
 
         {/* ── Vendor Groups ── */}
         {groupedVendors.map(({ type, items }) => {
@@ -317,7 +290,7 @@ export default function HomePage() {
         {featuredProducts && featuredProducts.data?.length > 0 && (
           <section className="mb-10">
             <SectionHeader
-              title={t('home.trending')}
+              title={t("home.trending")}
               to="/search"
               icon={
                 <div className="w-7 h-7 rounded-lg bg-primary-xlight flex items-center justify-center">
