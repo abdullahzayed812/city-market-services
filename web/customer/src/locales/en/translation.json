@@ -90,7 +90,7 @@
     "server_select": "Select Server Environment",
     "server_pc": "PC (128)",
     "server_laptop": "Laptop (2)",
-    "already_have_account": "Already have an account? Login",
+    "already_have_account": "Already have an account?",
     "dont_have_account": "Don't have an account? Register",
     "login_subtitle": "Sign in to continue to CityMarket",
     "register_subtitle": "Create an account to start shopping",
