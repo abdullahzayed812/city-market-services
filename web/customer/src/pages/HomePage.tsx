@@ -13,6 +13,7 @@ import type { Category, Vendor } from "@/types";
 import { useAuthStore } from "@/store/authStore";
 import { useTranslation } from "react-i18next";
 
+//
 const VENDOR_TYPE_ICON: Record<string, React.ElementType> = {
   SUPERMARKET: ShoppingCart,
   BAKERY: Wheat,
