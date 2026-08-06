@@ -1,11 +1,11 @@
-import axios from 'axios';
-import { getOrCreateDeviceId } from '@/utils/deviceId';
+import axios from "axios";
+import { getOrCreateDeviceId } from "@/utils/deviceId";
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost/api/v1';
+const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost/api/v1";
 
 // Namespaces this app's auth cookies on the backend so logging into another dashboard in the
 // same browser (which shares one cookie jar for this backend host) can't clobber this app's session.
-export const APP_ID = 'customer-web';
+export const APP_ID = "customer-web";
 
 let signOutCallback: (() => void) | null = null;
 export const setSignOutCallback = (fn: () => void) => {
@@ -23,7 +23,7 @@ export const getAccessToken = () => accessToken;
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
   withCredentials: true,
-  headers: { 'Content-Type': 'application/json' },
+  headers: { "Content-Type": "application/json" },
 });
 
 apiClient.interceptors.request.use(
@@ -75,7 +75,7 @@ apiClient.interceptors.response.use(
       const { data } = await axios.post(
         `${API_BASE_URL}/auth/refresh`,
         { deviceId: getOrCreateDeviceId(), appId: APP_ID },
-        { headers: { 'Content-Type': 'application/json' }, withCredentials: true },
+        { headers: { "Content-Type": "application/json" }, withCredentials: true },
       );
       const { accessToken: newAccessToken } = data.data;
       setAccessToken(newAccessToken);
@@ -108,7 +108,7 @@ export const silentRefresh = (): Promise<{ accessToken: string; user: unknown } 
       const { data } = await axios.post(
         `${API_BASE_URL}/auth/refresh`,
         { deviceId: getOrCreateDeviceId(), appId: APP_ID },
-        { headers: { 'Content-Type': 'application/json' }, withCredentials: true },
+        { headers: { "Content-Type": "application/json" }, withCredentials: true },
       );
       setAccessToken(data.data.accessToken);
       return data.data;

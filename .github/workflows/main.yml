@@ -2,54 +2,14 @@ name: CityMarket CI/CD
 
 on:
   push:
-    branches: [ main, develop ]
-  pull_request:
-    branches: [ main, develop ]
+    branches: [main]
 
 jobs:
-  lint-and-test:
-    runs-on: ubuntu-latest
+  deploy:
+    name: Deploy to production
+    runs-on: self-hosted
     steps:
-      - uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-
-      - name: Install dependencies (Root)
-        run: npm install
-
-      - name: Build Shared Package
+      - name: Run deploy.sh --update
         run: |
-          cd shared
-          npm install
-          npm run build
-
-      - name: Lint and Build API Gateway
-        run: |
-          cd api-gateway
-          npm install
-          npm run build
-
-      - name: Lint and Build Auth Service
-        run: |
-          cd services/auth-service
-          npm install
-          npm run build
-
-      # Add more services as they are production-ready
-      
-  docker-build:
-    needs: lint-and-test
-    runs-on: ubuntu-latest
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Build API Gateway Docker
-        run: docker build -t citymarket-api-gateway -f api-gateway/Dockerfile .
-
-      - name: Build Auth Service Docker
-        run: docker build -t citymarket-auth-service -f services/auth-service/Dockerfile .
+          cd ${{ vars.PROJECT_DIR }}
+          ./scripts/deploy.sh --update

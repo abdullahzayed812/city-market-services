@@ -89,7 +89,7 @@ export interface Vendor {
 export interface Category {
   id: string;
   name: string;
-  imageUrl?: string;
+  iconUrl?: string;
   color?: string;
   isGlobal?: boolean;
   vendorId?: string;

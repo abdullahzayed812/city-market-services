@@ -57,8 +57,8 @@ function CategoryPill({ category, onPress }: { category: Category; onPress: () =
   return (
     <motion.button whileHover={{ scale: 1.06, y: -2 }} whileTap={{ scale: 0.94 }} onClick={onPress} className="flex flex-col items-center gap-2 flex-shrink-0">
       <div className="w-24 h-24 rounded-2xl flex items-center justify-center overflow-hidden shadow-card transition-shadow hover:shadow-card-hover bg-white">
-        {category.imageUrl ? (
-          <img src={getImageUrl(category.imageUrl)} alt={category.name} className="w-[68px] h-[68px] object-contain" />
+        {category.iconUrl ? (
+          <img src={getImageUrl(category.iconUrl)} alt={category.name} className="w-[68px] h-[68px] object-contain" />
         ) : (
           <span className="text-3xl font-black" style={{ color: category.color || "#10B981" }}>
             {category.name[0]}
@@ -243,7 +243,7 @@ export default function HomePage() {
           </section>
         )}
 
-        {/* ── Promo banner ── */}
+        {/* ── Promo banner ──
         <section className="mb-8">
           <motion.div
             whileHover={{ scale: 1.01 }}
@@ -268,6 +268,7 @@ export default function HomePage() {
             </div>
           </motion.div>
         </section>
+        */}
 
         {/* ── Vendor Groups ── */}
         {groupedVendors.map(({ type, items }) => {
