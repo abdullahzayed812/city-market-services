@@ -11,8 +11,8 @@ export interface IVendorProductRepository {
   findByCategory(categoryId: string, limit: number, offset: number): Promise<VendorProduct[]>;
   findByFilter(filter: VendorProductFilter, limit: number, offset: number): Promise<VendorProduct[]>;
   update(id: string, data: Partial<VendorProduct>): Promise<void>;
-  updateStock(id: string, quantity: number): Promise<void>;
-  updateWeightStock(id: string, weight: number): Promise<void>;
+  updateStock(id: string, quantity: number, updateAvailability?: boolean): Promise<void>;
+  updateWeightStock(id: string, weight: number, updateAvailability?: boolean): Promise<void>;
   updatePrice(id: string, price: number): Promise<void>;
   delete(id: string): Promise<void>;
   decrementStock(id: string, quantity: number): Promise<void>;

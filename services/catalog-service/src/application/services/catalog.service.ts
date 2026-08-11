@@ -189,14 +189,14 @@ export class CatalogService {
     await this.vendorProductRepo.update(id, vendorUpdate);
   }
 
-  async updateVendorStock(id: string, stock: number): Promise<void> {
+  async updateVendorStock(id: string, stock: number, updateAvailability?: boolean): Promise<void> {
     await this.getVendorProductById(id);
-    await this.vendorProductRepo.updateStock(id, stock);
+    await this.vendorProductRepo.updateStock(id, stock, updateAvailability);
   }
 
-  async updateVendorWeightStock(id: string, weight: number): Promise<void> {
+  async updateVendorWeightStock(id: string, weight: number, updateAvailability?: boolean): Promise<void> {
     await this.getVendorProductById(id);
-    await this.vendorProductRepo.updateWeightStock(id, weight);
+    await this.vendorProductRepo.updateWeightStock(id, weight, updateAvailability);
   }
 
   async updateVendorProductPrice(id: string, price: number): Promise<void> {

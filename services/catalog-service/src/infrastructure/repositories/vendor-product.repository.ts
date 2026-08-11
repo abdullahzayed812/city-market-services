@@ -150,14 +150,24 @@ export class VendorProductRepository implements IVendorProductRepository {
     await this.pool.execute(query, values);
   }
 
-  async updateStock(id: string, quantity: number): Promise<void> {
-    const query = "UPDATE vendor_products SET stock_quantity = ? WHERE id = ?";
-    await this.pool.execute(query, [quantity, id]);
+  async updateStock(id: string, quantity: number, updateAvailability = true): Promise<void> {
+    if (updateAvailability) {
+      const query = "UPDATE vendor_products SET stock_quantity = ?, is_available = ? WHERE id = ?";
+      await this.pool.execute(query, [quantity, quantity > 0, id]);
+    } else {
+      const query = "UPDATE vendor_products SET stock_quantity = ? WHERE id = ?";
+      await this.pool.execute(query, [quantity, id]);
+    }
   }
 
-  async updateWeightStock(id: string, weight: number): Promise<void> {
-    const query = "UPDATE vendor_products SET stock_weight_grams = ? WHERE id = ?";
-    await this.pool.execute(query, [weight, id]);
+  async updateWeightStock(id: string, weight: number, updateAvailability = true): Promise<void> {
+    if (updateAvailability) {
+      const query = "UPDATE vendor_products SET stock_weight_grams = ?, is_available = ? WHERE id = ?";
+      await this.pool.execute(query, [weight, weight > 0, id]);
+    } else {
+      const query = "UPDATE vendor_products SET stock_weight_grams = ? WHERE id = ?";
+      await this.pool.execute(query, [weight, id]);
+    }
   }
 
   async updatePrice(id: string, price: number): Promise<void> {
