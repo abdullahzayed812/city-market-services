@@ -1,0 +1,16 @@
+# Soak test (Phase 15): long, moderate sustained load to surface memory/connection
+# leaks, DB connection pool exhaustion, RabbitMQ backlog growth, Redis issues (SLA
+# timers - see services/order-service/order-sla.manager.ts and
+# services/delivery-service/delivery-sla.manager.ts both run on BullMQ/Redis), and
+# gradual latency creep that a short test would never reveal.
+#
+# NOT part of the default CI pipeline (see .github/workflows/load-test.yml -
+# soak/stress/spike are workflow_dispatch-only). Default duration here is
+# deliberately short (10 min) so a first run doesn't accidentally tie up a
+# terminal for 2 hours - override for a real soak:
+#   npm run loadtest:soak -- --phases '[{"duration":7200,"arrivalRate":8}]'
+config:
+  phases:
+    - duration: 600
+      arrivalRate: 8
+      name: "soak (~80-ish concurrent sessions, default 10 min - override for the real 2h run)"

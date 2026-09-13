@@ -1,0 +1,26 @@
+# Spike test (Phase 14): sudden traffic growth and recovery. Measures time to
+# recover, error rate during/after the spike, and latency behaviour once load
+# drops back down - watch DB connections/RabbitMQ queue depth/Redis during this
+# one especially (README "Infrastructure monitoring"), since a spike is exactly
+# the shape of load that reveals connection-pool exhaustion and queue backlog that
+# a slow ramp can hide.
+#   npm run loadtest:spike -- --phases '[{"duration":60,"arrivalRate":50},{"duration":20,"arrivalRate":50,"rampTo":1000},{"duration":120,"arrivalRate":50}]'
+config:
+  phases:
+    - duration: 120
+      arrivalRate: 50
+      name: "steady baseline (500-ish concurrent sessions)"
+    - duration: 20
+      arrivalRate: 50
+      rampTo: 500
+      name: "sudden spike to 500/sec"
+    - duration: 30
+      arrivalRate: 500
+      name: "hold spike"
+    - duration: 20
+      arrivalRate: 500
+      rampTo: 50
+      name: "drop back down"
+    - duration: 180
+      arrivalRate: 50
+      name: "observe recovery back to baseline"

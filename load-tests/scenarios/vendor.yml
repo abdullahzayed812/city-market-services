@@ -1,0 +1,88 @@
+# Standalone scenario:
+#   artillery run -e local config/environments.yml scenarios/vendor.yml
+#
+# Ground truth (services/vendor-service, services/catalog-service, services/order-service):
+#   POST /vendors                                 -> self-service vendor onboarding, userId forced from JWT (VENDOR/ADMIN)
+#   GET  /vendors/me                               -> own vendor profile
+#   POST /catalog/products/vendor/:vendorId/bulk-add-global {globalCategoryId?, items?} (VENDOR/ADMIN; enforces vendor-ownership)
+#   GET  /orders/vendor/:vendorId?page=&limit=     -> { success, data: { items: VendorOrderWithItems[], hasNextPage } }
+#   POST /orders/vendor-orders/:id/accept          -> PENDING -> PREPARING (order.service.ts:acceptVendorOrder)
+#   PATCH /orders/vendor-orders/:id/status {status: "CONFIRMED"} -> PREPARING -> CONFIRMED (valid per order-state.manager.ts;
+#         this transition is what syncs the customer order to READY and fires ORDER_READY, which is what
+#         delivery-service listens for to create a Delivery row - see tests/order-lifecycle.yml)
+#   PATCH /catalog/products/:id/stock {stock} XOR {weight}
+#
+# NOTE ON ACCOUNT REUSE: auth-service revokes every other session on login (single
+# active device per user - see processors/auth.ts). Each VU here self-registers a
+# brand-new VENDOR account instead of sharing one of the ~20 seeded demo vendors,
+# specifically to avoid concurrent VUs logging each other out mid-flow.
+config:
+  target: "http://localhost:3000/api/v1"
+  phases:
+    - duration: 60
+      arrivalRate: 2
+      name: "standalone debug run"
+  processor: "../processors/index.ts"
+
+scenarios:
+  - name: "Vendor onboarding + order management"
+    flow:
+      - function: "registerVendor"
+
+      - post:
+          url: "/vendors"
+          name: "POST /vendors"
+          beforeRequest: "attachAuthHeader"
+          json:
+            shopName: "Load Test Vendor"
+            shopDescription: "Synthetic vendor created by the load-testing suite"
+            phone: "+201000000000"
+            address: "Borg El Arab load-test site"
+            latitude: 30.87
+            longitude: 29.53
+          capture:
+            - json: "$.data.id"
+              as: "vendorId"
+              strict: false
+
+      - think: 1
+
+      - get:
+          url: "/vendors/me"
+          name: "GET /vendors/me"
+          beforeRequest: "attachAuthHeader"
+
+      - think: 2
+
+      - get:
+          url: "/orders/vendor/{{ vendorId }}?page=1&limit=10"
+          name: "GET /orders/vendor/:vendorId"
+          beforeRequest: "attachAuthHeader"
+          ifTrue: "vendorId"
+          capture:
+            - json: "$.data"
+              as: "vendorOrdersRaw"
+              strict: false
+
+      - function: "pickPendingVendorOrder"
+
+      - think: 1
+
+      - post:
+          url: "/orders/vendor-orders/{{ vendorOrderId }}/accept"
+          name: "POST /orders/vendor-orders/:id/accept"
+          beforeRequest: "attachAuthHeader"
+          ifTrue: "hasPendingVendorOrder"
+
+      - think: 3
+
+      - patch:
+          url: "/orders/vendor-orders/{{ vendorOrderId }}/status"
+          name: "PATCH /orders/vendor-orders/:id/status (CONFIRMED)"
+          beforeRequest: "attachAuthHeader"
+          ifTrue: "hasPendingVendorOrder"
+          json:
+            status: "CONFIRMED"
+            notes: "Load test - order confirmed for pickup"
+
+      - think: 2

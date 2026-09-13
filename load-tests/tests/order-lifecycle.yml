@@ -1,0 +1,171 @@
+# End-to-end order lifecycle (Phase 16) - a single virtual user role-plays as
+# customer, then the owning vendor, then a delivery office, then a courier,
+# switching identity mid-flow by calling a different login function at each
+# stage (context.vars.accessToken is simply overwritten - the same technique
+# tests/performance-module/src/scenarios/FullLifecycle.ts used, but ground-truthed
+# against the REAL state machine this time - see below for what that script got
+# wrong).
+#
+# Real states used (verified against services/order-service/src/application/
+# services/order-state.manager.ts - do NOT assume states beyond what's listed):
+#   VendorOrderStatus:  PENDING -> (accept) -> PREPARING -> (status PATCH) -> CONFIRMED
+#     -> PICKED_UP -> ON_THE_WAY -> DELIVERED
+#   DeliveryStatus:     PENDING -> (accept) -> ACCEPTED -> (assign) -> ASSIGNED
+#     -> PICKED_UP -> ON_THE_WAY -> DELIVERED
+# CONFIRMED is the transition that syncs the customer order to READY and fires
+# EventType.ORDER_READY, which is what delivery-service's OrderReadyConsumer
+# listens for to create the Delivery row - there is necessarily a short async gap
+# (RabbitMQ hop) between the PATCH .../status call returning and the delivery
+# appearing in GET /delivery/deliveries/pending, hence the `think` pause below.
+#
+# NOTE ON A BUG THIS FOUND: tests/performance-module/src/scenarios/FullLifecycle.ts
+# PATCHes vendor-order status to "READY_FOR_PICKUP" - that value does not exist
+# anywhere in the real VendorOrderStatus enum (shared/src/enums/vendor-order-status.ts),
+# so that call has always been silently failing 400s in the old script. Use
+# "CONFIRMED" as done here.
+#
+# Usage:
+#   npm run loadtest:order-lifecycle
+#   npm run loadtest:order-lifecycle -- --phases '[{"duration":60,"arrivalRate":1}]'
+# Prerequisite: `npm run loadtest:seed` (needs at least one vendor with products
+# and at least one of the three pre-existing delivery-manager accounts, plus at
+# least one seeded courier).
+config:
+  processor: "../processors/index.ts"
+  phases:
+    - duration: 60
+      arrivalRate: 1
+      name: "order lifecycle (keep this low - it is one coherent multi-role journey per VU, not a throughput test)"
+  payload:
+    - path: "../data/generated/vendor-products-with-owner.csv"
+      fields: ["vendorEmail", "vendorPassword", "poolVendorId", "poolVendorProductId", "poolMeasurementType"]
+      order: "random"
+      skipHeader: true
+    - path: "../data/generated/delivery-managers.csv"
+      fields: ["officeEmail", "officePassword"]
+      order: "random"
+      skipHeader: true
+    - path: "../data/generated/couriers.csv"
+      fields: ["courierEmail", "courierPassword", "courierUserId", "poolCourierId"]
+      order: "random"
+      skipHeader: true
+  plugins:
+    expect: {}
+
+scenarios:
+  - name: "Full order lifecycle"
+    flow:
+      # 1. Customer places an order against a KNOWN vendor product (not a random
+      #    browse pick), so the vendor that logs in next is guaranteed its owner.
+      - function: "registerCustomer"
+      - post:
+          url: "/orders"
+          name: "POST /orders"
+          beforeRequest:
+            - "attachOrderPayloadForPoolProduct"
+            - "attachAuthHeader"
+          expect:
+            - statusCode: 201
+          capture:
+            - json: "$.data.order.id"
+              as: "orderId"
+              strict: false
+            - json: "$.data.vendorOrders[0].id"
+              as: "vendorOrderId"
+              strict: false
+
+      # 2. The owning vendor accepts, then confirms.
+      - function: "loginVendorFromPool"
+      - think: 1
+      - post:
+          url: "/orders/vendor-orders/{{ vendorOrderId }}/accept"
+          name: "POST /orders/vendor-orders/:id/accept"
+          beforeRequest: "attachAuthHeader"
+          expect:
+            - statusCode: 200
+      - think: 1
+      - patch:
+          url: "/orders/vendor-orders/{{ vendorOrderId }}/status"
+          name: "PATCH /orders/vendor-orders/:id/status (CONFIRMED)"
+          beforeRequest: "attachAuthHeader"
+          json:
+            status: "CONFIRMED"
+          expect:
+            - statusCode: 200
+
+      # 3. Wait for the ORDER_READY -> Delivery-creation RabbitMQ round trip.
+      - think: 5
+
+      # 4. A delivery office claims the newly-created delivery.
+      - function: "loginDeliveryManagerFromPool"
+      - get:
+          url: "/delivery/deliveries/pending"
+          name: "GET /delivery/deliveries/pending"
+          beforeRequest: "attachAuthHeader"
+          capture:
+            - json: "$.data"
+              as: "pendingDeliveriesRaw"
+              strict: false
+      - function: "pickPendingDeliveryForOrder"
+      - patch:
+          url: "/delivery/deliveries/{{ deliveryId }}/accept"
+          name: "PATCH /delivery/deliveries/:id/accept"
+          beforeRequest: "attachAuthHeader"
+          ifTrue: "deliveryId"
+          expect:
+            - statusCode: 200
+      - think: 1
+      - post:
+          url: "/delivery/deliveries/{{ deliveryId }}/assign"
+          name: "POST /delivery/deliveries/:id/assign"
+          beforeRequest: "attachAuthHeader"
+          ifTrue: "deliveryId"
+          json:
+            courierId: "{{ poolCourierId }}"
+          expect:
+            - statusCode: 200
+
+      # 5. The assigned courier progresses the delivery to completion.
+      - function: "loginCourierFromPool"
+      - think: 2
+      - patch:
+          url: "/delivery/deliveries/{{ deliveryId }}/status"
+          name: "PATCH /delivery/deliveries/:id/status (PICKED_UP)"
+          beforeRequest: "attachAuthHeader"
+          ifTrue: "deliveryId"
+          json:
+            status: "PICKED_UP"
+          expect:
+            - statusCode: 200
+      - think: 3
+      - patch:
+          url: "/delivery/deliveries/{{ deliveryId }}/status"
+          name: "PATCH /delivery/deliveries/:id/status (ON_THE_WAY)"
+          beforeRequest: "attachAuthHeader"
+          ifTrue: "deliveryId"
+          json:
+            status: "ON_THE_WAY"
+          expect:
+            - statusCode: 200
+      - think: 5
+      - patch:
+          url: "/delivery/deliveries/{{ deliveryId }}/status"
+          name: "PATCH /delivery/deliveries/:id/status (DELIVERED)"
+          beforeRequest: "attachAuthHeader"
+          ifTrue: "deliveryId"
+          json:
+            status: "DELIVERED"
+          expect:
+            - statusCode: 200
+
+      # 6. Verify the customer's own view of the order reflects completion. This
+      #    switches identity back to the ORIGINAL customer token, which is still
+      #    valid - logging in as the vendor/office/courier in between did not
+      #    touch the customer's own session (each account has its own single
+      #    active session; see processors/auth.ts).
+      - function: "restoreCustomerToken"
+      - get:
+          url: "/orders/customer-orders/{{ orderId }}"
+          name: "GET /orders/customer-orders/:id (final state)"
+          beforeRequest: "attachAuthHeader"
+          ifTrue: "orderId"

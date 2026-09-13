@@ -1,0 +1,257 @@
+# The single source of truth for the realistic weighted traffic mix (Phase 8),
+# shared by every tests/*.yml tier via Artillery's native multi-file merge:
+#   artillery run -e <env> config/environments.yml tests/<tier>.yml tests/_shared-scenarios.yml
+# (scripts/run-test.ts does this for you - see package.json's loadtest:* scripts).
+#
+# This file is the ONLY one in tests/ that defines a top-level `scenarios:` key.
+# Artillery deep-merges multiple test files' `config:` blocks but concatenates
+# `scenarios:` arrays index-by-index rather than appending them (verified
+# empirically - two files each defining scenarios[0] silently corrupt each
+# other's flow) - so every tier file must contribute phases/thresholds only,
+# never its own scenarios list. Not meant to be run standalone (it has no
+# `config.target`/`phases` of its own).
+#
+# Weights (out of 100, Phase 8's starting assumptions - see README "Traffic model"
+# for how to change these): Customer 90% (Browse 45 / Search 20 / Vendor+Product 14 /
+# Order 20 - rebalanced from the brief's cart-inclusive split since there is no cart
+# backend, see scenarios/customer-browse.yml), Vendor 7%, Delivery office 2%, Courier 1%.
+#
+# Prerequisite: run `npm run loadtest:seed` first. The Vendor/Delivery-office/Courier
+# personas below draw from data/generated/{vendors,delivery-managers,couriers}.csv,
+# and the customer Order persona draws real orderable products from
+# data/generated/vendor-products.csv - all written by scripts/seed.ts. Artillery
+# will fail fast if any of these files don't exist yet.
+config:
+  processor: "../processors/index.ts"
+  payload:
+    - path: "../data/generated/vendor-products.csv"
+      fields: ["poolVendorId", "poolVendorProductId", "poolMeasurementType"]
+      order: "random"
+      skipHeader: true
+    - path: "../data/generated/vendors.csv"
+      fields: ["vendorEmail", "vendorPassword", "vendorUserId", "poolVendorId2"]
+      order: "random"
+      skipHeader: true
+    - path: "../data/generated/delivery-managers.csv"
+      fields: ["officeEmail", "officePassword"]
+      order: "random"
+      skipHeader: true
+    - path: "../data/generated/couriers.csv"
+      fields: ["courierEmail", "courierPassword", "courierUserId", "poolCourierId"]
+      order: "random"
+      skipHeader: true
+
+scenarios:
+  - name: "Customer: Browse"
+    weight: 40
+    flow:
+      - function: "registerCustomer"
+      - get:
+          url: "/catalog/categories"
+          name: "GET /catalog/categories"
+          beforeRequest: "attachAuthHeader"
+      - think: 2
+      - get:
+          url: "/vendors?page=1&limit=20"
+          name: "GET /vendors"
+          beforeRequest: "attachAuthHeader"
+          capture:
+            - json: "$.data"
+              as: "vendorsRaw"
+              strict: false
+      - think: 3
+      - function: "pickRandomVendorId"
+      - get:
+          url: "/vendors/{{ vendorId }}"
+          name: "GET /vendors/:id"
+          beforeRequest: "attachAuthHeader"
+          ifTrue: "vendorId"
+      - think: 2
+      - get:
+          url: "/catalog/products/vendor/{{ vendorId }}?page=1&limit=20"
+          name: "GET /catalog/products/vendor/:vendorId"
+          beforeRequest: "attachAuthHeader"
+          ifTrue: "vendorId"
+      - think: 4
+
+  - name: "Customer: Search"
+    weight: 18
+    flow:
+      - function: "registerCustomer"
+      - function: "pickSearchTerm"
+      - get:
+          url: "/catalog/products/search?search={{ searchTerm }}&page=1&limit=20"
+          name: "GET /catalog/products/search"
+          beforeRequest: "attachAuthHeader"
+      - think: 3
+      - get:
+          url: "/catalog/categories"
+          name: "GET /catalog/categories"
+          beforeRequest: "attachAuthHeader"
+          capture:
+            - json: "$.data"
+              as: "categoriesRaw"
+              strict: false
+      - function: "pickRandomCategoryId"
+      - think: 2
+      - get:
+          url: "/catalog/products/category/{{ categoryId }}?page=1&limit=20"
+          name: "GET /catalog/products/category/:categoryId"
+          beforeRequest: "attachAuthHeader"
+          ifTrue: "categoryId"
+      - think: 3
+
+  - name: "Customer: Vendor + product detail"
+    weight: 14
+    flow:
+      - function: "registerCustomer"
+      - get:
+          url: "/vendors?page=1&limit=20"
+          name: "GET /vendors"
+          beforeRequest: "attachAuthHeader"
+          capture:
+            - json: "$.data"
+              as: "vendorsRaw"
+              strict: false
+      - function: "pickRandomVendorId"
+      - think: 2
+      - get:
+          url: "/vendors/{{ vendorId }}"
+          name: "GET /vendors/:id"
+          beforeRequest: "attachAuthHeader"
+          ifTrue: "vendorId"
+          capture:
+            - json: "$.data.data"
+              as: "browseResultsRaw"
+              strict: false
+      - think: 3
+      - function: "pickRandomProduct"
+      - get:
+          url: "/catalog/products/{{ selectedProduct.id }}"
+          name: "GET /catalog/products/:id"
+          beforeRequest: "attachAuthHeader"
+          ifTrue: "selectedProduct"
+      - think: 5
+
+  - name: "Customer: Place order"
+    weight: 20
+    flow:
+      - function: "registerCustomer"
+      - get:
+          url: "/catalog/products/vendor/{{ poolVendorId }}?page=1&limit=20"
+          name: "GET /catalog/products/vendor/:vendorId"
+          beforeRequest: "attachAuthHeader"
+          ifTrue: "poolVendorId"
+          capture:
+            - json: "$.data.data"
+              as: "browseResultsRaw"
+              strict: false
+      - think: 5
+      - function: "pickRandomProduct"
+      - post:
+          url: "/orders"
+          name: "POST /orders"
+          beforeRequest:
+            - "attachOrderPayload"
+            - "attachAuthHeader"
+          capture:
+            - json: "$.data.order.id"
+              as: "orderId"
+              strict: false
+      - think: 2
+      - get:
+          url: "/orders/customer-orders/{{ orderId }}"
+          name: "GET /orders/customer-orders/:id"
+          beforeRequest: "attachAuthHeader"
+          ifTrue: "orderId"
+      - think: 3
+
+  - name: "Vendor: onboarding + order management"
+    weight: 7
+    flow:
+      - function: "loginVendorFromPool"
+      - get:
+          url: "/orders/vendor/{{ vendorId }}?page=1&limit=10"
+          name: "GET /orders/vendor/:vendorId"
+          beforeRequest: "attachAuthHeader"
+          ifTrue: "vendorId"
+          capture:
+            - json: "$.data"
+              as: "vendorOrdersRaw"
+              strict: false
+      - function: "pickPendingVendorOrder"
+      - think: 1
+      - post:
+          url: "/orders/vendor-orders/{{ vendorOrderId }}/accept"
+          name: "POST /orders/vendor-orders/:id/accept"
+          beforeRequest: "attachAuthHeader"
+          ifTrue: "hasPendingVendorOrder"
+      - think: 3
+      - patch:
+          url: "/orders/vendor-orders/{{ vendorOrderId }}/status"
+          name: "PATCH /orders/vendor-orders/:id/status (CONFIRMED)"
+          beforeRequest: "attachAuthHeader"
+          ifTrue: "hasPendingVendorOrder"
+          json:
+            status: "CONFIRMED"
+      - think: 2
+
+  - name: "Delivery office: claim + assign"
+    weight: 2
+    flow:
+      - function: "loginDeliveryManagerFromPool"
+      - get:
+          url: "/delivery/deliveries/pending"
+          name: "GET /delivery/deliveries/pending"
+          beforeRequest: "attachAuthHeader"
+          capture:
+            - json: "$.data"
+              as: "pendingDeliveriesRaw"
+              strict: false
+      - function: "pickAnyPendingDelivery"
+      - think: 2
+      - patch:
+          url: "/delivery/deliveries/{{ deliveryId }}/accept"
+          name: "PATCH /delivery/deliveries/:id/accept"
+          beforeRequest: "attachAuthHeader"
+          ifTrue: "deliveryId"
+      - think: 1
+      - get:
+          url: "/delivery/couriers/available"
+          name: "GET /delivery/couriers/available"
+          beforeRequest: "attachAuthHeader"
+      - think: 3
+
+  - name: "Courier: pickup + delivery"
+    weight: 1
+    flow:
+      - function: "loginCourierFromPool"
+      - get:
+          url: "/delivery/couriers/me"
+          name: "GET /delivery/couriers/me"
+          beforeRequest: "attachAuthHeader"
+      - patch:
+          url: "/delivery/couriers/{{ poolCourierId }}/availability"
+          name: "PATCH /delivery/couriers/:id/availability"
+          beforeRequest: "attachAuthHeader"
+          ifTrue: "poolCourierId"
+          json:
+            isAvailable: true
+      - think: 2
+      - get:
+          url: "/delivery/deliveries/my-deliveries?page=1&limit=10"
+          name: "GET /delivery/deliveries/my-deliveries"
+          beforeRequest: "attachAuthHeader"
+          capture:
+            - json: "$.data.items[0].id"
+              as: "myDeliveryId"
+              strict: false
+      - think: 2
+      - patch:
+          url: "/delivery/deliveries/{{ myDeliveryId }}/status"
+          name: "PATCH /delivery/deliveries/:id/status (PICKED_UP)"
+          beforeRequest: "attachAuthHeader"
+          ifTrue: "myDeliveryId"
+          json:
+            status: "PICKED_UP"
+      - think: 5

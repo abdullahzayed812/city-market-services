@@ -1,0 +1,44 @@
+# Normal load test (Phase 12): ramps through progressively higher sustained
+# arrival rates against the realistic weighted mix (tests/_shared-scenarios.yml).
+# `arrivalRate` is NEW SESSIONS PER SECOND, not concurrent users (see README "How
+# to interpret reports"). The stage values below (100/250/500/1000, continuing
+# into stress.yml's 1000-10000 range) are the task brief's own starting numbers
+# taken literally as arrivals/sec - NOT a claim about what CityMarket can handle.
+# Override once baseline.yml gives you a real sense of scale, e.g.:
+#   npm run loadtest:normal -- --phases '[{"duration":120,"arrivalRate":20},{"duration":120,"arrivalRate":50}]'
+config:
+  phases:
+    - duration: 60
+      arrivalRate: 10
+      rampTo: 100
+      name: "ramp to 100 new sessions/sec"
+    - duration: 120
+      arrivalRate: 100
+      name: "sustain 100 new sessions/sec"
+    - duration: 60
+      arrivalRate: 100
+      rampTo: 250
+      name: "ramp to 250 new sessions/sec"
+    - duration: 120
+      arrivalRate: 250
+      name: "sustain 250 new sessions/sec"
+    - duration: 60
+      arrivalRate: 250
+      rampTo: 500
+      name: "ramp to 500 new sessions/sec"
+    - duration: 120
+      arrivalRate: 500
+      name: "sustain 500 new sessions/sec"
+    - duration: 60
+      arrivalRate: 500
+      rampTo: 1000
+      name: "ramp to 1000 new sessions/sec"
+    - duration: 120
+      arrivalRate: 1000
+      name: "sustain 1000 new sessions/sec"
+  plugins:
+    ensure:
+      thresholds:
+        - "http.response_time.p95": 500
+        - "http.response_time.p99": 1000
+      maxErrorRate: 1

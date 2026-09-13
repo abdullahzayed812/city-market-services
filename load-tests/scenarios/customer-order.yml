@@ -1,0 +1,79 @@
+# Standalone scenario:
+#   artillery run -e local config/environments.yml scenarios/customer-order.yml
+#
+# Ground truth: POST /orders (order-service, order.controller.ts:create) - the
+# server derives customerId from the JWT; the request body must NOT include it
+# (web/customer's real CreateOrderDto has no customerId field - only items,
+# deliveryAddress, deliveryLatitude?, deliveryLongitude?). Response:
+#   { success, data: { order: { id, ... }, vendorOrders: [{ id, vendorId, items:[{id}] }] } }
+# There is no cart API (see scenarios/customer-browse.yml) - "adding to cart" is
+# represented as browsing + think time, and the whole basket is submitted in the
+# single POST /orders call, exactly as the real frontend does.
+config:
+  target: "http://localhost:3000/api/v1"
+  phases:
+    - duration: 60
+      arrivalRate: 3
+      name: "standalone debug run"
+  processor: "../processors/index.ts"
+
+scenarios:
+  - name: "Customer order journey"
+    flow:
+      - function: "registerCustomer"
+
+      - get:
+          url: "/vendors?page=1&limit=20"
+          name: "GET /vendors"
+          beforeRequest: "attachAuthHeader"
+          capture:
+            - json: "$.data"
+              as: "vendorsRaw"
+              strict: false
+
+      - function: "pickRandomVendorId"
+
+      - think: 2
+
+      - get:
+          url: "/catalog/products/vendor/{{ vendorId }}?page=1&limit=20"
+          name: "GET /catalog/products/vendor/:vendorId"
+          beforeRequest: "attachAuthHeader"
+          ifTrue: "vendorId"
+          capture:
+            - json: "$.data.data"
+              as: "browseResultsRaw"
+              strict: false
+
+      - think: 5
+
+      - function: "pickRandomProduct"
+
+      - post:
+          url: "/orders"
+          name: "POST /orders"
+          beforeRequest:
+            - "attachOrderPayload"
+            - "attachAuthHeader"
+          capture:
+            - json: "$.data.order.id"
+              as: "orderId"
+              strict: false
+            - json: "$.data.vendorOrders[0].id"
+              as: "vendorOrderId"
+              strict: false
+
+      - think: 2
+
+      - get:
+          url: "/orders/customer-orders/{{ orderId }}"
+          name: "GET /orders/customer-orders/:id"
+          beforeRequest: "attachAuthHeader"
+          ifTrue: "orderId"
+
+      - think: 3
+
+      - get:
+          url: "/orders/customer-orders?page=1&limit=10"
+          name: "GET /orders/customer-orders"
+          beforeRequest: "attachAuthHeader"

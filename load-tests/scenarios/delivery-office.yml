@@ -1,0 +1,61 @@
+# Standalone scenario:
+#   artillery run -e local config/environments.yml -v '{"email":"deliverymanager@citymarket.com"}' scenarios/delivery-office.yml
+#
+# Ground truth (services/delivery-service): DeliveryOffice and Courier are separate
+# entities; the role is DELIVERY_MANAGER (there is no "DELIVERY_OFFICE" role - see
+# shared/src/enums/roles.ts). There is NO API to create a delivery office - only
+# GET /delivery/delivery-offices (ADMIN) exists - so this persona can only run
+# against one of the pre-seeded delivery-manager accounts (3 exist in the repo's
+# own seed data: deliverymanager@citymarket.com / deliverymanager2 / deliverymanager3,
+# all sharing the seed-db.ts default password). scripts/seed.ts documents this
+# limitation and how to add more via direct DB seeding if deeper concurrency
+# coverage is needed (Phase 18 concurrency test uses these same 3 accounts).
+#
+# Because auth-service enforces a single active session per user (see
+# processors/auth.ts), do NOT run this scenario at a concurrency higher than the
+# number of distinct delivery-manager accounts you supply via config.payload -
+# concurrent VUs sharing one account will log each other out mid-flow.
+#
+#   PATCH /delivery/deliveries/:id/accept        (DELIVERY_MANAGER) - claims a PENDING delivery -> ACCEPTED
+#   POST  /delivery/deliveries/:id/assign {courierId} (ADMIN, DELIVERY_MANAGER) -> ASSIGNED
+#   GET   /delivery/deliveries/pending           -> { success, data: Delivery[] } (plain array)
+config:
+  target: "http://localhost:3000/api/v1"
+  phases:
+    - duration: 30
+      arrivalRate: 1
+      name: "standalone debug run (single office account via -v)"
+  processor: "../processors/index.ts"
+
+scenarios:
+  - name: "Delivery office"
+    flow:
+      - function: "loginFromPayload"
+
+      - get:
+          url: "/delivery/deliveries/pending"
+          name: "GET /delivery/deliveries/pending"
+          beforeRequest: "attachAuthHeader"
+          capture:
+            - json: "$.data"
+              as: "pendingDeliveriesRaw"
+              strict: false
+
+      - function: "pickAnyPendingDelivery"
+
+      - think: 2
+
+      - patch:
+          url: "/delivery/deliveries/{{ deliveryId }}/accept"
+          name: "PATCH /delivery/deliveries/:id/accept"
+          beforeRequest: "attachAuthHeader"
+          ifTrue: "deliveryId"
+
+      - think: 1
+
+      - get:
+          url: "/delivery/couriers/available"
+          name: "GET /delivery/couriers/available"
+          beforeRequest: "attachAuthHeader"
+
+      - think: 3

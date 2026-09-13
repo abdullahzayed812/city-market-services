@@ -1,0 +1,53 @@
+# Standalone scenario:
+#   artillery run -e local config/environments.yml scenarios/customer-search.yml
+#
+# Ground truth (web/customer/src/services/api/catalogService.ts, catalog-service
+# vendor-product.controller.ts:getSearch): GET /catalog/products/search accepts
+# `search` (not `q`), plus vendorId/globalCategoryId|categoryId/vendorCategoryId/
+# minPrice/maxPrice/available/page/limit. Response: { success, data: { data, total, page, limit } }.
+config:
+  target: "http://localhost:3000/api/v1"
+  phases:
+    - duration: 60
+      arrivalRate: 5
+      name: "standalone debug run"
+  processor: "../processors/index.ts"
+
+scenarios:
+  - name: "Customer search"
+    flow:
+      - function: "registerCustomer"
+
+      - function: "pickSearchTerm"
+
+      - get:
+          url: "/catalog/products/search?search={{ searchTerm }}&page=1&limit=20"
+          name: "GET /catalog/products/search"
+          beforeRequest: "attachAuthHeader"
+          capture:
+            - json: "$.data.data"
+              as: "searchResultsRaw"
+              strict: false
+
+      - think: 3
+
+      - get:
+          url: "/catalog/categories"
+          name: "GET /catalog/categories"
+          beforeRequest: "attachAuthHeader"
+          capture:
+            - json: "$.data"
+              as: "categoriesRaw"
+              strict: false
+
+      - function: "pickRandomCategoryId"
+
+      - think: 2
+
+      - get:
+          url: "/catalog/products/category/{{ categoryId }}?page=1&limit=20"
+          name: "GET /catalog/products/category/:categoryId"
+          beforeRequest: "attachAuthHeader"
+          ifTrue: "categoryId"
+
+      - think: 3

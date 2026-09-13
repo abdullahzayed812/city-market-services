@@ -1,0 +1,90 @@
+name: Load tests
+
+# Separate from main.yml's deploy pipeline on purpose - this workflow never
+# deploys anything and never runs automatically against a live environment.
+#
+# - Pull requests touching load-tests/: typecheck only (no live target needed,
+#   matches Phase 29's "PR: lint/build"). There is no committed staging
+#   environment in this repo (see load-tests/config/environments.yml) and the
+#   existing deploy runner is self-hosted with production access, so an
+#   automatic smoke/baseline run against a real target is deliberately NOT
+#   wired up here - see load-tests/README.md "CI/CD" for how to add one once a
+#   staging environment exists.
+# - Manual dispatch: run any tier against a target you provide explicitly.
+#   Defaults refuse anything but a localhost target unless you also confirm
+#   allow_production (load-tests/scripts/lib/safety.ts enforces this again
+#   independently of this workflow, so it isn't just a CI-side checkbox).
+
+on:
+  pull_request:
+    paths:
+      - "load-tests/**"
+  workflow_dispatch:
+    inputs:
+      tier:
+        description: "Which test tier to run"
+        required: true
+        type: choice
+        default: smoke
+        options:
+          - smoke
+          - baseline
+          - normal-load
+          - stress
+          - spike
+          - soak
+        # order-lifecycle and concurrency-claim-race need `loadtest:seed` (and, for
+        # the latter, `loadtest:prepare-race`) run against the SAME target first,
+        # which this workflow can't safely assume is appropriate for an arbitrary
+        # target_url input - run those two from the CLI instead (see README).
+      target_url:
+        description: "Base API URL to test, including /api/v1 (e.g. http://localhost:3000/api/v1)"
+        required: true
+      allow_production:
+        description: "This target is NOT localhost and I am explicitly authorized to load-test it"
+        required: false
+        type: boolean
+        default: false
+
+jobs:
+  typecheck:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: load-tests
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - run: npm install
+      - run: npm run typecheck
+
+  run:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: self-hosted
+    defaults:
+      run:
+        working-directory: load-tests
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - run: npm install
+      - name: Run ${{ inputs.tier }} against ${{ inputs.target_url }}
+        env:
+          BASE_URL: ${{ inputs.target_url }}
+          ALLOW_PRODUCTION_LOAD_TEST: ${{ inputs.allow_production }}
+          # Only needed if the target's seed data uses non-default delivery-manager
+          # accounts/password - set these as repo/environment secrets if so:
+          DELIVERY_MANAGER_EMAILS: ${{ secrets.LOADTEST_DELIVERY_MANAGER_EMAILS || vars.LOADTEST_DELIVERY_MANAGER_EMAILS }}
+          SEED_ACCOUNTS_PASSWORD: ${{ secrets.LOADTEST_SEED_PASSWORD }}
+        run: npm run "loadtest:${{ inputs.tier }}" -- --target "$BASE_URL"
+      - name: Upload report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: load-test-report-${{ inputs.tier }}
+          path: load-tests/reports/*.json

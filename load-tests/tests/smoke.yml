@@ -1,0 +1,102 @@
+# Smoke test (Phase 10): verifies the target is reachable, auth works, seed data
+# exists, and the three main flows (customer/vendor/delivery) respond at all.
+# Small and safe to run often - NOT the realistic weighted mix (see baseline.yml
+# onward for that); this is a fast go/no-go check.
+#
+# Uses arrivalCount (a fixed total, not a rate) to genuinely stay at Phase 10's
+# "5-10 virtual users" - confirmed the hard way against a live nginx-fronted
+# stack that arrivalRate is PER SECOND: an earlier arrivalRate:5 for 60s here
+# generated ~300 VUs and tripped nginx's 10 req/min "auth" zone (see README
+# "Known limitations") into near-total 429s, which is a misconfigured smoke test,
+# not a real capacity signal.
+#
+#   npm run loadtest:smoke                    (local, default phases below)
+#   npm run loadtest:smoke -- --env local-nginx
+#   npm run loadtest:smoke -- --phases '[{"duration":30,"arrivalCount":10}]'
+#
+# Prerequisite: `npm run loadtest:seed` (needs at least 1 vendor with products and
+# the 3 pre-existing delivery-manager accounts to be reachable).
+config:
+  processor: "../processors/index.ts"
+  phases:
+    - duration: 60
+      arrivalCount: 8
+      name: "smoke"
+  payload:
+    - path: "../data/generated/vendors.csv"
+      fields: ["vendorEmail", "vendorPassword", "vendorUserId", "poolVendorId"]
+      order: "random"
+      skipHeader: true
+    - path: "../data/generated/delivery-managers.csv"
+      fields: ["officeEmail", "officePassword"]
+      order: "random"
+      skipHeader: true
+  plugins:
+    expect: {}
+    ensure:
+      thresholds:
+        - "http.response_time.p95": 1000
+      maxErrorRate: 5
+
+scenarios:
+  - name: "Smoke: customer auth + browse + order"
+    weight: 3
+    flow:
+      - function: "registerCustomer"
+      - get:
+          url: "/catalog/categories"
+          name: "GET /catalog/categories"
+          beforeRequest: "attachAuthHeader"
+          expect:
+            - statusCode: 200
+      - get:
+          url: "/catalog/products/vendor/{{ poolVendorId }}?page=1&limit=5"
+          name: "GET /catalog/products/vendor/:vendorId"
+          beforeRequest: "attachAuthHeader"
+          ifTrue: "poolVendorId"
+          expect:
+            - statusCode: 200
+          capture:
+            - json: "$.data.data"
+              as: "browseResultsRaw"
+              strict: false
+      - function: "pickRandomProduct"
+      - post:
+          url: "/orders"
+          name: "POST /orders"
+          beforeRequest:
+            - "attachOrderPayload"
+            - "attachAuthHeader"
+          expect:
+            - statusCode: 201
+
+  - name: "Smoke: vendor auth + dashboard read"
+    weight: 1
+    flow:
+      - function: "loginVendorFromPool"
+      - get:
+          url: "/vendors/me"
+          name: "GET /vendors/me"
+          beforeRequest: "attachAuthHeader"
+          ifTrue: "vendorEmail"
+          expect:
+            - statusCode: 200
+      - get:
+          url: "/orders/vendor/{{ vendorId }}?page=1&limit=5"
+          name: "GET /orders/vendor/:vendorId"
+          beforeRequest: "attachAuthHeader"
+          ifTrue: "vendorId"
+          expect:
+            - statusCode: 200
+
+  - name: "Smoke: delivery office auth + pending read"
+    weight: 1
+    flow:
+      - function: "loginDeliveryManagerFromPool"
+      - get:
+          url: "/delivery/deliveries/pending"
+          name: "GET /delivery/deliveries/pending"
+          beforeRequest: "attachAuthHeader"
+          ifTrue: "officeEmail"
+          expect:
+            - statusCode: 200

@@ -1,0 +1,37 @@
+# Shared target definitions, merged into every tests/*.yml at run time via:
+#   artillery run -e <environment> config/environments.yml tests/<tier>.yml
+#
+# Verified against api-gateway/src/routes/index.ts and nginx/nginx*.conf: every
+# backend route is namespaced under /api/v1 (e.g. /api/v1/orders, /api/v1/catalog/...).
+# Every target below MUST include the /api/v1 suffix itself, since every request
+# path in scenarios/*.yml and tests/*.yml is relative (e.g. "/catalog/categories")
+# and does not add it - confirmed the hard way: leaving /api/v1 off here makes
+# every request fall through nginx's catch-all "/" location straight to the
+# customer-web static server, which returns 405 for POST instead of a clean 404.
+#
+# "local" targets a docker-compose stack (or `npm run dev`) on this machine.
+# There is no committed staging environment in this repository (confirmed: no
+# staging reference in DEPLOYMENT.md/PRODUCTION_CHECKLIST.md, and .github/workflows
+# only deploys straight to the production VPS on push to master) - add a "staging"
+# entry here yourself once one exists. Do NOT point "production" at the real VPS
+# without reading README.md's Safety section first: scripts/run-test.ts refuses to
+# run anything beyond `smoke` against it unless ALLOW_PRODUCTION_LOAD_TEST=true.
+config:
+  target: "http://localhost:3000/api/v1"
+  environments:
+    local:
+      target: "http://localhost:3000/api/v1"
+    local-nginx:
+      # Routes through the real nginx reverse proxy (docker-compose's "nginx"
+      # service) instead of running api-gateway/ directly - use this to also
+      # exercise nginx's own rate limits (see README "Known limitations": nginx.conf
+      # limits the "auth" zone to 10 req/min/IP and "api" zone to 60 req/min/IP,
+      # which a single-machine load generator will hit well before any service
+      # capacity limit unless raised for the duration of the test).
+      target: "http://localhost:80/api/v1"
+    production:
+      # Intentionally left unset. Fill in only if you have explicit authorization
+      # to load-test the production VPS, and only after reading the Safety section
+      # of README.md. scripts/run-test.ts requires ALLOW_PRODUCTION_LOAD_TEST=true
+      # for every tier when this environment is selected.
+      target: "https://REPLACE_ME_BEFORE_USE.invalid/api/v1"

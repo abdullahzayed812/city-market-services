@@ -1,0 +1,47 @@
+# Concurrency / race-condition test (Phase 18): fires concurrent
+# PATCH /delivery/deliveries/:id/accept calls from DIFFERENT delivery-manager
+# accounts at the exact same pending delivery, to check for double-claiming.
+#
+# Expected correct behaviour per the real code (delivery-service's accept handler
+# does an atomic conditional UPDATE ... WHERE status = 'PENDING'): exactly ONE
+# concurrent request should succeed (200, PENDING -> ACCEPTED) and every other one
+# should be rejected (400/404/409), never silently double-accepted. See
+# processors/metrics.ts:trackClaimRaceOutcome for how outcomes are tagged, and look
+# for `concurrency.delivery_claim.unexpected_error` in the report - anything there
+# is a real problem, not an expected "someone else got there first" rejection.
+#
+# Only as many VUs as you have distinct delivery-manager accounts can genuinely
+# race here (login is single-session-per-user - see processors/auth.ts) - the repo
+# ships 3 by default (data/generated/delivery-managers.csv). For a wider race than
+# 3-way, seed more DELIVERY_MANAGER users + delivery_offices rows directly in the
+# database (there is no API to create a delivery office - see data/README.md) and
+# add them to DELIVERY_MANAGER_EMAILS in .env before re-running scripts/seed.ts.
+#
+# Usage:
+#   npm run loadtest:prepare-race    (creates ONE claimable delivery, once)
+#   npm run loadtest:concurrency     (fires the race against it)
+config:
+  processor: "../processors/index.ts"
+  phases:
+    - duration: 1
+      arrivalCount: 3
+      name: "fire all delivery-manager accounts at the same delivery almost simultaneously"
+  payload:
+    - path: "../data/generated/race-target.csv"
+      fields: ["deliveryId"]
+      order: "sequence"
+      skipHeader: true
+    - path: "../data/generated/delivery-managers.csv"
+      fields: ["officeEmail", "officePassword"]
+      order: "sequence"
+      skipHeader: true
+
+scenarios:
+  - name: "Concurrent delivery claim"
+    flow:
+      - function: "loginDeliveryManagerFromPool"
+      - patch:
+          url: "/delivery/deliveries/{{ deliveryId }}/accept"
+          name: "PATCH /delivery/deliveries/:id/accept (race)"
+          beforeRequest: "attachAuthHeader"
+          afterResponse: "trackClaimRaceOutcome"

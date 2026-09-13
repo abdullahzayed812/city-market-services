@@ -1,0 +1,24 @@
+# Baseline test (Phase 11): normal/moderate load, measuring p50/p90/p95/p99,
+# error rate and HTTP status distribution under the realistic weighted mix defined
+# in tests/_shared-scenarios.yml. Run both together:
+#   npm run loadtest:baseline
+#   npm run loadtest:baseline -- --phases '[{"duration":600,"arrivalRate":10}]'
+#
+# "arrivalRate" is new sessions/sec, not concurrent users - see README "How to
+# interpret reports" for why these are not the same number and how to estimate one
+# from the other using vusers.session_length.
+config:
+  phases:
+    - duration: 300
+      arrivalRate: 5
+      name: "baseline (~50 concurrent sessions at typical flow length)"
+  plugins:
+    ensure:
+      # General read-API SLO (Phase 20). The mix is read-dominated (~72% of weight),
+      # so the aggregate is gated on the read target; see README for how to isolate
+      # the mutation-only (order/accept/status) p95/p99 once metrics-by-endpoint
+      # names are visible in your first report.
+      thresholds:
+        - "http.response_time.p95": 500
+        - "http.response_time.p99": 1000
+      maxErrorRate: 1

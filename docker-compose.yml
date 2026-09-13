@@ -441,6 +441,8 @@ services:
     environment:
       PORT: 3011
       ORDER_SERVICE_URL: http://order-service:3005
+      VENDOR_SERVICE_URL: http://vendor-service:3003
+      DELIVERY_SERVICE_URL: http://delivery-service:3006
       AUTH_SERVICE_URL: http://auth-service:3001
       AUTH_SERVICE_TOKEN_URL: http://auth-service:3001/oauth/token
       WEBSOCKET_GATEWAY_CLIENT_ID: websocket-gateway-id

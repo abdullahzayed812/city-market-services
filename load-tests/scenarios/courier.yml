@@ -1,0 +1,90 @@
+# Standalone scenario:
+#   artillery run -e local config/environments.yml -v '{"email":"courier@citymarket.com"}' scenarios/courier.yml
+#
+# Ground truth (services/delivery-service):
+#   PATCH /delivery/couriers/:id/availability {isAvailable}  (COURIER) - real online/offline toggle
+#   GET   /delivery/couriers/me                               (COURIER) -> own courier profile
+#   GET   /delivery/deliveries/my-deliveries?page=&limit=     (COURIER) -> { success, data: { items, hasNextPage } }
+#   PATCH /delivery/deliveries/:id/status {status}            (COURIER, ADMIN, DELIVERY_MANAGER)
+#     DeliveryStatus enum (shared/src/enums/delivery-status.ts, exhaustive):
+#     PENDING, ACCEPTED, ASSIGNED, PICKED_UP, ON_THE_WAY, DELIVERED, FAILED
+#
+# No GPS/location-update endpoint exists anywhere in delivery-service (grepped
+# routes/controllers - nothing found), so "live courier location" is not
+# represented here; see README "Known limitations".
+#
+# A courier account's profile (the Courier row itself) can only be created by an
+# ADMIN or DELIVERY_MANAGER (POST /delivery/couriers) - couriers cannot self-serve
+# this the way vendors can self-create a vendor profile. scripts/seed.ts pre-creates
+# a pool of courier accounts using a seeded delivery-manager token and writes their
+# credentials to data/generated/couriers.csv for use as config.payload here.
+config:
+  target: "http://localhost:3000/api/v1"
+  phases:
+    - duration: 30
+      arrivalRate: 1
+      name: "standalone debug run (single courier account via -v)"
+  processor: "../processors/index.ts"
+
+scenarios:
+  - name: "Courier"
+    flow:
+      - function: "loginFromPayload"
+
+      - get:
+          url: "/delivery/couriers/me"
+          name: "GET /delivery/couriers/me"
+          beforeRequest: "attachAuthHeader"
+          capture:
+            - json: "$.data.id"
+              as: "courierId"
+              strict: false
+
+      - patch:
+          url: "/delivery/couriers/{{ courierId }}/availability"
+          name: "PATCH /delivery/couriers/:id/availability"
+          beforeRequest: "attachAuthHeader"
+          ifTrue: "courierId"
+          json:
+            isAvailable: true
+
+      - think: 2
+
+      - get:
+          url: "/delivery/deliveries/my-deliveries?page=1&limit=10"
+          name: "GET /delivery/deliveries/my-deliveries"
+          beforeRequest: "attachAuthHeader"
+          capture:
+            - json: "$.data.items[0].id"
+              as: "myDeliveryId"
+              strict: false
+
+      - think: 2
+
+      - patch:
+          url: "/delivery/deliveries/{{ myDeliveryId }}/status"
+          name: "PATCH /delivery/deliveries/:id/status (PICKED_UP)"
+          beforeRequest: "attachAuthHeader"
+          ifTrue: "myDeliveryId"
+          json:
+            status: "PICKED_UP"
+
+      - think: 5
+
+      - patch:
+          url: "/delivery/deliveries/{{ myDeliveryId }}/status"
+          name: "PATCH /delivery/deliveries/:id/status (ON_THE_WAY)"
+          beforeRequest: "attachAuthHeader"
+          ifTrue: "myDeliveryId"
+          json:
+            status: "ON_THE_WAY"
+
+      - think: 8
+
+      - patch:
+          url: "/delivery/deliveries/{{ myDeliveryId }}/status"
+          name: "PATCH /delivery/deliveries/:id/status (DELIVERED)"
+          beforeRequest: "attachAuthHeader"
+          ifTrue: "myDeliveryId"
+          json:
+            status: "DELIVERED"

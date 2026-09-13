@@ -1,0 +1,16 @@
+node_modules/
+dist/
+*.tsbuildinfo
+
+# .env is already covered by the repo root .gitignore, repeated here for clarity
+# since this directory is sometimes browsed/cloned independently.
+.env
+
+# Generated test data (accounts, credentials, ids) - never commit these, they are
+# recreated by `npm run loadtest:seed` and are only ever local-dev/staging fixture
+# data, but real request logs and generated emails don't belong in git history.
+data/generated/
+
+# Test run output
+reports/*.json
+reports/*.html

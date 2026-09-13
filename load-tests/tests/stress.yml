@@ -1,0 +1,38 @@
+# Stress test (Phase 13): pushes arrival rate well past normal-load.yml's ceiling
+# to find where CityMarket actually breaks. Deliberately has NO pass/fail `ensure`
+# gate - a stress test failing thresholds is the expected, useful outcome, not a
+# bug; watch the live per-phase metrics Artillery prints and stop early
+# (Ctrl+C - it prints a full summary of everything up to that point on exit) once
+# you see p95/p99 blow past the read-API SLO (p95>500ms/p99>1000ms) or error rate
+# climb past ~1%, and record that phase's arrival rate as the observed breaking
+# point in your capacity report (README "How to determine CityMarket capacity").
+#
+# The 1000/2000/3000/5000/7500/10000 arrivals/sec stages are the task brief's own
+# starting numbers, continued from normal-load.yml's 1000/sec ceiling - not a claim
+# CityMarket supports any of them. Override freely:
+#   npm run loadtest:stress -- --phases '[{"duration":60,"arrivalRate":50,"rampTo":200}]'
+config:
+  phases:
+    - duration: 90
+      arrivalRate: 1000
+      name: "1000/sec"
+    - duration: 90
+      arrivalRate: 1000
+      rampTo: 2000
+      name: "ramp to 2000/sec"
+    - duration: 90
+      arrivalRate: 2000
+      rampTo: 3000
+      name: "ramp to 3000/sec"
+    - duration: 90
+      arrivalRate: 3000
+      rampTo: 5000
+      name: "ramp to 5000/sec"
+    - duration: 90
+      arrivalRate: 5000
+      rampTo: 7500
+      name: "ramp to 7500/sec"
+    - duration: 90
+      arrivalRate: 7500
+      rampTo: 10000
+      name: "ramp to 10000/sec"

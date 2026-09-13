@@ -1,0 +1,66 @@
+# Standalone, independently-runnable scenario for debugging the customer browse
+# flow in isolation:
+#   artillery run -e local config/environments.yml scenarios/customer-browse.yml
+#
+# Ground truth (web/customer/src/services/api/{catalogService,vendorService}.ts):
+#   GET /catalog/categories
+#   GET /vendors?page=&limit=            -> { success, data: Vendor[] }            (plain array, no pagination wrapper)
+#   GET /vendors/:id                     -> { success, data: Vendor }
+#   GET /catalog/products/vendor/:vendorId?page=&limit= -> { success, data: { data: VendorProduct[], total, page, limit } }
+#
+# There is no cart backend anywhere in the system (grepped across services/,
+# api-gateway/, shared/ - zero matches). web/customer's cart is a client-only
+# Zustand store; the browse->cart->order journey is represented here as
+# browse + think-time only, with the actual order placed in customer-order.yml.
+config:
+  target: "http://localhost:3000/api/v1"
+  phases:
+    - duration: 60
+      arrivalRate: 5
+      name: "standalone debug run"
+  processor: "../processors/index.ts"
+
+scenarios:
+  - name: "Customer browse"
+    flow:
+      - function: "registerCustomer"
+
+      - get:
+          url: "/catalog/categories"
+          name: "GET /catalog/categories"
+          beforeRequest: "attachAuthHeader"
+          capture:
+            - json: "$.data"
+              as: "categoriesRaw"
+              strict: false
+
+      - think: 2
+
+      - get:
+          url: "/vendors?page=1&limit=20"
+          name: "GET /vendors"
+          beforeRequest: "attachAuthHeader"
+          capture:
+            - json: "$.data"
+              as: "vendorsRaw"
+              strict: false
+
+      - think: 3
+
+      - function: "pickRandomVendorId"
+
+      - get:
+          url: "/vendors/{{ vendorId }}"
+          name: "GET /vendors/:id"
+          beforeRequest: "attachAuthHeader"
+          ifTrue: "vendorId"
+
+      - think: 2
+
+      - get:
+          url: "/catalog/products/vendor/{{ vendorId }}?page=1&limit=20"
+          name: "GET /catalog/products/vendor/:vendorId"
+          beforeRequest: "attachAuthHeader"
+          ifTrue: "vendorId"
+
+      - think: 4

@@ -1,0 +1,36 @@
+{
+  "name": "@city-market/load-tests",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Load and performance testing suite for the CityMarket microservices platform",
+  "type": "commonjs",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "echo 'no linter configured for load-tests; run `npm run typecheck` instead' ",
+    "loadtest:smoke": "ts-node scripts/run-test.ts smoke",
+    "loadtest:baseline": "ts-node scripts/run-test.ts baseline",
+    "loadtest:normal-load": "ts-node scripts/run-test.ts normal-load",
+    "loadtest:stress": "ts-node scripts/run-test.ts stress",
+    "loadtest:spike": "ts-node scripts/run-test.ts spike",
+    "loadtest:soak": "ts-node scripts/run-test.ts soak",
+    "loadtest:order-lifecycle": "ts-node scripts/run-test.ts order-lifecycle",
+    "loadtest:prepare-race": "ts-node scripts/prepare-claim-race.ts",
+    "loadtest:concurrency": "ts-node scripts/run-test.ts concurrency-claim-race",
+    "loadtest:socket": "ts-node scripts/socket-load-runner.ts",
+    "loadtest:seed": "ts-node scripts/seed.ts",
+    "loadtest:cleanup": "ts-node scripts/cleanup.ts",
+    "loadtest:generate-users": "ts-node scripts/generate-users.ts"
+  },
+  "dependencies": {
+    "artillery": "2.0.21",
+    "axios": "^1.7.9",
+    "dotenv": "^16.4.7",
+    "socket.io-client": "^4.8.3"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.5.4"
+  }
+}
