@@ -110,8 +110,8 @@ export class DeliveryRepository implements IDeliveryRepository {
       SELECT d.*, c.full_name as courier_name, c.phone as courier_phone 
       FROM deliveries d
       LEFT JOIN couriers c ON d.courier_id = c.id
-      WHERE d.courier_id = ? 
-      ORDER BY d.created_at DESC 
+      WHERE d.courier_id = ?
+      ORDER BY COALESCE(d.assigned_at, d.created_at) DESC
       LIMIT ? OFFSET ?
     `;
     const [rows] = await conn.query<RowDataPacket[]>(query, [courierId, limit, offset]);
