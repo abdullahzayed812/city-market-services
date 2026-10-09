@@ -25,7 +25,8 @@ export const createApp = () => {
     config.deliveryServiceUrl,
     config.userServiceUrl,
     config.authServiceUrl,
-    config.catalogServiceUrl
+    config.catalogServiceUrl,
+    config.ratingServiceUrl,
   );
 
   const adminService = new AdminService(serviceClient);

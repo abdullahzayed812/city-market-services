@@ -3,6 +3,12 @@ import { AdminService } from "../../application/services/admin.service";
 import { ApiResponse } from "@city-market/shared";
 import { AuthenticatedRequest } from "@city-market/shared/node";
 
+// Copy the given query params that are set (forwarded as list filters)
+const pick = (req: AuthenticatedRequest, keys: string[]): Record<string, string | undefined> =>
+  Object.fromEntries(keys.map((k) => [k, (req.query[k] as string) || undefined]).filter(([, v]) => v !== undefined));
+
+const COURIER_FILTERS = ["courierType", "approvalStatus", "search", "status"];
+
 export class AdminController {
   constructor(private adminService: AdminService) { }
 
@@ -19,7 +25,7 @@ export class AdminController {
     try {
       const page = parseInt(req.query.page as string) || 1;
       const limit = parseInt(req.query.limit as string) || 50;
-      const orders = await this.adminService.getAllOrders(page, limit, req.user!.userId);
+      const orders = await this.adminService.getAllOrders(page, limit, req.user!.userId, pick(req, ["status", "search", "from", "to"]));
       res.json(orders);
     } catch (error) {
       next(error);
@@ -51,8 +57,89 @@ export class AdminController {
     try {
       const page = parseInt(req.query.page as string) || 1;
       const limit = parseInt(req.query.limit as string) || 50;
-      const couriers = await this.adminService.getAllCouriers(page, limit, req.user!.userId);
+      const couriers = await this.adminService.getAllCouriers(page, limit, req.user!.userId, pick(req, COURIER_FILTERS));
       res.json(couriers);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  // Total for the same filters as getAllCouriers (for pagination)
+  getCouriersCount = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      res.json(await this.adminService.getCouriersCountFiltered(pick(req, COURIER_FILTERS), req.user!.userId));
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  setCourierApproval = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      const result = await this.adminService.setCourierApproval(req.params.courierId, req.body.approvalStatus, req.user!.userId);
+      res.json(result);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  getAllCouriersPendingEarnings = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      const result = await this.adminService.getAllCouriersPendingEarnings(req.query.courierType as string | undefined, req.user!.userId);
+      res.json(result);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  getCourierDetails = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      res.json(await this.adminService.getCourierDetails(req.params.courierId, req.user!.userId));
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  getUserProfile = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      const result = await this.adminService.getUserProfile(req.params.id, String(req.query.role ?? ""), req.user!.userId);
+      res.json({ success: true, data: result });
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  getDeliveryRatings = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      const result = await this.adminService.getDeliveryRatings(
+        {
+          courierId: (req.query.courierId as string) || undefined,
+          deliveryOfficeId: (req.query.deliveryOfficeId as string) || undefined,
+          page: parseInt(req.query.page as string) || 1,
+          limit: parseInt(req.query.limit as string) || 20,
+        },
+        req.user!.userId,
+      );
+      res.json(result);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  getVendorRatings = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      const limit = parseInt(req.query.limit as string) || 20;
+      const offset = parseInt(req.query.offset as string) || 0;
+      const result = await this.adminService.getVendorRatings(req.params.vendorId, limit, offset, req.user!.userId);
+      res.json(result);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  getDeliveryFinancialOverview = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      const result = await this.adminService.getDeliveryFinancialOverview(req.user!.userId);
+      res.json(result);
     } catch (error) {
       next(error);
     }
@@ -72,8 +159,8 @@ export class AdminController {
     try {
       const page = parseInt(req.query.page as string) || 1;
       const limit = parseInt(req.query.limit as string) || 50;
-      const role = req.query.role as string;
-      const users = await this.adminService.getAllUsers(page, limit, req.user!.userId, role);
+      const role = (req.query.role as string) || undefined;
+      const users = await this.adminService.getAllUsers(page, limit, req.user!.userId, role, pick(req, ["search", "status"]));
       res.json(users);
     } catch (error) {
       next(error);
@@ -218,6 +305,14 @@ export class AdminController {
     try {
       const result = await this.adminService.registerUser(req.body, req.user!.userId);
       res.json(result);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  createDeliveryOffice = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      res.status(201).json(await this.adminService.createDeliveryOffice(req.body, req.user!.userId));
     } catch (error) {
       next(error);
     }
@@ -451,8 +546,24 @@ export class AdminController {
   // Delivery Offices
   getAllDeliveryOffices = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
-      const result = await this.adminService.getAllDeliveryOffices(req.user!.userId);
+      const result = await this.adminService.getAllDeliveryOffices(req.user!.userId, (req.query.approvalStatus as string) || undefined);
       res.json(result);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  getOfficeDetails = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      res.json(await this.adminService.getOfficeDetails(req.params.officeId, req.user!.userId));
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  setOfficeApproval = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      res.json(await this.adminService.setOfficeApproval(req.params.officeId, req.body?.approvalStatus, req.user!.userId));
     } catch (error) {
       next(error);
     }

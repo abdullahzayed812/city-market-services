@@ -1,0 +1,51 @@
+# Freelance claim race (docs/freelance-couriers-audit.md, Phase 3): delivery offices
+# (PATCH .../accept) and freelancers (PATCH .../claim) all go for the SAME pending
+# delivery at once. Both paths are a conditional UPDATE ... WHERE status = 'PENDING'
+# AND delivery_office_id IS NULL AND courier_id IS NULL, so exactly ONE request may
+# win across both groups; every other one must be a clean 400/404. Check
+# `concurrency.delivery_claim.won` == 1 and `concurrency.delivery_claim.unexpected_error`
+# == 0 in the report. VUs pick a scenario by weight, so the office/freelancer mix
+# varies run to run.
+#
+# Usage:
+#   npm run loadtest:prepare-freelance-race -- --freelancers 5
+#   npm run loadtest:freelance-race
+config:
+  processor: "../processors/index.ts"
+  phases:
+    - duration: 1
+      arrivalCount: 8
+      name: "offices and freelancers race for one delivery"
+  payload:
+    - path: "../data/generated/race-target.csv"
+      fields: ["deliveryId"]
+      order: "sequence"
+      skipHeader: true
+    - path: "../data/generated/delivery-managers.csv"
+      fields: ["officeEmail", "officePassword"]
+      order: "sequence"
+      skipHeader: true
+    - path: "../data/generated/freelancers.csv"
+      fields: ["freelancerEmail", "freelancerPassword", "freelancerCourierId"]
+      order: "sequence"
+      skipHeader: true
+
+scenarios:
+  - name: "Office accepts"
+    weight: 3
+    flow:
+      - function: "loginDeliveryManagerFromPool"
+      - patch:
+          url: "/delivery/deliveries/{{ deliveryId }}/accept"
+          name: "PATCH /delivery/deliveries/:id/accept (race)"
+          beforeRequest: "attachAuthHeader"
+          afterResponse: "trackClaimRaceOutcome"
+  - name: "Freelancer claims"
+    weight: 5
+    flow:
+      - function: "loginFreelancerFromPool"
+      - patch:
+          url: "/delivery/deliveries/{{ deliveryId }}/claim"
+          name: "PATCH /delivery/deliveries/:id/claim (race)"
+          beforeRequest: "attachAuthHeader"
+          afterResponse: "trackClaimRaceOutcome"

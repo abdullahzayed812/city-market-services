@@ -106,6 +106,12 @@ export const CreateDeliverySettlementDialog: React.FC<Props> = ({
                 <span className="font-mono font-bold">{unsettledCount}</span>
                 <span>{t("financial.delivery_fees", "Delivery Fees")}:</span>
                 <span className="font-mono font-bold">EGP {pendingData?.totalDeliveryFees?.toLocaleString() || 0}</span>
+                {pendingData?.courierType === "FREELANCE" && (
+                  <>
+                    <span>{t("financial.cash_collected")}:</span>
+                    <span className="font-mono font-bold">- EGP {pendingData?.totalCashCollected?.toLocaleString() || 0}</span>
+                  </>
+                )}
                 <span>{t("financial.net_payout")}:</span>
                 <span className="font-mono font-bold text-emerald-700">EGP {pendingData?.netPayout?.toLocaleString() || 0}</span>
               </div>

@@ -52,9 +52,37 @@ export async function pickAnyPendingDelivery(context: ArtilleryContext, events: 
     events.emit("counter", "delivery.pending.none", 1);
     return;
   }
-  const pick = deliveries[Math.floor(Math.random() * deliveries.length)];
+  // A PENDING delivery that still carries a deliveryOfficeId can never be accepted
+  // (the accept UPDATE requires delivery_office_id IS NULL). These are left behind
+  // by delivery-service's courier-assignment SLA revert, which sets status back to
+  // PENDING but does not clear the office (sla.worker.ts handleAssignmentExpired ->
+  // deliveryRepo.update skips undefined fields). Count them so the bug stays visible
+  // in every report, but claim a genuinely open delivery like a real office would.
+  const stale = deliveries.filter((d) => d.deliveryOfficeId);
+  if (stale.length) events.emit("counter", "delivery.pending.stale_office_set", stale.length);
+  const open = deliveries.filter((d) => !d.deliveryOfficeId);
+  if (!open.length) {
+    context.vars.deliveryId = null;
+    events.emit("counter", "delivery.pending.none", 1);
+    return;
+  }
+  const pick = open[Math.floor(Math.random() * open.length)];
   context.vars.deliveryId = pick.id;
   events.emit("counter", "delivery.pending.found", 1);
+}
+
+/**
+ * GET /delivery/deliveries/my-deliveries lists every delivery ever assigned to the
+ * courier, newest first - including ones already picked up or delivered. Only an
+ * ASSIGNED delivery can move to PICKED_UP, so pick one of those instead of blindly
+ * taking items[0] (which produced 400 invalid-transition responses).
+ */
+export async function pickAssignedDelivery(context: ArtilleryContext, events: EventEmitter): Promise<void> {
+  const raw = context.vars.myDeliveriesRaw;
+  const items: any[] = raw?.items || raw?.data || (Array.isArray(raw) ? raw : []);
+  const assigned = items.find((d) => d.status === "ASSIGNED");
+  context.vars.myDeliveryId = assigned?.id || null;
+  events.emit("counter", assigned ? "courier.assigned_delivery.found" : "courier.assigned_delivery.none", 1);
 }
 
 /**

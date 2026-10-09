@@ -1,13 +1,16 @@
 import { createProxyMiddleware } from "http-proxy-middleware";
 
-export const setupProxy = (basePath: string, targetUrl: string) => {
+// Express strips the router mount path (e.g. /delivery) before the proxy sees the
+// request, so the path is forwarded as-is. Don't strip basePath again: that turned
+// /delivery-offices/me into /-offices/me (and /delivery-ratings into /-ratings).
+// targetPrefix: for services whose own routes keep the prefix (media-service serves
+// /media/upload); nginx does the same with `rewrite ... /media/$1`.
+export const setupProxy = (_basePath: string, targetUrl: string, targetPrefix?: string) => {
   return createProxyMiddleware({
     target: targetUrl,
     changeOrigin: true,
     xfwd: true, // forward X-Forwarded-For/Proto/Port so downstream services see the real client IP
-    pathRewrite: {
-      [`^${basePath}`]: "/",
-    },
+    ...(targetPrefix ? { pathRewrite: (path: string) => `${targetPrefix}${path.startsWith("/") ? path : `/${path}`}` } : {}),
     on: {
       proxyReq: (proxyReq: any, req: any, res: any) => {
         // Auth relies solely on the Authorization header. There used to be a fallback to an

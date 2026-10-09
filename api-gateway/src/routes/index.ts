@@ -14,7 +14,7 @@ export const createRoutes = (): Router => {
   router.use("/delivery", setupProxy("/delivery", config.deliveryServiceUrl));
   router.use("/notification", setupProxy("", config.notificationsServiceUrl));
   router.use("/ratings", setupProxy("", config.ratingServiceUrl));
-  router.use("/media", setupProxy("/media", config.mediaServiceUrl));
+  router.use("/media", setupProxy("/media", config.mediaServiceUrl, "/media"));
 
   return router;
 };

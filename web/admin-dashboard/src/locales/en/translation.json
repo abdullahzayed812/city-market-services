@@ -80,7 +80,8 @@
     "first_name": "First Name",
     "last_name": "Last Name",
     "login_failed": "Login failed",
-    "invalid_credentials": "Invalid credentials"
+    "invalid_credentials": "Invalid credentials",
+    "demo_accounts": "Demo accounts"
   },
   "roles": {
     "customer": "Customer",
@@ -261,7 +262,13 @@
     "select_courier": "Select a courier",
     "unsettled_deliveries": "Unsettled Deliveries",
     "deliveries": "deliveries",
-    "settlements": "Settlements"
+    "settlements": "Settlements",
+    "cash_collected": "Cash collected",
+    "pending_office_courier_payouts": "Pending office courier payouts",
+    "pending_freelance_courier_payouts": "Pending freelance payouts",
+    "pending_office_payouts": "Pending office payouts",
+    "cash_held_by_couriers": "Cash held by couriers",
+    "delivery_platform_revenue": "Platform delivery revenue"
   },
   "delivery_tiers": {
     "title": "Delivery Fee Tiers",
@@ -277,7 +284,11 @@
     "total": "Total",
     "percentages_must_sum_to_100": "Must sum to 100%",
     "how_it_works": "How tiers work",
-    "how_it_works_desc": "When a delivery is created, the fee is split three ways based on the matching tier: courier share, office share, and platform share. All three percentages must sum to exactly 100%. These amounts are locked per delivery at creation time."
+    "how_it_works_desc": "When a delivery is created, the fee is split three ways based on the matching tier: courier share, office share, and platform share. All three percentages must sum to exactly 100%. The amounts are fixed when an office accepts the delivery or a freelancer claims it. Freelance deliveries use the freelance split (no office share).",
+    "freelance_split": "Freelance split (courier / platform)",
+    "freelance_split_hint": "Leave both empty to give freelancers the courier + office share.",
+    "freelance_default": "Default: courier {{value}}%",
+    "freelance_must_sum_to_100": "Freelance percentages must both be set and sum to 100"
   },
   "orders": {
     "order_id": "Order ID",
@@ -308,7 +319,26 @@
     "add_new_title": "Register New Courier",
     "license_plate": "License Plate",
     "created_success": "Courier registered successfully",
-    "status_updated": "Courier status updated"
+    "status_updated": "Courier status updated",
+    "courier_type": "Type",
+    "type_office": "Office",
+    "type_freelance": "Freelance",
+    "delivery_office": "Delivery office",
+    "select_office": "Select an office",
+    "filter_all": "All",
+    "filter_office": "Office",
+    "filter_freelance": "Freelance",
+    "filter_pending_review": "Pending review",
+    "approval_approved": "Approved",
+    "approval_pending_review": "Pending review",
+    "approval_suspended": "Suspended",
+    "approve": "Approve",
+    "suspend": "Suspend",
+    "documents": "Documents",
+    "national_id": "ID",
+    "license": "License",
+    "reject": "Reject",
+    "approval_rejected": "Rejected"
   },
   "vendors": {
     "shop_name": "Shop Name",
@@ -343,5 +373,84 @@
       "stationery": "Stationery",
       "other": "Other"
     }
+  },
+  "ratings": {
+    "title": "Ratings",
+    "tab_vendors": "Vendors",
+    "tab_deliveries": "Deliveries",
+    "vendor": "Vendor",
+    "rating": "Rating",
+    "reviews": "Reviews",
+    "no_reviews": "No ratings yet",
+    "anonymous": "Anonymous",
+    "summary_for": "Ratings for",
+    "all_deliveries": "All delivery ratings",
+    "clear_filter": "Show all",
+    "count": "{{count}} ratings",
+    "offices": "Delivery offices",
+    "couriers": "Couriers",
+    "latest_reviews": "Latest reviews"
+  },
+  "user_details": {
+    "view": "View",
+    "title": "User details",
+    "no_profile": "No profile yet for this account (for a courier: signup not finished).",
+    "penalty": "Penalties",
+    "has_penalty": "Has penalty",
+    "none": "None",
+    "device": "Device",
+    "last_device_update": "Last device update",
+    "address": "Address",
+    "commission": "Commission",
+    "office": "Office",
+    "registered": "Registered"
+  },
+  "courier_review": {
+    "title": "Courier review",
+    "open_full": "Open full size",
+    "not_provided": "Not provided",
+    "joined": "Joined",
+    "active": "Active now",
+    "delivered": "Delivered",
+    "failed": "Failed",
+    "cancellations": "Gave up / missed"
+  },
+  "offices": {
+    "title": "Delivery offices",
+    "review_title": "Office review",
+    "owner_national_id": "Owner's national ID",
+    "commercial_register": "Commercial register",
+    "active_couriers": "Active couriers",
+    "status_updated": "Office status updated",
+    "add_new": "Add office",
+    "add_new_title": "Add delivery office",
+    "office_section": "Office",
+    "office_name": "Office name",
+    "manager_section": "Manager login",
+    "manager_name": "Manager name",
+    "approved_hint": "Offices added here are approved right away. The manager signs in to the delivery dashboard or app with this email and password (at least 8 characters).",
+    "created_success": "Delivery office created"
+  },
+  "list": {
+    "search": "Search…",
+    "clear_search": "Clear search",
+    "results": "{{count}} results",
+    "all": "All",
+    "all_roles": "All roles",
+    "all_statuses": "All statuses",
+    "all_types": "All types",
+    "active": "Active",
+    "inactive": "Inactive",
+    "from": "From",
+    "to": "To",
+    "previous": "Previous",
+    "next": "Next",
+    "search_users": "Search by email…",
+    "search_couriers": "Search by name or phone…",
+    "search_orders": "Search by order number…",
+    "search_vendors": "Search by shop name or phone…",
+    "search_offices": "Search by office name or phone…",
+    "search_categories": "Search categories…",
+    "no_results": "No results match the filters"
   }
 }

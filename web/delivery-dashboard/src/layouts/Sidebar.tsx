@@ -5,7 +5,8 @@ import {
     Truck,
     Users,
     Wallet,
-    Settings
+    Settings,
+    Star
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -26,6 +27,7 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
         { icon: Truck, label: t("common.deliveries"), path: "/deliveries" },
         { icon: Users, label: t("common.couriers"), path: "/couriers" },
         { icon: Wallet, label: t("financial.settlements", "Settlements"), path: "/settlements" },
+        { icon: Star, label: t("ratings.title"), path: "/ratings" },
         { icon: Settings, label: t("common.settings"), path: "/settings" },
     ];
 

@@ -5,6 +5,7 @@ import { ChevronLeft, Package, MapPin, Receipt, Clock, AlertCircle, Star, XCircl
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { OrderService } from "@/services/api/orderService";
 import { RatingService } from "@/services/api/ratingService";
+import { CourierSection } from "@/components/order/CourierSection";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
@@ -128,6 +129,14 @@ export default function OrderDetailsPage() {
   });
 
   const order = data?.order;
+
+  // Vendors already rated on this order show the stars given, not "rate" again.
+  // Keyed under ["order", orderId] so the rating dialog's invalidation refreshes it.
+  const { data: myVendorRatings = [] } = useQuery({
+    queryKey: ["order", orderId, "vendor-ratings"],
+    queryFn: () => RatingService.getMyOrderRatings(orderId!),
+    enabled: !!orderId && data?.order?.status === CustomerOrderStatus.COMPLETED,
+  });
 
   const { data: proposals } = useQuery({
     queryKey: ["order-proposals", orderId],
@@ -357,18 +366,36 @@ export default function OrderDetailsPage() {
               </div>
             )}
 
-            {vo.status === VendorOrderStatus.DELIVERED && (
-              <button
-                onClick={() => setRatingVendor({ id: vo.vendorId, name: vo.vendorName || t('common.vendor') })}
-                className="mt-4 flex items-center gap-2 w-full justify-center py-2.5 bg-accent/10 text-accent text-sm font-bold rounded-xl hover:bg-accent/20 transition-colors"
-              >
-                <Star size={15} />
-                {t('rating.rate_vendor')} {vo.vendorName}
-              </button>
-            )}
+            {vo.status === VendorOrderStatus.DELIVERED &&
+              (() => {
+                // One rating per vendor per order: once rated, show the stars instead
+                const myRating = myVendorRatings.find((r) => r.vendorId === vo.vendorId);
+                return myRating ? (
+                  <div className="mt-4 flex items-center justify-center gap-1 text-xs text-text-secondary">
+                    <span className="me-1">{t('courier.your_rating')}</span>
+                    {[1, 2, 3, 4, 5].map((n) => (
+                      <Star key={n} size={14} className={n <= myRating.stars ? "fill-accent text-accent" : "text-gray-300"} />
+                    ))}
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => setRatingVendor({ id: vo.vendorId, name: vo.vendorName || t('common.vendor') })}
+                    className="mt-4 flex items-center gap-2 w-full justify-center py-2.5 bg-accent/10 text-accent text-sm font-bold rounded-xl hover:bg-accent/20 transition-colors"
+                  >
+                    <Star size={15} />
+                    {t('rating.rate_vendor')} {vo.vendorName}
+                  </button>
+                );
+              })()}
           </section>
         );
       })}
+
+      {/* Courier: shown once the order is ready; after completion, rate the delivery */}
+      <CourierSection
+        orderId={orderId!}
+        enabled={!!order && ([CustomerOrderStatus.READY, CustomerOrderStatus.IN_DELIVERY, CustomerOrderStatus.COMPLETED] as string[]).concat("PICKED_UP").includes(order.status)}
+      />
 
       {/* Delivery Address */}
       <section className="bg-white rounded-2xl shadow-card p-5 mb-4">

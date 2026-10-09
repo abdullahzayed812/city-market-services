@@ -142,7 +142,8 @@
     "forgot_password": "نسيت كلمة المرور؟",
     "authenticating": "جاري التحقق...",
     "quick_login_title": "دخول سريع (وضع التطوير)",
-    "quick_login_desc": "اختر تاجراً للتسجيل فوراً"
+    "quick_login_desc": "اختر تاجراً للتسجيل فوراً",
+    "demo_accounts": "حسابات تجريبية"
   },
   "vendors": {
     "madinaty_supermarket": "سوبر ماركت مدينتي",

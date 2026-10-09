@@ -137,6 +137,8 @@ const seedDb = async () => {
       { id: SEED_DATA.USERS.COURIER_HASSAN, email: "courier.hassan@citymarket.com", password_hash: passwordHash, role: "COURIER", is_active: true },
       { id: SEED_DATA.USERS.COURIER_DINA, email: "courier.dina@citymarket.com", password_hash: passwordHash, role: "COURIER", is_active: true },
       { id: SEED_DATA.USERS.COURIER_YASSER, email: "courier.yasser@citymarket.com", password_hash: passwordHash, role: "COURIER", is_active: true },
+      { id: SEED_DATA.USERS.FREELANCER_SAMI, email: "freelancer.sami@citymarket.com", password_hash: passwordHash, role: "COURIER", is_active: true },
+      { id: SEED_DATA.USERS.FREELANCER_TAMER, email: "freelancer.tamer@citymarket.com", password_hash: passwordHash, role: "COURIER", is_active: true },
     ];
 
     for (const user of users) {

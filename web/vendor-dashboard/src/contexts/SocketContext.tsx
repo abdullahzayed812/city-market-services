@@ -2,7 +2,7 @@ import React, { createContext, useContext, useEffect, useState } from "react";
 import { io, Socket } from "socket.io-client";
 import { useAuth } from "../components/AuthProvider";
 
-const SOCKET_URL = import.meta.env.VITE_WEBSOCKET_URL || `${window.location.protocol}//${window.location.hostname}:3009`;
+import { SOCKET_URL } from "@/lib/server-config";
 
 interface SocketContextType {
   socket: Socket | null;

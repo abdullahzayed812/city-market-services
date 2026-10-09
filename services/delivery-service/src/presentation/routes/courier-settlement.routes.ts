@@ -6,7 +6,7 @@ import { UserRole } from "@city-market/shared";
 export const createCourierSettlementRoutes = (controller: CourierSettlementController): Router => {
   const router = Router();
 
-  // Courier views their own pending earnings
+  // Courier views their own pending earnings; managers/admins view a courier's (ownership checked in the service)
   router.get(
     "/courier/:courierId/pending",
     authorize(UserRole.ADMIN, UserRole.DELIVERY_MANAGER, UserRole.COURIER),
@@ -44,7 +44,7 @@ export const createCourierSettlementRoutes = (controller: CourierSettlementContr
   // Platform financial overview (admin only)
   router.get(
     "/overview",
-    authorize(UserRole.ADMIN, UserRole.DELIVERY_MANAGER),
+    authorize(UserRole.ADMIN),
     controller.getPlatformOverview,
   );
 

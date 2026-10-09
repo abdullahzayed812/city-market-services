@@ -80,7 +80,8 @@
     "first_name": "الاسم الأول",
     "last_name": "الاسم الأخير",
     "login_failed": "فشل تسجيل الدخول",
-    "invalid_credentials": "بيانات الاعتماد غير صحيحة"
+    "invalid_credentials": "بيانات الاعتماد غير صحيحة",
+    "demo_accounts": "حسابات تجريبية"
   },
   "roles": {
     "customer": "عميل",
@@ -261,7 +262,13 @@
     "select_courier": "اختر مندوباً",
     "unsettled_deliveries": "توصيلات غير مسواة",
     "deliveries": "توصيلات",
-    "settlements": "التسويات"
+    "settlements": "التسويات",
+    "cash_collected": "النقد المحصل",
+    "pending_office_courier_payouts": "مستحقات مندوبي المكاتب",
+    "pending_freelance_courier_payouts": "مستحقات المندوبين الأحرار",
+    "pending_office_payouts": "مستحقات المكاتب",
+    "cash_held_by_couriers": "نقد لدى المندوبين",
+    "delivery_platform_revenue": "إيراد المنصة من التوصيل"
   },
   "delivery_tiers": {
     "title": "شرائح رسوم التوصيل",
@@ -277,7 +284,11 @@
     "total": "المجموع",
     "percentages_must_sum_to_100": "يجب أن يكون المجموع 100%",
     "how_it_works": "كيف تعمل الشرائح",
-    "how_it_works_desc": "عند إنشاء طلب التوصيل، تُوزَّع الرسوم على ثلاثة أطراف بناءً على الشريحة المطابقة: حصة المندوب وحصة المكتب وحصة المنصة. يجب أن يكون مجموع النسب الثلاث 100% بالضبط. تُثبَّت هذه المبالغ على كل طلب توصيل لحظة إنشائه."
+    "how_it_works_desc": "عند إنشاء طلب التوصيل، تُوزَّع الرسوم على ثلاثة أطراف بناءً على الشريحة المطابقة: حصة المندوب وحصة المكتب وحصة المنصة. يجب أن يكون مجموع النسب الثلاث 100% بالضبط. تُثبَّت المبالغ عند قبول المكتب للتوصيل أو استلام المندوب الحر له. توصيلات المندوبين الأحرار تستخدم تقسيم المندوب الحر (بدون حصة مكتب).",
+    "freelance_split": "تقسيم المندوب الحر (المندوب / المنصة)",
+    "freelance_split_hint": "اتركهما فارغين ليحصل المندوب الحر على نسبة المندوب + المكتب.",
+    "freelance_default": "افتراضي: المندوب {{value}}%",
+    "freelance_must_sum_to_100": "يجب تحديد نسبتي المندوب الحر وأن يكون مجموعهما 100"
   },
   "orders": {
     "order_id": "رقم الطلب",
@@ -308,7 +319,26 @@
     "add_new_title": "تسجيل مندوب جديد",
     "license_plate": "رقم اللوحة",
     "created_success": "تم تسجيل المندوب بنجاح",
-    "status_updated": "تم تحديث حالة المندوب"
+    "status_updated": "تم تحديث حالة المندوب",
+    "courier_type": "النوع",
+    "type_office": "مكتب",
+    "type_freelance": "حر",
+    "delivery_office": "مكتب التوصيل",
+    "select_office": "اختر مكتبًا",
+    "filter_all": "الكل",
+    "filter_office": "مكتب",
+    "filter_freelance": "حر",
+    "filter_pending_review": "بانتظار المراجعة",
+    "approval_approved": "مقبول",
+    "approval_pending_review": "بانتظار المراجعة",
+    "approval_suspended": "موقوف",
+    "approve": "قبول",
+    "suspend": "إيقاف",
+    "documents": "المستندات",
+    "national_id": "البطاقة",
+    "license": "الرخصة",
+    "reject": "رفض",
+    "approval_rejected": "مرفوض"
   },
   "vendors": {
     "shop_name": "اسم المتجر",
@@ -343,5 +373,84 @@
       "stationery": "مكتبة",
       "other": "آخر"
     }
+  },
+  "ratings": {
+    "title": "التقييمات",
+    "tab_vendors": "المتاجر",
+    "tab_deliveries": "التوصيل",
+    "vendor": "المتجر",
+    "rating": "التقييم",
+    "reviews": "المراجعات",
+    "no_reviews": "لا توجد تقييمات بعد",
+    "anonymous": "مجهول",
+    "summary_for": "تقييمات",
+    "all_deliveries": "كل تقييمات التوصيل",
+    "clear_filter": "عرض الكل",
+    "count": "{{count}} تقييم",
+    "offices": "مكاتب التوصيل",
+    "couriers": "المندوبون",
+    "latest_reviews": "أحدث المراجعات"
+  },
+  "user_details": {
+    "view": "عرض",
+    "title": "بيانات المستخدم",
+    "no_profile": "لا يوجد ملف لهذا الحساب بعد (للمندوب: لم يكمل التسجيل).",
+    "penalty": "المخالفات",
+    "has_penalty": "عليه مخالفة",
+    "none": "لا يوجد",
+    "device": "الجهاز",
+    "last_device_update": "آخر تحديث للجهاز",
+    "address": "العنوان",
+    "commission": "العمولة",
+    "office": "المكتب",
+    "registered": "تاريخ التسجيل"
+  },
+  "courier_review": {
+    "title": "مراجعة المندوب",
+    "open_full": "فتح بالحجم الكامل",
+    "not_provided": "غير مرفق",
+    "joined": "انضم في",
+    "active": "جارية الآن",
+    "delivered": "تم توصيلها",
+    "failed": "فشلت",
+    "cancellations": "تخلى / فاته الاستلام"
+  },
+  "offices": {
+    "title": "مكاتب التوصيل",
+    "review_title": "مراجعة المكتب",
+    "owner_national_id": "بطاقة المالك",
+    "commercial_register": "السجل التجاري",
+    "active_couriers": "مندوبون نشطون",
+    "status_updated": "تم تحديث حالة المكتب",
+    "add_new": "إضافة مكتب",
+    "add_new_title": "إضافة مكتب توصيل",
+    "office_section": "المكتب",
+    "office_name": "اسم المكتب",
+    "manager_section": "حساب المدير",
+    "manager_name": "اسم المدير",
+    "approved_hint": "المكاتب المضافة من هنا تُقبل مباشرة. يسجّل المدير الدخول إلى لوحة أو تطبيق التوصيل بهذا البريد وكلمة المرور (8 أحرف على الأقل).",
+    "created_success": "تم إنشاء مكتب التوصيل"
+  },
+  "list": {
+    "search": "بحث…",
+    "clear_search": "مسح البحث",
+    "results": "{{count}} نتيجة",
+    "all": "الكل",
+    "all_roles": "كل الأدوار",
+    "all_statuses": "كل الحالات",
+    "all_types": "كل الأنواع",
+    "active": "نشط",
+    "inactive": "غير نشط",
+    "from": "من",
+    "to": "إلى",
+    "previous": "السابق",
+    "next": "التالي",
+    "search_users": "ابحث بالبريد الإلكتروني…",
+    "search_couriers": "ابحث بالاسم أو الهاتف…",
+    "search_orders": "ابحث برقم الطلب…",
+    "search_vendors": "ابحث باسم المتجر أو الهاتف…",
+    "search_offices": "ابحث باسم المكتب أو الهاتف…",
+    "search_categories": "ابحث في الفئات…",
+    "no_results": "لا توجد نتائج مطابقة"
   }
 }

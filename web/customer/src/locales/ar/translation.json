@@ -3,7 +3,7 @@
     "not_found_title": "الصفحة غير موجودة",
     "not_found_message": "الصفحة التي تبحث عنها غير موجودة أو ربما تم نقلها.",
     "go_home": "الذهاب إلى الرئيسية",
-    "go_back": "الرجوع",
+    "go_back": "رجوع",
     "loading": "جاري التحميل...",
     "error": "حدث خطأ ما",
     "retry": "إعادة المحاولة",
@@ -38,7 +38,6 @@
     "reject": "رفض",
     "accept": "قبول",
     "date": "التاريخ",
-    "go_back": "رجوع",
     "no_results": "لم يتم العثور على نتائج",
     "minutes": "دقيقة",
     "kg": "كجم",
@@ -105,7 +104,8 @@
     "welcome": "أهلاً",
     "confirm_password": "تأكيد كلمة المرور",
     "login_failed": "فشل تسجيل الدخول. تحقق من بياناتك.",
-    "scroll_to_read": "اسحب للأسفل للقراءة"
+    "scroll_to_read": "اسحب للأسفل للقراءة",
+    "demo_accounts": "حسابات تجريبية"
   },
   "home": {
     "title": "الرئيسية",
@@ -442,5 +442,21 @@
     "cart": "السلة",
     "orders": "الطلبات",
     "profile": "حسابي"
+  },
+  "courier": {
+    "title": "المندوب",
+    "title_plural": "المندوبون",
+    "finding": "جارٍ البحث عن مندوب لطلبك…",
+    "heading_to_store": "في الطريق إلى المتجر لاستلام طلبك",
+    "picked_up": "استلم طلبك",
+    "on_the_way": "في الطريق إليك",
+    "delivered": "تم التوصيل",
+    "call": "اتصال",
+    "delivery_n_of_m": "التوصيل {{n}} من {{m}}",
+    "vehicle_motorcycle": "دراجة نارية",
+    "vehicle_car": "سيارة",
+    "vehicle_bicycle": "دراجة",
+    "rate_delivery": "قيّم التوصيل",
+    "your_rating": "تقييمك"
   }
 }

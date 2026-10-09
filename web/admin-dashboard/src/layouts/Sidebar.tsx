@@ -1,7 +1,7 @@
 import React from "react";
 import { NavLink } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { LayoutDashboard, Users, ShoppingBag, Truck, BarChart3, Settings, Building, Box, Percent, PackageCheck } from "lucide-react";
+import { LayoutDashboard, Users, ShoppingBag, Truck, BarChart3, Settings, Building, Box, Percent, PackageCheck, Star, Warehouse } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface SidebarProps {
@@ -22,6 +22,8 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
     { name: t("common.users"), href: "/users", icon: Users },
     { name: t("common.vendors"), href: "/vendors", icon: Building },
     { name: t("common.couriers"), href: "/couriers", icon: Truck },
+    { name: t("offices.title"), href: "/delivery-offices", icon: Warehouse },
+    { name: t("ratings.title"), href: "/ratings", icon: Star },
     { name: t("common.products"), href: "/products", icon: Box },
     { name: t("common.categories"), href: "/categories", icon: LayoutDashboard },
     // { name: t("common.revenue"), href: "/revenue", icon: BarChart3 },

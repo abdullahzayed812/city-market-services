@@ -5,6 +5,9 @@
 #   ./scripts/deploy.sh              # first-time deploy (HTTP only)
 #   ./scripts/deploy.sh --ssl        # enable HTTPS after DNS is pointing here
 #   ./scripts/deploy.sh --update     # rebuild and rolling-restart services
+#   ./scripts/deploy.sh --update --reset-db
+#                                    # also wipe MySQL and recreate it from the current
+#                                    # schema.sql files + seeds (DELETES ALL DATA)
 
 set -euo pipefail
 
@@ -18,10 +21,12 @@ PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # routine `--update` run — see the "Load .env" step further down.
 RUN_SSL_SETUP=false
 UPDATE_MODE=false
+RESET_DB=false
 for arg in "$@"; do
   case $arg in
-    --ssl)    RUN_SSL_SETUP=true ;;
-    --update) UPDATE_MODE=true ;;
+    --ssl)      RUN_SSL_SETUP=true ;;
+    --update)   UPDATE_MODE=true ;;
+    --reset-db) RESET_DB=true ;;
   esac
 done
 
@@ -128,6 +133,43 @@ if [[ "$UPDATE_MODE" == "true" ]]; then
 else
   echo "==> Building all images (first deploy) ..."
   $COMPOSE build --pull
+fi
+
+# ── Optional DB reset ─────────────────────────────────────────────────────────
+# db-init only runs CREATE TABLE IF NOT EXISTS, so changes to existing tables in
+# schema.sql never reach a live database. --reset-db drops the MySQL volume so the
+# next start recreates every database from the current schema.sql files
+# (docker/mysql/init.sql -> db-init) and reseeds them (db-seed sees no users).
+if [[ "$RESET_DB" == "true" ]]; then
+  echo ""
+  echo "  !! --reset-db: ALL MySQL data (users, orders, deliveries, ...) will be deleted."
+  if [[ -t 0 ]]; then
+    read -rp "  Type 'reset' to continue: " CONFIRM
+    [[ "$CONFIRM" == "reset" ]] || { echo "  Aborted."; exit 1; }
+  else
+    echo "  Non-interactive run — continuing with the reset."
+  fi
+
+  # Safety dump of the current data, if MySQL is up (backup-mysql.sh reads .env)
+  if $COMPOSE ps --status running --services 2>/dev/null | grep -qx mysql; then
+    echo "==> Backing up MySQL before reset ..."
+    "$PROJECT_DIR/scripts/backup-mysql.sh" || echo "    WARNING: backup failed — continuing with the reset."
+  fi
+
+  echo "==> Stopping all services ..."
+  $COMPOSE down --remove-orphans
+
+  # Only the MySQL volume; Redis / RabbitMQ data is kept
+  COMPOSE_PROJECT=$($COMPOSE config 2>/dev/null | sed -n 's/^name: *//p' | head -1)
+  MYSQL_VOLUME=$(docker volume ls -q \
+    --filter "label=com.docker.compose.project=${COMPOSE_PROJECT}" \
+    --filter "label=com.docker.compose.volume=mysql_data")
+  if [[ -n "$MYSQL_VOLUME" ]]; then
+    echo "==> Removing MySQL volume $MYSQL_VOLUME ..."
+    docker volume rm "$MYSQL_VOLUME"
+  else
+    echo "    No MySQL volume found — nothing to remove."
+  fi
 fi
 
 # ── Start infrastructure first ────────────────────────────────────────────────

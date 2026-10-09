@@ -1,18 +1,56 @@
 import { BaseClient } from "./BaseClient";
 
+export type CourierFilter = { courierType?: string; approvalStatus?: string; search?: string; status?: string };
+
 export class DeliveryClient extends BaseClient {
-  async getAllCouriers(page: number = 1, limit: number = 50, userId?: string) {
+  async getAllCouriers(page: number = 1, limit: number = 50, userId?: string, filter: CourierFilter = {}) {
     const config = await this.getRequestConfig(userId);
     const response = await this.axiosInstance.get(`/couriers`, {
-      params: { page, limit },
+      params: { page, limit, ...filter },
       ...config,
     });
     return response.data;
   }
 
-  async getCouriersCount(userId?: string) {
+  async setCourierApproval(courierId: string, approvalStatus: string, userId?: string) {
     const config = await this.getRequestConfig(userId);
-    const response = await this.axiosInstance.get(`/couriers/count`, config);
+    const response = await this.axiosInstance.patch(`/couriers/${courierId}/approval`, { approvalStatus }, config);
+    return response.data;
+  }
+
+  async getAllCouriersPendingEarnings(courierType?: string, userId?: string) {
+    const config = await this.getRequestConfig(userId);
+    const response = await this.axiosInstance.get(`/courier-settlements/all-pending`, { params: courierType ? { courierType } : {}, ...config });
+    return response.data;
+  }
+
+  async getCourierDetails(courierId: string, userId?: string) {
+    const config = await this.getRequestConfig(userId);
+    const response = await this.axiosInstance.get(`/couriers/${courierId}/details`, config);
+    return response.data;
+  }
+
+  async getCourierDetailsByUserId(courierUserId: string, userId?: string) {
+    const config = await this.getRequestConfig(userId);
+    const response = await this.axiosInstance.get(`/couriers/by-user/${courierUserId}/details`, config);
+    return response.data;
+  }
+
+  async getDeliveryRatings(params: { courierId?: string; deliveryOfficeId?: string; page?: number; limit?: number }, userId?: string) {
+    const config = await this.getRequestConfig(userId);
+    const response = await this.axiosInstance.get(`/delivery-ratings`, { params, ...config });
+    return response.data;
+  }
+
+  async getDeliveryFinancialOverview(userId?: string) {
+    const config = await this.getRequestConfig(userId);
+    const response = await this.axiosInstance.get(`/courier-settlements/overview`, config);
+    return response.data;
+  }
+
+  async getCouriersCount(userId?: string, filter: CourierFilter = {}) {
+    const config = await this.getRequestConfig(userId);
+    const response = await this.axiosInstance.get(`/couriers/count`, { params: filter, ...config });
     return response.data;
   }
 
@@ -53,9 +91,27 @@ export class DeliveryClient extends BaseClient {
     return response.data;
   }
 
-  async getAllDeliveryOffices(userId?: string) {
+  async getAllDeliveryOffices(userId?: string, approvalStatus?: string) {
     const config = await this.getRequestConfig(userId);
-    const response = await this.axiosInstance.get(`/delivery-offices`, config);
+    const response = await this.axiosInstance.get(`/delivery-offices`, { params: approvalStatus ? { approvalStatus } : {}, ...config });
+    return response.data;
+  }
+
+  async createDeliveryOffice(data: any, userId?: string) {
+    const config = await this.getRequestConfig(userId);
+    const response = await this.axiosInstance.post(`/delivery-offices`, data, config);
+    return response.data;
+  }
+
+  async getOfficeDetails(officeId: string, userId?: string) {
+    const config = await this.getRequestConfig(userId);
+    const response = await this.axiosInstance.get(`/delivery-offices/${officeId}/details`, config);
+    return response.data;
+  }
+
+  async setOfficeApproval(officeId: string, approvalStatus: string, userId?: string) {
+    const config = await this.getRequestConfig(userId);
+    const response = await this.axiosInstance.patch(`/delivery-offices/${officeId}/approval`, { approvalStatus }, config);
     return response.data;
   }
 

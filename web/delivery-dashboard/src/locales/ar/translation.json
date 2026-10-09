@@ -51,12 +51,15 @@
     "share_location_desc": "السماح للعملاء بتتبع موقعك أثناء التوصيل.",
     "appearance": "المظهر",
     "dark_mode": "الوضع الليلي",
-    "dark_mode_desc": "التبديل بين الوضع الفاتح والمظلم."
+    "dark_mode_desc": "التبديل بين الوضع الفاتح والمظلم.",
+    "cancel": "إلغاء",
+    "name": "الاسم"
   },
   "auth": {
     "login_success": "تم تسجيل الدخول بنجاح",
     "login_failed": "فشل تسجيل الدخول",
-    "invalid_credentials": "البريد الإلكتروني أو كلمة المرور غير صحيحة"
+    "invalid_credentials": "البريد الإلكتروني أو كلمة المرور غير صحيحة",
+    "demo_accounts": "حسابات تجريبية"
   },
   "dashboard": {
     "active_couriers": "المناديب النشطين",
@@ -130,5 +133,66 @@
     "assign_courier": "تعيين مندوب",
     "delivery_accepted": "تم قبول الطلب",
     "failed_accept": "فشل قبول الطلب"
+  },
+  "ratings": {
+    "title": "التقييمات",
+    "office_rating": "تقييم المكتب",
+    "summary_for": "تقييمات",
+    "whole_office": "المكتب كله",
+    "count": "{{count}} تقييم",
+    "couriers": "المندوبون",
+    "latest_reviews": "أحدث المراجعات",
+    "no_reviews": "لا توجد تقييمات بعد"
+  },
+  "office_signup": {
+    "title": "سجّل مكتب التوصيل",
+    "subtitle": "أنشئ حساب المدير، ثم أضف بيانات المكتب ومستنداته للمراجعة.",
+    "confirm_password": "تأكيد كلمة المرور",
+    "create_account": "إنشاء الحساب",
+    "have_account": "لديك حساب؟ سجّل الدخول",
+    "register_office": "مكتب جديد؟ سجّل هنا",
+    "password_too_short": "كلمة المرور يجب ألا تقل عن {{min}} أحرف",
+    "passwords_dont_match": "كلمتا المرور غير متطابقتين",
+    "failed": "تعذر إنشاء الحساب",
+    "onboarding_title": "مكتب التوصيل",
+    "onboarding_subtitle": "نراجع كل مكتب قبل أن يتمكن من استلام التوصيلات.",
+    "office_name": "اسم المكتب",
+    "phone": "رقم الهاتف",
+    "address": "العنوان",
+    "owner_national_id": "بطاقة المالك (صورة)",
+    "commercial_register": "السجل التجاري (صورة)",
+    "choose_photo": "اختر صورة (JPG أو PNG أو WebP)",
+    "documents_required": "أضف صورتي المستندين",
+    "documents_privacy": "تُستخدم المستندات للتحقق من المكتب فقط.",
+    "uploading": "جارٍ رفع المستندات…",
+    "submitting": "جارٍ الإرسال…",
+    "submit": "إرسال للمراجعة",
+    "submit_failed": "تعذر إرسال بيانات المكتب",
+    "pending_title": "المكتب قيد المراجعة",
+    "pending_body": "شكرًا لتسجيلك. يمكنك البدء في قبول التوصيلات فور موافقة الإدارة على مكتبك.",
+    "suspended_title": "تم إيقاف المكتب",
+    "suspended_body": "مكتب التوصيل الخاص بك موقوف ولا يمكنه استلام التوصيلات. تواصل مع الدعم لمعرفة التفاصيل.",
+    "check_status": "تحقق من الحالة"
+  },
+  "add_courier": {
+    "button": "إضافة مندوب",
+    "title": "إضافة مندوب إلى مكتبك",
+    "subtitle": "يمكن للمندوب تسجيل الدخول إلى تطبيق المندوب بعد مراجعة الإدارة للمستندات والموافقة عليها.",
+    "license_plate": "رقم اللوحة",
+    "national_id": "صورة البطاقة الشخصية",
+    "license": "صورة رخصة القيادة",
+    "pick_photo": "اختر صورة",
+    "documents_required": "أضف صورة البطاقة الشخصية ورخصة القيادة",
+    "submit": "إرسال للمراجعة",
+    "sent": "تم إرسال الطلب. سيصبح المندوب نشطاً بعد موافقة الإدارة.",
+    "vehicle_motorcycle": "دراجة نارية",
+    "vehicle_car": "سيارة",
+    "vehicle_bicycle": "دراجة",
+    "approval_approved": "مقبول",
+    "approval_pending_review": "قيد المراجعة",
+    "approval_suspended": "موقوف",
+    "approval_rejected": "مرفوض",
+    "pending_hint": "في انتظار مراجعة الإدارة",
+    "rejected_hint": "رفضت الإدارة هذا الطلب"
   }
 }

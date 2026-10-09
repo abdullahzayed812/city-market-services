@@ -136,14 +136,17 @@ Verified against `services/auth-service`:
   `{ success, data: { accessToken, refreshToken, user }, message }`.
 - **Every account has exactly one active session.** `AuthService.login()` calls
   `sessionRepo.revokeAllForUser()` before creating the new session - logging in
-  twice concurrently with the *same* account invalidates whichever session
-  logged in first. This is why every customer/vendor VU here self-registers a
-  brand-new account (`processors/auth.ts:registerCustomer/registerVendor`)
-  rather than sharing a small pool: unlimited scale, zero collision risk.
-  Personas that *must* share a small fixed pool (delivery managers - see below,
-  and any courier/vendor CSV pool you size too small) will experience real
-  session-churn 401s if you run more concurrent VUs than distinct accounts -
-  that is a real system constraint being surfaced, not a bug in the harness.
+  twice concurrently with the *same* account revokes the first session's
+  refresh token. Access tokens are stateless JWTs, so an in-flight VU keeps
+  working until its token expires (15 min).
+- **Load tiers never register accounts.** Every VU logs in (a real, counted
+  `POST /auth/login` request) as a pre-seeded account from
+  `data/generated/*.csv`. Customer accounts are handed out in `sequence` order
+  from a pool far larger than the concurrent-session count (300 vs ~50 for
+  baseline), so no two live VUs share one. Registering per VU used to put every
+  session through the register endpoint, which a per-IP rate limiter turns into
+  mass 429s and which isn't what returning users do. Registration is checked
+  once per VU in `tests/smoke.yml` only.
 - Roles: `CUSTOMER`, `VENDOR`, `COURIER`, `ADMIN`, `DELIVERY_MANAGER`
   (`shared/src/enums/roles.ts`). There is no `DELIVERY_OFFICE` role - a
   `DeliveryOffice` is a separate entity 1:1 with a `DELIVERY_MANAGER` user.
@@ -153,12 +156,16 @@ Verified against `services/auth-service`:
 `scripts/seed.ts` creates data through the real APIs, never direct SQL:
 
 ```bash
-npm run loadtest:seed -- --customers 200 --vendors 20 --couriers 30 --orders 0
+npm run loadtest:seed                       # 300 customers, 20 vendors, 10 couriers
+npm run loadtest:seed -- --customers 600 --vendors 40 --couriers 20 --orders 0
+npm run loadtest:seed -- --customers 300 --vendors 0 --couriers 0   # refresh only customers
 ```
+
+A section seeded with count `0` keeps its existing CSV.
 
 | Persona | How | Written to |
 |---|---|---|
-| Customer | `POST /auth/register` (unlimited, self-service) | `data/generated/customers.csv` |
+| Customer | `POST /auth/register` + `POST /users/customers` (profile, as the apps do) | `data/generated/customers.csv` |
 | Vendor | register + `POST /vendors` + `POST /catalog/products/vendor/:id/bulk-add-global` with real price/stock (see note below) | `vendors.csv`, `vendor-products.csv`, `vendor-products-with-owner.csv` |
 | Courier | register + `POST /delivery/couriers` **as an existing delivery manager** (couriers cannot self-serve a profile) | `couriers.csv` |
 | Delivery office | not created - the 3 pre-existing `DELIVERY_MANAGER` accounts are the only ones available | `delivery-managers.csv` |
@@ -186,15 +193,19 @@ every product this suite hands to a customer VU is actually orderable.
 cart-inclusive split since there is no cart):
 
 ```
-Customer                 90%
-  Browse                 45%  (of total: 45)
-  Search                 20%  (of total: 18 - 90% * 20%)
-  Vendor + product detail 15%  (of total: 14)
-  Place order            20%  (of total: 20 - includes rounding to hit 100)
-Vendor                    7%
-Delivery office           2%
-Courier                   1%
+Customer                 89%
+  Browse                 37
+  Search                 18
+  Vendor + product detail 14
+  Place order            20
+Vendor                    7
+Delivery office           3   (claims up to 3 deliveries per session)
+Courier                   1
 ```
+
+The delivery-office share is sized so offices claim deliveries at least as fast
+as vendors confirm orders. Below that, PENDING deliveries pile up across runs and
+every `GET /delivery/deliveries/pending` gets slower (see docs/load-testing.md).
 
 These are starting assumptions, not measured production traffic - the task
 brief is explicit that real analytics should eventually replace them. Change
@@ -205,10 +216,10 @@ the `weight:` on each scenario in `tests/_shared-scenarios.yml` directly.
 All commands assume `cd load-tests` first.
 
 ```bash
-npm run loadtest:seed -- --customers 50 --vendors 10 --couriers 10   # once, before anything below
+npm run loadtest:seed                  # once per target, before anything below
 
-npm run loadtest:smoke                 # ~60s, 8 VUs - safe to run frequently
-npm run loadtest:baseline              # 5 min, ~5 sessions/sec sustained
+npm run loadtest:smoke                 # ~60s, 8 VUs walking every persona
+npm run loadtest:baseline              # 30s warm-up + 5 min at ~50 concurrent sessions
 npm run loadtest:normal-load           # ramps 100 -> 1000 new sessions/sec
 npm run loadtest:stress                # ramps 1000 -> 10000/sec, no pass/fail gate
 npm run loadtest:spike                 # 50 -> 500 -> 50/sec, watch recovery
@@ -257,9 +268,32 @@ real report risks silently checking nothing.
 
 ## Reports / how to interpret them
 
-Every `loadtest:*` run writes a JSON report to `reports/<tier>-<timestamp>.json`
-(gitignored) via Artillery's `-o` flag, plus the live summary printed to the
-terminal. Key fields:
+Every `loadtest:*` run writes three files to `reports/` (gitignored):
+
+| File | What |
+|---|---|
+| `<tier>-<timestamp>.md` | **The report to read.** Overview (tier, phases, target, duration, intended vs measured concurrency, VUs), key results (requests, ok/failed, error rate, req/s, p50/p95/p99), thresholds with pass/fail, HTTP status breakdown, per-endpoint table, scenario breakdown, flow counters, detected problems and recommendations, and an overall **PASS/FAIL**. |
+| `<tier>-<timestamp>.json` | Raw Artillery output. |
+| `<tier>-<timestamp>.meta.json` | Run metadata the report needs (env, target, resolved phases). |
+
+`scripts/report.ts` generates the Markdown and a terminal summary after every run.
+The runner's exit code follows the report verdict. To re-render an old run:
+`npm run loadtest:report -- reports/<file>.json`.
+
+How the verdict works:
+- **Performance checks** (p95/p99, HTTP error rate, VU failure rate) fail gated
+  tiers (smoke, baseline, normal-load). Stress/spike/soak report them without
+  failing.
+- **Validity checks** fail any tier, because they mean the run didn't measure the
+  system: any `429` (you measured a rate limiter), orders skipped for lack of test
+  data, no requests sent, and for baseline, measured concurrency outside
+  50 +/-20%.
+- HTTP error rate counts 4xx/5xx responses plus requests with no response.
+  Artillery's own `maxErrorRate` is only the VU-failure rate, so it misses 4xx.
+- Concurrency is time-averaged per 10s snapshot (session-seconds / 10s) over
+  the steady phase.
+
+Raw fields, if you need them:
 
 - **`arrivalRate` is new sessions started *per second*, not concurrent users
   and not requests/sec.** A rough concurrent-session estimate is
@@ -406,10 +440,11 @@ Discovered directly while building and validating this suite - not guesses:
   `nginx/nginx.conf`'s `auth` zone allows only 10 req/min/IP (burst 20), `api`
   60 req/min/IP (burst 30). Any real-scale run through nginx (`-e local-nginx`)
   will be dominated by 429s long before any service capacity limit. For a real
-  baseline/normal-load/stress run, either point `BASE_URL` at `api-gateway`
-  directly (bypasses nginx; `api-gateway`'s own limiter is a much more generous
-  100 req/min shared across a single Node process) or temporarily raise these
-  zones in a **non-production** nginx config for the test window.
+  baseline/normal-load/stress run, target an isolated api-gateway started with
+  `npm run dev:loadtest` (repo root). The gateway's 100 req/min/IP limit is
+  overridable via `RATE_LIMIT_MAX_REQUESTS` there, and the override is ignored
+  when `NODE_ENV=production`. Production nginx limits are never changed for a
+  test.
 - **`api-gateway` is not part of `docker-compose.yml` at all** - nginx replaces
   it directly in that deployment (its own comment says so). If you're running
   the dockerized stack, `-e local-nginx` (port 80) is your only option; `-e local`
@@ -442,7 +477,7 @@ Discovered directly while building and validating this suite - not guesses:
 | Symptom | Likely cause |
 |---|---|
 | Every request 405 | `config.target`/environment is missing the `/api/v1` suffix - falls through nginx's catch-all straight to the customer-web static server, which rejects POST with 405. Every entry in `config/environments.yml` must include `/api/v1`. |
-| Every auth call 429 | nginx's `auth` zone (10 req/min/IP) - see [Known limitations](#known-limitations). |
+| Every auth call 429 | nginx's `auth` zone (10 req/min/IP), or api-gateway's 100 req/min/IP when it wasn't started with `npm run dev:loadtest` - see docs/load-testing.md. |
 | `product_not_available` / `product_not_found` on order creation | The product referenced is out of stock/unavailable, or was deleted by a previous `cleanup.ts` run without re-seeding. Re-run `npm run loadtest:seed`. |
 | `Scenario validation error: "scenarios" is required` | You ran a tier that needs `tests/_shared-scenarios.yml` merged in without it (only affects hand-rolled `artillery run` invocations - `npm run loadtest:*` handles this for you). |
 | A whole VU aborts on a step that should be optional (`ifTrue`-guarded) | A `capture` earlier in the flow has no `strict: false` and the source list/field was legitimately empty - Artillery's default for `capture` is `strict: true`, which hard-fails the VU on no match, before `ifTrue` even gets evaluated on later steps. Every capture in this suite already sets `strict: false` for exactly this reason. |

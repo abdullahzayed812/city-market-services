@@ -72,6 +72,35 @@ function buildOrderBody(vendorProductId: string, measurementType: string | undef
   };
 }
 
+function isOrderable(p: any): boolean {
+  if (!p?.id || !p.isAvailable) return false;
+  return p.measurementType === "WEIGHT" ? Number(p.stockWeightGrams) > 0 : Number(p.stockQuantity) > 0;
+}
+
+/**
+ * Picks the product a customer adds to an order. Like the real app, only items
+ * that are available and in stock on the vendor's listing (captured into
+ * browseResultsRaw) can be picked. If the listing came back empty or without an
+ * orderable item (e.g. the GET failed), falls back to the seeded product row bound
+ * from vendor-products.csv - every row there was verified orderable at seed time.
+ * If neither exists the order is skipped and counted, never sent with a fake body.
+ */
+export async function pickOrderableProduct(context: ArtilleryContext, events: EventEmitter): Promise<void> {
+  const listed: any[] = (context.vars.browseResultsRaw || []).filter(isOrderable);
+  if (listed.length) {
+    context.vars.selectedProduct = listed[randomInt(0, listed.length - 1)];
+    events.emit("counter", "order.product.from_listing", 1);
+    return;
+  }
+  if (context.vars.poolVendorProductId) {
+    context.vars.selectedProduct = { id: context.vars.poolVendorProductId, measurementType: context.vars.poolMeasurementType };
+    events.emit("counter", "order.product.from_seed_pool", 1);
+    return;
+  }
+  context.vars.selectedProduct = null;
+  events.emit("counter", "order.create.skipped_no_product", 1);
+}
+
 export async function attachOrderPayload(
   requestParams: any,
   context: ArtilleryContext,
@@ -79,9 +108,10 @@ export async function attachOrderPayload(
 ): Promise<void> {
   const product = context.vars.selectedProduct;
   if (!product || !product.id) {
+    // Callers guard the request with `ifTrue: "selectedProduct"`, so this only runs
+    // if a flow forgot the guard. Send an empty item list so the API rejects it
+    // with a visible 400 rather than the load test faking a valid order.
     events.emit("counter", "order.create.skipped_no_product", 1);
-    // Let the request go through with an empty item list; the API will reject it
-    // with a 400 rather than the load test silently faking a valid order.
     requestParams.json = { items: [], deliveryAddress: "Load test - no product available" };
     return;
   }

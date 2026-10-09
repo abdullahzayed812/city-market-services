@@ -7,11 +7,13 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Label } from "../components/ui/label";
 import { Lock, Mail, Loader2, Store, Eye, EyeOff } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { DEMO_MODE, DEMO_ACCOUNTS, DEMO_PASSWORD } from "@/config/demo";
 
 const LoginPage: React.FC = () => {
   const { t } = useTranslation();
-  const [email, setEmail] = useState("supermarket1@citymarket.com");
-  const [password, setPassword] = useState("password123");
+  // Demo account prefilled while DEMO_MODE is on (see src/config/demo.ts)
+  const [email, setEmail] = useState(DEMO_MODE ? DEMO_ACCOUNTS[0].email : "");
+  const [password, setPassword] = useState(DEMO_MODE ? DEMO_PASSWORD : "");
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -81,38 +83,40 @@ const LoginPage: React.FC = () => {
           <h2 className="text-xl font-semibold text-slate-600">{t("auth.login_title")}</h2>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-stretch">
-          {/* Quick Login Card */}
-          <Card className="border-none shadow-xl bg-white/60 backdrop-blur-md overflow-hidden flex flex-col">
-            <CardHeader className="bg-slate-50/50 pb-4 border-b border-slate-100">
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle className="text-lg font-bold text-slate-800">{t("auth.quick_login_title")}</CardTitle>
-                  <CardDescription className="text-slate-500 text-sm">{t("auth.quick_login_desc")}</CardDescription>
+        <div className={DEMO_MODE ? "grid grid-cols-1 lg:grid-cols-2 gap-8 items-stretch" : "grid grid-cols-1 gap-8 max-w-md w-full mx-auto"}>
+          {/* Quick Login Card: seed-vendor shortcuts while DEMO_MODE is on (src/config/demo.ts) */}
+          {DEMO_MODE && (
+            <Card className="border-none shadow-xl bg-white/60 backdrop-blur-md overflow-hidden flex flex-col">
+              <CardHeader className="bg-slate-50/50 pb-4 border-b border-slate-100">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="text-lg font-bold text-slate-800">{t("auth.quick_login_title")}</CardTitle>
+                    <CardDescription className="text-slate-500 text-sm">{t("auth.quick_login_desc")}</CardDescription>
+                  </div>
+                  <div className="px-2 py-1 bg-orange-100 text-orange-700 text-[10px] font-bold rounded uppercase tracking-wider">Debug</div>
                 </div>
-                <div className="px-2 py-1 bg-orange-100 text-orange-700 text-[10px] font-bold rounded uppercase tracking-wider">Debug</div>
-              </div>
-            </CardHeader>
-            <CardContent className="pt-6 flex-grow">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-[500px] overflow-y-auto pr-2 custom-scrollbar">
-                {quickVendors.map((v) => (
-                  <Button
-                    key={v.email}
-                    variant="outline"
-                    size="sm"
-                    className="justify-start font-medium text-xs h-10 border-slate-200 hover:bg-orange-600 hover:text-white hover:border-orange-600 transition-all group shrink-0"
-                    onClick={() => {
-                      setEmail(v.email);
-                      handleLogin(v.email, "password123");
-                    }}
-                  >
-                    <Store className="mr-2 h-3.5 w-3.5 opacity-60 group-hover:opacity-100" />
-                    <span className="truncate">{v.name}</span>
-                  </Button>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
+              </CardHeader>
+              <CardContent className="pt-6 flex-grow">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-[500px] overflow-y-auto pr-2 custom-scrollbar">
+                  {quickVendors.map((v) => (
+                    <Button
+                      key={v.email}
+                      variant="outline"
+                      size="sm"
+                      className="justify-start font-medium text-xs h-10 border-slate-200 hover:bg-orange-600 hover:text-white hover:border-orange-600 transition-all group shrink-0"
+                      onClick={() => {
+                        setEmail(v.email);
+                        handleLogin(v.email, DEMO_PASSWORD);
+                      }}
+                    >
+                      <Store className="mr-2 h-3.5 w-3.5 opacity-60 group-hover:opacity-100" />
+                      <span className="truncate">{v.name}</span>
+                    </Button>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Standard Login Card */}
           <Card className="border-none shadow-2xl bg-white overflow-hidden flex flex-col animate-in fade-in zoom-in duration-500">

@@ -38,7 +38,6 @@
     "reject": "Reject",
     "accept": "Accept",
     "date": "Date",
-    "go_back": "Go Back",
     "no_results": "No results found",
     "minutes": "min",
     "kg": "kg",
@@ -105,7 +104,8 @@
     "welcome": "Welcome",
     "confirm_password": "Confirm Password",
     "login_failed": "Login failed. Check your credentials.",
-    "scroll_to_read": "Scroll down to read"
+    "scroll_to_read": "Scroll down to read",
+    "demo_accounts": "Demo accounts"
   },
   "home": {
     "title": "Home",
@@ -442,5 +442,21 @@
     "cart": "Cart",
     "orders": "Orders",
     "profile": "Profile"
+  },
+  "courier": {
+    "title": "Your courier",
+    "title_plural": "Your couriers",
+    "finding": "Finding a courier for your order…",
+    "heading_to_store": "Heading to the store to pick up your order",
+    "picked_up": "Picked up your order",
+    "on_the_way": "On the way to you",
+    "delivered": "Delivered",
+    "call": "Call",
+    "delivery_n_of_m": "Delivery {{n}} of {{m}}",
+    "vehicle_motorcycle": "Motorcycle",
+    "vehicle_car": "Car",
+    "vehicle_bicycle": "Bicycle",
+    "rate_delivery": "Rate the delivery",
+    "your_rating": "Your rating"
   }
 }

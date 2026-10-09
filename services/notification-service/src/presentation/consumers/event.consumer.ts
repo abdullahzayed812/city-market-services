@@ -329,6 +329,88 @@ export class EventConsumer {
       );
     });
 
+    // 3. Freelance couriers
+    await rabbitMQBus.subscribe(EventType.DELIVERY_OPEN_TO_FREELANCE, "notification_delivery_open_to_freelance", async (event: BaseEvent) => {
+      // delivery-service already filtered to approved, online freelancers near the pickup
+      const { deliveryId, courierUserIds } = event.payload;
+      for (const courierUserId of (courierUserIds as string[]) || []) {
+        await this.notificationService.sendNotification(
+          courierUserId,
+          "DELIVERY_POOL",
+          "notification_delivery_open_to_freelance_title",
+          "notification_delivery_open_to_freelance_message",
+          { deliveryId, type: "DELIVERY_POOL", role: "COURIER" },
+        );
+      }
+    });
+
+    await rabbitMQBus.subscribe(EventType.COURIER_APPROVAL_UPDATED, "notification_courier_approval_updated", async (event: BaseEvent) => {
+      const { courierId, courierUserId, courierName, approvalStatus, officeUserId } = event.payload;
+      const key =
+        approvalStatus === "APPROVED"
+          ? "notification_courier_approved"
+          : approvalStatus === "REJECTED"
+            ? "notification_courier_rejected"
+            : "notification_courier_suspended";
+      await this.notificationService.sendNotification(courierUserId, "ACCOUNT_UPDATE", `${key}_title`, `${key}_message`, {
+        type: "ACCOUNT_UPDATE",
+        role: "COURIER",
+        approvalStatus,
+      });
+      // Office courier: tell the manager who requested them
+      if (officeUserId) {
+        const officeKey = `notification_office_courier_${String(approvalStatus).toLowerCase()}`;
+        await this.notificationService.sendNotification(officeUserId, "ACCOUNT_UPDATE", `${officeKey}_title`, `${officeKey}_message`, {
+          type: "ACCOUNT_UPDATE",
+          role: "DELIVERY_MANAGER",
+          courierId,
+          courierName,
+          approvalStatus,
+        });
+      }
+    });
+
+    await rabbitMQBus.subscribe(EventType.OFFICE_APPROVAL_UPDATED, "notification_office_approval_updated", async (event: BaseEvent) => {
+      const { officeUserId, approvalStatus } = event.payload;
+      const key = approvalStatus === "APPROVED" ? "notification_office_approved" : "notification_office_suspended";
+      await this.notificationService.sendNotification(officeUserId, "ACCOUNT_UPDATE", `${key}_title`, `${key}_message`, {
+        type: "ACCOUNT_UPDATE",
+        role: "DELIVERY_MANAGER",
+        approvalStatus,
+      });
+    });
+
+    await rabbitMQBus.subscribe(EventType.DELIVERY_RELEASED_BY_COURIER, "notification_delivery_released_by_courier", async (event: BaseEvent) => {
+      const { deliveryId, customerOrderId, customerId, officeUserId } = event.payload;
+      if (officeUserId) {
+        await this.notificationService.sendNotification(
+          officeUserId,
+          "ORDER_READY",
+          "notification_delivery_released_by_courier_title",
+          "notification_delivery_released_by_courier_message",
+          { deliveryId, orderId: customerOrderId, type: "ORDER_READY", role: "DELIVERY_MANAGER" },
+        );
+      }
+      if (customerId) await this.notifyCustomerCourierChanged(customerId, customerOrderId, deliveryId);
+    });
+
+    await rabbitMQBus.subscribe(EventType.DELIVERY_RETURNED_TO_POOL, "notification_delivery_returned_to_pool", async (event: BaseEvent) => {
+      const { deliveryId, customerOrderId, customerId, previousCourierId } = event.payload;
+      // Office assignment timeouts never showed the customer a courier; nothing changed for them
+      if (customerId && previousCourierId) await this.notifyCustomerCourierChanged(customerId, customerOrderId, deliveryId);
+    });
+
     Logger.info("Notification Service Consumers Started");
+  }
+
+  // The courier the customer saw (and may have called) is gone; a new one is being found.
+  private async notifyCustomerCourierChanged(customerId: string, customerOrderId: string, deliveryId: string) {
+    await this.notificationService.sendNotification(
+      customerId,
+      "DELIVERY_UPDATE",
+      "notification_courier_changed_title",
+      "notification_courier_changed_message",
+      { orderId: customerOrderId, deliveryId, type: "DELIVERY_UPDATE", role: "CUSTOMER" },
+    );
   }
 }

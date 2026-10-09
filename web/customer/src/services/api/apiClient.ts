@@ -1,7 +1,7 @@
 import axios from "axios";
 import { getOrCreateDeviceId } from "@/utils/deviceId";
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost/api/v1";
+import { API_BASE_URL } from "@/lib/server-config";
 
 // Namespaces this app's auth cookies on the backend so logging into another dashboard in the
 // same browser (which shares one cookie jar for this backend host) can't clobber this app's session.

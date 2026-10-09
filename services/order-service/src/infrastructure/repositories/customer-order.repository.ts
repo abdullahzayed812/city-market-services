@@ -1,7 +1,7 @@
 import * as mysql from "mysql2/promise"; // For mysql.ResultSetHeader
 import { Pool, RowDataPacket, PoolConnection, ResultSetHeader } from "mysql2/promise"; // Direct types
 import { CustomerOrder } from "../../core/entities/customer-order.entity";
-import { ICustomerOrderRepository } from "../../core/interfaces/customer-order.repository";
+import { ICustomerOrderRepository, CustomerOrderListFilter } from "../../core/interfaces/customer-order.repository";
 import { CustomerOrderStatus } from "@city-market/shared";
 import { Database } from "@city-market/shared/node";
 
@@ -73,11 +73,40 @@ export class CustomerOrderRepository implements ICustomerOrderRepository {
     return rows.map((row) => this.mapToEntity(row));
   }
 
-  async findAll(limit: number, offset: number, connection?: PoolConnection): Promise<CustomerOrder[]> {
+  private buildFilter(filter: CustomerOrderListFilter = {}): { where: string; params: any[] } {
+    const clauses: string[] = [];
+    const params: any[] = [];
+    if (filter.status) {
+      clauses.push("status = ?");
+      params.push(filter.status);
+    }
+    if (filter.search) {
+      clauses.push("id LIKE ?");
+      params.push(`${filter.search.replace(/[%_\\]/g, "\\$&")}%`);
+    }
+    if (filter.createdFrom) {
+      clauses.push("created_at >= ?");
+      params.push(filter.createdFrom);
+    }
+    if (filter.createdTo) {
+      clauses.push("created_at <= ?");
+      params.push(filter.createdTo);
+    }
+    return { where: clauses.length ? `WHERE ${clauses.join(" AND ")}` : "", params };
+  }
+
+  async findAll(limit: number, offset: number, connection?: PoolConnection, filter: CustomerOrderListFilter = {}): Promise<CustomerOrder[]> {
     const conn = connection || this.pool;
-    const query = "SELECT * FROM customer_orders ORDER BY created_at DESC LIMIT ? OFFSET ?";
-    const [rows] = await conn.query<RowDataPacket[]>(query, [limit, offset]);
+    const { where, params } = this.buildFilter(filter);
+    const query = `SELECT * FROM customer_orders ${where} ORDER BY created_at DESC LIMIT ? OFFSET ?`;
+    const [rows] = await conn.query<RowDataPacket[]>(query, [...params, limit, offset]);
     return rows.map((row) => this.mapToEntity(row));
+  }
+
+  async countFiltered(filter: CustomerOrderListFilter): Promise<number> {
+    const { where, params } = this.buildFilter(filter);
+    const [rows] = await this.pool.query<RowDataPacket[]>(`SELECT COUNT(*) as count FROM customer_orders ${where}`, params);
+    return rows[0].count;
   }
 
   async updateStatus(id: string, status: string, connection?: PoolConnection): Promise<void> {

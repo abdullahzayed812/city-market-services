@@ -180,9 +180,72 @@ export async function loginDeliveryManagerFromPool(context: ArtilleryContext, ev
   await loginWithCredentials(context, events, context.vars.officeEmail, context.vars.officePassword || TEST_PASSWORD);
 }
 
+// Logs in as the office that owns the payload courier (couriers.csv officeEmail):
+// a manager can only assign couriers from their own office.
+export async function loginCourierOfficeManager(context: ArtilleryContext, events: EventEmitter): Promise<void> {
+  await loginWithCredentials(context, events, context.vars.courierOfficeEmail, TEST_PASSWORD);
+}
+
+// tests/freelance-claim-race.yml: freelancers prepared by scripts/prepare-freelance-race.ts
+export async function loginFreelancerFromPool(context: ArtilleryContext, events: EventEmitter): Promise<void> {
+  await loginWithCredentials(context, events, context.vars.freelancerEmail, context.vars.freelancerPassword || TEST_PASSWORD);
+}
+
 export async function loginCourierFromPool(context: ArtilleryContext, events: EventEmitter): Promise<void> {
   await loginWithCredentials(context, events, context.vars.courierEmail, context.vars.courierPassword || TEST_PASSWORD);
   context.vars.courierId = context.vars.courierId || context.vars.poolCourierId;
+}
+
+/**
+ * Native-request login/register bodies.
+ *
+ * The weighted mix and smoke authenticate with a real `post: /auth/login` step
+ * (body built by one of these hooks, token taken with a strict `capture`) rather
+ * than a `function:` step calling axios. That way auth traffic is counted in
+ * http.requests / http.codes / per-endpoint latency like every other request, and
+ * a failed login (no accessToken to capture) fails the VU instead of letting it
+ * carry on and pile up 401s.
+ *
+ * Accounts come from data/generated/*.csv written by scripts/seed.ts. Normal load
+ * tiers never register accounts - registration has its own scenario.
+ */
+function setLoginBody(requestParams: any, context: ArtilleryContext, email: string | undefined, password: string | undefined) {
+  if (!email) {
+    throw new Error("login: no account bound from the CSV pool - run `npm run loadtest:seed`");
+  }
+  const deviceId = randomUUID();
+  context.vars.deviceId = deviceId;
+  requestParams.json = { email, password: password || TEST_PASSWORD, deviceId, platform: "loadtest", appId: APP_ID };
+}
+
+export async function customerLoginBody(requestParams: any, context: ArtilleryContext): Promise<void> {
+  setLoginBody(requestParams, context, context.vars.customerEmail, context.vars.customerPassword);
+}
+
+export async function vendorLoginBody(requestParams: any, context: ArtilleryContext): Promise<void> {
+  setLoginBody(requestParams, context, context.vars.vendorEmail, context.vars.vendorPassword);
+}
+
+export async function officeLoginBody(requestParams: any, context: ArtilleryContext): Promise<void> {
+  setLoginBody(requestParams, context, context.vars.officeEmail, context.vars.officePassword);
+}
+
+export async function courierLoginBody(requestParams: any, context: ArtilleryContext): Promise<void> {
+  setLoginBody(requestParams, context, context.vars.courierEmail, context.vars.courierPassword);
+}
+
+/** Body for a `post: /auth/register` step - only used where registration itself is under test. */
+export async function customerRegisterBody(requestParams: any, context: ArtilleryContext): Promise<void> {
+  const deviceId = randomUUID();
+  context.vars.deviceId = deviceId;
+  requestParams.json = {
+    email: loadTestEmail("customer"),
+    password: TEST_PASSWORD,
+    role: "CUSTOMER",
+    deviceId,
+    platform: "loadtest",
+    appId: APP_ID,
+  };
 }
 
 /**

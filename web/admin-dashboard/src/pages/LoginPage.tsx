@@ -8,18 +8,24 @@ import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/components/AuthProvider";
 import { useToast } from "@/hooks/use-toast";
+import { DEMO_MODE, DEMO_ACCOUNTS, DEMO_PASSWORD } from "@/config/demo";
 
 const LoginPage: React.FC = () => {
   const { t } = useTranslation();
-  const [email, setEmail] = useState("admin@citymarket.com");
-  const [password, setPassword] = useState("password123");
+  // Demo account prefilled while DEMO_MODE is on (see src/config/demo.ts)
+  const [email, setEmail] = useState(DEMO_MODE ? DEMO_ACCOUNTS[0].email : "");
+  const [password, setPassword] = useState(DEMO_MODE ? DEMO_PASSWORD : "");
   const [isLoading, setIsLoading] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    loginWith(email, password);
+  };
+
+  const loginWith = async (email: string, password: string) => {
     setIsLoading(true);
 
     try {
@@ -76,6 +82,32 @@ const LoginPage: React.FC = () => {
               {isLoading ? t("common.loading") : t("auth.login_button")}
             </Button>
           </form>
+          {/* One-tap demo accounts while DEMO_MODE is on (src/config/demo.ts) */}
+          {DEMO_MODE && (
+            <div className="mt-6 border-t pt-4">
+              <p className="text-xs font-semibold text-slate-500 mb-2 text-center">{t("auth.demo_accounts")}</p>
+              <div className="grid gap-2">
+                {DEMO_ACCOUNTS.map((account) => (
+                  <Button
+                    key={account.email}
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="justify-between h-auto py-2"
+                    disabled={isLoading}
+                    onClick={() => {
+                      setEmail(account.email);
+                      setPassword(DEMO_PASSWORD);
+                      loginWith(account.email, DEMO_PASSWORD);
+                    }}
+                  >
+                    <span className="font-semibold">{account.label}</span>
+                    <span className="text-xs text-slate-400">{account.email}</span>
+                  </Button>
+                ))}
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 

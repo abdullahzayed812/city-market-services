@@ -4,6 +4,7 @@ import { VendorClient } from "./clients/VendorClient";
 import { OrderClient } from "./clients/OrderClient";
 import { DeliveryClient } from "./clients/DeliveryClient";
 import { CatalogClient } from "./clients/CatalogClient";
+import { RatingClient } from "./clients/RatingClient";
 
 export class ServiceClient {
   public auth: AuthClient;
@@ -12,6 +13,7 @@ export class ServiceClient {
   public order: OrderClient;
   public delivery: DeliveryClient;
   public catalog: CatalogClient;
+  public rating: RatingClient;
 
   constructor(
     orderServiceUrl: string,
@@ -20,6 +22,7 @@ export class ServiceClient {
     userServiceUrl: string,
     authServiceUrl: string,
     catalogServiceUrl: string,
+    ratingServiceUrl: string,
   ) {
     this.auth = new AuthClient(authServiceUrl);
     this.user = new UserClient(userServiceUrl);
@@ -27,6 +30,7 @@ export class ServiceClient {
     this.order = new OrderClient(orderServiceUrl);
     this.delivery = new DeliveryClient(deliveryServiceUrl);
     this.catalog = new CatalogClient(catalogServiceUrl);
+    this.rating = new RatingClient(ratingServiceUrl);
   }
 
   // Deprecated methods for backward compatibility during transition

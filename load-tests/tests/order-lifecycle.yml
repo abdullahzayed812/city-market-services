@@ -37,6 +37,10 @@ config:
       arrivalRate: 1
       name: "order lifecycle (keep this low - it is one coherent multi-role journey per VU, not a throughput test)"
   payload:
+    - path: "../data/generated/customers.csv"
+      fields: ["customerEmail", "customerPassword", "customerUserId"]
+      order: "sequence"
+      skipHeader: true
     - path: "../data/generated/vendor-products-with-owner.csv"
       fields: ["vendorEmail", "vendorPassword", "poolVendorId", "poolVendorProductId", "poolMeasurementType"]
       order: "random"
@@ -46,7 +50,7 @@ config:
       order: "random"
       skipHeader: true
     - path: "../data/generated/couriers.csv"
-      fields: ["courierEmail", "courierPassword", "courierUserId", "poolCourierId"]
+      fields: ["courierEmail", "courierPassword", "courierUserId", "poolCourierId", "courierOfficeEmail"]
       order: "random"
       skipHeader: true
   plugins:
@@ -57,7 +61,15 @@ scenarios:
     flow:
       # 1. Customer places an order against a KNOWN vendor product (not a random
       #    browse pick), so the vendor that logs in next is guaranteed its owner.
-      - function: "registerCustomer"
+      - post:
+          url: "/auth/login"
+          name: "POST /auth/login (customer)"
+          beforeRequest: "customerLoginBody"
+          capture:
+            - json: "$.data.accessToken"
+              as: "accessToken"
+            - json: "$.data.accessToken"
+              as: "customerAccessToken"
       - post:
           url: "/orders"
           name: "POST /orders"
@@ -96,8 +108,9 @@ scenarios:
       # 3. Wait for the ORDER_READY -> Delivery-creation RabbitMQ round trip.
       - think: 5
 
-      # 4. A delivery office claims the newly-created delivery.
-      - function: "loginDeliveryManagerFromPool"
+      # 4. A delivery office claims the newly-created delivery. It must be the
+      #    payload courier's own office: managers can only assign their own couriers.
+      - function: "loginCourierOfficeManager"
       - get:
           url: "/delivery/deliveries/pending"
           name: "GET /delivery/deliveries/pending"

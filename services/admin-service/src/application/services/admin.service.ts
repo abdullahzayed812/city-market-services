@@ -2,6 +2,8 @@ import { randomUUID } from "crypto";
 import { ServiceClient } from "../../infrastructure/http/service-client";
 import { Logger } from "@city-market/shared/node";
 import type { BulkAddVendorProductsFromGlobalItem, DashboardStats } from "@city-market/shared";
+import { CourierFilter } from "../../infrastructure/http/clients/DeliveryClient";
+import { ValidationError } from "@city-market/shared";
 
 // auth-service's /register requires a deviceId (it's built around a real client device
 // bootstrapping a session). These admin-initiated account creations aren't tied to any
@@ -30,8 +32,8 @@ export class AdminService {
     };
   }
 
-  async getAllOrders(page: number = 1, limit: number = 50, userId?: string) {
-    return this.serviceClient.order.getAllOrders(page, limit, userId);
+  async getAllOrders(page: number = 1, limit: number = 50, userId?: string, filter: Record<string, string | undefined> = {}) {
+    return this.serviceClient.order.getAllOrders(page, limit, userId, filter);
   }
 
   async getAllVendors(page: number = 1, limit: number = 50, userId?: string) {
@@ -43,8 +45,67 @@ export class AdminService {
     return this.serviceClient.vendor.suspendVendor(vendorId, userId);
   }
 
-  async getAllCouriers(page: number = 1, limit: number = 50, userId?: string) {
-    return this.serviceClient.delivery.getAllCouriers(page, limit, userId);
+  async getAllCouriers(page: number = 1, limit: number = 50, userId?: string, filter: CourierFilter = {}) {
+    return this.serviceClient.delivery.getAllCouriers(page, limit, userId, filter);
+  }
+
+  async getCouriersCountFiltered(filter: CourierFilter, userId?: string) {
+    return this.serviceClient.delivery.getCouriersCount(userId, filter);
+  }
+
+  async setCourierApproval(courierId: string, approvalStatus: string, userId?: string) {
+    Logger.warn(`Setting courier ${courierId} approval to ${approvalStatus}`);
+    return this.serviceClient.delivery.setCourierApproval(courierId, approvalStatus, userId);
+  }
+
+  async getAllCouriersPendingEarnings(courierType?: string, userId?: string) {
+    return this.serviceClient.delivery.getAllCouriersPendingEarnings(courierType, userId);
+  }
+
+  async getCourierDetails(courierId: string, userId?: string) {
+    return this.serviceClient.delivery.getCourierDetails(courierId, userId);
+  }
+
+  // Role-specific profile behind an auth user, for the admin "user details" view.
+  // A missing profile (e.g. courier who never finished signup) comes back as null.
+  async getUserProfile(targetUserId: string, role: string, adminUserId?: string): Promise<{ role: string; profile: any }> {
+    const data = (res: any) => res?.data ?? null;
+    try {
+      switch (role) {
+        case "COURIER":
+          return { role, profile: data(await this.serviceClient.delivery.getCourierDetailsByUserId(targetUserId, adminUserId)) };
+        case "CUSTOMER":
+          return { role, profile: data(await this.serviceClient.user.getCustomerByUserId(targetUserId, adminUserId)) };
+        case "VENDOR": {
+          const vendors = data(await this.serviceClient.vendor.getAllVendors(1, 1000, adminUserId)) ?? [];
+          const list = Array.isArray(vendors) ? vendors : vendors.items ?? vendors.data ?? [];
+          return { role, profile: list.find((v: any) => v.userId === targetUserId) ?? null };
+        }
+        case "DELIVERY_MANAGER": {
+          const offices = data(await this.serviceClient.delivery.getAllDeliveryOffices(adminUserId)) ?? [];
+          const office = offices.find((o: any) => o.userId === targetUserId);
+          // Full review (documents + stats), same shape as /admin/delivery-offices/:id/details
+          return { role, profile: office ? data(await this.serviceClient.delivery.getOfficeDetails(office.id, adminUserId)) : null };
+        }
+        default:
+          return { role, profile: null };
+      }
+    } catch (error: any) {
+      if (error?.response?.status === 404) return { role, profile: null };
+      throw error;
+    }
+  }
+
+  async getDeliveryRatings(params: { courierId?: string; deliveryOfficeId?: string; page?: number; limit?: number }, userId?: string) {
+    return this.serviceClient.delivery.getDeliveryRatings(params, userId);
+  }
+
+  async getVendorRatings(vendorId: string, limit?: number, offset?: number, userId?: string) {
+    return this.serviceClient.rating.getVendorRatings(vendorId, limit, offset, userId);
+  }
+
+  async getDeliveryFinancialOverview(userId?: string) {
+    return this.serviceClient.delivery.getDeliveryFinancialOverview(userId);
   }
 
   async deactivateCourier(courierId: string, userId?: string) {
@@ -52,8 +113,8 @@ export class AdminService {
     return this.serviceClient.delivery.deactivateCourier(courierId, userId);
   }
 
-  async getAllUsers(page: number = 1, limit: number = 50, userId?: string, role?: string) {
-    return this.serviceClient.auth.getAllUsers(page, limit, userId, role);
+  async getAllUsers(page: number = 1, limit: number = 50, userId?: string, role?: string, filter: Record<string, string | undefined> = {}) {
+    return this.serviceClient.auth.getAllUsers(page, limit, userId, role, filter);
   }
 
   async getUserById(id: string, userId?: string) {
@@ -171,8 +232,39 @@ export class AdminService {
       phone: data.phone,
       vehicleType: data.vehicleType,
       licensePlate: data.licensePlate,
+      // OFFICE couriers need deliveryOfficeId; FREELANCE couriers must not have one
+      courierType: data.courierType ?? "OFFICE",
+      deliveryOfficeId: data.deliveryOfficeId || undefined,
     };
     return this.serviceClient.delivery.registerCourier(courierData, userId);
+  }
+
+  // Admin adds a delivery office: manager login + office (APPROVED, admin-vetted)
+  async createDeliveryOffice(data: any, userId?: string) {
+    Logger.info("Creating new delivery office via Admin");
+    // Check the office fields first so a bad form doesn't leave a manager login without an office
+    if (!data.name?.trim() || !data.phone?.trim() || !data.address?.trim()) {
+      throw new ValidationError("office_name_phone_address_required");
+    }
+    const registerResponse = await this.serviceClient.auth.register(
+      {
+        ...adminDeviceContext(),
+        email: data.email,
+        password: data.password,
+        role: "DELIVERY_MANAGER",
+        firstName: data.managerName,
+      },
+      userId,
+    );
+    return this.serviceClient.delivery.createDeliveryOffice(
+      {
+        userId: registerResponse.data.user.id,
+        name: data.name,
+        phone: data.phone,
+        address: data.address,
+      },
+      userId,
+    );
   }
 
   async createVendor(data: any, userId?: string) {
@@ -331,8 +423,17 @@ export class AdminService {
   }
 
   // Delivery Office Management
-  async getAllDeliveryOffices(userId?: string) {
-    return this.serviceClient.delivery.getAllDeliveryOffices(userId);
+  async getAllDeliveryOffices(userId?: string, approvalStatus?: string) {
+    return this.serviceClient.delivery.getAllDeliveryOffices(userId, approvalStatus);
+  }
+
+  async getOfficeDetails(officeId: string, userId?: string) {
+    return this.serviceClient.delivery.getOfficeDetails(officeId, userId);
+  }
+
+  async setOfficeApproval(officeId: string, approvalStatus: string, userId?: string) {
+    Logger.warn(`Setting delivery office ${officeId} approval to ${approvalStatus}`);
+    return this.serviceClient.delivery.setOfficeApproval(officeId, approvalStatus, userId);
   }
 
   // Delivery Courier Settlements

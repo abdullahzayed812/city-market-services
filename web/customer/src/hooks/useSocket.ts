@@ -5,8 +5,7 @@ import { useAuthStore } from '@/store/authStore';
 import { useNotificationStore } from '@/store/notificationStore';
 import { playNotificationSound } from '@/lib/notificationSound';
 import type { LiveNotification, SocketEventPayload } from '@/types';
-
-const WS_URL = import.meta.env.VITE_WEBSOCKET_URL || '';
+import { SOCKET_URL as WS_URL } from '@/lib/server-config';
 
 // All events a CUSTOMER can receive
 const CUSTOMER_EVENTS = [
@@ -28,6 +27,9 @@ const CUSTOMER_EVENTS = [
   'PROPOSAL_ACCEPTED',
   'PROPOSAL_REJECTED',
   'ORDER_PREPARING',
+  // Courier changed: the previous one gave up or missed the pickup
+  'DELIVERY_RETURNED_TO_POOL',
+  'DELIVERY_RELEASED_BY_COURIER',
 ] as const;
 
 type CustomerEvent = (typeof CUSTOMER_EVENTS)[number];
@@ -87,8 +89,16 @@ const EVENT_LABELS: Record<CustomerEvent, { title: string; message: string }> = 
     message: 'There was an issue delivering your order. Please contact support.',
   },
   DELIVERY_CANCELLED_BY_COURIER: {
-    title: 'Courier Cancelled',
-    message: 'Your courier cancelled. A new one will be assigned shortly.',
+    title: '❌ Delivery Cancelled',
+    message: "The courier couldn't complete the delivery and the order was cancelled.",
+  },
+  DELIVERY_RETURNED_TO_POOL: {
+    title: '🔄 Finding a New Courier',
+    message: "Your courier couldn't make it. We're finding another one.",
+  },
+  DELIVERY_RELEASED_BY_COURIER: {
+    title: '🔄 Finding a New Courier',
+    message: "Your courier couldn't make it. We're finding another one.",
   },
   USER_REGISTERED: {
     title: '👋 Welcome!',
@@ -127,6 +137,8 @@ const QUERIES_TO_INVALIDATE: Partial<Record<CustomerEvent, string[][]>> = {
   PROPOSAL_ACCEPTED: [['orders'], ['notifications-count'], ['notifications']],
   PROPOSAL_REJECTED: [['orders'], ['notifications-count'], ['notifications']],
   ORDER_PREPARING: [['orders'], ['notifications-count'], ['notifications']],
+  DELIVERY_RETURNED_TO_POOL: [['orders'], ['notifications-count'], ['notifications']],
+  DELIVERY_RELEASED_BY_COURIER: [['orders'], ['notifications-count'], ['notifications']],
 };
 
 export function useSocket() {

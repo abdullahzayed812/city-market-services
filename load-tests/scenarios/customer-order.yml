@@ -16,11 +16,24 @@ config:
       arrivalRate: 3
       name: "standalone debug run"
   processor: "../processors/index.ts"
+  # Logs in from the seeded pool (npm run loadtest:seed) instead of registering a
+  # new account per VU - registration is only exercised by tests/smoke.yml.
+  payload:
+    - path: "../data/generated/customers.csv"
+      fields: ["customerEmail", "customerPassword", "customerUserId"]
+      order: "sequence"
+      skipHeader: true
 
 scenarios:
   - name: "Customer order journey"
     flow:
-      - function: "registerCustomer"
+      - post:
+          url: "/auth/login"
+          name: "POST /auth/login"
+          beforeRequest: "customerLoginBody"
+          capture:
+            - json: "$.data.accessToken"
+              as: "accessToken"
 
       - get:
           url: "/vendors?page=1&limit=20"
@@ -47,11 +60,12 @@ scenarios:
 
       - think: 5
 
-      - function: "pickRandomProduct"
+      - function: "pickOrderableProduct"
 
       - post:
           url: "/orders"
           name: "POST /orders"
+          ifTrue: "selectedProduct"
           beforeRequest:
             - "attachOrderPayload"
             - "attachAuthHeader"

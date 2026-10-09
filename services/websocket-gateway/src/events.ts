@@ -21,6 +21,33 @@ const getFullOrderDetails = async (orderId: string): Promise<any | null> => {
   }
 };
 
+// Events that change the shared pool of unclaimed deliveries. Every office (and, for some,
+// every freelancer) needs to refresh its list, but only gets { deliveryId }: no customer
+// or order details leak to offices that don't own the delivery (S6).
+const OFFICE_POOL_EVENTS = new Set<string>([
+  EventType.DELIVERY_CREATED,
+  EventType.DELIVERY_ACCEPTED,
+  EventType.DELIVERY_CLAIMED,
+  EventType.DELIVERY_RETURNED_TO_POOL,
+  EventType.SLA_DELIVERY_ACCEPTANCE_EXPIRED,
+  EventType.SLA_COURIER_ASSIGNMENT_EXPIRED,
+]);
+const FREELANCE_POOL_EVENTS = new Set<string>([
+  EventType.DELIVERY_OPEN_TO_FREELANCE,
+  EventType.DELIVERY_ACCEPTED,
+  EventType.DELIVERY_CLAIMED,
+  EventType.DELIVERY_RETURNED_TO_POOL,
+  EventType.SLA_DELIVERY_ACCEPTANCE_EXPIRED,
+]);
+// Pool events carry no customer; skip the order lookup for them
+const NO_ENRICHMENT_EVENTS = new Set<string>([
+  EventType.DELIVERY_OPEN_TO_FREELANCE,
+  EventType.DELIVERY_CLAIMED,
+  EventType.DELIVERY_RETURNED_TO_POOL,
+  EventType.COURIER_APPROVAL_UPDATED,
+  EventType.OFFICE_APPROVAL_UPDATED,
+]);
+
 export const setupEventConsumer = async (io: Server) => {
   const channelName = "websocket-gateway-queue";
 
@@ -30,7 +57,7 @@ export const setupEventConsumer = async (io: Server) => {
 
     // --- ENRICHMENT LOGIC ---
     // If a customerOrderId is present, ensure we have full order details for routing
-    if (payload.customerOrderId && (!payload.customerOrder || !payload.vendorOrders)) {
+    if (payload.customerOrderId && !NO_ENRICHMENT_EVENTS.has(type) && (!payload.customerOrder || !payload.vendorOrders)) {
       const fullOrderDetails = await getFullOrderDetails(payload.customerOrderId);
       if (fullOrderDetails) {
         payload.customerOrder = fullOrderDetails.order; // Store the CustomerOrder entity
@@ -82,8 +109,31 @@ export const setupEventConsumer = async (io: Server) => {
       io.to(`courier:${payload.courierId}`).emit(type, payload);
     }
 
-    // 5. Broadcast to Delivery Manager (Delivery Managers get all order and delivery related events)
-    io.to(`role:${UserRole.DELIVERY_MANAGER}`).emit(type, payload);
+    // 5. Delivery offices (S6): full payload to the owning office only; a slim
+    // notice to every office when the shared pool changes.
+    if (payload.deliveryOfficeId) {
+      io.to(`office:${payload.deliveryOfficeId}`).emit(type, payload);
+    }
+    if (OFFICE_POOL_EVENTS.has(type)) {
+      io.to(`role:${UserRole.DELIVERY_MANAGER}`).emit(type, { deliveryId: payload.deliveryId });
+    }
+
+    // 6. Freelancers: the pool changed (new job, taken, or back again)
+    if (FREELANCE_POOL_EVENTS.has(type)) {
+      io.to("courier:freelance").emit(type, { deliveryId: payload.deliveryId });
+    }
+
+    // 7. Approval decisions go straight to that courier / office manager
+    if (type === EventType.COURIER_APPROVAL_UPDATED && payload.courierUserId) {
+      io.to(`user:${payload.courierUserId}`).emit(type, { approvalStatus: payload.approvalStatus });
+      // The manager who requested this office courier refreshes their courier list
+      if (payload.officeUserId) {
+        io.to(`user:${payload.officeUserId}`).emit(type, { courierId: payload.courierId, approvalStatus: payload.approvalStatus });
+      }
+    }
+    if (type === EventType.OFFICE_APPROVAL_UPDATED && payload.officeUserId) {
+      io.to(`user:${payload.officeUserId}`).emit(type, { approvalStatus: payload.approvalStatus });
+    }
   };
 
   // Subscribe to all event types

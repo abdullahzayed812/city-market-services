@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { authService } from "@/services/api/auth.service";
 import { setAccessToken, setSignOutCallback, silentRefresh } from "@/services/api/client";
 
@@ -7,6 +8,7 @@ interface AuthContextType {
   courier: any;
   token: string | null;
   login: (credentials: any) => Promise<void>;
+  register: (credentials: { email: string; password: string }) => Promise<void>;
   logout: () => void;
   logoutAllDevices: () => Promise<void>;
   isLoading: boolean;
@@ -19,6 +21,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [courier, setCourier] = useState<any>(null);
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     setSignOutCallback(() => {
@@ -42,8 +45,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     })();
   }, []);
 
-  const login = async (credentials: any) => {
-    const data = await authService.login(credentials);
+  // Start a session; cached data belongs to whoever was signed in before
+  const startSession = (data: any) => {
+    queryClient.clear();
     setAccessToken(data.accessToken);
     setToken(data.accessToken);
     if (data.user) {
@@ -51,6 +55,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setCourier(data.user);
     }
   };
+
+  const login = async (credentials: any) => startSession(await authService.login(credentials));
+
+  const register = async (credentials: { email: string; password: string }) => startSession(await authService.register(credentials));
 
   const logout = async () => {
     try {
@@ -79,7 +87,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   return (
-    <AuthContext.Provider value={{ user, courier, token, login, logout, logoutAllDevices, isLoading }}>
+    <AuthContext.Provider value={{ user, courier, token, login, register, logout, logoutAllDevices, isLoading }}>
       {children}
     </AuthContext.Provider>
   );

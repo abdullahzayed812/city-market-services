@@ -166,8 +166,11 @@ export class AuthController {
     try {
       const page = parseInt(req.query.page as string) || 1;
       const limit = parseInt(req.query.limit as string) || 50;
-      const role = req.query.role as string;
-      const result = await this.authService.getUsers(page, limit, role);
+      const role = (req.query.role as string) || undefined;
+      const search = ((req.query.search as string) || "").trim() || undefined;
+      const status = req.query.status as string | undefined;
+      const isActive = status === "active" ? true : status === "inactive" ? false : undefined;
+      const result = await this.authService.getUsers(page, Math.min(limit, 200), role, { search, isActive });
       res.json(ApiResponse.success(result, "users_retrieved_successfully"));
     } catch (error) {
       next(error);

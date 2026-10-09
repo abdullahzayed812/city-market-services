@@ -51,12 +51,15 @@
     "share_location_desc": "Allow customers to track your location during delivery.",
     "appearance": "Appearance",
     "dark_mode": "Dark Mode",
-    "dark_mode_desc": "Toggle between light and dark themes."
+    "dark_mode_desc": "Toggle between light and dark themes.",
+    "cancel": "Cancel",
+    "name": "Name"
   },
   "auth": {
     "login_success": "Login successful",
     "login_failed": "Login failed",
-    "invalid_credentials": "Invalid email or password"
+    "invalid_credentials": "Invalid email or password",
+    "demo_accounts": "Demo accounts"
   },
   "dashboard": {
     "active_couriers": "Active Couriers",
@@ -130,5 +133,66 @@
     "assign_courier": "Assign Courier",
     "delivery_accepted": "Delivery accepted",
     "failed_accept": "Failed to accept delivery"
+  },
+  "ratings": {
+    "title": "Ratings",
+    "office_rating": "Office rating",
+    "summary_for": "Ratings for",
+    "whole_office": "Whole office",
+    "count": "{{count}} ratings",
+    "couriers": "Couriers",
+    "latest_reviews": "Latest reviews",
+    "no_reviews": "No ratings yet"
+  },
+  "office_signup": {
+    "title": "Register your delivery office",
+    "subtitle": "Create your manager account, then add your office details and documents for review.",
+    "confirm_password": "Confirm password",
+    "create_account": "Create account",
+    "have_account": "Already have an account? Log in",
+    "register_office": "New office? Register here",
+    "password_too_short": "Password must be at least {{min}} characters",
+    "passwords_dont_match": "Passwords don't match",
+    "failed": "Couldn't create the account",
+    "onboarding_title": "Your delivery office",
+    "onboarding_subtitle": "We review every office before it can take deliveries.",
+    "office_name": "Office name",
+    "phone": "Phone number",
+    "address": "Address",
+    "owner_national_id": "Owner's national ID (photo)",
+    "commercial_register": "Commercial register (photo)",
+    "choose_photo": "Choose a photo (JPG, PNG or WebP)",
+    "documents_required": "Add both document photos",
+    "documents_privacy": "Documents are only used to verify your office.",
+    "uploading": "Uploading documents…",
+    "submitting": "Submitting…",
+    "submit": "Submit for review",
+    "submit_failed": "Couldn't submit your office",
+    "pending_title": "Office under review",
+    "pending_body": "Thanks for registering. You can start accepting deliveries as soon as an admin approves your office.",
+    "suspended_title": "Office suspended",
+    "suspended_body": "Your delivery office is suspended and can't take deliveries. Contact support for details.",
+    "check_status": "Check status"
+  },
+  "add_courier": {
+    "button": "Add courier",
+    "title": "Add a courier to your office",
+    "subtitle": "The courier can sign in to the Courier app once an admin reviews and approves the documents.",
+    "license_plate": "License plate",
+    "national_id": "National ID photo",
+    "license": "Driving license photo",
+    "pick_photo": "Choose a photo",
+    "documents_required": "Add the national ID and driving license photos",
+    "submit": "Send for review",
+    "sent": "Request sent. The courier will be active once an admin approves it.",
+    "vehicle_motorcycle": "Motorcycle",
+    "vehicle_car": "Car",
+    "vehicle_bicycle": "Bicycle",
+    "approval_approved": "Approved",
+    "approval_pending_review": "Pending review",
+    "approval_suspended": "Suspended",
+    "approval_rejected": "Rejected",
+    "pending_hint": "Waiting for admin review",
+    "rejected_hint": "The admin rejected this request"
   }
 }

@@ -10,6 +10,9 @@ export const createRatingRoutes = (controller: RatingController): Router => {
     // Only CUSTOMER role can rate
     router.post("/", authorize(UserRole.CUSTOMER), createRatingValidator, controller.create);
 
+    // The customer's own vendor ratings for one order (to hide "rate" once done)
+    router.get("/orders/:orderId/mine", authorize(UserRole.CUSTOMER), controller.getMyOrderRatings);
+
     // Anyone authenticated can view vendor rating summary? 
     // Usually vendor rating is public, but requirements say "Only authenticated users" in security section.
     router.get("/vendors/:vendorId/rating", controller.getVendorRating);

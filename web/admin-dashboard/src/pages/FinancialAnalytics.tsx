@@ -207,6 +207,11 @@ const CourierSettlementsSection: React.FC = () => {
     queryFn: async () => (await adminApi.getCouriers()).data.data,
   });
 
+  const { data: overview } = useQuery({
+    queryKey: ["deliveryFinancialOverview"],
+    queryFn: async () => (await adminApi.getDeliveryFinancialOverview()).data.data,
+  });
+
   const { data: pendingData, isLoading: isPendingLoading } = useQuery({
     queryKey: ["courierPendingEarnings", selectedCourierId],
     queryFn: async () => (await adminApi.getCourierPendingEarnings(selectedCourierId)).data.data,
@@ -231,9 +236,29 @@ const CourierSettlementsSection: React.FC = () => {
   });
 
   const selectedCourier = couriersData?.find((c: any) => c.id === selectedCourierId);
+  const isFreelance = selectedCourier?.courierType === "FREELANCE";
+
+  const overviewItems = [
+    { key: "pending_office_courier_payouts", value: overview?.pendingOfficeCourierPayouts },
+    { key: "pending_freelance_courier_payouts", value: overview?.pendingFreelanceCourierPayouts },
+    { key: "pending_office_payouts", value: overview?.pendingOfficePayouts },
+    { key: "cash_held_by_couriers", value: overview?.pendingCashHeldByCouriers },
+    { key: "delivery_platform_revenue", value: overview?.platformRevenue },
+  ];
 
   return (
     <div className="space-y-6">
+      {overview && (
+        <div className="grid gap-3 grid-cols-2 lg:grid-cols-5">
+          {overviewItems.map((item) => (
+            <div key={item.key} className="rounded-lg border border-gray-200 bg-white p-3">
+              <div className="text-xs text-gray-500">{t(`financial.${item.key}`)}</div>
+              <div className="text-lg font-bold">EGP {(item.value ?? 0).toLocaleString()}</div>
+            </div>
+          ))}
+        </div>
+      )}
+
       <div className="flex items-center gap-4">
         <Select value={selectedCourierId} onValueChange={setSelectedCourierId}>
           <SelectTrigger className="w-[220px] border-gray-300">
@@ -242,7 +267,10 @@ const CourierSettlementsSection: React.FC = () => {
           <SelectContent>
             <SelectItem value="all">{t("financial.select_courier", "Select a courier")}</SelectItem>
             {couriersData?.map((c: any) => (
-              <SelectItem key={c.id} value={c.id}>{c.fullName}</SelectItem>
+              <SelectItem key={c.id} value={c.id}>
+                {c.fullName}
+                {c.courierType === "FREELANCE" ? ` (${t("couriers.type_freelance")})` : ""}
+              </SelectItem>
             ))}
           </SelectContent>
         </Select>
@@ -275,7 +303,7 @@ const CourierSettlementsSection: React.FC = () => {
           </div>
 
           {activeTab === "pending" ? (
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+            <div className={`grid gap-6 md:grid-cols-2 ${isFreelance ? "lg:grid-cols-5" : "lg:grid-cols-4"}`}>
               <Card className="bg-gradient-to-br from-orange-50 to-white">
                 <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-orange-800">{t("financial.unsettled_deliveries", "Unsettled Deliveries")}</CardTitle></CardHeader>
                 <CardContent><div className="text-3xl font-bold">{pendingData?.unsettledDeliveries || 0}</div></CardContent>
@@ -284,9 +312,16 @@ const CourierSettlementsSection: React.FC = () => {
                 <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-blue-800">{t("financial.delivery_fees", "Delivery Fees")}</CardTitle></CardHeader>
                 <CardContent><div className="text-3xl font-bold text-blue-900">EGP {pendingData?.totalDeliveryFees?.toLocaleString() || 0}</div></CardContent>
               </Card>
+              {/* Freelancers keep the cash they collect; it's netted against their fees (negative = they owe the platform) */}
+              {isFreelance && (
+                <Card className="bg-gradient-to-br from-amber-50 to-white">
+                  <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-amber-800">{t("financial.cash_collected")}</CardTitle></CardHeader>
+                  <CardContent><div className="text-3xl font-bold text-amber-900">EGP {pendingData?.totalCashCollected?.toLocaleString() || 0}</div></CardContent>
+                </Card>
+              )}
               <Card className="bg-gradient-to-br from-emerald-50 to-white">
                 <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-emerald-800">{t("financial.net_payout")}</CardTitle></CardHeader>
-                <CardContent><div className="text-3xl font-bold text-emerald-900">EGP {pendingData?.netPayout?.toLocaleString() || 0}</div></CardContent>
+                <CardContent><div className={`text-3xl font-bold ${(pendingData?.netPayout ?? 0) < 0 ? "text-red-700" : "text-emerald-900"}`}>EGP {pendingData?.netPayout?.toLocaleString() || 0}</div></CardContent>
               </Card>
               <Card className="flex items-center justify-center p-6 bg-indigo-600 text-white hover:bg-indigo-700 transition-colors cursor-pointer group" onClick={() => setIsDialogOpen(true)}>
                 <div className="text-center">

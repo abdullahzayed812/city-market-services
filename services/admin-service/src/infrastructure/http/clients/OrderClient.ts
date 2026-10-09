@@ -1,10 +1,10 @@
 import { BaseClient } from "./BaseClient";
 
 export class OrderClient extends BaseClient {
-  async getAllOrders(page: number = 1, limit: number = 50, userId?: string) {
+  async getAllOrders(page: number = 1, limit: number = 50, userId?: string, filter: Record<string, string | undefined> = {}) {
     const config = await this.getRequestConfig(userId);
     const response = await this.axiosInstance.get(`/`, {
-      params: { page, limit },
+      params: { page, limit, ...filter },
       ...config,
     });
     return response.data;

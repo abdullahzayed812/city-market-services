@@ -1,5 +1,7 @@
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useQuery } from "@tanstack/react-query";
+import { adminApi } from "@/services/api/admin-api";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,7 +23,7 @@ const CreateCourierDialog: React.FC<CreateCourierDialogProps> = ({
   isPending,
 }) => {
   const { t } = useTranslation();
-  const [newCourier, setNewCourier] = useState({
+  const emptyCourier = {
     email: "",
     password: "",
     firstName: "",
@@ -29,19 +31,25 @@ const CreateCourierDialog: React.FC<CreateCourierDialogProps> = ({
     phone: "",
     vehicleType: "Motorcycle",
     licensePlate: "",
+    courierType: "OFFICE" as "OFFICE" | "FREELANCE",
+    deliveryOfficeId: "",
+  };
+  const [newCourier, setNewCourier] = useState(emptyCourier);
+
+  const { data: offices } = useQuery({
+    // Only approved offices can take couriers
+    queryKey: ["deliveryOffices", "APPROVED"],
+    queryFn: async () => (await adminApi.getDeliveryOffices("APPROVED")).data.data ?? [],
+    enabled: open,
   });
 
+  // Office couriers must belong to an office; freelancers never do
+  const missingOffice = newCourier.courierType === "OFFICE" && !newCourier.deliveryOfficeId;
+
   const handleSubmit = () => {
-    onSubmit(newCourier);
-    setNewCourier({
-      email: "",
-      password: "",
-      firstName: "",
-      lastName: "",
-      phone: "",
-      vehicleType: "Motorcycle",
-      licensePlate: "",
-    });
+    const { deliveryOfficeId, ...rest } = newCourier;
+    onSubmit(rest.courierType === "OFFICE" ? { ...rest, deliveryOfficeId } : rest);
+    setNewCourier(emptyCourier);
   };
 
   return (
@@ -51,6 +59,40 @@ const CreateCourierDialog: React.FC<CreateCourierDialogProps> = ({
           <DialogTitle>{t("couriers.add_new_title")}</DialogTitle>
         </DialogHeader>
         <div className="space-y-4 py-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>{t("couriers.courier_type")}</Label>
+              <Select
+                value={newCourier.courierType}
+                onValueChange={(val) => setNewCourier({ ...newCourier, courierType: val as "OFFICE" | "FREELANCE", deliveryOfficeId: "" })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="OFFICE">{t("couriers.type_office")}</SelectItem>
+                  <SelectItem value="FREELANCE">{t("couriers.type_freelance")}</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            {newCourier.courierType === "OFFICE" && (
+              <div className="space-y-2">
+                <Label>{t("couriers.delivery_office")}</Label>
+                <Select value={newCourier.deliveryOfficeId} onValueChange={(val) => setNewCourier({ ...newCourier, deliveryOfficeId: val })}>
+                  <SelectTrigger>
+                    <SelectValue placeholder={t("couriers.select_office")} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {offices?.map((office: any) => (
+                      <SelectItem key={office.id} value={office.id}>
+                        {office.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+          </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="firstName">{t("auth.first_name")}</Label>
@@ -127,7 +169,7 @@ const CreateCourierDialog: React.FC<CreateCourierDialogProps> = ({
           </Button>
           <Button
             onClick={handleSubmit}
-            disabled={isPending}
+            disabled={isPending || missingOffice}
           >
             {isPending ? t("common.loading") : t("common.create")}
           </Button>

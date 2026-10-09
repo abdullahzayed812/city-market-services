@@ -3,6 +3,16 @@ import { DeliveryFeeTier } from "../../core/entities/delivery-fee-tier.entity";
 import { IDeliveryFeeTierRepository } from "../../core/interfaces/delivery-fee-tier.repository";
 import { ValidationError, NotFoundError } from "@city-market/shared";
 
+type TierInput = {
+  minAmount: number;
+  maxAmount: number | null;
+  courierPercentage: number;
+  officePercentage: number;
+  platformPercentage: number;
+  freelanceCourierPercentage?: number | null;
+  freelancePlatformPercentage?: number | null;
+};
+
 export class DeliveryFeeTierService {
   constructor(private tierRepo: IDeliveryFeeTierRepository) {}
 
@@ -10,18 +20,20 @@ export class DeliveryFeeTierService {
     return this.tierRepo.findAll();
   }
 
-  async create(data: { minAmount: number; maxAmount: number | null; courierPercentage: number; officePercentage: number; platformPercentage: number }): Promise<DeliveryFeeTier> {
+  async create(data: TierInput): Promise<DeliveryFeeTier> {
     await this.validate(data);
     const tier: DeliveryFeeTier = {
       id: randomUUID(),
       ...data,
+      freelanceCourierPercentage: data.freelanceCourierPercentage ?? null,
+      freelancePlatformPercentage: data.freelancePlatformPercentage ?? null,
       createdAt: new Date(),
       updatedAt: new Date(),
     };
     return this.tierRepo.create(tier);
   }
 
-  async update(id: string, data: Partial<{ minAmount: number; maxAmount: number | null; courierPercentage: number; officePercentage: number; platformPercentage: number }>): Promise<void> {
+  async update(id: string, data: Partial<TierInput>): Promise<void> {
     const existing = await this.tierRepo.findById(id);
     if (!existing) throw new NotFoundError("delivery_fee_tier_not_found");
     const merged = { ...existing, ...data };
@@ -35,10 +47,7 @@ export class DeliveryFeeTierService {
     await this.tierRepo.delete(id);
   }
 
-  private async validate(
-    tier: { minAmount: number; maxAmount: number | null; courierPercentage: number; officePercentage: number; platformPercentage: number },
-    excludeId?: string,
-  ): Promise<void> {
+  private async validate(tier: TierInput, excludeId?: string): Promise<void> {
     if (tier.minAmount < 0) throw new ValidationError("min_amount_cannot_be_negative");
     if (tier.maxAmount !== null && tier.maxAmount <= tier.minAmount)
       throw new ValidationError("max_amount_must_be_greater_than_min");
@@ -47,6 +56,16 @@ export class DeliveryFeeTierService {
     const total = Number((tier.courierPercentage + tier.officePercentage + tier.platformPercentage).toFixed(2));
     if (total !== 100)
       throw new ValidationError(`percentages_must_sum_to_100 (got ${total})`);
+
+    // Freelance split: both set (and summing to 100) or both empty
+    const fc = tier.freelanceCourierPercentage ?? null;
+    const fp = tier.freelancePlatformPercentage ?? null;
+    if ((fc === null) !== (fp === null)) throw new ValidationError("freelance_percentages_must_both_be_set_or_empty");
+    if (fc !== null && fp !== null) {
+      if (fc < 0 || fp < 0) throw new ValidationError("percentages_cannot_be_negative");
+      const freelanceTotal = Number((fc + fp).toFixed(2));
+      if (freelanceTotal !== 100) throw new ValidationError(`freelance_percentages_must_sum_to_100 (got ${freelanceTotal})`);
+    }
 
     const all = await this.tierRepo.findAll();
     for (const existing of all) {

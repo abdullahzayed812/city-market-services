@@ -1,6 +1,8 @@
 import { DeliveryStatus } from "@city-market/shared";
 import { PickupLocation } from "./pickup-location.entity"; // Import PickupLocation
 
+export type FulfillmentType = "OFFICE" | "FREELANCE";
+
 export interface Delivery {
   id: string;
   customerId: string;
@@ -8,12 +10,17 @@ export interface Delivery {
   vendorOrderId?: string; // This will become less relevant if we have multiple pickup locations
   // But keep it for now as it's part of the unique constraint
   courierId?: string;
-  deliveryOfficeId?: string;
+  deliveryOfficeId?: string | null;
+  fulfillmentType?: FulfillmentType | null;
   status: DeliveryStatus;
   deliveryFee: number;
-  courierFeePercentage?: number;
+  feeTierId?: string | null;
+  courierFeePercentage?: number | null;
   courierFeeAmount: number;
   officeFeeAmount: number;
+  platformFeeAmount: number;
+  cashCollectedAmount: number;
+  openToFreelanceAt?: Date | null;
   pickupLocations: PickupLocation[];
   deliveryAddress: string;
   pickupLatitude?: number;
@@ -33,6 +40,8 @@ export interface Delivery {
   pickupDeadline?: Date;
   courierName?: string;
   courierPhone?: string;
+  courierVehicleType?: string;
+  courierLicensePlate?: string;
   customerPhone?: string;
   vendorOrders?: any[]; // Added to include items
   createdAt: Date;

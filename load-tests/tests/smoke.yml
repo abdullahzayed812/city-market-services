@@ -1,21 +1,20 @@
 # Smoke test (Phase 10): verifies the target is reachable, auth works, seed data
-# exists, and the three main flows (customer/vendor/delivery) respond at all.
-# Small and safe to run often - NOT the realistic weighted mix (see baseline.yml
-# onward for that); this is a fast go/no-go check.
+# exists, and every persona's main flow responds - a fast go/no-go check before
+# baseline. NOT the realistic weighted mix (see baseline.yml onward for that).
 #
-# Uses arrivalCount (a fixed total, not a rate) to genuinely stay at Phase 10's
-# "5-10 virtual users" - confirmed the hard way against a live nginx-fronted
-# stack that arrivalRate is PER SECOND: an earlier arrivalRate:5 for 60s here
-# generated ~300 VUs and tripped nginx's 10 req/min "auth" zone (see README
-# "Known limitations") into near-total 429s, which is a misconfigured smoke test,
-# not a real capacity signal.
+# One scenario walks every persona in sequence so each run is guaranteed to cover
+# all of them (a weighted mix at 8 VUs can randomly skip one): register a new
+# customer (the only place registration runs in the standard tiers), log in as a
+# pre-seeded customer, browse and place a real order, then log in as a vendor, a
+# delivery manager and a courier and read their dashboards.
+#
+# Uses arrivalCount (a fixed total, not a rate): arrivalRate is PER SECOND, and
+# an earlier arrivalRate:5 for 60s here generated ~300 VUs.
 #
 #   npm run loadtest:smoke                    (local, default phases below)
 #   npm run loadtest:smoke -- --env local-nginx
-#   npm run loadtest:smoke -- --phases '[{"duration":30,"arrivalCount":10}]'
 #
-# Prerequisite: `npm run loadtest:seed` (needs at least 1 vendor with products and
-# the 3 pre-existing delivery-manager accounts to be reachable).
+# Prerequisite: `npm run loadtest:seed`.
 config:
   processor: "../processors/index.ts"
   phases:
@@ -23,26 +22,58 @@ config:
       arrivalCount: 8
       name: "smoke"
   payload:
-    - path: "../data/generated/vendors.csv"
-      fields: ["vendorEmail", "vendorPassword", "vendorUserId", "poolVendorId"]
+    - path: "../data/generated/customers.csv"
+      fields: ["customerEmail", "customerPassword", "customerUserId"]
+      order: "sequence"
+      skipHeader: true
+    - path: "../data/generated/vendor-products.csv"
+      fields: ["poolVendorId", "poolVendorProductId", "poolMeasurementType"]
       order: "random"
+      skipHeader: true
+    - path: "../data/generated/vendors.csv"
+      fields: ["vendorEmail", "vendorPassword", "vendorUserId", "vendorProfileId"]
+      order: "sequence"
       skipHeader: true
     - path: "../data/generated/delivery-managers.csv"
       fields: ["officeEmail", "officePassword"]
-      order: "random"
+      order: "sequence"
+      skipHeader: true
+    - path: "../data/generated/couriers.csv"
+      fields: ["courierEmail", "courierPassword", "courierUserId", "poolCourierId", "courierOfficeEmail"]
+      order: "sequence"
       skipHeader: true
   plugins:
-    expect: {}
+    expect:
+      reportFailuresAsErrors: true
+      useOnlyRequestNames: true
+    metrics-by-endpoint:
+      useOnlyRequestNames: true
     ensure:
       thresholds:
         - "http.response_time.p95": 1000
       maxErrorRate: 5
 
 scenarios:
-  - name: "Smoke: customer auth + browse + order"
-    weight: 3
+  - name: "Smoke: all personas"
     flow:
-      - function: "registerCustomer"
+      # Registration (new account) - checked here only.
+      - post:
+          url: "/auth/register"
+          name: "POST /auth/register"
+          beforeRequest: "customerRegisterBody"
+          expect:
+            - statusCode: 201
+
+      # Customer: pre-seeded account, browse, order.
+      - post:
+          url: "/auth/login"
+          name: "POST /auth/login"
+          beforeRequest: "customerLoginBody"
+          capture:
+            - json: "$.data.accessToken"
+              as: "accessToken"
+          expect:
+            - statusCode: 200
       - get:
           url: "/catalog/categories"
           name: "GET /catalog/categories"
@@ -50,53 +81,79 @@ scenarios:
           expect:
             - statusCode: 200
       - get:
-          url: "/catalog/products/vendor/{{ poolVendorId }}?page=1&limit=5"
+          url: "/catalog/products/vendor/{{ poolVendorId }}?page=1&limit=20"
           name: "GET /catalog/products/vendor/:vendorId"
           beforeRequest: "attachAuthHeader"
-          ifTrue: "poolVendorId"
           expect:
             - statusCode: 200
           capture:
             - json: "$.data.data"
               as: "browseResultsRaw"
               strict: false
-      - function: "pickRandomProduct"
+      - function: "pickOrderableProduct"
       - post:
           url: "/orders"
           name: "POST /orders"
+          ifTrue: "selectedProduct"
           beforeRequest:
             - "attachOrderPayload"
             - "attachAuthHeader"
           expect:
             - statusCode: 201
 
-  - name: "Smoke: vendor auth + dashboard read"
-    weight: 1
-    flow:
-      - function: "loginVendorFromPool"
+      # Vendor dashboard.
+      - post:
+          url: "/auth/login"
+          name: "POST /auth/login"
+          beforeRequest: "vendorLoginBody"
+          capture:
+            - json: "$.data.accessToken"
+              as: "accessToken"
+          expect:
+            - statusCode: 200
       - get:
           url: "/vendors/me"
           name: "GET /vendors/me"
           beforeRequest: "attachAuthHeader"
-          ifTrue: "vendorEmail"
           expect:
             - statusCode: 200
       - get:
-          url: "/orders/vendor/{{ vendorId }}?page=1&limit=5"
+          url: "/orders/vendor/{{ vendorProfileId }}?page=1&limit=5"
           name: "GET /orders/vendor/:vendorId"
           beforeRequest: "attachAuthHeader"
-          ifTrue: "vendorId"
           expect:
             - statusCode: 200
 
-  - name: "Smoke: delivery office auth + pending read"
-    weight: 1
-    flow:
-      - function: "loginDeliveryManagerFromPool"
+      # Delivery office dashboard.
+      - post:
+          url: "/auth/login"
+          name: "POST /auth/login"
+          beforeRequest: "officeLoginBody"
+          capture:
+            - json: "$.data.accessToken"
+              as: "accessToken"
+          expect:
+            - statusCode: 200
       - get:
           url: "/delivery/deliveries/pending"
           name: "GET /delivery/deliveries/pending"
           beforeRequest: "attachAuthHeader"
-          ifTrue: "officeEmail"
+          expect:
+            - statusCode: 200
+
+      # Courier app.
+      - post:
+          url: "/auth/login"
+          name: "POST /auth/login"
+          beforeRequest: "courierLoginBody"
+          capture:
+            - json: "$.data.accessToken"
+              as: "accessToken"
+          expect:
+            - statusCode: 200
+      - get:
+          url: "/delivery/couriers/me"
+          name: "GET /delivery/couriers/me"
+          beforeRequest: "attachAuthHeader"
           expect:
             - statusCode: 200

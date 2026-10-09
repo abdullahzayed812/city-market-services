@@ -61,12 +61,31 @@ export const setupSocketServer = (io: Server) => {
         const response = await axios.get(`${DELIVERY_SERVICE_URL}/couriers/me`, {
           headers: { Authorization: `Bearer ${socket.handshake.auth.token || socket.handshake.query.token}` },
         });
-        if (response?.data?.data && response?.data?.data?.id) {
-          socket.join(`courier:${response?.data?.data?.id}`);
-          console.log(`Courier ${user.email} joined room: courier:${response?.data?.data?.id}`);
+        const courier = response?.data?.data;
+        if (courier?.id) {
+          socket.join(`courier:${courier.id}`);
+          console.log(`Courier ${user.email} joined room: courier:${courier.id}`);
+          // Approved freelancers hear about pool jobs (claimable deliveries)
+          if (courier.courierType === "FREELANCE" && courier.approvalStatus === "APPROVED") {
+            socket.join("courier:freelance");
+          }
         }
       } catch (error: any) {
         console.error(`Failed to fetch courier profile for user ${user.userId}:`, error.message);
+      }
+    } else if (user.role === UserRole.DELIVERY_MANAGER) {
+      // S6: full delivery events go to the owning office's room only
+      try {
+        const response = await axios.get(`${DELIVERY_SERVICE_URL}/delivery-offices/me`, {
+          headers: { Authorization: `Bearer ${socket.handshake.auth.token || socket.handshake.query.token}` },
+        });
+        const officeId = response?.data?.data?.id;
+        if (officeId) {
+          socket.join(`office:${officeId}`);
+          console.log(`Delivery manager ${user.email} joined room: office:${officeId}`);
+        }
+      } catch (error: any) {
+        console.error(`Failed to fetch delivery office for user ${user.userId}:`, error.message);
       }
     }
 

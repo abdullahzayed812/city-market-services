@@ -1,8 +1,16 @@
 import { Response, NextFunction } from "express";
 import { MediaService } from "../../application/services/media.service";
-import { ApiResponse, ValidationError } from "@city-market/shared";
+import { randomUUID } from "crypto";
+import { ApiResponse, ValidationError, ForbiddenError, UserRole } from "@city-market/shared";
 import { AuthenticatedRequest } from "@city-market/shared/node";
-import { MediaFolder, ALLOWED_FOLDERS } from "../../core/entities/media.entity";
+import { MediaFolder, ALLOWED_FOLDERS, COURIER_DOCUMENTS_FOLDER, OFFICE_DOCUMENTS_FOLDER } from "../../core/entities/media.entity";
+
+// Roles that may only upload signup documents, and to which folders. Managers upload
+// their office's documents and the documents of couriers they add to their office.
+const DOCUMENT_FOLDERS_BY_ROLE: Partial<Record<UserRole, MediaFolder[]>> = {
+  [UserRole.COURIER]: [COURIER_DOCUMENTS_FOLDER],
+  [UserRole.DELIVERY_MANAGER]: [OFFICE_DOCUMENTS_FOLDER, COURIER_DOCUMENTS_FOLDER],
+};
 
 const UUID_REGEX =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -14,7 +22,15 @@ export class MediaController {
     try {
       if (!req.file) throw new ValidationError("no_file_provided");
 
-      const { folder, entityId } = req.body as { folder: string; entityId: string };
+      let { folder, entityId } = req.body as { folder: string; entityId: string };
+
+      const documentFolders = req.user ? DOCUMENT_FOLDERS_BY_ROLE[req.user.role] : undefined;
+      if (documentFolders) {
+        if (!documentFolders.includes(folder as MediaFolder)) throw new ForbiddenError("can_only_upload_signup_documents");
+        // The bucket is public: a server-chosen random id keeps the path unguessable and
+        // stops a courier from overwriting someone else's document by reusing an id.
+        entityId = randomUUID();
+      }
 
       if (!folder || !(ALLOWED_FOLDERS as readonly string[]).includes(folder)) {
         throw new ValidationError(

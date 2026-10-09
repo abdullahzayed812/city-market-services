@@ -1,5 +1,5 @@
 import { Pool, PoolConnection } from "mysql2/promise";
-import { DeliveryOffice } from "../../core/entities/delivery-office.entity";
+import { DeliveryOffice, OfficeApprovalStatus } from "../../core/entities/delivery-office.entity";
 import { IDeliveryOfficeRepository } from "../../core/interfaces/delivery-office.repository";
 import { Database } from "@city-market/shared/node";
 
@@ -28,6 +28,46 @@ export class DeliveryOfficeRepository implements IDeliveryOfficeRepository {
     return (rows as any[]).map((r: any) => this.mapToEntity(r));
   }
 
+  async countActive(connection?: PoolConnection): Promise<number> {
+    const conn = connection || this.pool;
+    // Only offices that can actually accept deliveries
+    const [rows] = await (conn as any).query("SELECT COUNT(*) AS count FROM delivery_offices WHERE is_active = TRUE AND approval_status = 'APPROVED'");
+    return Number((rows as any[])[0].count) || 0;
+  }
+
+  async create(office: DeliveryOffice, connection?: PoolConnection): Promise<DeliveryOffice> {
+    const conn = connection || this.pool;
+    await (conn as any).execute(
+      `INSERT INTO delivery_offices (id, user_id, name, phone, address, is_active, approval_status, owner_national_id_url, commercial_register_url)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        office.id,
+        office.userId,
+        office.name,
+        office.phone ?? null,
+        office.address ?? null,
+        office.isActive,
+        office.approvalStatus,
+        office.ownerNationalIdUrl ?? null,
+        office.commercialRegisterUrl ?? null,
+      ],
+    );
+    return office;
+  }
+
+  async setApprovalStatus(id: string, status: OfficeApprovalStatus, connection?: PoolConnection): Promise<void> {
+    const conn = connection || this.pool;
+    await (conn as any).execute("UPDATE delivery_offices SET approval_status = ? WHERE id = ?", [status, id]);
+  }
+
+  async findAllByApproval(limit: number, offset: number, approvalStatus?: OfficeApprovalStatus): Promise<DeliveryOffice[]> {
+    const [rows] = await (this.pool as any).query(
+      `SELECT * FROM delivery_offices ${approvalStatus ? "WHERE approval_status = ?" : ""} ORDER BY created_at DESC LIMIT ? OFFSET ?`,
+      approvalStatus ? [approvalStatus, limit, offset] : [limit, offset],
+    );
+    return (rows as any[]).map((r: any) => this.mapToEntity(r));
+  }
+
   async findByUserId(userId: string, connection?: PoolConnection): Promise<DeliveryOffice | null> {
     const conn = connection || this.pool;
     const [rows] = await (conn as any).execute(
@@ -45,6 +85,11 @@ export class DeliveryOfficeRepository implements IDeliveryOfficeRepository {
       phone: row.phone,
       address: row.address,
       isActive: Boolean(row.is_active),
+      approvalStatus: (row.approval_status ?? "APPROVED") as OfficeApprovalStatus,
+      ownerNationalIdUrl: row.owner_national_id_url ?? null,
+      commercialRegisterUrl: row.commercial_register_url ?? null,
+      rating: row.rating != null ? parseFloat(row.rating) : null,
+      ratingCount: row.rating_count ?? 0,
       createdAt: row.created_at,
       updatedAt: row.updated_at,
     };

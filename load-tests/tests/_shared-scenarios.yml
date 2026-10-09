@@ -11,41 +11,70 @@
 # never its own scenarios list. Not meant to be run standalone (it has no
 # `config.target`/`phases` of its own).
 #
-# Weights (out of 100, Phase 8's starting assumptions - see README "Traffic model"
-# for how to change these): Customer 90% (Browse 45 / Search 20 / Vendor+Product 14 /
-# Order 20 - rebalanced from the brief's cart-inclusive split since there is no cart
-# backend, see scenarios/customer-browse.yml), Vendor 7%, Delivery office 2%, Courier 1%.
+# Weights (out of 100): Customer 89% (Browse 37 / Search 18 / Vendor+Product 14 /
+# Order 20 - there is no cart backend, see scenarios/customer-browse.yml),
+# Vendor 7%, Delivery office 3%, Courier 1%.
 #
-# Prerequisite: run `npm run loadtest:seed` first. The Vendor/Delivery-office/Courier
-# personas below draw from data/generated/{vendors,delivery-managers,couriers}.csv,
-# and the customer Order persona draws real orderable products from
-# data/generated/vendor-products.csv - all written by scripts/seed.ts. Artillery
-# will fail fast if any of these files don't exist yet.
+# The delivery-office persona must keep pace with the deliveries the mix creates
+# (every order a vendor CONFIRMs becomes a PENDING delivery), as real offices do.
+# At 2% with one claim per session it claimed ~25 per baseline run against ~95
+# created, so PENDING deliveries piled up across runs - and because
+# GET /delivery/deliveries/pending is unpaginated and fans out 2 internal calls
+# per row, that backlog alone exhausted MySQL connections. Each office session now
+# claims up to 3 deliveries.
+#
+# Sessions: every persona LOGS IN as a pre-seeded account (POST /auth/login as a
+# real, counted request) - nothing here registers new users. Registration has its
+# own check in smoke.yml. Customer accounts are handed out in `sequence` order, so
+# with a pool much larger than the concurrent-session count (scripts/seed.ts
+# defaults to 300 customers vs ~50 concurrent sessions in baseline) two live VUs
+# never share an account. Pools that are naturally small (20 vendors, 3 delivery
+# managers, 10 couriers) see some reuse; that is safe because access tokens are
+# stateless JWTs - a second login only revokes the first session's refresh token.
+#
+# Session length is roughly 10s of think time + request time per VU, so
+# arrivalRate 5/s gives ~50 concurrent active sessions (Little's law). The report
+# measures the real number - see scripts/report.ts.
+#
+# Prerequisite: `npm run loadtest:seed` (scripts/run-test.ts preflights the CSVs).
 config:
   processor: "../processors/index.ts"
   payload:
+    - path: "../data/generated/customers.csv"
+      fields: ["customerEmail", "customerPassword", "customerUserId"]
+      order: "sequence"
+      skipHeader: true
     - path: "../data/generated/vendor-products.csv"
       fields: ["poolVendorId", "poolVendorProductId", "poolMeasurementType"]
       order: "random"
       skipHeader: true
     - path: "../data/generated/vendors.csv"
-      fields: ["vendorEmail", "vendorPassword", "vendorUserId", "poolVendorId2"]
-      order: "random"
+      fields: ["vendorEmail", "vendorPassword", "vendorUserId", "vendorProfileId"]
+      order: "sequence"
       skipHeader: true
     - path: "../data/generated/delivery-managers.csv"
       fields: ["officeEmail", "officePassword"]
-      order: "random"
+      order: "sequence"
       skipHeader: true
     - path: "../data/generated/couriers.csv"
-      fields: ["courierEmail", "courierPassword", "courierUserId", "poolCourierId"]
-      order: "random"
+      fields: ["courierEmail", "courierPassword", "courierUserId", "poolCourierId", "courierOfficeEmail"]
+      order: "sequence"
       skipHeader: true
+  plugins:
+    metrics-by-endpoint:
+      useOnlyRequestNames: true
 
 scenarios:
   - name: "Customer: Browse"
-    weight: 40
+    weight: 37
     flow:
-      - function: "registerCustomer"
+      - post:
+          url: "/auth/login"
+          name: "POST /auth/login"
+          beforeRequest: "customerLoginBody"
+          capture:
+            - json: "$.data.accessToken"
+              as: "accessToken"
       - get:
           url: "/catalog/categories"
           name: "GET /catalog/categories"
@@ -77,7 +106,13 @@ scenarios:
   - name: "Customer: Search"
     weight: 18
     flow:
-      - function: "registerCustomer"
+      - post:
+          url: "/auth/login"
+          name: "POST /auth/login"
+          beforeRequest: "customerLoginBody"
+          capture:
+            - json: "$.data.accessToken"
+              as: "accessToken"
       - function: "pickSearchTerm"
       - get:
           url: "/catalog/products/search?search={{ searchTerm }}&page=1&limit=20"
@@ -104,7 +139,13 @@ scenarios:
   - name: "Customer: Vendor + product detail"
     weight: 14
     flow:
-      - function: "registerCustomer"
+      - post:
+          url: "/auth/login"
+          name: "POST /auth/login"
+          beforeRequest: "customerLoginBody"
+          capture:
+            - json: "$.data.accessToken"
+              as: "accessToken"
       - get:
           url: "/vendors?page=1&limit=20"
           name: "GET /vendors"
@@ -118,6 +159,13 @@ scenarios:
       - get:
           url: "/vendors/{{ vendorId }}"
           name: "GET /vendors/:id"
+          beforeRequest: "attachAuthHeader"
+          ifTrue: "vendorId"
+      # The vendor profile carries no products - the product list comes from
+      # catalog, which is what the product-detail pick below needs.
+      - get:
+          url: "/catalog/products/vendor/{{ vendorId }}?page=1&limit=20"
+          name: "GET /catalog/products/vendor/:vendorId"
           beforeRequest: "attachAuthHeader"
           ifTrue: "vendorId"
           capture:
@@ -136,21 +184,27 @@ scenarios:
   - name: "Customer: Place order"
     weight: 20
     flow:
-      - function: "registerCustomer"
+      - post:
+          url: "/auth/login"
+          name: "POST /auth/login"
+          beforeRequest: "customerLoginBody"
+          capture:
+            - json: "$.data.accessToken"
+              as: "accessToken"
       - get:
           url: "/catalog/products/vendor/{{ poolVendorId }}?page=1&limit=20"
           name: "GET /catalog/products/vendor/:vendorId"
           beforeRequest: "attachAuthHeader"
-          ifTrue: "poolVendorId"
           capture:
             - json: "$.data.data"
               as: "browseResultsRaw"
               strict: false
       - think: 5
-      - function: "pickRandomProduct"
+      - function: "pickOrderableProduct"
       - post:
           url: "/orders"
           name: "POST /orders"
+          ifTrue: "selectedProduct"
           beforeRequest:
             - "attachOrderPayload"
             - "attachAuthHeader"
@@ -166,15 +220,20 @@ scenarios:
           ifTrue: "orderId"
       - think: 3
 
-  - name: "Vendor: onboarding + order management"
+  - name: "Vendor: order management"
     weight: 7
     flow:
-      - function: "loginVendorFromPool"
+      - post:
+          url: "/auth/login"
+          name: "POST /auth/login"
+          beforeRequest: "vendorLoginBody"
+          capture:
+            - json: "$.data.accessToken"
+              as: "accessToken"
       - get:
-          url: "/orders/vendor/{{ vendorId }}?page=1&limit=10"
+          url: "/orders/vendor/{{ vendorProfileId }}?page=1&limit=10"
           name: "GET /orders/vendor/:vendorId"
           beforeRequest: "attachAuthHeader"
-          ifTrue: "vendorId"
           capture:
             - json: "$.data"
               as: "vendorOrdersRaw"
@@ -196,25 +255,33 @@ scenarios:
             status: "CONFIRMED"
       - think: 2
 
-  - name: "Delivery office: claim + assign"
-    weight: 2
+  - name: "Delivery office: claim"
+    weight: 3
     flow:
-      - function: "loginDeliveryManagerFromPool"
-      - get:
-          url: "/delivery/deliveries/pending"
-          name: "GET /delivery/deliveries/pending"
-          beforeRequest: "attachAuthHeader"
+      - post:
+          url: "/auth/login"
+          name: "POST /auth/login"
+          beforeRequest: "officeLoginBody"
           capture:
-            - json: "$.data"
-              as: "pendingDeliveriesRaw"
-              strict: false
-      - function: "pickAnyPendingDelivery"
-      - think: 2
-      - patch:
-          url: "/delivery/deliveries/{{ deliveryId }}/accept"
-          name: "PATCH /delivery/deliveries/:id/accept"
-          beforeRequest: "attachAuthHeader"
-          ifTrue: "deliveryId"
+            - json: "$.data.accessToken"
+              as: "accessToken"
+      - loop:
+          - get:
+              url: "/delivery/deliveries/pending"
+              name: "GET /delivery/deliveries/pending"
+              beforeRequest: "attachAuthHeader"
+              capture:
+                - json: "$.data"
+                  as: "pendingDeliveriesRaw"
+                  strict: false
+          - function: "pickAnyPendingDelivery"
+          - think: 2
+          - patch:
+              url: "/delivery/deliveries/{{ deliveryId }}/accept"
+              name: "PATCH /delivery/deliveries/:id/accept"
+              beforeRequest: "attachAuthHeader"
+              ifTrue: "deliveryId"
+        count: 3
       - think: 1
       - get:
           url: "/delivery/couriers/available"
@@ -222,10 +289,16 @@ scenarios:
           beforeRequest: "attachAuthHeader"
       - think: 3
 
-  - name: "Courier: pickup + delivery"
+  - name: "Courier: pickup"
     weight: 1
     flow:
-      - function: "loginCourierFromPool"
+      - post:
+          url: "/auth/login"
+          name: "POST /auth/login"
+          beforeRequest: "courierLoginBody"
+          capture:
+            - json: "$.data.accessToken"
+              as: "accessToken"
       - get:
           url: "/delivery/couriers/me"
           name: "GET /delivery/couriers/me"
@@ -234,7 +307,6 @@ scenarios:
           url: "/delivery/couriers/{{ poolCourierId }}/availability"
           name: "PATCH /delivery/couriers/:id/availability"
           beforeRequest: "attachAuthHeader"
-          ifTrue: "poolCourierId"
           json:
             isAvailable: true
       - think: 2
@@ -243,9 +315,10 @@ scenarios:
           name: "GET /delivery/deliveries/my-deliveries"
           beforeRequest: "attachAuthHeader"
           capture:
-            - json: "$.data.items[0].id"
-              as: "myDeliveryId"
+            - json: "$.data"
+              as: "myDeliveriesRaw"
               strict: false
+      - function: "pickAssignedDelivery"
       - think: 2
       - patch:
           url: "/delivery/deliveries/{{ myDeliveryId }}/status"

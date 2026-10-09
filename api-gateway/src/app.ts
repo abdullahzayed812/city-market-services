@@ -4,6 +4,7 @@ import helmet from "helmet";
 import cookieParser from "cookie-parser";
 import { createRoutes } from "./routes";
 import { rateLimit } from "./middlewares/rate-limit.middleware";
+import { config } from "./config/env";
 import { Logger, errorHandler, correlation, idempotency } from "@city-market/shared/node";
 
 export const createApp = () => {
@@ -32,8 +33,16 @@ export const createApp = () => {
   // 2. Idempotency (Prevent double requests from Frontend/Mobile)
   app.use(idempotency());
 
-  // Rate limiting
-  app.use(rateLimit(100, 60000)); // 100 requests per minute
+  // Rate limiting: 100 requests per minute per IP. RATE_LIMIT_MAX_REQUESTS /
+  // RATE_LIMIT_WINDOW_MS exist so an isolated load-test instance (all traffic from
+  // one generator IP) can be started without editing code; they are ignored in
+  // production so a stray env var can never loosen the real limit.
+  const isProduction = process.env.NODE_ENV === "production";
+  app.use(
+    isProduction
+      ? rateLimit(100, 60000)
+      : rateLimit(config.rateLimitMaxRequests, config.rateLimitWindowMs),
+  );
 
   // Request logging using structured Logger
   app.use((req, res, next) => {

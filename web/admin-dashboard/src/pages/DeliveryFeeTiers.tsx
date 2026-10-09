@@ -23,20 +23,26 @@ interface DeliveryFeeTier {
   courierPercentage: number;
   officePercentage: number;
   platformPercentage: number;
+  freelanceCourierPercentage: number | null;
+  freelancePlatformPercentage: number | null;
 }
+
+const EMPTY_FORM = {
+  minAmount: "",
+  maxAmount: "",
+  courierPercentage: "",
+  officePercentage: "",
+  platformPercentage: "",
+  freelanceCourierPercentage: "",
+  freelancePlatformPercentage: "",
+};
 
 const DeliveryFeeTiers: React.FC = () => {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingTier, setEditingTier] = useState<DeliveryFeeTier | null>(null);
-  const [formData, setFormData] = useState({
-    minAmount: "",
-    maxAmount: "",
-    courierPercentage: "",
-    officePercentage: "",
-    platformPercentage: "",
-  });
+  const [formData, setFormData] = useState(EMPTY_FORM);
   const [error, setError] = useState<string | null>(null);
 
   const { data: tiersResponse, isLoading } = useQuery({
@@ -72,7 +78,7 @@ const DeliveryFeeTiers: React.FC = () => {
   });
 
   const resetForm = () => {
-    setFormData({ minAmount: "", maxAmount: "", courierPercentage: "", officePercentage: "", platformPercentage: "" });
+    setFormData(EMPTY_FORM);
     setEditingTier(null);
     setError(null);
   };
@@ -85,6 +91,8 @@ const DeliveryFeeTiers: React.FC = () => {
       courierPercentage: tier.courierPercentage.toString(),
       officePercentage: tier.officePercentage.toString(),
       platformPercentage: tier.platformPercentage.toString(),
+      freelanceCourierPercentage: tier.freelanceCourierPercentage?.toString() ?? "",
+      freelancePlatformPercentage: tier.freelancePlatformPercentage?.toString() ?? "",
     });
     setError(null);
     setIsDialogOpen(true);
@@ -95,6 +103,14 @@ const DeliveryFeeTiers: React.FC = () => {
     const o = parseFloat(formData.officePercentage || "0");
     const p = parseFloat(formData.platformPercentage || "0");
     return Number((c + o + p).toFixed(2));
+  };
+
+  // Freelance split is optional: both empty (courier gets courier% + office%) or both set summing to 100
+  const freelanceState = (): "empty" | "valid" | "invalid" => {
+    const { freelanceCourierPercentage: fc, freelancePlatformPercentage: fp } = formData;
+    if (fc === "" && fp === "") return "empty";
+    if (fc === "" || fp === "") return "invalid";
+    return Number((parseFloat(fc) + parseFloat(fp)).toFixed(2)) === 100 ? "valid" : "invalid";
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -110,7 +126,13 @@ const DeliveryFeeTiers: React.FC = () => {
       courierPercentage: parseFloat(formData.courierPercentage),
       officePercentage: parseFloat(formData.officePercentage),
       platformPercentage: parseFloat(formData.platformPercentage),
+      freelanceCourierPercentage: formData.freelanceCourierPercentage === "" ? null : parseFloat(formData.freelanceCourierPercentage),
+      freelancePlatformPercentage: formData.freelancePlatformPercentage === "" ? null : parseFloat(formData.freelancePlatformPercentage),
     };
+    if (freelanceState() === "invalid") {
+      setError(t("delivery_tiers.freelance_must_sum_to_100"));
+      return;
+    }
     if (editingTier) {
       updateMutation.mutate({ id: editingTier.id, data });
     } else {
@@ -156,6 +178,7 @@ const DeliveryFeeTiers: React.FC = () => {
               <TableHead>{t("delivery_tiers.courier_percentage")} (%)</TableHead>
               <TableHead>{t("delivery_tiers.office_percentage")} (%)</TableHead>
               <TableHead>{t("delivery_tiers.platform_percentage")} (%)</TableHead>
+              <TableHead>{t("delivery_tiers.freelance_split")}</TableHead>
               <TableHead className="text-end">{t("common.actions")}</TableHead>
             </TableRow>
           </TableHeader>
@@ -178,6 +201,11 @@ const DeliveryFeeTiers: React.FC = () => {
                   <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
                     {tier.platformPercentage}%
                   </span>
+                </TableCell>
+                <TableCell className="text-xs text-gray-600">
+                  {tier.freelanceCourierPercentage === null
+                    ? t("delivery_tiers.freelance_default", { value: tier.courierPercentage + tier.officePercentage })
+                    : `${tier.freelanceCourierPercentage}% / ${tier.freelancePlatformPercentage}%`}
                 </TableCell>
                 <TableCell className="text-end space-x-1">
                   <Button variant="ghost" size="icon" onClick={() => handleEdit(tier)}>
@@ -316,11 +344,47 @@ const DeliveryFeeTiers: React.FC = () => {
               )}
             </div>
 
+            <div className="space-y-3">
+              <Label>{t("delivery_tiers.freelance_split")}</Label>
+              <p className="text-xs text-gray-500">{t("delivery_tiers.freelance_split_hint")}</p>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <Label htmlFor="freelanceCourierPercentage" className="text-xs text-blue-700">
+                    {t("delivery_tiers.courier_percentage")}
+                  </Label>
+                  <Input
+                    id="freelanceCourierPercentage"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    max="100"
+                    value={formData.freelanceCourierPercentage}
+                    onChange={(e) => setFormData({ ...formData, freelanceCourierPercentage: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="freelancePlatformPercentage" className="text-xs text-purple-700">
+                    {t("delivery_tiers.platform_percentage")}
+                  </Label>
+                  <Input
+                    id="freelancePlatformPercentage"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    max="100"
+                    value={formData.freelancePlatformPercentage}
+                    onChange={(e) => setFormData({ ...formData, freelancePlatformPercentage: e.target.value })}
+                  />
+                </div>
+              </div>
+              {freelanceState() === "invalid" && <p className="text-xs text-red-500">{t("delivery_tiers.freelance_must_sum_to_100")}</p>}
+            </div>
+
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
                 {t("common.cancel")}
               </Button>
-              <Button type="submit" disabled={createMutation.isPending || updateMutation.isPending || sum !== 100}>
+              <Button type="submit" disabled={createMutation.isPending || updateMutation.isPending || sum !== 100 || freelanceState() === "invalid"}>
                 {editingTier ? t("common.update") : t("common.create")}
               </Button>
             </DialogFooter>

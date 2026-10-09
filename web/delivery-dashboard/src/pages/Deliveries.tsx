@@ -68,6 +68,10 @@ const Deliveries = () => {
       EventType.SLA_DELIVERY_ACCEPTANCE_EXPIRED,
       EventType.SLA_COURIER_ASSIGNMENT_EXPIRED,
       EventType.SLA_COURIER_PICKUP_EXPIRED,
+      // Pool changes: another office accepted, a freelancer claimed, or it came back
+      EventType.DELIVERY_CLAIMED,
+      EventType.DELIVERY_RETURNED_TO_POOL,
+      EventType.DELIVERY_RELEASED_BY_COURIER,
     ];
 
     events.forEach((event) => socket.on(event, handleUpdate));

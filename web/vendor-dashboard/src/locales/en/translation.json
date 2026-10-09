@@ -142,7 +142,8 @@
     "forgot_password": "Forgot password?",
     "authenticating": "Authenticating...",
     "quick_login_title": "Quick Login (Dev Mode)",
-    "quick_login_desc": "Select a seeded vendor to log in instantly"
+    "quick_login_desc": "Select a seeded vendor to log in instantly",
+    "demo_accounts": "Demo accounts"
   },
   "products": {
     "title": "Products",

@@ -114,6 +114,13 @@ export class RatingService {
     }
   }
 
+  // The customer's own vendor ratings for one order, so apps can show "rated" instead
+  // of offering a second rating the API would reject.
+  async getMyOrderRatings(orderId: string, customerUserId: string): Promise<Array<{ vendorId: string; stars: number; comment?: string }>> {
+    const ratings = await this.ratingRepo.findByOrderAndCustomer(orderId, customerUserId);
+    return ratings.map((r) => ({ vendorId: r.vendorId, stars: r.stars, comment: r.comment }));
+  }
+
   async getVendorRating(vendorId: string): Promise<{ averageRating: number; totalRatings: number }> {
     const summary = await this.summaryRepo.findByVendorId(vendorId);
     if (!summary) {

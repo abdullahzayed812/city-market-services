@@ -8,6 +8,10 @@ export interface PickupLocation {
   longitude?: number;
 }
 
+export type CourierType = "OFFICE" | "FREELANCE";
+export type CourierApprovalStatus = "PENDING_REVIEW" | "APPROVED" | "SUSPENDED" | "REJECTED";
+export type FulfillmentType = "OFFICE" | "FREELANCE";
+
 export interface Delivery {
   id: string;
   customerOrderId: string;
@@ -34,6 +38,9 @@ export interface Delivery {
   courierName?: string;
   courierPhone?: string;
   customerPhone?: string;
+  fulfillmentType?: FulfillmentType | null;
+  courierFeeAmount?: number;
+  cashCollectedAmount?: number;
   vendorOrders?: any[]; // Added to include items
   computedTotal?: number;
   createdAt: Date;
@@ -47,10 +54,18 @@ export interface Courier {
   phone: string;
   vehicleType: string;
   licensePlate: string;
+  deliveryOfficeId?: string | null;
+  courierType?: CourierType;
+  approvalStatus?: CourierApprovalStatus;
+  nationalIdUrl?: string | null;
+  licenseUrl?: string | null;
   isAvailable: boolean;
   isActive: boolean;
   rating: number;
+  // How many customer ratings `rating` is based on (0 = no ratings yet)
+  ratingCount?: number;
   totalDeliveries: number;
+  cancellationCount?: number;
   createdAt: Date;
   updatedAt: Date;
 }

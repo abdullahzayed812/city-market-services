@@ -6,7 +6,12 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Store, Phone, Plus, Edit, PackagePlus } from "lucide-react";
-import { ShopStatus } from "@city-market/shared";
+import { ShopStatus, VendorType } from "@city-market/shared";
+import { ListToolbar, FilterSelect } from "@/components/ListToolbar";
+import { Pagination } from "@/components/ui/pagination";
+import { useClientPagination } from "@/hooks/useClientPagination";
+
+const PAGE_SIZE = 20;
 import { useToast } from "@/hooks/use-toast";
 import VendorFormDialog from "@/features/vendors/components/VendorFormDialog";
 import AddVendorProductsDialog from "@/features/vendors/components/AddVendorProductsDialog";
@@ -82,6 +87,21 @@ const VendorsManagement: React.FC = () => {
 
   if (isLoading) return <div className="p-8 text-center">{t("common.loading")}</div>;
 
+  // Vendors are loaded in full; filter and page here
+  const [search, setSearch] = useState("");
+  const [status, setStatus] = useState("all");
+  const [type, setType] = useState("all");
+  const filtered = React.useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return (vendors ?? []).filter(
+      (v: any) =>
+        (status === "all" || v.status === status) &&
+        (type === "all" || v.type === type) &&
+        (!q || [v.shopName, v.phone, v.address].some((field) => field?.toLowerCase().includes(q))),
+    );
+  }, [vendors, search, status, type]);
+  const { page, setPage, totalPages, pageItems } = useClientPagination(filtered, PAGE_SIZE, `${search}|${status}|${type}`);
+
   return (
     <div className="">
       <div className="flex justify-between items-center">
@@ -109,7 +129,23 @@ const VendorsManagement: React.FC = () => {
         />
       </div>
 
+      <ListToolbar search={search} onSearchChange={setSearch} searchPlaceholder={t("list.search_vendors")} total={filtered.length}>
+        <FilterSelect
+          value={status}
+          onChange={setStatus}
+          allLabel={t("list.all_statuses")}
+          options={Object.values(ShopStatus).map((s) => ({ value: s, label: s }))}
+        />
+        <FilterSelect
+          value={type}
+          onChange={setType}
+          allLabel={t("list.all_types")}
+          options={Object.values(VendorType).map((v) => ({ value: v, label: v }))}
+        />
+      </ListToolbar>
+
       <div className="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden">
+        {!isLoading && filtered.length === 0 && <div className="p-8 text-center text-slate-500">{t("list.no_results")}</div>}
         <Table>
           <TableHeader>
             <TableRow>
@@ -121,7 +157,7 @@ const VendorsManagement: React.FC = () => {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {vendors?.map((vendor) => (
+            {pageItems.map((vendor) => (
               <TableRow key={vendor.id}>
                 <TableCell>
                   <ImageUploader
@@ -191,6 +227,7 @@ const VendorsManagement: React.FC = () => {
             ))}
           </TableBody>
         </Table>
+        <Pagination currentPage={page} totalPages={totalPages} onPageChange={setPage} className="py-4" />
       </div>
 
       <AddVendorProductsDialog

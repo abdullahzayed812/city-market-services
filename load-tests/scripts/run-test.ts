@@ -18,18 +18,21 @@
 import { spawnSync } from "child_process";
 import * as fs from "fs";
 import * as path from "path";
+import * as yaml from "js-yaml";
 import { env } from "./lib/env";
+import { readCsv } from "./lib/csv";
 import { assertSafeToRun, isLocalTarget } from "./lib/safety";
+import { generateReport, metaPathFor, renderConsoleSummary, Phase, RunMeta, TIER_PROFILES } from "./report";
 
 const REPO_ROOT = path.resolve(__dirname, "..");
 const ARTILLERY_BIN = path.resolve(REPO_ROOT, "node_modules/.bin/artillery");
 
-const KNOWN_TIERS = ["smoke", "baseline", "normal-load", "stress", "spike", "soak", "order-lifecycle", "concurrency-claim-race"];
+const KNOWN_TIERS = ["smoke", "baseline", "normal-load", "stress", "spike", "soak", "order-lifecycle", "concurrency-claim-race", "freelance-claim-race"];
 
 // These tiers provide only config (phases/thresholds) and rely on
 // tests/_shared-scenarios.yml for their `scenarios:` array (see that file's
 // header for why scenarios live in exactly one file). smoke/order-lifecycle/
-// concurrency-claim-race are fully self-contained instead - merging
+// concurrency-claim-race/freelance-claim-race are fully self-contained instead - merging
 // _shared-scenarios.yml into those too would corrupt both scenario arrays
 // (verified empirically: Artillery merges multiple files' `scenarios:` lists
 // index-by-index, not by concatenating them).
@@ -59,7 +62,59 @@ function resolveTarget(environment: string): string {
   return match ? match[1] : env.baseUrl;
 }
 
-function main() {
+function readPhases(testFile: string, override?: string): Phase[] {
+  if (override) return JSON.parse(override);
+  const doc = yaml.safeLoad(fs.readFileSync(testFile, "utf-8")) as any;
+  return doc?.config?.phases || [];
+}
+
+/**
+ * Data files each tier's payload reads, with the minimum rows needed. Customer
+ * accounts are handed out in `sequence` order (tests/_shared-scenarios.yml), so the
+ * pool must be comfortably larger than the number of sessions alive at once or two
+ * VUs end up sharing an account.
+ */
+function requiredData(tier: string): Array<{ file: string; minRows: number }> {
+  const concurrency = TIER_PROFILES[tier]?.intendedConcurrency ?? 50;
+  const standard = [
+    { file: "customers.csv", minRows: concurrency * 2 },
+    { file: "vendors.csv", minRows: 1 },
+    { file: "vendor-products.csv", minRows: 1 },
+    { file: "delivery-managers.csv", minRows: 1 },
+    { file: "couriers.csv", minRows: 1 },
+  ];
+  if (tier === "smoke") return standard.map((d) => ({ ...d, minRows: 1 }));
+  if (TIERS_USING_SHARED_SCENARIOS.includes(tier)) return standard;
+  return [];
+}
+
+function preflightData(tier: string) {
+  const problems: string[] = [];
+  for (const { file, minRows } of requiredData(tier)) {
+    const rows = readCsv(path.join(REPO_ROOT, "data", "generated", file));
+    if (rows.length < minRows) problems.push(`  data/generated/${file}: ${rows.length} rows, need at least ${minRows}`);
+  }
+  if (problems.length) {
+    console.error(`Test data is missing or too small for "${tier}":\n${problems.join("\n")}`);
+    console.error("Seed this target first, e.g. `npm run loadtest:seed -- --customers 300 --vendors 20 --couriers 10`.");
+    process.exit(1);
+  }
+}
+
+async function preflightTarget(target: string) {
+  try {
+    const res = await fetch(`${target}/catalog/categories`, { signal: AbortSignal.timeout(5000) });
+    if (res.status >= 500) throw new Error(`HTTP ${res.status}`);
+    if (res.status === 429) {
+      console.warn(`Warning: ${target} is already rate-limiting this machine (429) - results will measure the limiter.`);
+    }
+  } catch (err: any) {
+    console.error(`Target ${target} is not reachable (${err.cause?.code || err.message}). Start the stack first - see docs/load-testing.md.`);
+    process.exit(1);
+  }
+}
+
+async function main() {
   const [, , tierArg, ...rest] = process.argv;
   if (!tierArg) {
     console.error(`Usage: ts-node scripts/run-test.ts <${KNOWN_TIERS.join("|")}|path/to/file.yml> [--env name] [--phases '[...]']`);
@@ -78,6 +133,11 @@ function main() {
 
   const target = flags.target || resolveTarget(environment);
   assertSafeToRun(target, tierArg);
+
+  if (isKnownTier) {
+    preflightData(tierArg);
+    await preflightTarget(target);
+  }
 
   fs.mkdirSync(path.join(REPO_ROOT, "reports"), { recursive: true });
   const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
@@ -100,6 +160,7 @@ function main() {
     console.log("Reminder: this is not a local target - keep an eye on the infrastructure monitoring commands in README.md while this runs.\n");
   }
 
+  const startedAt = new Date().toISOString();
   const result = spawnSync(ARTILLERY_BIN, artilleryArgs, {
     stdio: "inherit",
     env: {
@@ -108,7 +169,27 @@ function main() {
     },
   });
 
-  process.exit(result.status ?? 1);
+  if (!fs.existsSync(reportPath)) {
+    console.error(`\nArtillery produced no report (exit code ${result.status}).`);
+    process.exit(result.status || 1);
+  }
+
+  const meta: RunMeta = {
+    tier: tierArg.replace(/\.ya?ml$/, "").split("/").pop()!,
+    environment,
+    target,
+    phases: readPhases(testFile, flags.phases),
+    startedAt,
+    artilleryExitCode: result.status,
+  };
+  fs.writeFileSync(metaPathFor(reportPath), JSON.stringify(meta, null, 2));
+  const { analysis, mdPath } = generateReport(reportPath);
+  console.log(`\n${renderConsoleSummary(analysis, mdPath)}\n`);
+
+  process.exit(analysis.verdict === "PASS" ? 0 : 1);
 }
 
-main();
+main().catch((err) => {
+  console.error(err);
+  process.exit(1);
+});

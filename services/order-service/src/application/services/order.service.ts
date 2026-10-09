@@ -24,6 +24,7 @@ import { VendorOrderManager } from "./vendor-order.manager";
 import { OrderMapper } from "../mappers/order.mapper";
 import { CommissionTierService } from "./commission-tier.service";
 import { DeliveryFeeCalculator } from "../utils/DeliveryFeeCalculator";
+import { CustomerOrderListFilter } from "../../core/interfaces/customer-order.repository";
 
 export class OrderService {
   public stateManager: OrderStateManager;
@@ -117,17 +118,24 @@ export class OrderService {
     return { items, total };
   }
 
-  async getAllOrders(page: number = 1, limit: number = 20): Promise<(CustomerOrder & { customerName?: string })[]> {
+  // Admin order list: one page plus the total matching the filters
+  async getAllOrders(
+    page: number = 1,
+    limit: number = 20,
+    filter: CustomerOrderListFilter = {},
+  ): Promise<{ items: (CustomerOrder & { customerName?: string })[]; total: number; page: number; limit: number }> {
     const offset = (page - 1) * limit;
-    const orders = await this.customerOrderRepo.findAll(limit, offset);
+    const [orders, total] = await Promise.all([this.customerOrderRepo.findAll(limit, offset, undefined, filter), this.customerOrderRepo.countFiltered(filter)]);
     const mapped = orders.map((o) => OrderMapper.mapCustomerOrder(o));
 
     const nameByCustomerId = await this.userClient.getCustomerNamesByIds(mapped.map((o) => o.customerId));
 
-    return mapped.map((o) => ({
-      ...o,
-      customerName: nameByCustomerId.get(o.customerId),
-    }));
+    return {
+      items: mapped.map((o) => ({ ...o, customerName: nameByCustomerId.get(o.customerId) })),
+      total,
+      page,
+      limit,
+    };
   }
 
   async getOrderStats(): Promise<{ totalOrders: number; revenueToday: number }> {

@@ -11,6 +11,11 @@ export const RatingService = {
     });
     return response.data;
   },
+  // This customer's vendor ratings for one order: [{ vendorId, stars, comment }]
+  getMyOrderRatings: async (orderId: string): Promise<Array<{ vendorId: string; stars: number; comment?: string }>> => {
+    const response = await apiClient.get(`/ratings/orders/${orderId}/mine`);
+    return response.data?.data ?? [];
+  },
   rateVendor: async (orderId: string, vendorId: string, stars: number, comment?: string) => {
     const response = await apiClient.post('/ratings', { orderId, vendorId, stars, comment });
     return response.data;

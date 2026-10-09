@@ -10,6 +10,7 @@ import { User } from "../../core/entities/user.entity";
 import { config } from "../../config/env";
 import { parseDurationMs } from "../../utils/duration";
 import { ValidationError, UnauthorizedError, UserRole } from "@city-market/shared";
+import { UserListFilter } from "../../core/interfaces/user.repository";
 
 function sha256Hex(value: string): string {
   return createHash("sha256").update(value).digest("hex");
@@ -163,10 +164,10 @@ export class AuthService {
     page: number = 1,
     limit: number = 50,
     role?: string,
+    filter: UserListFilter = {},
   ): Promise<{ data: Omit<User, "passwordHash">[]; total: number }> {
     const offset = (page - 1) * limit;
-    const users = await this.userRepo.findAll(limit, offset, role);
-    const total = await this.userRepo.countAll(role);
+    const [users, total] = await Promise.all([this.userRepo.findAll(limit, offset, role, filter), this.userRepo.countAll(role, filter)]);
     return { data: users, total };
   }
 

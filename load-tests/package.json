@@ -17,18 +17,23 @@
     "loadtest:order-lifecycle": "ts-node scripts/run-test.ts order-lifecycle",
     "loadtest:prepare-race": "ts-node scripts/prepare-claim-race.ts",
     "loadtest:concurrency": "ts-node scripts/run-test.ts concurrency-claim-race",
+    "loadtest:prepare-freelance-race": "ts-node scripts/prepare-freelance-race.ts",
+    "loadtest:freelance-race": "ts-node scripts/run-test.ts freelance-claim-race",
     "loadtest:socket": "ts-node scripts/socket-load-runner.ts",
     "loadtest:seed": "ts-node scripts/seed.ts",
     "loadtest:cleanup": "ts-node scripts/cleanup.ts",
-    "loadtest:generate-users": "ts-node scripts/generate-users.ts"
+    "loadtest:generate-users": "ts-node scripts/generate-users.ts",
+    "loadtest:report": "ts-node scripts/report.ts"
   },
   "dependencies": {
     "artillery": "2.0.21",
     "axios": "^1.7.9",
     "dotenv": "^16.4.7",
+    "js-yaml": "^3.15.2",
     "socket.io-client": "^4.8.3"
   },
   "devDependencies": {
+    "@types/js-yaml": "^3.12.10",
     "@types/node": "^20.14.0",
     "ts-node": "^10.9.2",
     "typescript": "^5.5.4"

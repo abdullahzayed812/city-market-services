@@ -13,6 +13,8 @@ export class DeliveryFeeTierRepository implements IDeliveryFeeTierRepository {
       courierPercentage: Number(row.courier_percentage),
       officePercentage: Number(row.office_percentage),
       platformPercentage: Number(row.platform_percentage),
+      freelanceCourierPercentage: row.freelance_courier_percentage != null ? Number(row.freelance_courier_percentage) : null,
+      freelancePlatformPercentage: row.freelance_platform_percentage != null ? Number(row.freelance_platform_percentage) : null,
       createdAt: row.created_at,
       updatedAt: row.updated_at,
     };
@@ -40,36 +42,41 @@ export class DeliveryFeeTierRepository implements IDeliveryFeeTierRepository {
 
   async create(tier: DeliveryFeeTier): Promise<DeliveryFeeTier> {
     await this.db.getPool().execute(
-      `INSERT INTO delivery_fee_tiers (id, min_amount, max_amount, courier_percentage, office_percentage, platform_percentage)
-       VALUES (?, ?, ?, ?, ?, ?)`,
-      [tier.id, tier.minAmount, tier.maxAmount, tier.courierPercentage, tier.officePercentage, tier.platformPercentage],
+      `INSERT INTO delivery_fee_tiers (id, min_amount, max_amount, courier_percentage, office_percentage, platform_percentage,
+         freelance_courier_percentage, freelance_platform_percentage)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        tier.id,
+        tier.minAmount,
+        tier.maxAmount,
+        tier.courierPercentage,
+        tier.officePercentage,
+        tier.platformPercentage,
+        tier.freelanceCourierPercentage ?? null,
+        tier.freelancePlatformPercentage ?? null,
+      ],
     );
     return tier;
   }
 
   async update(id: string, data: Partial<DeliveryFeeTier>): Promise<void> {
+    const columns: Array<[keyof DeliveryFeeTier, string]> = [
+      ["minAmount", "min_amount"],
+      ["maxAmount", "max_amount"],
+      ["courierPercentage", "courier_percentage"],
+      ["officePercentage", "office_percentage"],
+      ["platformPercentage", "platform_percentage"],
+      ["freelanceCourierPercentage", "freelance_courier_percentage"],
+      ["freelancePlatformPercentage", "freelance_platform_percentage"],
+    ];
     const fields: string[] = [];
     const values: any[] = [];
-
-    if (data.minAmount) {
-      fields.push("min_amount = ?");
-      values.push(data.minAmount);
-    }
-    if (data.maxAmount) {
-      fields.push("max_amount = ?");
-      values.push(data.maxAmount);
-    }
-    if (data.courierPercentage) {
-      fields.push("courier_percentage = ?");
-      values.push(data.courierPercentage);
-    }
-    if (data.officePercentage) {
-      fields.push("office_percentage = ?");
-      values.push(data.officePercentage);
-    }
-    if (data.platformPercentage) {
-      fields.push("platform_percentage = ?");
-      values.push(data.platformPercentage);
+    // !== undefined so 0 and null (open-ended max, cleared freelance split) are written
+    for (const [key, column] of columns) {
+      if (data[key] !== undefined) {
+        fields.push(`${column} = ?`);
+        values.push(data[key]);
+      }
     }
 
     if (!fields.length) return;

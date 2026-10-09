@@ -5,6 +5,8 @@ import Dashboard from "./pages/Dashboard.tsx";
 import UsersManagement from "./pages/UsersManagement.tsx";
 import OrdersManagement from "./pages/OrdersManagement.tsx";
 import CouriersManagement from "./pages/CouriersManagement.tsx";
+import RatingsPage from "./pages/RatingsPage.tsx";
+import DeliveryOfficesManagement from "./pages/DeliveryOfficesManagement.tsx";
 import CategoriesManagement from "./pages/CategoriesManagement.tsx";
 import VendorsManagement from "./pages/VendorsManagement.tsx";
 import ProductsManagement from "./pages/ProductsManagement.tsx";
@@ -38,6 +40,8 @@ function App() {
               <Route path="products" element={<ProductsManagement />} />
               <Route path="orders" element={<OrdersManagement />} />
               <Route path="couriers" element={<CouriersManagement />} />
+              <Route path="ratings" element={<RatingsPage />} />
+              <Route path="delivery-offices" element={<DeliveryOfficesManagement />} />
               <Route path="financial-analytics" element={<FinancialAnalytics />} />
               <Route path="commission-tiers" element={<CommissionTiers />} />
               <Route path="delivery-fee-tiers" element={<DeliveryFeeTiers />} />

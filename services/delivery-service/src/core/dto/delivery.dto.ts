@@ -14,9 +14,9 @@ export interface CreateDeliveryDto {
   totalPrice?: number;
   itemsCount?: number;
   deliveryFee?: number;
-  courierFeePercentage?: number;
-  courierFeeAmount?: number;
-  officeFeeAmount?: number;
+  // Fee split is computed on accept/claim; creation only snapshots the tier
+  feeTierId?: string | null;
+  openToFreelanceAt?: Date | null;
 }
 
 export interface AssignCourierDto {

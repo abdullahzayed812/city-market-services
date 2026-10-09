@@ -14,6 +14,8 @@ export const SEED_DATA = {
     COURIER_HASSAN: "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a54",
     COURIER_DINA: "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a55",
     COURIER_YASSER: "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a56",
+    FREELANCER_SAMI: "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a57",
+    FREELANCER_TAMER: "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a58",
     MADINATY_SUPERMARKET: "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a13", // SuperMarket 1
     AL_JAZIRA_SUPERMARKET: "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a14", // SuperMarket 2
     MOATAZ_PHARMACY: "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a17", // Pharmacy
@@ -94,6 +96,9 @@ export const SEED_DATA = {
     HASSAN: "e0eebc99-9c0b-4ef8-bb6d-6bb9bd380a57",
     DINA: "e0eebc99-9c0b-4ef8-bb6d-6bb9bd380a58",
     YASSER: "e0eebc99-9c0b-4ef8-bb6d-6bb9bd380a59",
+    // Freelance (no office): one approved, one waiting for admin review
+    SAMI: "e0eebc99-9c0b-4ef8-bb6d-6bb9bd380a70",
+    TAMER: "e0eebc99-9c0b-4ef8-bb6d-6bb9bd380a71",
   },
   DELIVERY_OFFICES: {
     MAIN_OFFICE: "f1eebc99-9c0b-4ef8-bb6d-6bb9bd380b01",

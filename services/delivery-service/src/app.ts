@@ -26,6 +26,9 @@ import { OrderReadyConsumer } from "./application/events/order-ready.consumer";
 import { OrderHttpClient } from "./infrastructure/http/order-http-client";
 import { VendorHttpClient } from "./infrastructure/http/vendor-http-client";
 import { UserHttpClient } from "./infrastructure/http/user-http-client";
+import { AuthHttpClient } from "./infrastructure/http/auth-http-client";
+import { FreelanceDispatcher } from "./application/services/freelance-dispatcher";
+import { DeliveryRatingRepository } from "./infrastructure/repositories/delivery-rating.repository";
 import { DeliveryPublisher } from "./infrastructure/messaging/DeliveryPublisher";
 import { config } from "./config/env";
 
@@ -58,7 +61,20 @@ export const createApp = () => {
   const orderClient = new OrderHttpClient(config.orderServiceUrl);
   const vendorClient = new VendorHttpClient(config.vendorServiceUrl);
   const userClient = new UserHttpClient(config.userServiceUrl);
+  const authClient = new AuthHttpClient(config.authServiceUrl);
   const publisher = new DeliveryPublisher(rabbitMQBus);
+
+  const dispatcher = new FreelanceDispatcher(
+    {
+      freelanceEnabled: config.freelanceEnabled,
+      officePriorityWindowMins: config.officePriorityWindowMins,
+      freelanceRadiusKm: config.freelanceRadiusKm,
+      freelanceMaxCashHeld: config.freelanceMaxCashHeld,
+      courierLocationStaleMins: config.courierLocationStaleMins,
+    },
+    courierRepo,
+    publisher,
+  );
 
   const deliveryService = new DeliveryService(
     courierRepo,
@@ -67,10 +83,12 @@ export const createApp = () => {
     orderClient,
     vendorClient,
     userClient,
+    authClient,
     db,
-    config.acceptedWindowMinutes,
     feeTierRepo,
     deliveryOfficeRepo,
+    dispatcher,
+    new DeliveryRatingRepository(db),
   );
 
   const parsedRedisUrl = new URL(config.redisUrl || "redis://localhost:6379");
@@ -79,7 +97,7 @@ export const createApp = () => {
   const slaManager = new DeliverySlaManager(deliveryRepo, publisher, config.redisUrl, config.deliveryAcceptanceSlaMins, config.courierAssignmentSlaMins, config.courierPickupSlaMins);
   deliveryService.setSlaManager(slaManager);
 
-  const slaWorkerInstance = new DeliverySlaWorker(deliveryRepo, courierRepo, publisher, db);
+  const slaWorkerInstance = new DeliverySlaWorker(deliveryRepo, courierRepo, publisher, db, slaManager, dispatcher);
   createSlaWorker("sla-delivery", (job) => slaWorkerInstance.handle(job), redisConnection);
 
   setTimeout(() => slaManager.runStartupRecovery((job) => slaWorkerInstance.handle(job)).catch(console.error), 5000);

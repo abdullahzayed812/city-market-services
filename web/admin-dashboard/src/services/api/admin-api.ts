@@ -48,12 +48,14 @@ export const adminApi = {
   getStats: () => axiosInstance.get<ApiResponse<DashboardStats>>("/admin/dashboard"),
 
   // Users Management
-  getUsers: (role?: string) => axiosInstance.get<ApiResponse<{ data: User[]; total: number }>>("/admin/users", { params: { role } }),
+  getUsers: (params?: { role?: string; search?: string; status?: string; page?: number; limit?: number }) =>
+    axiosInstance.get<ApiResponse<{ data: User[]; total: number }>>("/admin/users", { params }),
   getUserById: (id: string) => axiosInstance.get<ApiResponse<User>>(`/admin/users/${id}`),
   updateUserStatus: (id: string, body: UpdateUserStatusRequest) => axiosInstance.patch<ApiResponse<null>>(`/admin/users/${id}/status`, body),
 
   // Vendors Management
-  getVendors: () => axiosInstance.get<ApiResponse<Vendor[]>>("/admin/vendors"),
+  // Vendors are few: load them all and filter/page in the browser
+  getVendors: () => axiosInstance.get<ApiResponse<Vendor[]>>("/admin/vendors", { params: { limit: 1000 } }),
   getVendorById: (id: string) => axiosInstance.get<ApiResponse<Vendor>>(`/admin/vendors/${id}`),
   updateVendor: (id: string, body: Partial<Vendor>) => axiosInstance.patch<ApiResponse<null>>(`/admin/vendors/${id}`, body),
 
@@ -65,7 +67,8 @@ export const adminApi = {
     axiosInstance.patch<ApiResponse<null>>(`/admin/vendors/${id}/image`, { imageUrl }),
 
   // Orders Management
-  getOrders: () => axiosInstance.get<ApiResponse<CustomerOrder[]>>("/admin/orders"),
+  getOrders: (params?: { status?: string; search?: string; from?: string; to?: string; page?: number; limit?: number }) =>
+    axiosInstance.get<ApiResponse<{ items: (CustomerOrder & { customerName?: string })[]; total: number; page: number; limit: number }>>("/admin/orders", { params }),
   getOrderById: (id: string) => axiosInstance.get<ApiResponse<OrderWithItems>>(`/admin/orders/${id}`),
   updateOrderStatus: (
     id: string,
@@ -74,7 +77,22 @@ export const adminApi = {
 
   // Delivery Monitoring
   getDeliveries: () => axiosInstance.get<ApiResponse<Delivery[]>>("/admin/deliveries"),
-  getCouriers: () => axiosInstance.get<ApiResponse<Courier[]>>("/admin/couriers"),
+  getCouriers: (params?: CourierListParams) => axiosInstance.get<ApiResponse<Courier[]>>("/admin/couriers", { params: { limit: 100, ...params } }),
+  getCouriersCount: (params?: CourierListParams) => axiosInstance.get<ApiResponse<{ total: number }>>("/admin/couriers/count", { params }),
+  setCourierApproval: (id: string, approvalStatus: "APPROVED" | "SUSPENDED" | "REJECTED") =>
+    axiosInstance.patch<ApiResponse<null>>(`/admin/couriers/${id}/approval`, { approvalStatus }),
+  getAllCouriersPendingEarnings: (courierType?: "OFFICE" | "FREELANCE") =>
+    axiosInstance.get<ApiResponse<any[]>>("/admin/delivery-settlements/courier/all-pending", { params: courierType ? { courierType } : {} }),
+  getDeliveryFinancialOverview: () => axiosInstance.get<ApiResponse<any>>("/admin/delivery-settlements/overview"),
+  // User / courier review
+  getUserProfile: (userId: string, role: string) =>
+    axiosInstance.get<ApiResponse<{ role: string; profile: any }>>(`/admin/users/${userId}/profile`, { params: { role } }),
+  getCourierDetails: (courierId: string) => axiosInstance.get<ApiResponse<CourierDetails>>(`/admin/couriers/${courierId}/details`),
+  // Ratings
+  getDeliveryRatings: (params?: { courierId?: string; deliveryOfficeId?: string; page?: number; limit?: number }) =>
+    axiosInstance.get<ApiResponse<DeliveryRatingsResult>>("/admin/delivery-ratings", { params }),
+  getVendorRatings: (vendorId: string, params?: { limit?: number; offset?: number }) =>
+    axiosInstance.get<ApiResponse<VendorReview[]>>(`/admin/vendors/${vendorId}/ratings`, { params }),
   deactivateCourier: (id: string) => axiosInstance.patch<ApiResponse<null>>(`/admin/couriers/${id}/deactivate`, {}),
 
   // Financial Overview
@@ -93,7 +111,13 @@ export const adminApi = {
   getPlatformFinancialOverview: () => axiosInstance.get<ApiResponse<any>>("/admin/settlements/overview"),
 
   // Delivery Offices
-  getDeliveryOffices: () => axiosInstance.get<ApiResponse<any[]>>("/admin/delivery-offices"),
+  getDeliveryOffices: (approvalStatus?: string) =>
+    axiosInstance.get<ApiResponse<any[]>>("/admin/delivery-offices", { params: approvalStatus ? { approvalStatus } : {} }),
+  createDeliveryOffice: (data: { managerName: string; email: string; password: string; name: string; phone: string; address: string }) =>
+    axiosInstance.post<ApiResponse<any>>("/admin/delivery-offices", data),
+  getOfficeDetails: (officeId: string) => axiosInstance.get<ApiResponse<OfficeDetails>>(`/admin/delivery-offices/${officeId}/details`),
+  setOfficeApproval: (officeId: string, approvalStatus: "APPROVED" | "SUSPENDED") =>
+    axiosInstance.patch<ApiResponse<null>>(`/admin/delivery-offices/${officeId}/approval`, { approvalStatus }),
 
   // Courier Settlements (Delivery)
   getCourierPendingEarnings: (courierId: string) =>
@@ -204,3 +228,64 @@ export const adminApi = {
   updateGlobalProduct: (id: string, body: Partial<GlobalProduct>) => axiosInstance.patch<ApiResponse<null>>(`/admin/global-products/${id}`, body),
   deleteGlobalProduct: (id: string) => axiosInstance.delete<ApiResponse<null>>(`/admin/global-products/${id}`),
 };
+
+export interface DeliveryRatingItem {
+  id: string;
+  deliveryId: string;
+  customerOrderId: string;
+  courierId: string;
+  courierName: string | null;
+  deliveryOfficeId: string | null;
+  officeName: string | null;
+  stars: number;
+  comment: string | null;
+  createdAt: string;
+}
+
+export interface DeliveryRatingsResult {
+  summary: { averageRating: number | null; totalRatings: number; distribution: Record<string, number> };
+  items: DeliveryRatingItem[];
+  hasNextPage: boolean;
+}
+
+export interface VendorReview {
+  id: string;
+  orderId: string;
+  customerName?: string;
+  stars: number;
+  comment?: string;
+  createdAt: string;
+}
+
+export interface CourierDetails {
+  courier: Courier & { ratingCount?: number; cancellationCount?: number; lastSeenAt?: string | null };
+  office: { id: string; name: string; phone: string | null } | null;
+  stats: { active: number; delivered: number; failed: number; cancellations: number; unsettledCash: number };
+}
+
+export interface OfficeDetails {
+  office: {
+    id: string;
+    userId: string;
+    name: string;
+    phone?: string;
+    address?: string;
+    isActive: boolean;
+    approvalStatus: "PENDING_REVIEW" | "APPROVED" | "SUSPENDED";
+    ownerNationalIdUrl?: string | null;
+    commercialRegisterUrl?: string | null;
+    rating: number | null;
+    ratingCount: number;
+    createdAt: string;
+  };
+  stats: { couriers: number; activeCouriers: number; activeDeliveries: number; delivered: number; failed: number };
+}
+
+export interface CourierListParams {
+  courierType?: "OFFICE" | "FREELANCE";
+  approvalStatus?: string;
+  search?: string;
+  status?: string;
+  page?: number;
+  limit?: number;
+}

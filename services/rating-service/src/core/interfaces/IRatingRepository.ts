@@ -6,4 +6,5 @@ export interface IRatingRepository {
     findByOrderId(orderId: string): Promise<Rating | null>;
     findByOrderAndVendor(orderId: string, vendorId: string): Promise<Rating | null>;
     findByVendorId(vendorId: string, limit: number, offset: number): Promise<Rating[]>;
+    findByOrderAndCustomer(orderId: string, customerUserId: string): Promise<Rating[]>;
 }

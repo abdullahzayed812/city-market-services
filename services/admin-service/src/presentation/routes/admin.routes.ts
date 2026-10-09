@@ -12,9 +12,16 @@ export const createAdminRoutes = (controller: AdminController): Router => {
 
   router.post("/vendors/:vendorId/suspend", authorize(UserRole.ADMIN), controller.suspendVendor);
   router.get("/couriers", authorize(UserRole.ADMIN), controller.getAllCouriers);
+  router.get("/couriers/count", authorize(UserRole.ADMIN), controller.getCouriersCount);
   router.post("/couriers/:courierId/deactivate", authorize(UserRole.ADMIN), controller.deactivateCourier);
+  // The dashboard calls PATCH; POST kept for existing callers
+  router.patch("/couriers/:courierId/deactivate", authorize(UserRole.ADMIN), controller.deactivateCourier);
+  router.patch("/couriers/:courierId/approval", authorize(UserRole.ADMIN), controller.setCourierApproval);
+  router.get("/couriers/:courierId/details", authorize(UserRole.ADMIN), controller.getCourierDetails);
   router.get("/users", authorize(UserRole.ADMIN), controller.getAllUsers);
   router.get("/users/:id", authorize(UserRole.ADMIN), controller.getUserById);
+  // Role-specific profile (courier incl. identity documents, customer, vendor, office)
+  router.get("/users/:id/profile", authorize(UserRole.ADMIN), controller.getUserProfile);
   router.patch("/users/:id/status", authorize(UserRole.ADMIN), controller.updateUserStatus);
   router.get("/vendors/:id", authorize(UserRole.ADMIN), controller.getVendorById);
   router.patch("/vendors/:id", authorize(UserRole.ADMIN), controller.updateVendor);
@@ -62,6 +69,13 @@ export const createAdminRoutes = (controller: AdminController): Router => {
 
   // Delivery Offices
   router.get("/delivery-offices", authorize(UserRole.ADMIN), controller.getAllDeliveryOffices);
+  router.post("/delivery-offices", authorize(UserRole.ADMIN), controller.createDeliveryOffice);
+  router.get("/delivery-offices/:officeId/details", authorize(UserRole.ADMIN), controller.getOfficeDetails);
+  router.patch("/delivery-offices/:officeId/approval", authorize(UserRole.ADMIN), controller.setOfficeApproval);
+
+  // Ratings: delivery ratings (couriers/offices) and a vendor's reviews
+  router.get("/delivery-ratings", authorize(UserRole.ADMIN), controller.getDeliveryRatings);
+  router.get("/vendors/:vendorId/ratings", authorize(UserRole.ADMIN), controller.getVendorRatings);
 
   // Delivery Fee Tiers
   router.get("/delivery-fee-tiers", authorize(UserRole.ADMIN), controller.getAllDeliveryFeeTiers);
@@ -70,6 +84,8 @@ export const createAdminRoutes = (controller: AdminController): Router => {
   router.delete("/delivery-fee-tiers/:id", authorize(UserRole.ADMIN), controller.deleteDeliveryFeeTier);
 
   // Courier Settlements
+  router.get("/delivery-settlements/courier/all-pending", authorize(UserRole.ADMIN), controller.getAllCouriersPendingEarnings);
+  router.get("/delivery-settlements/overview", authorize(UserRole.ADMIN), controller.getDeliveryFinancialOverview);
   router.get("/delivery-settlements/courier/:courierId/pending", authorize(UserRole.ADMIN), controller.getCourierPendingEarnings);
   router.get("/delivery-settlements/courier", authorize(UserRole.ADMIN), controller.getCourierSettlements);
   router.post("/delivery-settlements/courier", authorize(UserRole.ADMIN), controller.createCourierSettlement);

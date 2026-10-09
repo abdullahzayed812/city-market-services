@@ -11,6 +11,7 @@ import { AuthService } from "@/services/api/authService";
 import { useAuthStore } from "@/store/authStore";
 import { useTranslation } from "react-i18next";
 import toast from "react-hot-toast";
+import { DEMO_MODE, DEMO_ACCOUNTS, DEMO_PASSWORD } from "@/config/demo";
 
 type FormData = {
   email: string;
@@ -39,9 +40,10 @@ export default function LoginPage() {
     [t],
   );
 
-  const { register, handleSubmit, formState: { errors } } = useForm<FormData>({
+  const { register, handleSubmit, setValue, formState: { errors } } = useForm<FormData>({
     resolver: zodResolver(schema),
-    defaultValues: { email: "customer@citymarket.com", password: "password123" },
+    // Demo account prefilled while DEMO_MODE is on (see src/config/demo.ts)
+    defaultValues: DEMO_MODE ? { email: DEMO_ACCOUNTS[0].email, password: DEMO_PASSWORD } : { email: "", password: "" },
   });
 
   const onSubmit = async (data: FormData) => {
@@ -170,6 +172,31 @@ export default function LoginPage() {
               {t('auth.login_button')}
             </Button>
           </form>
+
+          {/* One-tap demo accounts while DEMO_MODE is on (src/config/demo.ts) */}
+          {DEMO_MODE && (
+            <div className="mt-6 border-t border-border pt-4">
+              <p className="text-xs font-semibold text-text-muted mb-2 text-center">{t("auth.demo_accounts")}</p>
+              <div className="grid gap-2">
+                {DEMO_ACCOUNTS.map((account) => (
+                  <Button
+                    key={account.email}
+                    type="button"
+                    variant="outline"
+                    fullWidth
+                    disabled={loading}
+                    onClick={() => {
+                      setValue("email", account.email);
+                      setValue("password", DEMO_PASSWORD);
+                      onSubmit({ email: account.email, password: DEMO_PASSWORD });
+                    }}
+                  >
+                    {account.label} · {account.email}
+                  </Button>
+                ))}
+              </div>
+            </div>
+          )}
 
           <p className="mt-7 text-center text-sm text-text-muted">
             {t('auth.no_account')}{" "}

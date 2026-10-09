@@ -5,8 +5,14 @@ import { adminApi } from "@/services/api/admin-api";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { User, Mail, Shield, UserCheck, UserMinus, Plus } from "lucide-react";
-import { UserStatus, type User as SharedUser } from "@city-market/shared";
+import { User, Mail, Shield, UserCheck, UserMinus, Plus, Eye } from "lucide-react";
+import { UserDetailsDialog } from "@/features/users/components/UserDetailsDialog";
+import { UserRole, UserStatus, type User as SharedUser } from "@city-market/shared";
+import { ListToolbar, FilterSelect } from "@/components/ListToolbar";
+import { Pagination } from "@/components/ui/pagination";
+import { useDebouncedValue } from "@/hooks/useDebouncedValue";
+
+const PAGE_SIZE = 20;
 import { useToast } from "@/hooks/use-toast";
 import CreateUserDialog from "@/features/users/components/CreateUserDialog";
 
@@ -15,14 +21,28 @@ const UsersManagement: React.FC = () => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [viewUser, setViewUser] = useState<SharedUser | null>(null);
 
-  const { data: users, isLoading } = useQuery({
-    queryKey: ["adminUsers"],
-    queryFn: async () => {
-      const response = await adminApi.getUsers();
-      return response.data.data?.data;
-    },
+  // Server-side filters + paging
+  const [search, setSearch] = useState("");
+  const [role, setRole] = useState("all");
+  const [status, setStatus] = useState("all");
+  const [page, setPage] = useState(1);
+  const debouncedSearch = useDebouncedValue(search.trim());
+  const params = {
+    search: debouncedSearch || undefined,
+    role: role === "all" ? undefined : role,
+    status: status === "all" ? undefined : status,
+  };
+  React.useEffect(() => setPage(1), [debouncedSearch, role, status]);
+
+  const { data, isLoading, isFetching } = useQuery({
+    queryKey: ["adminUsers", params, page],
+    queryFn: async () => (await adminApi.getUsers({ ...params, page, limit: PAGE_SIZE })).data.data,
+    placeholderData: (previous) => previous,
   });
+  const users = data?.data;
+  const total = data?.total ?? 0;
 
   const updateStatusMutation = useMutation({
     mutationFn: ({ id, status }: { id: string; status: UserStatus }) => adminApi.updateUserStatus(id, { status }),
@@ -47,7 +67,7 @@ const UsersManagement: React.FC = () => {
     },
   });
 
-  if (isLoading) return <div className="p-8 text-center">{t("common.loading")}</div>;
+
 
   return (
     <div className="">
@@ -65,7 +85,27 @@ const UsersManagement: React.FC = () => {
         />
       </div>
 
-      <div className="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden">
+      <ListToolbar search={search} onSearchChange={setSearch} searchPlaceholder={t("list.search_users")} total={total}>
+        <FilterSelect
+          value={role}
+          onChange={setRole}
+          allLabel={t("list.all_roles")}
+          options={Object.values(UserRole).map((r) => ({ value: r, label: r }))}
+        />
+        <FilterSelect
+          value={status}
+          onChange={setStatus}
+          allLabel={t("list.all_statuses")}
+          options={[
+            { value: "active", label: t("list.active") },
+            { value: "inactive", label: t("list.inactive") },
+          ]}
+        />
+      </ListToolbar>
+
+      <div className={`bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden ${isFetching ? "opacity-60" : ""}`}>
+        {isLoading && <div className="p-8 text-center">{t("common.loading")}</div>}
+        {!isLoading && users?.length === 0 && <div className="p-8 text-center text-slate-500">{t("list.no_results")}</div>}
         <Table>
           <TableHeader>
             <TableRow>
@@ -104,7 +144,11 @@ const UsersManagement: React.FC = () => {
                     {user.isActive ? t("common.active") : t("common.inactive")}
                   </Badge>
                 </TableCell>
-                <TableCell className="text-end">
+                <TableCell className="text-end whitespace-nowrap">
+                  <Button variant="ghost" size="sm" onClick={() => setViewUser(user)}>
+                    <Eye className="h-4 w-4 me-2" />
+                    {t("user_details.view")}
+                  </Button>
                   <Button
                     variant="ghost"
                     size="sm"
@@ -137,6 +181,8 @@ const UsersManagement: React.FC = () => {
             ))}
           </TableBody>
         </Table>
+        <Pagination currentPage={page} totalPages={Math.max(1, Math.ceil(total / PAGE_SIZE))} onPageChange={setPage} className="py-4" />
+        <UserDetailsDialog user={viewUser} onClose={() => setViewUser(null)} />
       </div>
     </div>
   );

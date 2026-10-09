@@ -14,6 +14,9 @@ export interface Vendor {
   status: ShopStatus;
   commissionRate: number;
   isActive: boolean;
+  // Kept up to date by vendor-service from rating-service (VENDOR_RATING_UPDATED)
+  averageRating?: number;
+  totalRatings?: number;
   createdAt: Date;
   updatedAt: Date;
 }

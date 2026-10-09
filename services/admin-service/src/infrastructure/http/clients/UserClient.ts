@@ -7,6 +7,13 @@ export class UserClient extends BaseClient {
     return response.data;
   }
 
+  // Customer profile (user-service) by auth user id
+  async getCustomerByUserId(userId: string, adminUserId?: string) {
+    const config = await this.getRequestConfig(adminUserId);
+    const response = await this.axiosInstance.get(`/customers/${userId}`, config);
+    return response.data;
+  }
+
   async updateUserStatus(id: string, status: string, userId?: string) {
     const config = await this.getRequestConfig(userId);
     const response = await this.axiosInstance.patch(`/users/${id}/status`, { status }, config);

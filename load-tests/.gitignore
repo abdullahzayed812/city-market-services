@@ -14,3 +14,4 @@ data/generated/
 # Test run output
 reports/*.json
 reports/*.html
+reports/*.md

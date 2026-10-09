@@ -9,7 +9,9 @@ export class CourierSettlementController {
   getCourierPendingEarnings = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
       const { courierId } = req.params;
-      const summary = await this.settlementService.getCourierPendingEarnings(courierId);
+      const userId = req.user?.userId ?? "service";
+      const role = (req.user?.role ?? UserRole.ADMIN) as UserRole;
+      const summary = await this.settlementService.getCourierPendingEarnings(courierId, userId, role);
       res.json(ApiResponse.success(summary));
     } catch (error) {
       next(error);
@@ -63,7 +65,7 @@ export class CourierSettlementController {
     try {
       const userId = req.user?.userId ?? "service";
       const role = (req.user?.role ?? UserRole.ADMIN) as UserRole;
-      const summaries = await this.settlementService.getAllCouriersPendingEarnings(userId, role);
+      const summaries = await this.settlementService.getAllCouriersPendingEarnings(userId, role, req.query.courierType as string | undefined);
       res.json(ApiResponse.success(summaries));
     } catch (error) {
       next(error);

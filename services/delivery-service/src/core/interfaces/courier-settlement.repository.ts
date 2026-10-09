@@ -1,3 +1,4 @@
+import { DeliveryPlatformOverview } from "../dto/courier-settlement.dto";
 import { CourierSettlement } from "../entities/courier-settlement.entity";
 
 export interface ICourierSettlementRepository {
@@ -7,9 +8,5 @@ export interface ICourierSettlementRepository {
   findByOfficeId(deliveryOfficeId: string, limit: number, offset: number, connection?: any): Promise<CourierSettlement[]>;
   findAll(limit: number, offset: number, connection?: any): Promise<CourierSettlement[]>;
   updateStatus(id: string, status: string, settledAt?: Date, connection?: any): Promise<void>;
-  getPlatformOverview(connection?: any): Promise<{
-    totalPendingPayouts: number;
-    totalSettledAmount: number;
-    totalDeliveryFees: number;
-  }>;
+  getPlatformOverview(connection?: any): Promise<DeliveryPlatformOverview>;
 }

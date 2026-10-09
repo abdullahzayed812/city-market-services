@@ -52,19 +52,34 @@ const seedDb = async () => {
       );
     }
 
+    // ── Freelance couriers (no office) ───────────────────────────────────────
+    const freelancers = [
+      { id: SEED_DATA.COURIERS.SAMI, userId: SEED_DATA.USERS.FREELANCER_SAMI, name: "سامي عادل", phone: "+201333333309", vehicle: "Motorcycle", plate: "ك ل م - 501", approval: "APPROVED", available: true },
+      { id: SEED_DATA.COURIERS.TAMER, userId: SEED_DATA.USERS.FREELANCER_TAMER, name: "تامر رضا", phone: "+201333333310", vehicle: "Bicycle", plate: "ك ل م - 502", approval: "PENDING_REVIEW", available: false },
+    ];
+
+    for (const f of freelancers) {
+      await connection.execute(
+        `INSERT IGNORE INTO couriers (id, user_id, delivery_office_id, courier_type, approval_status, full_name, phone, vehicle_type, license_plate, is_available)
+         VALUES (?, ?, NULL, 'FREELANCE', ?, ?, ?, ?, ?, ?)`,
+        [f.id, f.userId, f.approval, f.name, f.phone, f.vehicle, f.plate, f.available],
+      );
+    }
+
     // ── Delivery Fee Tiers ────────────────────────────────────────────────────
-    // courier + office + platform must sum to 100
+    // courier + office + platform must sum to 100; freelance courier + freelance platform too
     const feeTiers = [
-      { minAmount: 0,  maxAmount: 20,   courierPercentage: 60, officePercentage: 30, platformPercentage: 10 }, // صغيرة
-      { minAmount: 20, maxAmount: 40,   courierPercentage: 65, officePercentage: 25, platformPercentage: 10 }, // متوسطة
-      { minAmount: 40, maxAmount: 70,   courierPercentage: 70, officePercentage: 20, platformPercentage: 10 }, // مرتفعة
-      { minAmount: 70, maxAmount: null, courierPercentage: 75, officePercentage: 15, platformPercentage: 10 }, // عالية
+      { minAmount: 0,  maxAmount: 20,   courierPercentage: 60, officePercentage: 30, platformPercentage: 10, freelanceCourier: 80, freelancePlatform: 20 }, // صغيرة
+      { minAmount: 20, maxAmount: 40,   courierPercentage: 65, officePercentage: 25, platformPercentage: 10, freelanceCourier: 82, freelancePlatform: 18 }, // متوسطة
+      { minAmount: 40, maxAmount: 70,   courierPercentage: 70, officePercentage: 20, platformPercentage: 10, freelanceCourier: 85, freelancePlatform: 15 }, // مرتفعة
+      { minAmount: 70, maxAmount: null, courierPercentage: 75, officePercentage: 15, platformPercentage: 10, freelanceCourier: 85, freelancePlatform: 15 }, // عالية
     ];
 
     for (const tier of feeTiers) {
       await connection.execute(
-        `INSERT IGNORE INTO delivery_fee_tiers (id, min_amount, max_amount, courier_percentage, office_percentage, platform_percentage) VALUES (?, ?, ?, ?, ?, ?)`,
-        [randomUUID(), tier.minAmount, tier.maxAmount, tier.courierPercentage, tier.officePercentage, tier.platformPercentage],
+        `INSERT IGNORE INTO delivery_fee_tiers (id, min_amount, max_amount, courier_percentage, office_percentage, platform_percentage, freelance_courier_percentage, freelance_platform_percentage)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        [randomUUID(), tier.minAmount, tier.maxAmount, tier.courierPercentage, tier.officePercentage, tier.platformPercentage, tier.freelanceCourier, tier.freelancePlatform],
       );
     }
 

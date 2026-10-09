@@ -7,7 +7,9 @@ export type SlaType =
   | "vendor_cancellation_decision"
   | "delivery_acceptance"
   | "courier_assignment"
-  | "courier_pickup";
+  | "courier_pickup"
+  // Not a deadline: fires when the office-priority window ends and freelancers may claim
+  | "freelance_open";
 
 export interface SlaJobData {
   slaType: SlaType;

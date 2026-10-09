@@ -1,6 +1,6 @@
 import { Pool, RowDataPacket } from "mysql2/promise";
 import { User } from "../../core/entities/user.entity";
-import { IUserRepository } from "../../core/interfaces/user.repository";
+import { IUserRepository, UserListFilter } from "../../core/interfaces/user.repository";
 import { Database } from "@city-market/shared/node";
 
 export class UserRepository implements IUserRepository {
@@ -55,32 +55,34 @@ export class UserRepository implements IUserRepository {
     return this.mapToEntity(rows[0]);
   }
 
-  async findAll(limit: number, offset: number, role?: string): Promise<Omit<User, "passwordHash">[]> {
-    let query = "SELECT * FROM users";
+  private buildWhere(role?: string, filter: UserListFilter = {}): { where: string; params: any[] } {
+    const clauses: string[] = [];
     const params: any[] = [];
-
     if (role) {
-      query += " WHERE role = ?";
+      clauses.push("role = ?");
       params.push(role);
     }
+    if (filter.search) {
+      clauses.push("email LIKE ?");
+      params.push(`%${filter.search.replace(/[%_\\]/g, "\\$&")}%`);
+    }
+    if (filter.isActive !== undefined) {
+      clauses.push("is_active = ?");
+      params.push(filter.isActive);
+    }
+    return { where: clauses.length ? ` WHERE ${clauses.join(" AND ")}` : "", params };
+  }
 
-    query += " ORDER BY created_at DESC, id DESC LIMIT ? OFFSET ?";
-    params.push(limit, offset);
-
-    const [rows] = await this.pool.query<RowDataPacket[]>(query, params);
+  async findAll(limit: number, offset: number, role?: string, filter: UserListFilter = {}): Promise<Omit<User, "passwordHash">[]> {
+    const { where, params } = this.buildWhere(role, filter);
+    const query = `SELECT * FROM users${where} ORDER BY created_at DESC, id DESC LIMIT ? OFFSET ?`;
+    const [rows] = await this.pool.query<RowDataPacket[]>(query, [...params, limit, offset]);
     return rows.map((row) => this.mapToEntity(row));
   }
 
-  async countAll(role?: string): Promise<number> {
-    let query = "SELECT COUNT(*) as count FROM users";
-    const params: any[] = [];
-
-    if (role) {
-      query += " WHERE role = ?";
-      params.push(role);
-    }
-
-    const [rows] = await this.pool.query<RowDataPacket[]>(query, params);
+  async countAll(role?: string, filter: UserListFilter = {}): Promise<number> {
+    const { where, params } = this.buildWhere(role, filter);
+    const [rows] = await this.pool.query<RowDataPacket[]>(`SELECT COUNT(*) as count FROM users${where}`, params);
     return rows[0].count;
   }
 

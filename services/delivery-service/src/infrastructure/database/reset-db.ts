@@ -24,8 +24,8 @@ const resetDb = async () => {
     const schema = fs.readFileSync(schemaPath, "utf8");
 
     const statements = schema
-      .split(/;\s*$/m) // split on semicolon line endings
-      .map((s) => s.trim())
+      .split(/;\s*(?:\r?\n|$)/)
+      .map((statement) => statement.trim())
       .filter(Boolean);
 
     for (const stmt of statements) {

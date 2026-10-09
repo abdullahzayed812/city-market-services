@@ -11,6 +11,7 @@ export interface CourierSettlement {
   periodStart: Date;
   periodEnd: Date;
   totalDeliveryFees: number;
+  totalCashCollected: number;
   netPayout: number;
   deliveryCount: number;
   notes?: string;

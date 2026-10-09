@@ -10,7 +10,8 @@ export const createMediaRoutes = (controller: MediaController): Router => {
   // POST /media/upload  — multipart/form-data: file, folder, entityId
   router.post(
     "/media/upload",
-    authorize(UserRole.VENDOR, UserRole.ADMIN),
+    // COURIER / DELIVERY_MANAGER: their signup-documents folder only (checked in the controller)
+    authorize(UserRole.VENDOR, UserRole.ADMIN, UserRole.COURIER, UserRole.DELIVERY_MANAGER),
     uploadMemory.single("file"),
     controller.upload,
   );

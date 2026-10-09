@@ -50,6 +50,12 @@ export class RatingRepository implements IRatingRepository {
     return rows.map(this.mapToEntity);
   }
 
+  async findByOrderAndCustomer(orderId: string, customerUserId: string): Promise<Rating[]> {
+    const sql = "SELECT * FROM ratings WHERE order_id = ? AND customer_id = ?";
+    const [rows]: any = await this.db.getPool().query(sql, [orderId, customerUserId]);
+    return rows.map(this.mapToEntity);
+  }
+
   private mapToEntity(row: any): Rating {
     return {
       id: row.id,

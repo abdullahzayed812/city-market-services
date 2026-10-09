@@ -1,10 +1,10 @@
 import { BaseClient } from "./BaseClient";
 
 export class AuthClient extends BaseClient {
-  async getAllUsers(page: number = 1, limit: number = 50, userId?: string, role?: string) {
+  async getAllUsers(page: number = 1, limit: number = 50, userId?: string, role?: string, filter: Record<string, string | undefined> = {}) {
     const config = await this.getRequestConfig(userId);
     const response = await this.axiosInstance.get(`/users`, {
-      params: { page, limit, role },
+      params: { page, limit, role, ...filter },
       ...config,
     });
     return response.data;

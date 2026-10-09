@@ -1,4 +1,5 @@
 import { randomUUID } from "crypto";
+import { PoolConnection } from "mysql2/promise";
 import { IDeliveryOfficeSettlementRepository } from "../../core/interfaces/delivery-office-settlement.repository";
 import { IDeliveryOfficeRepository } from "../../core/interfaces/delivery-office.repository";
 import { IDeliveryRepository } from "../../core/interfaces/delivery.repository";
@@ -7,6 +8,11 @@ import { CreateOfficeSettlementDto, OfficePendingEarningsSummary } from "../../c
 import { Database } from "@city-market/shared/node";
 import { ValidationError, NotFoundError, UnauthorizedError } from "@city-market/shared";
 import { UserRole } from "@city-market/shared";
+
+// M1: earnings belong to the office recorded on the delivery (d.delivery_office_id), not
+// the courier's current office. Only office-fulfilled deliveries carry an office fee.
+const OFFICE_DELIVERIES = `d.status = 'DELIVERED' AND d.office_settlement_id IS NULL
+  AND d.delivery_office_id IS NOT NULL AND (d.fulfillment_type IS NULL OR d.fulfillment_type = 'OFFICE')`;
 
 export class DeliveryOfficeSettlementService {
   constructor(
@@ -29,30 +35,16 @@ export class DeliveryOfficeSettlementService {
     const pool = this.db.getPool();
     const officeId = role === UserRole.ADMIN ? (targetOfficeId ?? null) : await this.resolveOfficeId(userId, role);
 
-    let query: string;
-    let params: any[];
-
-    if (officeId) {
-      query = `SELECT
+    // No office (admin, all offices): the total across offices
+    const [rows]: any = await pool.execute(
+      `SELECT
          COUNT(*) as unsettledDeliveries,
          SUM(d.office_fee_amount) as totalDeliveryFees,
          MIN(d.delivered_at) as oldestUnsettledDeliveryDate
        FROM deliveries d
-       INNER JOIN couriers c ON c.id = d.courier_id
-       WHERE d.status = 'DELIVERED' AND d.office_settlement_id IS NULL
-         AND c.delivery_office_id = ?`;
-      params = [officeId];
-    } else {
-      query = `SELECT
-         COUNT(*) as unsettledDeliveries,
-         SUM(office_fee_amount) as totalDeliveryFees,
-         MIN(delivered_at) as oldestUnsettledDeliveryDate
-       FROM deliveries
-       WHERE status = 'DELIVERED' AND office_settlement_id IS NULL`;
-      params = [];
-    }
-
-    const [rows]: any = await pool.execute(query, params);
+       WHERE ${OFFICE_DELIVERIES} ${officeId ? "AND d.delivery_office_id = ?" : ""}`,
+      officeId ? [officeId] : [],
+    );
     const row = rows[0];
     const totalDeliveryFees = Number(parseFloat(row.totalDeliveryFees || 0).toFixed(2));
     return {
@@ -63,68 +55,72 @@ export class DeliveryOfficeSettlementService {
     };
   }
 
-  async createSettlement(dto: CreateOfficeSettlementDto, userId: string, role: UserRole): Promise<DeliveryOfficeSettlement> {
+  // With a deliveryOfficeId: one settlement for that office. Without: one settlement per
+  // office that has unsettled deliveries in the period (M2), never one mixed settlement.
+  async createSettlement(dto: CreateOfficeSettlementDto, userId: string, role: UserRole): Promise<DeliveryOfficeSettlement | DeliveryOfficeSettlement[]> {
     if (role !== UserRole.ADMIN) {
       throw new UnauthorizedError("only_admin_can_create_office_settlements");
     }
 
-    const officeId = dto.deliveryOfficeId;
-
     const connection = await this.db.beginTransaction();
     try {
-      let query: string;
-      let params: any[];
-
-      if (officeId) {
-        query = `SELECT d.id, d.office_fee_amount as office_fee FROM deliveries d
-           INNER JOIN couriers c ON c.id = d.courier_id
-           WHERE d.status = 'DELIVERED' AND d.office_settlement_id IS NULL
-             AND c.delivery_office_id = ?
-             AND COALESCE(d.delivered_at, d.updated_at) BETWEEN ? AND ?`;
-        params = [officeId, new Date(dto.periodStart), new Date(dto.periodEnd)];
-      } else {
-        query = `SELECT id, office_fee_amount as office_fee FROM deliveries
-           WHERE status = 'DELIVERED' AND office_settlement_id IS NULL
-             AND COALESCE(delivered_at, updated_at) BETWEEN ? AND ?`;
-        params = [new Date(dto.periodStart), new Date(dto.periodEnd)];
-      }
-
-      const [rows]: any = await connection.execute(query, params);
+      // M6: lock the rows so a concurrent settlement can't include the same deliveries
+      const [rows]: any = await connection.execute(
+        `SELECT d.id, d.delivery_office_id, d.office_fee_amount FROM deliveries d
+          WHERE ${OFFICE_DELIVERIES} ${dto.deliveryOfficeId ? "AND d.delivery_office_id = ?" : ""}
+            AND COALESCE(d.delivered_at, d.updated_at) BETWEEN ? AND ?
+          FOR UPDATE`,
+        [...(dto.deliveryOfficeId ? [dto.deliveryOfficeId] : []), new Date(dto.periodStart), new Date(dto.periodEnd)],
+      );
 
       if (rows.length === 0) {
         throw new ValidationError("no_qualifying_deliveries_for_settlement");
       }
 
-      const totalDeliveryFees = Number(
-        rows.reduce((sum: number, r: any) => sum + parseFloat(r.office_fee || 0), 0).toFixed(2),
-      );
+      const byOffice = new Map<string, any[]>();
+      for (const row of rows) {
+        const list = byOffice.get(row.delivery_office_id) ?? [];
+        list.push(row);
+        byOffice.set(row.delivery_office_id, list);
+      }
 
-      const settlement: DeliveryOfficeSettlement = {
-        id: randomUUID(),
-        deliveryOfficeId: officeId,
-        status: OfficeSettlementStatus.PENDING,
-        periodStart: new Date(dto.periodStart),
-        periodEnd: new Date(dto.periodEnd),
-        totalDeliveryFees,
-        netPayout: totalDeliveryFees,
-        deliveryCount: rows.length,
-        notes: dto.notes,
-        createdAt: new Date(),
-      };
-
-      const created = await this.settlementRepo.create(settlement, connection);
-      await this.deliveryRepo.markDeliveriesAsOfficeSettled(
-        rows.map((r: any) => r.id),
-        created.id,
-        connection,
-      );
+      const created: DeliveryOfficeSettlement[] = [];
+      for (const [officeId, officeRows] of byOffice) {
+        created.push(await this.createForOffice(officeId, officeRows, dto, connection));
+      }
 
       await this.db.commit(connection);
-      return created;
+      return dto.deliveryOfficeId ? created[0] : created;
     } catch (error) {
       await this.db.rollback(connection);
       throw error;
     }
+  }
+
+  private async createForOffice(officeId: string, rows: any[], dto: CreateOfficeSettlementDto, connection: PoolConnection): Promise<DeliveryOfficeSettlement> {
+    const totalDeliveryFees = Number(rows.reduce((sum: number, r: any) => sum + parseFloat(r.office_fee_amount || 0), 0).toFixed(2));
+
+    const settlement: DeliveryOfficeSettlement = {
+      id: randomUUID(),
+      deliveryOfficeId: officeId,
+      status: OfficeSettlementStatus.PENDING,
+      periodStart: new Date(dto.periodStart),
+      periodEnd: new Date(dto.periodEnd),
+      totalDeliveryFees,
+      netPayout: totalDeliveryFees,
+      deliveryCount: rows.length,
+      notes: dto.notes,
+      createdAt: new Date(),
+    };
+
+    const created = await this.settlementRepo.create(settlement, connection);
+    const marked = await this.deliveryRepo.markDeliveriesAsOfficeSettled(
+      rows.map((r: any) => r.id),
+      created.id,
+      connection,
+    );
+    if (marked !== rows.length) throw new ValidationError("deliveries_already_settled_retry");
+    return created;
   }
 
   async getSettlements(userId: string, role: UserRole, limit = 10, offset = 0, targetOfficeId?: string): Promise<DeliveryOfficeSettlement[]> {

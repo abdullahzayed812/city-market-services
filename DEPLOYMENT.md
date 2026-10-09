@@ -69,6 +69,8 @@ Edit `.env` — replace every `change_me_*` value:
 nano .env
 ```
 
+Freelance couriers are off by default (`FREELANCE_ENABLED=false`). To turn them on, set it to `true` and review the other settings in the "Freelance couriers" section of `.env`, then restart delivery-service (`docker compose up -d delivery-service`).
+
 **Required secrets to generate:**
 
 ```bash

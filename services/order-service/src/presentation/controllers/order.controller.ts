@@ -145,8 +145,14 @@ export class OrderController {
   getAllOrders = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
       const page = parseInt(req.query.page as string) || 1;
-      const limit = parseInt(req.query.limit as string) || 20;
-      const orders = await this.orderService.getAllOrders(page, limit);
+      const limit = Math.min(parseInt(req.query.limit as string) || 20, 200);
+      const date = (v: unknown) => (typeof v === "string" && v ? new Date(v) : undefined);
+      const orders = await this.orderService.getAllOrders(page, limit, {
+        status: (req.query.status as string) || undefined,
+        search: ((req.query.search as string) || "").replace(/^#/, "").trim() || undefined,
+        createdFrom: date(req.query.from),
+        createdTo: date(req.query.to),
+      });
       res.json(ApiResponse.success(orders));
     } catch (error) {
       next(error);

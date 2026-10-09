@@ -31,7 +31,13 @@ export class Database implements IDatabase {
       password: config.password,
       database: config.database,
       waitForConnections: true,
-      connectionLimit: config.connectionLimit || parseInt(process.env.DB_CONNECTION_LIMIT || "50", 10),
+      // ~10 services share one MySQL (max_connections 151 by default), so each pool
+      // must stay small: 10 x 10 = 100 leaves headroom for migrations/tools.
+      // Requests beyond the limit queue instead of failing with "Too many connections".
+      connectionLimit: config.connectionLimit || parseInt(process.env.DB_CONNECTION_LIMIT || "10", 10),
+      // Release connections opened during a burst instead of holding them forever.
+      maxIdle: parseInt(process.env.DB_MAX_IDLE || "2", 10),
+      idleTimeout: parseInt(process.env.DB_IDLE_TIMEOUT_MS || "30000", 10),
       queueLimit: 0,
     });
   }

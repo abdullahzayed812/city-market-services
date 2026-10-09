@@ -19,6 +19,15 @@ export class RatingController {
         }
     };
 
+    getMyOrderRatings = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+        try {
+            const ratings = await this.ratingService.getMyOrderRatings(req.params.orderId, req.user!.userId);
+            res.json(ApiResponse.success(ratings));
+        } catch (error) {
+            next(error);
+        }
+    };
+
     getVendorRating = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
         try {
             const { vendorId } = req.params;

@@ -13,6 +13,7 @@ export const config = ConfigLoader.load<{
   userServiceUrl: string;
   authServiceUrl: string;
   catalogServiceUrl: string;
+  ratingServiceUrl: string;
   adminServiceClientId: string;
   adminServiceClientSecret: string;
   authServiceTokenUrl: string;
@@ -29,6 +30,7 @@ export const config = ConfigLoader.load<{
   userServiceUrl: { env: "USER_SERVICE_URL", default: "http://localhost:3002" },
   authServiceUrl: { env: "AUTH_SERVICE_URL", default: "http://localhost:3001" },
   catalogServiceUrl: { env: "CATALOG_SERVICE_URL", default: "http://localhost:3004" },
+  ratingServiceUrl: { env: "RATING_SERVICE_URL", default: "http://localhost:3010" },
   adminServiceClientId: { env: "ADMIN_SERVICE_CLIENT_ID", default: "admin-service-id" },
   adminServiceClientSecret: { env: "ADMIN_SERVICE_CLIENT_SECRET", required: true, sensitive: true },
   authServiceTokenUrl: { env: "AUTH_SERVICE_TOKEN_URL", default: "http://localhost:3001/oauth/token" },
