@@ -49,9 +49,12 @@ config:
       fields: ["officeEmail", "officePassword"]
       order: "random"
       skipHeader: true
+    # sequence, not random: an assigned courier is unavailable until DELIVERED, so
+    # two in-flight journeys drawing the same courier failed with courier_not_available.
+    # Journeys in flight (~arrivalRate x 13s) must stay below the courier count.
     - path: "../data/generated/couriers.csv"
       fields: ["courierEmail", "courierPassword", "courierUserId", "poolCourierId", "courierOfficeEmail"]
-      order: "random"
+      order: "sequence"
       skipHeader: true
   plugins:
     expect: {}

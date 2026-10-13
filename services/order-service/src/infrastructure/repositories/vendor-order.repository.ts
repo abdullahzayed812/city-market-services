@@ -56,6 +56,12 @@ export class VendorOrderRepository implements IVendorOrderRepository {
     const [rows] = await conn.execute<RowDataPacket[]>(query, [customerOrderId]);
     return rows.map((row) => this.mapToEntity(row));
   }
+  async findByCustomerOrders(customerOrderIds: string[], connection?: PoolConnection): Promise<VendorOrder[]> {
+    if (customerOrderIds.length === 0) return [];
+    const conn = connection || this.pool;
+    const [rows] = await conn.query<RowDataPacket[]>("SELECT * FROM vendor_orders WHERE customer_order_id IN (?)", [customerOrderIds]);
+    return rows.map((row) => this.mapToEntity(row));
+  }
   async findByVendor(vendorId: string, limit: number, offset: number, connection?: PoolConnection): Promise<VendorOrder[]> {
     const conn = connection || this.pool;
     const query = `

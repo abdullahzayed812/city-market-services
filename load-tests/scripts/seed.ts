@@ -180,6 +180,9 @@ async function seedVendors(client: ReturnType<typeof createApiClient>, count: nu
   const productRows: Record<string, string>[] = [];
   const productsWithOwnerRows: Record<string, string>[] = [];
   let categoryIds: string[] | null = null;
+  // Self-registered merchants wait for admin review and can't add products, so the
+  // profiles are created by the admin (approved at once) for each new VENDOR user.
+  const admin = await loginAccount(client, env.adminEmail, env.seedAccountsPassword);
 
   for (let i = 0; i < count; i++) {
     const account = await registerAccount(client, "VENDOR", "vendor");
@@ -195,8 +198,9 @@ async function seedVendors(client: ReturnType<typeof createApiClient>, count: nu
             address: "Borg El Arab load-test site",
             latitude: 30.87 + Math.random() * 0.02,
             longitude: 29.53 + Math.random() * 0.02,
+            userId: account.userId,
           },
-          authHeader(account.accessToken),
+          authHeader(admin.accessToken),
         ),
       "POST /vendors",
     );
@@ -273,6 +277,7 @@ async function seedCouriers(client: ReturnType<typeof createApiClient>, count: n
   for (const email of env.deliveryManagerEmails) {
     managers.push(await loginAccount(client, email, env.seedAccountsPassword));
   }
+  const admin = await loginAccount(client, env.adminEmail, env.seedAccountsPassword);
 
   const rows: Record<string, string>[] = [];
   for (let i = 0; i < count; i++) {
@@ -290,6 +295,17 @@ async function seedCouriers(client: ReturnType<typeof createApiClient>, count: n
           authHeader(manager.accessToken),
         ),
       "POST /delivery/couriers",
+    );
+    // Manager-created couriers start PENDING_REVIEW and get courier_not_approved
+    // on every delivery action until an admin approves them.
+    await withRetry(
+      () =>
+        client.patch(
+          `/delivery/couriers/${courierRes.data.data.id}/approval`,
+          { approvalStatus: "APPROVED" },
+          authHeader(admin.accessToken),
+        ),
+      "PATCH /delivery/couriers/:id/approval",
     );
     rows.push({
       email: account.email,

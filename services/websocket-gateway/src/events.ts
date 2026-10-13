@@ -46,6 +46,7 @@ const NO_ENRICHMENT_EVENTS = new Set<string>([
   EventType.DELIVERY_RETURNED_TO_POOL,
   EventType.COURIER_APPROVAL_UPDATED,
   EventType.OFFICE_APPROVAL_UPDATED,
+  EventType.VENDOR_APPROVAL_UPDATED,
 ]);
 
 export const setupEventConsumer = async (io: Server) => {
@@ -133,6 +134,10 @@ export const setupEventConsumer = async (io: Server) => {
     }
     if (type === EventType.OFFICE_APPROVAL_UPDATED && payload.officeUserId) {
       io.to(`user:${payload.officeUserId}`).emit(type, { approvalStatus: payload.approvalStatus });
+    }
+    // The merchant's app / dashboard refetches its store and leaves (or enters) the pending screen
+    if (type === EventType.VENDOR_APPROVAL_UPDATED && payload.vendorUserId) {
+      io.to(`user:${payload.vendorUserId}`).emit(type, { approvalStatus: payload.approvalStatus });
     }
   };
 

@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate, useLocation, Link } from "react-router-dom";
 import { useAuth } from "../components/AuthProvider";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
@@ -200,9 +200,9 @@ const LoginPage: React.FC = () => {
                 </div>
               </div>
               <div className="text-sm text-center text-slate-600 font-medium">
-                <a href="/register" className="text-orange-600 font-bold hover:underline underline-offset-4">
+                <Link to="/register" className="text-orange-600 font-bold hover:underline underline-offset-4">
                   {t("auth.register_store")}
-                </a>
+                </Link>
               </div>
             </CardFooter>
           </Card>

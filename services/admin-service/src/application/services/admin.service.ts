@@ -36,8 +36,17 @@ export class AdminService {
     return this.serviceClient.order.getAllOrders(page, limit, userId, filter);
   }
 
-  async getAllVendors(page: number = 1, limit: number = 50, userId?: string) {
-    return this.serviceClient.vendor.getAllVendors(page, limit, userId);
+  async getAllVendors(page: number = 1, limit: number = 50, userId?: string, approvalStatus?: string) {
+    return this.serviceClient.vendor.getAllVendors(page, limit, userId, approvalStatus);
+  }
+
+  async setVendorApproval(vendorId: string, status: string, note: string | undefined, userId?: string) {
+    Logger.warn(`Setting vendor ${vendorId} approval to ${status}`);
+    return this.serviceClient.vendor.setVendorApproval(vendorId, status, note, userId);
+  }
+
+  async getVendorApprovalHistory(vendorId: string, userId?: string) {
+    return this.serviceClient.vendor.getVendorApprovalHistory(vendorId, userId);
   }
 
   async suspendVendor(vendorId: string, userId?: string) {

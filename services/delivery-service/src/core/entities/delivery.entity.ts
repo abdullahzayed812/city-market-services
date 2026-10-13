@@ -47,3 +47,8 @@ export interface Delivery {
   createdAt: Date;
   updatedAt: Date;
 }
+
+// The vendor orders a delivery carries. delivery_pickup_locations is the authoritative
+// delivery -> vendor order association; customer_order_id alone would match every
+// delivery of a split order.
+export const pickupVendorOrderIds = (delivery: Delivery): string[] => (delivery.pickupLocations || []).map((pl) => pl.vendorOrderId);

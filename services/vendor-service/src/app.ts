@@ -42,7 +42,7 @@ export const createApp = () => {
   const workingHoursRepo = new WorkingHoursRepository(db);
   const publisher = new VendorPublisher(rabbitMQBus);
 
-  const vendorService = new VendorService(vendorRepo, workingHoursRepo, publisher);
+  const vendorService = new VendorService(vendorRepo, workingHoursRepo, publisher, db);
 
   const vendorController = new VendorController(vendorService);
 

@@ -285,10 +285,30 @@ How to fix (proposed 2026-10-09, not applied yet):
 
 | Sev | Finding | Where |
 | --- | --- | --- |
-| 🔴 | Public `POST /auth/register` accepts **any** role, including `ADMIN`. Anyone can create an admin account. Also `/users`, `/users/:id`, `/users/:id/status` on auth-service have no `authenticate`. | `auth-service` `auth.service.ts` `register`, `auth.routes.ts` |
-| 🟠 | When vendors are far apart the order is split into several deliveries, and **each** gets the full order `delivery_fee` (courier/office fees and now cash are counted once per delivery). | `delivery.service.ts` `createDeliveryFromOrder` → `createIndividualDelivery` |
+| ✅ / 🔴 | ~~Public `POST /auth/register` accepts **any** role, including `ADMIN`.~~ Fixed 2026-10-14: public signup allows CUSTOMER, VENDOR, COURIER and DELIVERY_MANAGER only (offices self-register since c39e8bb); other roles need a service token (admin-service). **Still open:** `/users`, `/users/:id`, `/users/:id/status` on auth-service have no `authenticate`. | `auth-service` `auth.service.ts` `register`, `auth.routes.ts` |
+| ✅ | ~~When vendors are far apart the order is split into several deliveries, and **each** gets the full order `delivery_fee`.~~ Fixed 2026-10-14: `divideDeliveryFee` splits the fee the customer paid across the deliveries, weighted by each store's distance to the customer (equal shares without coordinates), rounding remainder on the last one, so they sum to exactly the order fee. Each delivery snapshots the fee tier for its own share. | `delivery.service.ts` `createDeliveryFromOrder` |
+| ✅ | Split orders: order-service applied each delivery's events to the **whole** customer order. The first delivery to arrive completed the order (and re-published every vendor order's items, so catalog committed stock twice and committed the other deliveries' items early); one failed delivery cancelled the order and released stock of vendor orders that other deliveries were still carrying. Fixed 2026-10-14, see §6.1. | `order-service` `delivery-updated.consumer.ts`, `order.service.ts` |
 | 🟡 | `user-service` calls `PATCH /couriers/:id/deactivate` with no auth header, so it always gets 401. | `user-service/src/infrastructure/http/service-client.ts` |
 | ✅ | ~~The Courier app's "Cancel Delivery" button sat next to "I can't deliver this".~~ Fixed 2026-10-09: the details screen labels it "Report a customer problem". | `mobile/Courier/src/screens/DeliveryDetailsScreen.tsx` |
+
+### 6.1 Split deliveries and their vendor orders (fixed 2026-10-14)
+
+`delivery_pickup_locations (delivery_id, vendor_order_id)` is the authoritative delivery → vendor order association. It was already written correctly at creation (one delivery per vendor order when any two stores are more than 2 km apart, otherwise one delivery with all of them), and the delivery read paths (`enrichDeliveriesWithOrderData`) already filter the customer order's vendor orders through it. No schema change was needed.
+
+The over-inclusion happened downstream, in order-service, which keyed every delivery event on `customerOrderId`:
+
+- `ORDER_DELIVERED` of the first delivery set the customer order to `COMPLETED` while the others were still on the way. `updateCustomerOrderStatus(COMPLETED)` then re-published `ORDER_DELIVERED` with the items of **every** vendor order; catalog commits stock on that event, so delivered items were committed twice (once per delivery event, once again here) and the undelivered deliveries' items early. This double commit also affected single-delivery orders.
+- `DELIVERY_FAILED` / `DELIVERY_CANCELLED_BY_COURIER` of one delivery cancelled the whole customer order and released the stock of all its vendor orders, including ones another delivery was carrying or had delivered.
+
+Now:
+
+- delivery-service sends the delivery's own `vendorOrdersIds` (from its pickup locations) on `DELIVERY_FAILED` and `DELIVERY_CANCELLED_BY_COURIER` too (all four publish sites), and includes `requestedWeightGrams` in `ORDER_DELIVERED` items so catalog can release the reservation of weighed items.
+- `advanceCustomerOrderFromDelivery`: the customer order moves forward with the first delivery to reach a stage, never moves back (a later delivery's `PICKED_UP` no longer throws `invalid_customer_order_status_transition`), and becomes `COMPLETED` only when every non-cancelled vendor order is `DELIVERED`.
+- On `COMPLETED`, order-service publishes `ORDER_DELIVERED` items only for vendor orders not already delivered by a delivery (e.g. an admin completing an order by hand), so stock is committed exactly once per item.
+- A failed delivery of a split order cancels only its own vendor orders, releases only their stock, recomputes the order totals over the remaining vendor orders (same convention as a vendor cancellation; the delivery fee is unchanged) and leaves the rest of the order running; the order completes when the remaining deliveries are delivered. When nothing else survives, or the event has no `vendorOrdersIds` (published before this change), the whole order fails as before.
+- `ORDER_STOCK_RELEASE_REQUESTED` items from delivery failures now carry `weightGrams` (catalog's release consumer reads that field; it used to get only `requestedWeightGrams`, so weighed items were never released).
+
+Not verified against a live stack. Legacy deliveries need no backfill: their pickup-location rows already hold the right association.
 
 ---
 

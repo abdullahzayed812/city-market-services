@@ -8,6 +8,7 @@ interface AuthContextType {
   vendor: any;
   token: string | null;
   login: (credentials: any) => Promise<void>;
+  register: (credentials: { email: string; password: string }) => Promise<void>;
   logout: () => void;
   logoutAllDevices: () => Promise<void>;
   refreshVendor: () => Promise<void>;
@@ -65,6 +66,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  // New merchant account: signed in at once, no store yet (VendorGate shows the application)
+  const register = async (credentials: { email: string; password: string }) => {
+    const data = await authService.register(credentials);
+    setAccessToken(data.accessToken);
+    setToken(data.accessToken);
+    setUser(data.user);
+    setVendor(null);
+  };
+
   const logout = async () => {
     try {
       await authService.logout();
@@ -97,7 +107,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   return (
-    <AuthContext.Provider value={{ user, vendor, token, login, logout, logoutAllDevices, refreshVendor, isLoading }}>
+    <AuthContext.Provider value={{ user, vendor, token, login, register, logout, logoutAllDevices, refreshVendor, isLoading }}>
       {children}
     </AuthContext.Provider>
   );

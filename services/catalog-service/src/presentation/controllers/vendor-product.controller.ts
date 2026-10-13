@@ -4,6 +4,7 @@ import { ApiResponse, ValidationError, ForbiddenError, MeasurementType, UserRole
 import { Logger } from "@city-market/shared/node";
 import { AuthenticatedRequest } from "@city-market/shared/node";
 import { VendorClient } from "../../infrastructure/http/vendor-client";
+import { resolveWritableVendorId, assertOwnStore } from "../middlewares/vendor-access";
 
 export class VendorProductController {
   constructor(
@@ -36,7 +37,12 @@ export class VendorProductController {
 
   create = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
-      const product = await this.catalogService.createVendorProduct(req.body);
+      const ownVendorId = await resolveWritableVendorId(req);
+      // Without a globalProductId this would create a new shared catalog product: admins only
+      if (ownVendorId && !req.body?.globalProductId) throw new ForbiddenError("vendor_cannot_create_catalog_products");
+      // A merchant always creates in their own store, whatever the body says
+      const dto = ownVendorId ? { ...req.body, vendorId: ownVendorId } : req.body;
+      const product = await this.catalogService.createVendorProduct(dto);
       Logger.info("Vendor product created", { productId: product.id });
       res.status(201).json(ApiResponse.success(product, "vendor_product_created"));
     } catch (error) {
@@ -119,7 +125,10 @@ export class VendorProductController {
 
   update = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
-      await this.catalogService.updateVendorProduct(req.params.id, req.body);
+      await this.assertCanWriteProduct(req);
+      // vendorId is the product's store; it is never moved through an update
+      const { vendorId: _ignored, ...data } = req.body ?? {};
+      await this.catalogService.updateVendorProduct(req.params.id, data);
       res.json(ApiResponse.success(null, "vendor_product_updated"));
     } catch (error) {
       next(error);
@@ -128,6 +137,7 @@ export class VendorProductController {
 
   updateStock = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
+      await this.assertCanWriteProduct(req);
       if (req.body.stock) {
         await this.catalogService.updateVendorStock(req.params.id, req.body.stock);
       } else if (req.body.weight) {
@@ -143,6 +153,7 @@ export class VendorProductController {
 
   updatePrice = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
+      await this.assertCanWriteProduct(req);
       if (req.body.price) {
         await this.catalogService.updateVendorProductPrice(req.params.id, req.body.price);
       } else {
@@ -205,6 +216,7 @@ export class VendorProductController {
 
   delete = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
+      await this.assertCanWriteProduct(req);
       await this.catalogService.deleteVendorProduct(req.params.id);
       res.json(ApiResponse.success(null, "vendor_product_deleted"));
     } catch (error) {
@@ -232,12 +244,10 @@ export class VendorProductController {
         throw new ValidationError(`item_${invalidIndex}_missing_global_product_id`);
       }
 
-      if (req.user?.role === UserRole.VENDOR) {
-        const authorizationHeader = req.headers.authorization;
-        const ownVendorId = authorizationHeader ? await this.vendorClient.getVendorIdForUser(authorizationHeader) : null;
-        if (!ownVendorId || ownVendorId !== req.params.vendorId) {
-          throw new ForbiddenError("vendor_id_mismatch");
-        }
+      // Approved merchants add to their own store only
+      const ownVendorId = await resolveWritableVendorId(req);
+      if (ownVendorId && ownVendorId !== req.params.vendorId) {
+        throw new ForbiddenError("vendor_id_mismatch");
       }
 
       const result = await this.catalogService.bulkAddVendorProductsFromGlobal(
@@ -253,6 +263,7 @@ export class VendorProductController {
 
   updateImage = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
+      await this.assertCanWriteProduct(req);
       const { imageUrl } = req.body as { imageUrl?: string };
       if (!imageUrl || typeof imageUrl !== "string") {
         throw new ValidationError("image_url_required");
@@ -263,4 +274,12 @@ export class VendorProductController {
       next(error);
     }
   };
+
+  // Approved merchant writing to a product of their own store, or an admin / service
+  private async assertCanWriteProduct(req: AuthenticatedRequest): Promise<void> {
+    const ownVendorId = await resolveWritableVendorId(req);
+    if (!ownVendorId) return;
+    const product = await this.catalogService.getVendorProductById(req.params.id);
+    assertOwnStore(ownVendorId, product.vendorId);
+  }
 }

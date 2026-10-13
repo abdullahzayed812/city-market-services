@@ -11,9 +11,11 @@ export const authService = {
     });
     return response.data?.data;
   },
-  register: async (data: any) => {
+  // Public signup is always a VENDOR account; the store application and admin review come next
+  register: async (data: { email: string; password: string }) => {
     const response = await apiClient.post("/auth/register", {
       ...data,
+      role: "VENDOR",
       deviceId: getOrCreateDeviceId(),
       platform: "web",
       appId: APP_ID,

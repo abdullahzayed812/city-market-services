@@ -380,6 +380,18 @@ export class EventConsumer {
       });
     });
 
+    await rabbitMQBus.subscribe(EventType.VENDOR_APPROVAL_UPDATED, "notification_vendor_approval_updated", async (event: BaseEvent) => {
+      const { vendorUserId, vendorId, approvalStatus } = event.payload;
+      const key =
+        approvalStatus === "APPROVED" ? "notification_vendor_approved" : approvalStatus === "REJECTED" ? "notification_vendor_rejected" : "notification_vendor_suspended";
+      await this.notificationService.sendNotification(vendorUserId, "ACCOUNT_UPDATE", `${key}_title`, `${key}_message`, {
+        type: "ACCOUNT_UPDATE",
+        role: "VENDOR",
+        vendorId,
+        approvalStatus,
+      });
+    });
+
     await rabbitMQBus.subscribe(EventType.DELIVERY_RELEASED_BY_COURIER, "notification_delivery_released_by_courier", async (event: BaseEvent) => {
       const { deliveryId, customerOrderId, customerId, officeUserId } = event.payload;
       if (officeUserId) {

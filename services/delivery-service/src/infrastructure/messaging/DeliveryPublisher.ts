@@ -51,11 +51,30 @@ export class DeliveryPublisher {
     await this.publish(EventType.COURIER_ASSIGNED, data);
   }
 
-  async publishDeliveryFailed(data: { deliveryId: string; customerOrderId: string; customerId: string; deliveryOfficeId?: string | null; courierId?: string }): Promise<void> {
+  // reason becomes the order's cancellation reason in order-service.
+  // vendorOrdersIds: the vendor orders this delivery carries (its pickup locations).
+  // When an order is split, order-service cancels only these, not the whole order.
+  async publishDeliveryFailed(data: {
+    deliveryId: string;
+    customerOrderId: string;
+    customerId: string;
+    reason: string;
+    vendorOrdersIds: string[];
+    deliveryOfficeId?: string | null;
+    courierId?: string;
+  }): Promise<void> {
     await this.publish(EventType.DELIVERY_FAILED, data);
   }
 
-  async publishDeliveryFailedByCourier(data: { deliveryId: string; customerOrderId: string; customerId: string; reason: string; deliveryOfficeId?: string | null; courierId?: string }): Promise<void> {
+  async publishDeliveryFailedByCourier(data: {
+    deliveryId: string;
+    customerOrderId: string;
+    customerId: string;
+    reason: string;
+    vendorOrdersIds: string[];
+    deliveryOfficeId?: string | null;
+    courierId?: string;
+  }): Promise<void> {
     await this.publish(EventType.DELIVERY_CANCELLED_BY_COURIER, data);
   }
 

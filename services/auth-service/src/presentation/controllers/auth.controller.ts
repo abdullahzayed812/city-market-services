@@ -78,7 +78,9 @@ export class AuthController {
   register = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const deviceCtx = this.extractDeviceContext(req);
-      const tokens = await this.authService.register(req.body, deviceCtx);
+      // Only another service (admin-service, on an admin's behalf) may create ADMIN accounts
+      const fromService = (req as any).authType === "service" && !!(req as any).service;
+      const tokens = await this.authService.register(req.body, deviceCtx, fromService);
       Logger.info("User registered", { email: req.body.email });
       this.setTokenCookies(req, res, tokens, deviceCtx.appId);
       res.status(201).json(ApiResponse.success(tokens, "registration_successful"));

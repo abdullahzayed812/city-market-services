@@ -10,6 +10,11 @@ export class RabbitMQBus {
   private connection: any = null;
   private channel: Channel | null = null;
   private isConnected = false;
+  // The exchange is asserted once per channel, not on every publish: that broker
+  // round trip queued behind consumer traffic on the shared channel and, under
+  // load, tripped the 3s publish timeout - failing requests whose DB work had
+  // already committed and dropping events like ORDER_STOCK_CHECK_REQUESTED.
+  private exchangeReady: Promise<unknown> | null = null;
   private handlers: Map<string, EventHandler[]> = new Map();
 
   constructor(private url: string = process.env.RABBITMQ_URL || "amqp://localhost") { }
@@ -20,6 +25,7 @@ export class RabbitMQBus {
     try {
       this.connection = await amqp.connect(this.url);
       this.channel = await this.connection.createChannel();
+      this.exchangeReady = null;
       this.isConnected = true;
       Logger.info("Connected to RabbitMQ");
 
@@ -55,13 +61,22 @@ export class RabbitMQBus {
 
     try {
       const exchange = "citymarket_events";
-      const timeout = new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error("RabbitMQ publish timeout")), 3000)
-      );
-      await Promise.race([
-        this.channel.assertExchange(exchange, "topic", { durable: true }),
-        timeout,
-      ]);
+      if (!this.exchangeReady) {
+        const assertion = this.channel.assertExchange(exchange, "topic", { durable: true });
+        this.exchangeReady = assertion;
+        assertion.catch(() => {
+          if (this.exchangeReady === assertion) this.exchangeReady = null; // retry on the next publish
+        });
+      }
+      let timer: NodeJS.Timeout | undefined;
+      const timeout = new Promise<never>((_, reject) => {
+        timer = setTimeout(() => reject(new Error("RabbitMQ publish timeout")), 3000);
+      });
+      try {
+        await Promise.race([this.exchangeReady, timeout]);
+      } finally {
+        clearTimeout(timer);
+      }
       this.channel.publish(exchange, event.type, Buffer.from(JSON.stringify(event)));
       Logger.info(`Published event ${event.type}`);
     } catch (error) {

@@ -28,5 +28,10 @@ export const env = {
     .map((s) => s.trim())
     .filter(Boolean),
 
+  // Pre-existing ADMIN account from the same seed data. A courier a delivery
+  // manager creates starts PENDING_REVIEW and can't take deliveries until an
+  // admin approves it, so seed.ts approves its couriers as this account.
+  adminEmail: process.env.ADMIN_EMAIL || "admin@citymarket.com",
+
   required,
 };

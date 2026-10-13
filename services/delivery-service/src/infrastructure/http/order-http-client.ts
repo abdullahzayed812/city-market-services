@@ -34,6 +34,20 @@ export class OrderHttpClient {
     }
   }
 
+  // One call for many orders (order-service POST /customer-orders/batch); ids it
+  // doesn't know are simply absent from the result.
+  async getOrders(orderIds: string[], userId?: string): Promise<any[]> {
+    if (orderIds.length === 0) return [];
+    try {
+      const config = await this.getRequestConfig(userId);
+      const response = await this.axiosInstance.post(`${this.baseUrl}/customer-orders/batch`, { ids: orderIds }, config);
+      return response?.data?.data || [];
+    } catch (error: any) {
+      console.error(`Failed to fetch ${orderIds.length} customer orders:`, error.message);
+      throw error;
+    }
+  }
+
   // async updateCustomerOrderStatus(orderId: string, status: CustomerOrderStatus, userId?: string): Promise<void> { // Changed to userId
   //   try {
   //     const config = await this.getRequestConfig(userId);

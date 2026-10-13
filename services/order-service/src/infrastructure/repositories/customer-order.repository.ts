@@ -44,6 +44,13 @@ export class CustomerOrderRepository implements ICustomerOrderRepository {
     return rows.length > 0 ? this.mapToEntity(rows[0]) : null;
   }
 
+  async findByIds(ids: string[], connection?: PoolConnection): Promise<CustomerOrder[]> {
+    if (ids.length === 0) return [];
+    const conn = connection || this.pool;
+    const [rows] = await conn.query<RowDataPacket[]>("SELECT * FROM customer_orders WHERE id IN (?)", [ids]);
+    return rows.map((row) => this.mapToEntity(row));
+  }
+
   async findByIdWithLock(id: string, connection: PoolConnection): Promise<CustomerOrder | null> {
     const query = "SELECT * FROM customer_orders WHERE id = ? FOR UPDATE";
     const [rows] = await connection.execute<RowDataPacket[]>(query, [id]);

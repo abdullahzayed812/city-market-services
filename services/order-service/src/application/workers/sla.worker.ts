@@ -10,6 +10,7 @@ import { OrderStateManager } from "../services/order-state.manager";
 import { ProposalManager } from "../services/proposal.manager";
 import { Database, Logger } from "@city-market/shared/node";
 import { VendorOrderStatus, CustomerOrderStatus, ProposalStatus } from "@city-market/shared";
+import { withTransactionAndEvents } from "../../infrastructure/messaging/after-commit";
 
 export class OrderSlaWorker {
   constructor(
@@ -38,7 +39,7 @@ export class OrderSlaWorker {
   private async handleVendorConfirmationExpired(vendorOrderId: string): Promise<void> {
     Logger.warn(`[SLA] vendor_confirmation expired for vendor-order:${vendorOrderId}`);
 
-    await this.db.withTransaction(async (connection) => {
+    await withTransactionAndEvents(this.db, async (connection) => {
       const vo = await this.vendorOrderRepo.findByIdWithLock(vendorOrderId, connection);
       if (!vo) return;
 
@@ -71,7 +72,7 @@ export class OrderSlaWorker {
   private async handleCustomerDecisionExpired(vendorOrderId: string): Promise<void> {
     Logger.warn(`[SLA] customer_decision expired for vendor-order:${vendorOrderId}`);
 
-    await this.db.withTransaction(async (connection) => {
+    await withTransactionAndEvents(this.db, async (connection) => {
       const vo = await this.vendorOrderRepo.findByIdWithLock(vendorOrderId, connection);
       if (!vo) return;
 
@@ -106,7 +107,7 @@ export class OrderSlaWorker {
   private async handleVendorCancellationDecisionExpired(vendorOrderId: string): Promise<void> {
     Logger.warn(`[SLA] vendor_cancellation_decision expired for vendor-order:${vendorOrderId}`);
 
-    await this.db.withTransaction(async (connection) => {
+    await withTransactionAndEvents(this.db, async (connection) => {
       const vo = await this.vendorOrderRepo.findByIdWithLock(vendorOrderId, connection);
       if (!vo) return;
 

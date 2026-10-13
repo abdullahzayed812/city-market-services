@@ -52,9 +52,18 @@ export async function createClaimableDelivery(client: AxiosInstance): Promise<st
   let deliveryId: string | null = null;
   for (let attempt = 0; attempt < 15 && !deliveryId; attempt++) {
     await sleep(1000);
-    const pendingRes = await withRetry(() => client.get("/delivery/deliveries/pending", authHeader(manager.accessToken)), "GET /delivery/deliveries/pending");
-    const match = (pendingRes.data.data || []).find((d: any) => d.customerOrderId === orderId);
-    if (match) deliveryId = match.id;
+    // The list is oldest-first and paginated, so a new delivery can sit behind a
+    // backlog left by earlier runs - page through it instead of reading page 1 only.
+    for (let page = 1; !deliveryId; page++) {
+      const pendingRes = await withRetry(
+        () => client.get(`/delivery/deliveries/pending?page=${page}&limit=100`, authHeader(manager.accessToken)),
+        "GET /delivery/deliveries/pending",
+      );
+      const rows: any[] = pendingRes.data.data || [];
+      const match = rows.find((d: any) => d.customerOrderId === orderId);
+      if (match) deliveryId = match.id;
+      if (rows.length < 100) break;
+    }
   }
 
   if (!deliveryId) {

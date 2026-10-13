@@ -41,6 +41,13 @@ export class VendorOrderItemRepository implements IVendorOrderItemRepository {
     return rows.map((row) => this.mapToEntity(row));
   }
 
+  async findByVendorOrders(vendorOrderIds: string[], connection?: PoolConnection): Promise<VendorOrderItem[]> {
+    if (vendorOrderIds.length === 0) return [];
+    const conn = connection || this.pool;
+    const [rows] = await conn.query<RowDataPacket[]>("SELECT * FROM vendor_order_items WHERE vendor_order_id IN (?)", [vendorOrderIds]);
+    return rows.map((row) => this.mapToEntity(row));
+  }
+
   async findById(id: string, connection?: PoolConnection): Promise<VendorOrderItem | null> {
     const conn = connection || this.pool;
     const query = "SELECT * FROM vendor_order_items WHERE id = ?";

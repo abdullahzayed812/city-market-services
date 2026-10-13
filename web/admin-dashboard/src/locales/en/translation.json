@@ -452,5 +452,26 @@
     "search_offices": "Search by office name or phone…",
     "search_categories": "Search categories…",
     "no_results": "No results match the filters"
+  },
+  "vendor_review": {
+    "title": "Merchant review",
+    "review": "Review",
+    "approval": "Approval",
+    "submitted": "Submitted",
+    "open_map": "Open map",
+    "owner_national_id": "Owner's national ID",
+    "commercial_register": "Commercial register",
+    "tax_card": "Tax card",
+    "history": "Review history",
+    "resubmitted": "Resubmitted after changes",
+    "last_reason": "Reason given to the merchant",
+    "confirm": "Confirm",
+    "confirm_approved": "Approve this store? The merchant can then add products and open the store.",
+    "confirm_rejected": "Reject this application? The merchant sees your reason and can fix and resubmit.",
+    "confirm_suspended": "Suspend this store? It is closed at once and the merchant can't operate it.",
+    "reason_placeholder": "Reason (required, shown to the merchant)",
+    "note_placeholder": "Note (optional)",
+    "reason_required": "Write a reason; the merchant will see it.",
+    "decision_saved": "Decision saved"
   }
 }

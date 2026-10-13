@@ -29,10 +29,14 @@ export class OrderCreationManager {
     private commissionTierService: CommissionTierService,
   ) {}
 
+  // Reads (catalog, vendor, commission tiers) run before the transaction opens.
+  // getAllTiers() reads through the pool, so calling it while holding a transaction
+  // connection deadlocked the pool once connectionLimit orders were mid-create: each
+  // waited forever for another connection.
   async create(
     dto: CreateOrderDto,
-    userId?: string,
-    connection?: PoolConnection,
+    userId: string | undefined,
+    runInTransaction: <T>(fn: (connection: PoolConnection) => Promise<T>) => Promise<T>,
   ): Promise<{ order: CustomerOrder; vendorOrders: (VendorOrder & { items: VendorOrderItem[] })[] }> {
     if (dto.items.length === 0) {
       throw new ValidationError("order_must_have_at_least_one_item");
@@ -56,24 +60,30 @@ export class OrderCreationManager {
 
     const { totalSubtotal, totalCommissionAmount, vendorOrdersData } = this.calculateTotals(vendorItemsMap, tiers, vendorInfosMap);
 
-    const customerOrder = await this.createCustomerOrderRecords(dto, totalSubtotal, totalCommissionAmount, vendorInfosMap, connection!);
-    const createdVendorOrders = await this.createVendorOrderRecords(customerOrder, vendorOrdersData, vendorInfosMap, connection!);
+    // runInTransaction is withTransactionAndEvents: these publishes are queued and go
+    // out only after the commit. A failed publish is logged rather than failing the
+    // request, so a customer never gets a 500 (and retries) for an order that exists.
+    const { customerOrder, createdVendorOrders } = await runInTransaction(async (connection) => {
+      const customerOrder = await this.createCustomerOrderRecords(dto, totalSubtotal, totalCommissionAmount, vendorInfosMap, connection);
+      const createdVendorOrders = await this.createVendorOrderRecords(customerOrder, vendorOrdersData, vendorInfosMap, connection);
 
-    await this.publisher.publishOrderStockCheckRequested({
-      orderId: customerOrder.id,
-      items: dto.items,
-    });
-
-    for (const vo of createdVendorOrders) {
-      const vendorInfo = vendorInfosMap.get(vo.vendorId);
-      await this.publisher.publishVendorOrderCreated({
-        vendorOrderId: vo.id,
-        vendorId: vo.vendorId,
-        vendorUserId: vendorInfo?.userId,
-        customerOrderId: customerOrder.id,
-        customerId: customerOrder.customerId,
+      await this.publisher.publishOrderStockCheckRequested({
+        orderId: customerOrder.id,
+        items: dto.items,
       });
-    }
+
+      for (const vo of createdVendorOrders) {
+        const vendorInfo = vendorInfosMap.get(vo.vendorId);
+        await this.publisher.publishVendorOrderCreated({
+          vendorOrderId: vo.id,
+          vendorId: vo.vendorId,
+          vendorUserId: vendorInfo?.userId,
+          customerOrderId: customerOrder.id,
+          customerId: customerOrder.customerId,
+        });
+      }
+      return { customerOrder, createdVendorOrders };
+    });
 
     return { order: customerOrder, vendorOrders: createdVendorOrders };
   }

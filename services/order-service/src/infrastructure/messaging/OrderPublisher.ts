@@ -1,6 +1,7 @@
 import { BaseEvent, EventType } from "@city-market/shared";
 import { RabbitMQBus } from "@city-market/shared/node";
 import { randomUUID } from "crypto";
+import { deferUntilCommit } from "./after-commit";
 
 export class OrderPublisher {
   constructor(private eventBus: RabbitMQBus) {}
@@ -12,6 +13,8 @@ export class OrderPublisher {
       timestamp: new Date(),
       payload,
     };
+    // Inside withTransactionAndEvents() this goes out only after the commit
+    if (deferUntilCommit(() => this.eventBus.publish(event))) return;
     await this.eventBus.publish(event);
   }
 

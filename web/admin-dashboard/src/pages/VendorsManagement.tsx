@@ -5,7 +5,9 @@ import { adminApi } from "@/services/api/admin-api";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Store, Phone, Plus, Edit, PackagePlus } from "lucide-react";
+import { Store, Phone, Plus, Edit, PackagePlus, Eye } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { VendorReviewPanel, VENDOR_APPROVAL_BADGE } from "@/features/vendors/components/VendorReviewPanel";
 import { ShopStatus, VendorType } from "@city-market/shared";
 import { ListToolbar, FilterSelect } from "@/components/ListToolbar";
 import { Pagination } from "@/components/ui/pagination";
@@ -17,6 +19,9 @@ import VendorFormDialog from "@/features/vendors/components/VendorFormDialog";
 import AddVendorProductsDialog from "@/features/vendors/components/AddVendorProductsDialog";
 import ImageUploader from "@/components/ImageUploader";
 
+type ApprovalFilter = "ALL" | "PENDING_REVIEW" | "APPROVED" | "REJECTED" | "SUSPENDED";
+const APPROVAL_FILTERS: ApprovalFilter[] = ["ALL", "PENDING_REVIEW", "APPROVED", "REJECTED", "SUSPENDED"];
+
 const VendorsManagement: React.FC = () => {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
@@ -27,13 +32,18 @@ const VendorsManagement: React.FC = () => {
   const [isAddProductsOpen, setIsAddProductsOpen] = useState(false);
   const [vendorForProducts, setVendorForProducts] = useState<any>(null);
 
+  // Merchant applications: filter by approval (server side), review in a dialog
+  const [approvalFilter, setApprovalFilter] = useState<ApprovalFilter>("ALL");
+  const [reviewId, setReviewId] = useState<string | null>(null);
+
   const { data: vendors, isLoading } = useQuery({
-    queryKey: ["adminVendors"],
+    queryKey: ["adminVendors", approvalFilter],
     queryFn: async () => {
-      const response = await adminApi.getVendors();
+      const response = await adminApi.getVendors(approvalFilter === "ALL" ? undefined : approvalFilter);
       return response.data.data;
     },
   });
+  const reviewing = (vendors ?? []).find((v: any) => v.id === reviewId) ?? null;
 
   const updateStatusMutation = useMutation({
     mutationFn: ({ id, status }: { id: string; status: ShopStatus }) => adminApi.updateVendorStatus(id, { status }),
@@ -41,6 +51,7 @@ const VendorsManagement: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ["adminVendors"] });
       toast({ description: t("vendors.status_updated") });
     },
+    onError: (error: any) => toast({ variant: "destructive", description: error.response?.data?.message || t("common.error") }),
   });
 
   const updateVendorMutation = useMutation({
@@ -85,8 +96,6 @@ const VendorsManagement: React.FC = () => {
     },
   });
 
-  if (isLoading) return <div className="p-8 text-center">{t("common.loading")}</div>;
-
   // Vendors are loaded in full; filter and page here
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("all");
@@ -100,7 +109,9 @@ const VendorsManagement: React.FC = () => {
         (!q || [v.shopName, v.phone, v.address].some((field) => field?.toLowerCase().includes(q))),
     );
   }, [vendors, search, status, type]);
-  const { page, setPage, totalPages, pageItems } = useClientPagination(filtered, PAGE_SIZE, `${search}|${status}|${type}`);
+  const { page, setPage, totalPages, pageItems } = useClientPagination(filtered, PAGE_SIZE, `${search}|${status}|${type}|${approvalFilter}`);
+
+  if (isLoading) return <div className="p-8 text-center">{t("common.loading")}</div>;
 
   return (
     <div className="">
@@ -129,6 +140,14 @@ const VendorsManagement: React.FC = () => {
         />
       </div>
 
+      <div className="flex flex-wrap gap-2 mt-4">
+        {APPROVAL_FILTERS.map((key) => (
+          <Button key={key} size="sm" variant={approvalFilter === key ? "default" : "outline"} onClick={() => setApprovalFilter(key)}>
+            {key === "ALL" ? t("couriers.filter_all") : t(`couriers.approval_${key.toLowerCase()}`)}
+          </Button>
+        ))}
+      </div>
+
       <ListToolbar search={search} onSearchChange={setSearch} searchPlaceholder={t("list.search_vendors")} total={filtered.length}>
         <FilterSelect
           value={status}
@@ -153,6 +172,7 @@ const VendorsManagement: React.FC = () => {
               <TableHead>{t("vendors.shop_name")}</TableHead>
               <TableHead>{t("vendors.address")}</TableHead>
               <TableHead>{t("common.status")}</TableHead>
+              <TableHead>{t("vendor_review.approval")}</TableHead>
               <TableHead className="text-end">{t("common.actions")}</TableHead>
             </TableRow>
           </TableHeader>
@@ -186,7 +206,16 @@ const VendorsManagement: React.FC = () => {
                 <TableCell>
                   <Badge variant={vendor.status === "OPEN" ? "default" : "secondary"}>{vendor.status}</Badge>
                 </TableCell>
+                <TableCell>
+                  <Badge variant={VENDOR_APPROVAL_BADGE[vendor.approvalStatus ?? "APPROVED"] ?? "outline"}>
+                    {t(`couriers.approval_${String(vendor.approvalStatus ?? "APPROVED").toLowerCase()}`)}
+                  </Badge>
+                </TableCell>
                 <TableCell className="text-end">
+                  <Button variant="ghost" size="sm" className="me-2" onClick={() => setReviewId(vendor.id)}>
+                    <Eye size={16} className="me-1" />
+                    {t("vendor_review.review")}
+                  </Button>
                   <Button
                     variant="ghost"
                     size="sm"
@@ -229,6 +258,15 @@ const VendorsManagement: React.FC = () => {
         </Table>
         <Pagination currentPage={page} totalPages={totalPages} onPageChange={setPage} className="py-4" />
       </div>
+
+      <Dialog open={!!reviewing} onOpenChange={(open) => !open && setReviewId(null)}>
+        <DialogContent className="sm:max-w-[760px] max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{t("vendor_review.title")}</DialogTitle>
+          </DialogHeader>
+          {reviewing && <VendorReviewPanel vendor={reviewing} />}
+        </DialogContent>
+      </Dialog>
 
       <AddVendorProductsDialog
         open={isAddProductsOpen}

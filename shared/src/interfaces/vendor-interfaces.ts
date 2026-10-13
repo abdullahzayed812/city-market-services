@@ -1,4 +1,5 @@
 import { ShopStatus } from "../enums/shop-status";
+import { VendorApprovalStatus } from "../enums/vendor-approval-status.enum";
 
 export interface Vendor {
   id: string;
@@ -17,6 +18,16 @@ export interface Vendor {
   // Kept up to date by vendor-service from rating-service (VENDOR_RATING_UPDATED)
   averageRating?: number;
   totalRatings?: number;
+  // Merchant onboarding (see VendorApprovalStatus)
+  approvalStatus?: VendorApprovalStatus;
+  ownerName?: string | null;
+  ownerNationalIdUrl?: string | null;
+  commercialRegisterUrl?: string | null;
+  taxCardUrl?: string | null;
+  // Admin's reason for the last rejection / suspension, shown to the merchant
+  reviewNote?: string | null;
+  submittedAt?: Date | null;
+  reviewedAt?: Date | null;
   createdAt: Date;
   updatedAt: Date;
 }

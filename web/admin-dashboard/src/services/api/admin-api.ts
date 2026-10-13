@@ -43,6 +43,15 @@ export interface BulkGlobalProductImportResult {
   results: BulkGlobalProductImportRowResult[];
 }
 
+export interface VendorApprovalHistoryEntry {
+  id: string;
+  vendorId: string;
+  approvalStatus: "PENDING_REVIEW" | "APPROVED" | "REJECTED" | "SUSPENDED";
+  note: string | null;
+  actorUserId: string | null;
+  createdAt: string;
+}
+
 export const adminApi = {
   // Dashboard Overview
   getStats: () => axiosInstance.get<ApiResponse<DashboardStats>>("/admin/dashboard"),
@@ -55,7 +64,12 @@ export const adminApi = {
 
   // Vendors Management
   // Vendors are few: load them all and filter/page in the browser
-  getVendors: () => axiosInstance.get<ApiResponse<Vendor[]>>("/admin/vendors", { params: { limit: 1000 } }),
+  getVendors: (approvalStatus?: string) =>
+    axiosInstance.get<ApiResponse<Vendor[]>>("/admin/vendors", { params: { limit: 1000, approvalStatus } }),
+  // Merchant onboarding review; a reason is required to reject or suspend (the merchant sees it)
+  setVendorApproval: (id: string, status: "APPROVED" | "REJECTED" | "SUSPENDED", note?: string) =>
+    axiosInstance.patch<ApiResponse<Vendor>>(`/admin/vendors/${id}/approval`, { status, note }),
+  getVendorApprovalHistory: (id: string) => axiosInstance.get<ApiResponse<VendorApprovalHistoryEntry[]>>(`/admin/vendors/${id}/approval-history`),
   getVendorById: (id: string) => axiosInstance.get<ApiResponse<Vendor>>(`/admin/vendors/${id}`),
   updateVendor: (id: string, body: Partial<Vendor>) => axiosInstance.patch<ApiResponse<null>>(`/admin/vendors/${id}`, body),
 

@@ -3,6 +3,7 @@ import { OrderService } from "../../application/services/order.service";
 import { ApiResponse, ProposeChangesDto, ValidationError } from "@city-market/shared";
 import { Logger } from "@city-market/shared/node";
 import { AuthenticatedRequest } from "@city-market/shared/node";
+import { resolveOwnVendorId, assertOwnStore, assertCustomerOrderAccess } from "../middlewares/vendor-access";
 
 export class OrderController {
   constructor(private orderService: OrderService) {}
@@ -29,6 +30,7 @@ export class OrderController {
 
   getVendorOrderById = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
+      await this.assertVendorOrderAccess(req);
       const order = await this.orderService.getVendorOrderById(req.params.id, req.user?.userId);
       res.json(ApiResponse.success(order));
     } catch (error) {
@@ -38,6 +40,7 @@ export class OrderController {
 
   acceptVendorOrder = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
+      await this.assertVendorOrderAccess(req);
       await this.orderService.acceptVendorOrder(req.params.id);
       res.json(ApiResponse.success(null, "vendor_order_accepted"));
     } catch (error) {
@@ -47,6 +50,7 @@ export class OrderController {
 
   proposeChanges = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
+      await this.assertVendorOrderAccess(req);
       await this.orderService.proposeChanges(req.params.id, req.body.proposals as ProposeChangesDto[]);
       res.json(ApiResponse.success(null, "changes_proposed"));
     } catch (error) {
@@ -56,6 +60,7 @@ export class OrderController {
 
   updateVendorOrderStatus = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
+      await this.assertVendorOrderAccess(req);
       const { status, notes } = req.body;
       await this.orderService.updateVendorOrderStatus(req.params.id, status, notes, false);
       res.json(ApiResponse.success(null, "vendor_order_status_updated"));
@@ -66,6 +71,7 @@ export class OrderController {
 
   acceptProposal = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
+      assertCustomerOrderAccess(req, await this.orderService.getProposalOwnerId(req.params.id), "proposal_not_found");
       await this.orderService.acceptProposal(req.params.id);
       res.json(ApiResponse.success(null, "proposal_accepted"));
     } catch (error) {
@@ -75,6 +81,7 @@ export class OrderController {
 
   rejectProposal = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
+      assertCustomerOrderAccess(req, await this.orderService.getProposalOwnerId(req.params.id), "proposal_not_found");
       await this.orderService.rejectProposal(req.params.id, req.body.cancelEntireOrder);
       res.json(ApiResponse.success(null, "proposal_rejected"));
     } catch (error) {
@@ -95,6 +102,7 @@ export class OrderController {
 
   getCustomerOrderById = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
+      assertCustomerOrderAccess(req, await this.orderService.getCustomerOrderOwnerId(req.params.id));
       const order = await this.orderService.getCustomerOrderById(req.params.id, req.user?.userId);
       res.json(ApiResponse.success(order));
     } catch (error) {
@@ -102,8 +110,22 @@ export class OrderController {
     }
   };
 
+  getCustomerOrdersBatch = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      const ids = req.body?.ids;
+      if (!Array.isArray(ids) || ids.length > 200 || !ids.every((id) => typeof id === "string")) {
+        throw new ValidationError("invalid_ids");
+      }
+      const orders = await this.orderService.getCustomerOrdersByIds(ids, req.user?.userId);
+      res.json(ApiResponse.success(orders));
+    } catch (error) {
+      next(error);
+    }
+  };
+
   getOrderProposals = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
+      assertCustomerOrderAccess(req, await this.orderService.getCustomerOrderOwnerId(req.params.id));
       const proposals = await this.orderService.getOrderProposals(req.params.id);
       res.json(ApiResponse.success(proposals));
     } catch (error) {
@@ -113,6 +135,7 @@ export class OrderController {
 
   resolveVendorCancellation = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
+      assertCustomerOrderAccess(req, await this.orderService.getCustomerOrderOwnerId(req.params.id));
       await this.orderService.resolveVendorCancellation(req.params.id, req.body.continueOrder);
       res.json(ApiResponse.success(null, "vendor_cancellation_resolved"));
     } catch (error) {
@@ -124,6 +147,7 @@ export class OrderController {
     try {
       const page = parseInt(req.query.page as string) || 1;
       const limit = parseInt(req.query.limit as string) || 20;
+      assertOwnStore(await resolveOwnVendorId(req), req.params.vendorId);
       const orders = await this.orderService.getVendorOrders(req.params.vendorId, page, limit);
       res.json(ApiResponse.success(orders));
     } catch (error) {
@@ -133,6 +157,7 @@ export class OrderController {
 
   getVendorFinancials = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
+      assertOwnStore(await resolveOwnVendorId(req), req.params.vendorId);
       const periodStart = req.query.periodStart ? new Date(req.query.periodStart as string) : undefined;
       const periodEnd = req.query.periodEnd ? new Date(req.query.periodEnd as string) : undefined;
       const financials = await this.orderService.getVendorFinancials(req.params.vendorId, periodStart, periodEnd);
@@ -184,4 +209,12 @@ export class OrderController {
       next(error);
     }
   };
+
+  // Merchant-only order actions: an approved merchant on their own store's vendor order,
+  // or an admin / service. The vendor order id in the URL is never trusted on its own.
+  private async assertVendorOrderAccess(req: AuthenticatedRequest): Promise<void> {
+    const ownVendorId = await resolveOwnVendorId(req);
+    if (!ownVendorId) return;
+    assertOwnStore(ownVendorId, await this.orderService.getVendorOrderVendorId(req.params.id));
+  }
 }

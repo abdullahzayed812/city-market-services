@@ -9,7 +9,7 @@ import { Session, SessionSummary } from "../../core/entities/session.entity";
 import { User } from "../../core/entities/user.entity";
 import { config } from "../../config/env";
 import { parseDurationMs } from "../../utils/duration";
-import { ValidationError, UnauthorizedError, UserRole } from "@city-market/shared";
+import { ValidationError, UnauthorizedError, ForbiddenError, UserRole } from "@city-market/shared";
 import { UserListFilter } from "../../core/interfaces/user.repository";
 
 function sha256Hex(value: string): string {
@@ -32,13 +32,20 @@ export class AuthService {
     private sessionRepo: ISessionRepository,
   ) {}
 
-  async register(dto: RegisterDto, deviceCtx: DeviceContext): Promise<TokenPair> {
+  // Roles anyone may sign up as: customers, merchants, couriers and delivery offices all
+  // self-register and the last three then wait for admin approval of their profile.
+  private static readonly SELF_SIGNUP_ROLES: UserRole[] = [UserRole.CUSTOMER, UserRole.VENDOR, UserRole.COURIER, UserRole.DELIVERY_MANAGER];
+
+  async register(dto: RegisterDto, deviceCtx: DeviceContext, fromService = false): Promise<TokenPair> {
     if (!this.isValidEmail(dto.email)) {
       throw new ValidationError("invalid_email_format");
     }
 
     if (!dto.role || !Object.values(UserRole).includes(dto.role)) {
       throw new ValidationError("invalid_or_missing_role");
+    }
+    if (!fromService && !AuthService.SELF_SIGNUP_ROLES.includes(dto.role)) {
+      throw new ForbiddenError("role_not_allowed_for_signup");
     }
 
     const existingUser = await this.userRepo.findByEmail(dto.email);

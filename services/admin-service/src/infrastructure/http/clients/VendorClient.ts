@@ -1,10 +1,10 @@
 import { BaseClient } from "./BaseClient";
 
 export class VendorClient extends BaseClient {
-  async getAllVendors(page: number = 1, limit: number = 50, userId?: string) {
+  async getAllVendors(page: number = 1, limit: number = 50, userId?: string, approvalStatus?: string) {
     const config = await this.getRequestConfig(userId);
     const response = await this.axiosInstance.get(`/`, {
-      params: { page, limit },
+      params: { page, limit, approvalStatus },
       ...config,
     });
     return response.data;
@@ -59,6 +59,19 @@ export class VendorClient extends BaseClient {
   async updateVendorImage(id: string, imageUrl: string, userId?: string) {
     const config = await this.getRequestConfig(userId);
     const response = await this.axiosInstance.patch(`/${id}/image`, { imageUrl }, config);
+    return response.data;
+  }
+
+  // Merchant onboarding review: approve / reject (with a reason) / suspend
+  async setVendorApproval(id: string, status: string, note: string | undefined, userId?: string) {
+    const config = await this.getRequestConfig(userId);
+    const response = await this.axiosInstance.patch(`/${id}/approval`, { status, note }, config);
+    return response.data;
+  }
+
+  async getVendorApprovalHistory(id: string, userId?: string) {
+    const config = await this.getRequestConfig(userId);
+    const response = await this.axiosInstance.get(`/${id}/approval-history`, config);
     return response.data;
   }
 

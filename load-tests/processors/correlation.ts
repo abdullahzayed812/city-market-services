@@ -21,7 +21,11 @@ type EventEmitter = {
  */
 export async function pickPendingVendorOrder(context: ArtilleryContext, events: EventEmitter): Promise<void> {
   const items: any[] = context.vars.vendorOrdersRaw?.items || context.vars.vendorOrdersRaw || [];
-  const pending = items.find((o) => o.status === "PENDING");
+  // Random, not first: ~20 vendor accounts are shared by every vendor session, so
+  // sessions that all took the newest PENDING order raced each other on it
+  // (invalid_vendor_order_status_transition / vendor_can_only_confirm_pending_orders).
+  const pendingOrders = items.filter((o) => o.status === "PENDING");
+  const pending = pendingOrders[Math.floor(Math.random() * pendingOrders.length)];
   context.vars.vendorOrderId = pending?.id || null;
   context.vars.hasPendingVendorOrder = !!pending;
   events.emit("counter", pending ? "vendor.pending_order.found" : "vendor.pending_order.none", 1);

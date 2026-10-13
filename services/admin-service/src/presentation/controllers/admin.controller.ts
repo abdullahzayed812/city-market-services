@@ -36,8 +36,25 @@ export class AdminController {
     try {
       const page = parseInt(req.query.page as string) || 1;
       const limit = parseInt(req.query.limit as string) || 50;
-      const vendors = await this.adminService.getAllVendors(page, limit, req.user!.userId);
+      const approvalStatus = (req.query.approvalStatus as string) || undefined;
+      const vendors = await this.adminService.getAllVendors(page, limit, req.user!.userId, approvalStatus);
       res.json(vendors);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  setVendorApproval = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      res.json(await this.adminService.setVendorApproval(req.params.id, req.body?.status, req.body?.note, req.user!.userId));
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  getVendorApprovalHistory = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      res.json(await this.adminService.getVendorApprovalHistory(req.params.id, req.user!.userId));
     } catch (error) {
       next(error);
     }

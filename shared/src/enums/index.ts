@@ -12,3 +12,4 @@ export * from "./category-type.enum.js";
 export * from "./app-types.enum.js";
 export * from "./measurement-type.enum.js";
 export * from "./weight-unit.enum.js";
+export * from "./vendor-approval-status.enum.js";

@@ -43,6 +43,8 @@ export const TIER_PROFILES: Record<string, TierProfile> = {
   soak: { title: "Soak", p95: 500, p99: 1000, maxHttpErrorRate: 1, maxVuFailureRate: 1, gated: false },
   "order-lifecycle": { title: "Order lifecycle", p95: 1000, maxHttpErrorRate: 5, maxVuFailureRate: 5, gated: true },
   "concurrency-claim-race": { title: "Delivery claim race", maxHttpErrorRate: 100, maxVuFailureRate: 0, gated: true },
+  // Every racer but the winner gets an expected 400, like concurrency-claim-race
+  "freelance-claim-race": { title: "Freelance claim race", maxHttpErrorRate: 100, maxVuFailureRate: 0, gated: true },
 };
 
 const CONCURRENCY_TOLERANCE = 0.2;

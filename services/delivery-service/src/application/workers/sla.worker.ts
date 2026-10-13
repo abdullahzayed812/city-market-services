@@ -2,7 +2,7 @@ import { Job } from "bullmq";
 import { SlaJobData } from "@city-market/shared/node";
 import { IDeliveryRepository } from "../../core/interfaces/delivery.repository";
 import { ICourierRepository } from "../../core/interfaces/courier.repository";
-import { Delivery } from "../../core/entities/delivery.entity";
+import { Delivery, pickupVendorOrderIds } from "../../core/entities/delivery.entity";
 import { DeliveryPublisher } from "../../infrastructure/messaging/DeliveryPublisher";
 import { Database, Logger } from "@city-market/shared/node";
 import { DeliveryStatus } from "@city-market/shared";
@@ -58,7 +58,7 @@ export class DeliverySlaWorker {
         () => this.slaManager.cancelFreelanceOpen(deliveryId),
         () => this.publisher.publishSlaDeliveryAcceptanceExpired(base),
         // Also fire DELIVERY_FAILED so order-service reverts customer order status
-        () => this.publisher.publishDeliveryFailed(base),
+        () => this.publisher.publishDeliveryFailed({ ...base, vendorOrdersIds: pickupVendorOrderIds(delivery), reason: "No delivery office accepted the order in time" }),
       ];
     });
   }

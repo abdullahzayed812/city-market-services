@@ -12,12 +12,12 @@ export class DeliveryUpdatedConsumer implements EventSubscriber {
 
       if (event.type === EventType.DELIVERY_FAILED) {
         if (customerOrderId) {
-          await this.orderService.cancelOrderDueToDeliveryFailure(customerOrderId);
+          await this.orderService.cancelOrderDueToDeliveryFailure(customerOrderId, event.payload.reason, vendorOrdersIds);
         }
         return;
       }
 
-      if (!customerOrderId && !vendorOrdersIds.length) {
+      if (!customerOrderId && !vendorOrdersIds?.length) {
         Logger.warn(`Delivery event ${event.type} received without customerOrderId or vendorOrderId.`);
       }
 
@@ -33,21 +33,18 @@ export class DeliveryUpdatedConsumer implements EventSubscriber {
         [EventType.ORDER_DELIVERED]: CustomerOrderStatus.COMPLETED,
       };
 
-      // Handle Vendor Order Status
+      // Only the vendor orders this delivery carries (a split order has one delivery per store)
       const vendorStatus = vendorStatusMap[event.type as keyof typeof vendorStatusMap];
       if (vendorOrdersIds?.length && vendorStatus) {
         for (const id of vendorOrdersIds)
           await this.orderService.updateVendorOrderStatus(id, vendorStatus, `Delivery update: ${event.type}`, true);
       }
 
-      // Handle Customer Order Status
+      // The customer order follows its deliveries: forward only, and COMPLETED once all are delivered.
+      // order-service's own ORDER_DELIVERED (published on COMPLETED) has no deliveryId and is skipped.
       const customerStatus = customerStatusMap[event.type as keyof typeof customerStatusMap];
-      if (customerOrderId && customerStatus) {
-        await this.orderService.updateCustomerOrderStatus(
-          customerOrderId,
-          customerStatus,
-          `Delivery update: ${event.type}`
-        );
+      if (customerOrderId && customerStatus && event.payload.deliveryId) {
+        await this.orderService.advanceCustomerOrderFromDelivery(customerOrderId, customerStatus, `Delivery update: ${event.type}`);
       }
     } catch (error) {
       Logger.error(`Failed to process event ${event.type} for order ${event.payload?.customerOrderId}`, error);

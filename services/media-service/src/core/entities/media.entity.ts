@@ -1,4 +1,4 @@
-export type MediaFolder = "products" | "categories" | "vendors" | "globals" | "courier-documents" | "office-documents";
+export type MediaFolder = "products" | "categories" | "vendors" | "globals" | "courier-documents" | "office-documents" | "vendor-documents";
 
 export const ALLOWED_FOLDERS: readonly MediaFolder[] = [
   "products",
@@ -7,12 +7,15 @@ export const ALLOWED_FOLDERS: readonly MediaFolder[] = [
   "globals",
   "courier-documents",
   "office-documents",
+  "vendor-documents",
 ];
 
 // The only folder a COURIER may upload to (ID / license photos at freelance signup)
 export const COURIER_DOCUMENTS_FOLDER: MediaFolder = "courier-documents";
 // The only folder a DELIVERY_MANAGER may upload to (owner ID / commercial register at office signup)
 export const OFFICE_DOCUMENTS_FOLDER: MediaFolder = "office-documents";
+// Merchant registration documents (owner ID, commercial register, tax card)
+export const VENDOR_DOCUMENTS_FOLDER: MediaFolder = "vendor-documents";
 
 export type ImageVariant = "small" | "medium" | "large";
 

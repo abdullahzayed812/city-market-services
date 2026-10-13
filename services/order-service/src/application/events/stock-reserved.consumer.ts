@@ -4,6 +4,7 @@ import { ICustomerOrderRepository } from "../../core/interfaces/customer-order.r
 import { IVendorOrderRepository } from "../../core/interfaces/vendor-order.repository";
 import { OrderStateManager } from "../services/order-state.manager";
 import { OrderPublisher } from "../../infrastructure/messaging/OrderPublisher";
+import { withTransactionAndEvents } from "../../infrastructure/messaging/after-commit";
 
 const CONFIRMATION_TIMEOUT_MINUTES = parseInt(process.env.ORDER_CONFIRMATION_TIMEOUT_MINUTES || "2", 10);
 
@@ -20,7 +21,7 @@ export class StockReservedConsumer {
     const { orderId } = event.payload;
     Logger.info(`[OrderService] Handling stock reserved for order ${orderId}`);
 
-    await this.db.withTransaction(async (connection) => {
+    await withTransactionAndEvents(this.db, async (connection) => {
       const customerOrder = await this.customerOrderRepo.findByIdWithLock(orderId, connection);
       if (!customerOrder) {
         throw new Error(`Order ${orderId} not found`);

@@ -4,8 +4,9 @@ import { ICourierRepository, CourierListFilter } from "../../core/interfaces/cou
 import { DeliveryFeeSplit, IDeliveryRepository } from "../../core/interfaces/delivery.repository";
 import { IDeliveryOfficeRepository } from "../../core/interfaces/delivery-office.repository";
 import { IDeliveryFeeTierRepository } from "../../core/interfaces/delivery-fee-tier.repository";
+import { DeliveryFeeTier } from "../../core/entities/delivery-fee-tier.entity";
 import { Courier, CourierApprovalStatus } from "../../core/entities/courier.entity";
-import { Delivery, FulfillmentType } from "../../core/entities/delivery.entity";
+import { Delivery, FulfillmentType, pickupVendorOrderIds } from "../../core/entities/delivery.entity";
 import { DeliveryOffice } from "../../core/entities/delivery-office.entity";
 import { RegisterCourierDto, RegisterFreelancerDto, UpdateCourierDto, UpdateCourierLocationDto } from "../../core/dto/courier.dto";
 import { CreateDeliveryDto, AssignCourierDto, UpdateDeliveryStatusDto } from "../../core/dto/delivery.dto";
@@ -545,12 +546,13 @@ export class DeliveryService {
 
   // M3: the split depends on who delivers, so it's computed on accept/claim, not at creation.
   // Rounding leftovers go to the platform so the three parts always sum to the fee.
-  private async computeFeeSplit(delivery: Delivery, fulfillment: FulfillmentType): Promise<DeliveryFeeSplit> {
+  private async computeFeeSplit(delivery: Delivery, fulfillment: FulfillmentType, connection?: PoolConnection): Promise<DeliveryFeeSplit> {
     const fee = delivery.deliveryFee || 0;
     if (fee <= 0) return { courierPercentage: null, courierFeeAmount: 0, officeFeeAmount: 0, platformFeeAmount: 0 };
 
     // The tier may have been edited or deleted since creation; fall back to the current tier for this fee
-    const tier = (delivery.feeTierId && (await this.feeTierRepo.findById(delivery.feeTierId))) || (await this.feeTierRepo.findByAmount(fee));
+    const tier =
+      (delivery.feeTierId && (await this.feeTierRepo.findById(delivery.feeTierId, connection))) || (await this.feeTierRepo.findByAmount(fee, connection));
     if (!tier) {
       Logger.warn(`No delivery fee tier matches fee ${fee} for delivery ${delivery.id}; platform keeps the whole fee`);
       return { courierPercentage: null, courierFeeAmount: 0, officeFeeAmount: 0, platformFeeAmount: round2(fee) };
@@ -626,6 +628,47 @@ export class DeliveryService {
       });
     };
 
+    // Every read (order-service, vendor-service, fee tier) happens before the
+    // transaction opens. The fee-tier lookup used to run on the pool while this
+    // transaction held a connection; with a burst of ORDER_READY events (the
+    // consumer has no prefetch limit) connectionLimit of these waited on each other
+    // forever and every delivery-service DB request hung until a restart.
+    const orderData = await this.orderClient.getOrder(customerOrderId, userId);
+    if (!orderData || !orderData.order) {
+      throw new NotFoundError(`Customer Order ${customerOrderId} not found`);
+    }
+
+    const customerOrder = orderData.order;
+    const vendorOrders = (orderData.vendorOrders || []).filter((vo: any) => vo.status !== VendorOrderStatus.CANCELLED);
+
+    if (vendorOrders.length === 0) {
+      Logger.warn(`No non-cancelled vendor orders for Customer Order ${customerOrderId}. Skipping delivery creation.`);
+      return createdDeliveries;
+    }
+
+    // Concurrent batch fetch of unique vendors to prevent N+1 HTTP calls
+    const uniqueVendorIds = Array.from(new Set(vendorOrders.map((vo: any) => vo.vendorId)));
+    const vendorDetailsArray = await Promise.all(uniqueVendorIds.map((id) => this.vendorClient.getVendor(id as string, userId)));
+    const vendorMap = new Map(uniqueVendorIds.map((id, index) => [id, vendorDetailsArray[index]]));
+
+    const vendors = vendorOrders.map((vo: any) => ({
+      ...vo,
+      vendorInfo: vendorMap.get(vo.vendorId),
+    }));
+
+    // Calculate pairwise distances between vendors
+    const allFarApart = this.checkDistances(vendors);
+
+    // The customer paid one fee for the whole order. A split order divides it across its
+    // deliveries so they add up to exactly that fee, instead of charging it once per delivery.
+    const fees = allFarApart ? this.divideDeliveryFee(deliveryFee || 0, customerOrder, vendors) : [deliveryFee || 0];
+
+    // Snapshot the tier only; the split is computed on accept/claim (M3)
+    const tiers = new Map<number, DeliveryFeeTier | null>();
+    for (const fee of fees) {
+      if (!tiers.has(fee)) tiers.set(fee, fee > 0 ? await this.feeTierRepo.findByAmount(fee) : null);
+    }
+
     try {
       connection = await this.db.beginTransaction();
 
@@ -633,33 +676,6 @@ export class DeliveryService {
       // Check if deliveries already exist for this customerOrderId.
       // If a grouped delivery is intended, we check for any existing delivery for the customerOrderId.
       // If separate deliveries are intended, we check for each customerOrderId-vendorOrderId pair.
-
-      const orderData = await this.orderClient.getOrder(customerOrderId, userId);
-      if (!orderData || !orderData.order) {
-        throw new NotFoundError(`Customer Order ${customerOrderId} not found`);
-      }
-
-      const customerOrder = orderData.order;
-      const vendorOrders = (orderData.vendorOrders || []).filter((vo: any) => vo.status !== VendorOrderStatus.CANCELLED);
-
-      if (vendorOrders.length === 0) {
-        Logger.warn(`No non-cancelled vendor orders for Customer Order ${customerOrderId}. Skipping delivery creation.`);
-        await this.db.commit(connection);
-        return createdDeliveries;
-      }
-
-      // Concurrent batch fetch of unique vendors to prevent N+1 HTTP calls
-      const uniqueVendorIds = Array.from(new Set(vendorOrders.map((vo: any) => vo.vendorId)));
-      const vendorDetailsArray = await Promise.all(uniqueVendorIds.map((id) => this.vendorClient.getVendor(id as string, userId)));
-      const vendorMap = new Map(uniqueVendorIds.map((id, index) => [id, vendorDetailsArray[index]]));
-
-      const vendors = vendorOrders.map((vo: any) => ({
-        ...vo,
-        vendorInfo: vendorMap.get(vo.vendorId),
-      }));
-
-      // Calculate pairwise distances between vendors
-      const allFarApart = this.checkDistances(vendors);
 
       if (!allFarApart) {
         // Group all into ONE delivery
@@ -670,12 +686,12 @@ export class DeliveryService {
           return existingDeliveries; // Return existing deliveries to maintain idempotency
         }
 
-        const delivery = await this.createIndividualDelivery(customerOrder, vendors, customerOrderId, undefined, connection, deliveryFee, openToFreelanceAt);
+        const delivery = await this.createIndividualDelivery(customerOrder, vendors, customerOrderId, undefined, connection, fees[0], tiers.get(fees[0]) ?? null, openToFreelanceAt);
         createdDeliveries.push(delivery);
         afterCreate(delivery, customerOrder.customerId);
       } else {
         // Separate Delivery per VendorOrder
-        for (const v of vendors) {
+        for (const [i, v] of vendors.entries()) {
           const existingDelivery = await this.deliveryRepo.findByCustomerOrderAndVendorOrder(customerOrderId, v.id, connection);
           if (existingDelivery) {
             Logger.info(`Delivery already exists for Customer Order ${customerOrderId} and Vendor Order ${v.id}. Skipping creation.`);
@@ -683,7 +699,7 @@ export class DeliveryService {
             continue;
           }
 
-          const delivery = await this.createIndividualDelivery(customerOrder, [v], customerOrderId, v, connection, deliveryFee, openToFreelanceAt);
+          const delivery = await this.createIndividualDelivery(customerOrder, [v], customerOrderId, v, connection, fees[i], tiers.get(fees[i]) ?? null, openToFreelanceAt);
           createdDeliveries.push(delivery);
           afterCreate(delivery, customerOrder.customerId);
         }
@@ -719,13 +735,11 @@ export class DeliveryService {
     vendorOrder: any | undefined,
     connection: PoolConnection | undefined,
     deliveryFee: number | undefined,
+    tier: DeliveryFeeTier | null,
     openToFreelanceAt: Date,
   ): Promise<Delivery> {
     const itemsCount = vendors.reduce((sum, v) => sum + (v.items?.length || 0), 0);
     const totalPrice = vendors.reduce((sum, v) => sum + (v.totalAmount || 0), 0);
-
-    // Snapshot the tier only; the split is computed on accept/claim (M3)
-    const tier = deliveryFee && deliveryFee > 0 ? await this.feeTierRepo.findByAmount(deliveryFee) : null;
 
     const dto: CreateDeliveryDto = {
       customerId: customerOrder.customerId,
@@ -749,6 +763,28 @@ export class DeliveryService {
     };
 
     return this.createDelivery(dto, connection);
+  }
+
+  // One share per vendor order, weighted by that store's distance to the customer (equal
+  // shares when distances are unknown). Shares are rounded to piasters and the rounding
+  // remainder goes on the last one, so they always sum to the fee the customer paid.
+  private divideDeliveryFee(fee: number, customerOrder: any, vendors: any[]): number[] {
+    if (vendors.length === 0) return [];
+    if (fee <= 0) return vendors.map(() => 0);
+
+    const lat = Number(customerOrder.deliveryLatitude);
+    const lng = Number(customerOrder.deliveryLongitude);
+    const distances = vendors.map((v) => {
+      const vLat = Number(v.vendorInfo?.latitude);
+      const vLng = Number(v.vendorInfo?.longitude);
+      return [lat, lng, vLat, vLng].every(Number.isFinite) ? haversineKm(vLat, vLng, lat, lng) : NaN;
+    });
+    const total = distances.reduce((sum, d) => sum + d, 0);
+    const weights = Number.isFinite(total) && total > 0 ? distances.map((d) => d / total) : vendors.map(() => 1 / vendors.length);
+
+    const shares = weights.map((w) => round2(fee * w));
+    shares[shares.length - 1] = round2(fee - shares.slice(0, -1).reduce((sum, x) => sum + x, 0));
+    return shares;
   }
 
   private checkDistances(vendors: any[]): boolean {
@@ -840,15 +876,23 @@ export class DeliveryService {
   private async enrichDeliveriesWithOrderData(deliveries: Delivery[], userId: string | undefined, includeCustomerPhone: (d: Delivery) => boolean): Promise<Delivery[]> {
     if (deliveries.length === 0) return deliveries;
 
-    // Each delivery costs one order-service + one user-service call. Bound how many
-    // run at once so a big list can't exhaust those services' DB pools.
+    // Orders come from one batched order-service call; a delivery whose order can't
+    // be fetched is returned unenriched, as before.
+    let ordersById = new Map<string, any>();
+    try {
+      const orders = await this.orderClient.getOrders(Array.from(new Set(deliveries.map((d) => d.customerOrderId))), userId);
+      ordersById = new Map(orders.map((o: any) => [o.order.id, o]));
+    } catch (error: any) {
+      Logger.warn(`Failed to fetch order details for ${deliveries.length} deliveries:`, error.message);
+    }
+
+    // Customer phones are still one user-service call each; bound how many run at
+    // once so a big list can't exhaust that service's DB pool.
     return mapWithConcurrency(deliveries, ENRICHMENT_CONCURRENCY, async (delivery) => {
       const withPhone = includeCustomerPhone(delivery);
       try {
-        const [orderData, customerPhone] = await Promise.all([
-          this.orderClient.getOrder(delivery.customerOrderId, userId),
-          withPhone ? this.userClient.getCustomerPhone(delivery.customerId) : Promise.resolve(null),
-        ]);
+        const orderData = ordersById.get(delivery.customerOrderId);
+        const customerPhone = withPhone ? await this.userClient.getCustomerPhone(delivery.customerId) : null;
         if (orderData && orderData.vendorOrders) {
           const cancelledVendorOrderIds = new Set(
             orderData.vendorOrders.filter((vo: any) => vo.status === VendorOrderStatus.CANCELLED).map((vo: any) => vo.id),
@@ -862,7 +906,7 @@ export class DeliveryService {
         }
         return delivery;
       } catch (error: any) {
-        Logger.warn(`Failed to fetch order details for delivery ${delivery.id}:`, error.message);
+        Logger.warn(`Failed to enrich delivery ${delivery.id}:`, error.message);
         return delivery;
       }
     });
@@ -1019,12 +1063,15 @@ export class DeliveryService {
       // Cash on delivery: the courier now holds what the customer paid for this delivery
       updates.cashCollectedAmount = round2((delivery.totalPrice || 0) + (delivery.deliveryFee || 0));
       afterCommit.push(() => this.slaManager?.cancelAllSlas(deliveryId) ?? Promise.resolve());
+      // Only this delivery's vendor orders: catalog commits exactly the stock that left with it
       const items =
         enriched.vendorOrders?.flatMap(
           (vo: any) =>
             vo.items?.map((item: any) => ({
               vendorProductId: item.vendorProductId,
               quantity: item.quantity,
+              // requested = what catalog reserved; without it a weighed item's reservation was never released
+              requestedWeightGrams: item.requestedWeightGrams,
               actualWeightGrams: item.actualWeightGrams,
               vendorUserId: vo.vendorUserId,
             })) || [],
@@ -1032,7 +1079,7 @@ export class DeliveryService {
       afterCommit.push(() => this.publisher.publishOrderDelivered({ ...base, items, vendorOrdersIds }));
     } else if (dto.status === DeliveryStatus.FAILED) {
       afterCommit.push(() => this.slaManager?.cancelAllSlas(deliveryId) ?? Promise.resolve());
-      afterCommit.push(() => this.publisher.publishDeliveryFailed(base));
+      afterCommit.push(() => this.publisher.publishDeliveryFailed({ ...base, vendorOrdersIds, reason: dto.notes || "Delivery failed" }));
     }
 
     // F7: status, courier availability and counters change together
@@ -1090,6 +1137,8 @@ export class DeliveryService {
       deliveryId,
       customerOrderId: delivery.customerOrderId,
       customerId: delivery.customerId,
+      reason: reason || "Delivery cancelled by the delivery office",
+      vendorOrdersIds: pickupVendorOrderIds(delivery),
       deliveryOfficeId: office.id,
     });
   }
@@ -1098,6 +1147,8 @@ export class DeliveryService {
     let delivery: Delivery | null = null;
     let courier: Courier | null = null;
 
+    // Pool reads happen before the transaction (see createDeliveryFromOrder)
+    const office = actor.role === UserRole.DELIVERY_MANAGER ? await this.requireOffice(actor.userId) : null;
     await this.db.withTransaction(async (connection) => {
       delivery = await this.deliveryRepo.findByIdForUpdate(deliveryId, connection);
       if (!delivery) throw new NotFoundError("delivery_not_found");
@@ -1106,8 +1157,7 @@ export class DeliveryService {
         throw new ValidationError("delivery_must_be_accepted_before_assignment");
       }
 
-      if (actor.role === UserRole.DELIVERY_MANAGER) {
-        const office = await this.requireOffice(actor.userId);
+      if (office) {
         if (delivery.deliveryOfficeId !== office.id) {
           throw new ValidationError("delivery_not_assigned_to_your_office");
         }
@@ -1153,8 +1203,9 @@ export class DeliveryService {
     let delivery: Delivery | null = null;
     let courier: Courier | null = null;
 
+    // Pool reads happen before the transaction (see createDeliveryFromOrder)
+    const own = await this.requireCourier(userId);
     await this.db.withTransaction(async (connection) => {
-      const own = await this.requireCourier(userId);
       courier = await this.courierRepo.findByIdForUpdate(own.id, connection);
       if (!courier) throw new NotFoundError("courier_not_found_by_user");
       this.assertApprovedFreelancer(courier);
@@ -1173,7 +1224,7 @@ export class DeliveryService {
       }
       if (!this.dispatcher.isWithinRadius(courier, delivery)) throw new ValidationError("delivery_out_of_range");
 
-      const fees = await this.computeFeeSplit(delivery, "FREELANCE");
+      const fees = await this.computeFeeSplit(delivery, "FREELANCE", connection);
       const claimed = await this.deliveryRepo.claimDelivery(deliveryId, courier.id, fees, connection);
       if (!claimed) throw new ValidationError("delivery_no_longer_available");
       await this.courierRepo.updateAvailability(courier.id, false, connection);
@@ -1236,6 +1287,7 @@ export class DeliveryService {
       customerOrderId: d.customerOrderId,
       customerId: d.customerId,
       reason,
+      vendorOrdersIds: pickupVendorOrderIds(d),
       deliveryOfficeId: d.deliveryOfficeId ?? null,
       courierId,
     });

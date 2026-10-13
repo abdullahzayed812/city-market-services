@@ -1,4 +1,5 @@
 import { Database } from "@city-market/shared/node";
+import { PoolConnection } from "mysql2/promise";
 import { DeliveryFeeTier } from "../../core/entities/delivery-fee-tier.entity";
 import { IDeliveryFeeTierRepository } from "../../core/interfaces/delivery-fee-tier.repository";
 
@@ -25,13 +26,15 @@ export class DeliveryFeeTierRepository implements IDeliveryFeeTierRepository {
     return rows.map(this.mapToEntity);
   }
 
-  async findById(id: string): Promise<DeliveryFeeTier | null> {
-    const [rows]: any = await this.db.getPool().execute(`SELECT * FROM delivery_fee_tiers WHERE id = ?`, [id]);
+  // connection: pass the caller's transaction connection when called inside one -
+  // borrowing a second pool connection there can deadlock the pool under load.
+  async findById(id: string, connection?: PoolConnection): Promise<DeliveryFeeTier | null> {
+    const [rows]: any = await (connection || this.db.getPool()).execute(`SELECT * FROM delivery_fee_tiers WHERE id = ?`, [id]);
     return rows.length ? this.mapToEntity(rows[0]) : null;
   }
 
-  async findByAmount(amount: number): Promise<DeliveryFeeTier | null> {
-    const [rows]: any = await this.db.getPool().execute(
+  async findByAmount(amount: number, connection?: PoolConnection): Promise<DeliveryFeeTier | null> {
+    const [rows]: any = await (connection || this.db.getPool()).execute(
       `SELECT * FROM delivery_fee_tiers
        WHERE min_amount <= ? AND (max_amount IS NULL OR max_amount > ?)
        ORDER BY min_amount DESC LIMIT 1`,

@@ -3,6 +3,7 @@ import { CustomerOrderStatus, VendorOrderStatus } from "@city-market/shared";
 import { ICustomerOrderRepository } from "../../core/interfaces/customer-order.repository";
 import { IVendorOrderRepository } from "../../core/interfaces/vendor-order.repository";
 import { OrderStateManager } from "../services/order-state.manager";
+import { withTransactionAndEvents } from "../../infrastructure/messaging/after-commit";
 
 export class StockRejectedConsumer {
   constructor(
@@ -16,7 +17,7 @@ export class StockRejectedConsumer {
     const { orderId, reason } = event.payload;
     Logger.info(`[OrderService] Handling stock rejected for order ${orderId}, reason: ${reason}`);
 
-    await this.db.withTransaction(async (connection) => {
+    await withTransactionAndEvents(this.db, async (connection) => {
       const customerOrder = await this.customerOrderRepo.findByIdWithLock(orderId, connection);
       if (!customerOrder) {
         throw new Error(`Order ${orderId} not found`);

@@ -3,7 +3,7 @@ import { MediaService } from "../../application/services/media.service";
 import { randomUUID } from "crypto";
 import { ApiResponse, ValidationError, ForbiddenError, UserRole } from "@city-market/shared";
 import { AuthenticatedRequest } from "@city-market/shared/node";
-import { MediaFolder, ALLOWED_FOLDERS, COURIER_DOCUMENTS_FOLDER, OFFICE_DOCUMENTS_FOLDER } from "../../core/entities/media.entity";
+import { MediaFolder, ALLOWED_FOLDERS, COURIER_DOCUMENTS_FOLDER, OFFICE_DOCUMENTS_FOLDER, VENDOR_DOCUMENTS_FOLDER } from "../../core/entities/media.entity";
 
 // Roles that may only upload signup documents, and to which folders. Managers upload
 // their office's documents and the documents of couriers they add to their office.
@@ -29,6 +29,14 @@ export class MediaController {
         if (!documentFolders.includes(folder as MediaFolder)) throw new ForbiddenError("can_only_upload_signup_documents");
         // The bucket is public: a server-chosen random id keeps the path unguessable and
         // stops a courier from overwriting someone else's document by reusing an id.
+        entityId = randomUUID();
+      }
+      // Signup documents never go under a caller-chosen path (VENDOR may otherwise pick the
+      // entityId for its product / store images); same reasoning as above.
+      if (folder === VENDOR_DOCUMENTS_FOLDER) {
+        if (req.user && req.user.role !== UserRole.VENDOR && req.user.role !== UserRole.ADMIN) {
+          throw new ForbiddenError("can_only_upload_signup_documents");
+        }
         entityId = randomUUID();
       }
 
@@ -96,6 +104,12 @@ export class MediaController {
 
       if (key.includes("..") || key.startsWith("/")) {
         throw new ValidationError("invalid_key");
+      }
+
+      // Signup documents are review evidence: a merchant can't delete them (anyone's, incl. their own)
+      const documentFolders: string[] = [COURIER_DOCUMENTS_FOLDER, OFFICE_DOCUMENTS_FOLDER, VENDOR_DOCUMENTS_FOLDER];
+      if (req.user?.role === UserRole.VENDOR && documentFolders.some((f) => key.startsWith(`${f}/`))) {
+        throw new ForbiddenError("cannot_delete_documents");
       }
 
       await this.mediaService.deleteFile(key);

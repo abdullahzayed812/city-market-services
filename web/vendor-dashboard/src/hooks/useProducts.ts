@@ -66,17 +66,6 @@ export const useProducts = () => {
     },
   });
 
-  const updateProductImageMutation = useMutation({
-    mutationFn: ({ id, imageUrl }: { id: string; imageUrl: string }) => productService.updateProductImage(id, imageUrl),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["vendor-products"] });
-      toast.success(t("products.image_updated_success"));
-    },
-    onError: (err: any) => {
-      toast.error(err?.response?.data?.message || t("products.image_update_failed"));
-    },
-  });
-
   const bulkAddProductsFromGlobalMutation = useMutation({
     mutationFn: ({ items, vendorCategoryId }: { items: BulkAddVendorProductsFromGlobalItem[]; vendorCategoryId?: string }) =>
       productService.bulkAddProductsFromGlobal(vendorId!, items, vendorCategoryId),
@@ -105,7 +94,6 @@ export const useProducts = () => {
     updateVendorProduct: updateVendorProductMutation.mutate,
     updateStock: updateStockMutation.mutate,
     deleteVendorProduct: deleteVendorProductMutation.mutate,
-    updateProductImage: updateProductImageMutation.mutate,
     bulkAddProductsFromGlobal: bulkAddProductsFromGlobalMutation.mutateAsync,
     bulkAddProductsFromCategory: bulkAddProductsFromCategoryMutation.mutateAsync,
   };
