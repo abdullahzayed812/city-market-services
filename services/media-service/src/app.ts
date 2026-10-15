@@ -5,7 +5,12 @@ import { MediaController } from "./presentation/controllers/media.controller";
 import { MediaService } from "./application/services/media.service";
 import { ImageOptimizerService } from "./application/services/image-optimizer.service";
 import { R2StorageService } from "./infrastructure/storage/r2-storage.service";
-import { errorHandler, authenticate } from "@city-market/shared/node";
+import { R2PrivateStorageService } from "./infrastructure/storage/r2-private-storage.service";
+import { SubmissionImageService } from "./application/services/submission-image.service";
+import { parseFormats } from "./application/services/submission-image.validator";
+import { SubmissionImageController } from "./presentation/controllers/submission-image.controller";
+import { createSubmissionImageRoutes } from "./presentation/routes/submission-image.routes";
+import { errorHandler, authenticate, Logger } from "@city-market/shared/node";
 import { config } from "./config/env";
 
 export const createApp = () => {
@@ -31,8 +36,47 @@ export const createApp = () => {
   const mediaService = new MediaService(storage, optimizer);
   const mediaController = new MediaController(mediaService);
 
+  // Product-proposal photos live in a bucket without public access. The public bucket is
+  // only used as a stand-in when explicitly allowed (development).
+  const privateBucket = config.r2PrivateBucket || (config.allowPublicBucketForSubmissions ? config.r2Bucket : "");
+  if (!config.r2PrivateBucket) {
+    Logger.warn(
+      config.allowPublicBucketForSubmissions
+        ? "[media] R2_PRIVATE_BUCKET not set: proposal photos go to the PUBLIC bucket (development only)"
+        : "[media] R2_PRIVATE_BUCKET not set: product-proposal photo uploads are disabled",
+    );
+  }
+  const privateStorage = new R2PrivateStorageService({
+    endpoint: config.r2Endpoint,
+    accessKeyId: config.r2AccessKeyId,
+    secretAccessKey: config.r2SecretAccessKey,
+    bucket: privateBucket,
+  });
+  const submissionImageService = new SubmissionImageService(
+    privateStorage,
+    mediaService,
+    {
+      formats: parseFormats(config.submissionImageFormats),
+      minWidth: config.submissionImageMinWidth,
+      minHeight: config.submissionImageMinHeight,
+      maxBytes: config.submissionImageMaxBytes,
+      maxPixels: config.submissionImageMaxPixels,
+      outputMaxSide: config.submissionImageOutputMaxSide,
+    },
+    config.privateSignedUrlTtlSeconds,
+  );
+  const submissionImageController = new SubmissionImageController(submissionImageService);
+
   app.use(authenticate);
   app.use("/", createMediaRoutes(mediaController));
+  app.use(
+    "/",
+    createSubmissionImageRoutes(submissionImageController, {
+      maxBytes: config.submissionImageMaxBytes,
+      uploadLimit: config.submissionUploadLimit,
+      uploadWindowMs: config.submissionUploadWindowMs,
+    }),
+  );
 
   app.get("/health", (_req, res) => {
     res.json({ status: "healthy", service: "media-service" });

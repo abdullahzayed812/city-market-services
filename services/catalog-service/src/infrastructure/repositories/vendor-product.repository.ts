@@ -1,9 +1,10 @@
 import { randomUUID } from "crypto";
-import { Pool, RowDataPacket, ResultSetHeader } from "mysql2/promise";
+import { Pool, PoolConnection, RowDataPacket, ResultSetHeader } from "mysql2/promise";
 import { VendorProduct } from "../../core/entities/vendor-product.entity";
 import { IVendorProductRepository } from "../../core/interfaces/vendor-product.repository";
 import { VendorProductFilter } from "../../core/dto/vendor-product.dto";
 import { Database } from "@city-market/shared/node";
+import { AppError } from "@city-market/shared";
 
 export class VendorProductRepository implements IVendorProductRepository {
   private pool: Pool;
@@ -25,7 +26,11 @@ export class VendorProductRepository implements IVendorProductRepository {
       product.stockWeightGrams || 0,
       product.reservedWeightGrams || 0,
       product.isAvailable,
-    ]);
+    ]).catch((error: any) => {
+      // uq_vendor_active_global_product
+      if (error?.code === "ER_DUP_ENTRY") throw new AppError(409, "vendor_product_already_exists");
+      throw error;
+    });
     return product;
   }
 
@@ -268,46 +273,73 @@ export class VendorProductRepository implements IVendorProductRepository {
     if (items.length === 0) {
       return { addedIds: [], skippedIds: [] };
     }
+    return this.db.withTransaction((connection) => this.addFromGlobalProducts(connection, vendorId, items));
+  }
+
+  // Adds catalog products to a store inside the caller's transaction: unknown / deleted catalog
+  // products and products the store already has are skipped. Shared by the bulk add and by
+  // product-proposal approval.
+  async addFromGlobalProducts(
+    connection: PoolConnection,
+    vendorId: string,
+    items: Array<{ globalProductId: string; price?: number; stockQuantity?: number; stockWeightGrams?: number; vendorCategoryId?: string }>,
+  ): Promise<{ addedIds: string[]; skippedIds: string[] }> {
+    if (items.length === 0) {
+      return { addedIds: [], skippedIds: [] };
+    }
 
     const globalProductIds = items.map((item) => item.globalProductId);
 
-    return this.db.withTransaction(async (connection) => {
-      const [globalRows] = await connection.query<RowDataPacket[]>(
-        "SELECT id FROM global_products WHERE id IN (?) AND deleted_at IS NULL",
-        [globalProductIds],
-      );
-      const validGlobalIds = new Set(globalRows.map((row) => row.id));
+    const [globalRows] = await connection.query<RowDataPacket[]>(
+      "SELECT id FROM global_products WHERE id IN (?) AND deleted_at IS NULL",
+      [globalProductIds],
+    );
+    const validGlobalIds = new Set(globalRows.map((row) => row.id));
 
-      const [existingRows] = await connection.query<RowDataPacket[]>(
-        "SELECT global_product_id FROM vendor_products WHERE vendor_id = ? AND global_product_id IN (?) AND deleted_at IS NULL",
-        [vendorId, globalProductIds],
-      );
-      const existingIds = new Set(existingRows.map((row) => row.global_product_id));
+    const [existingRows] = await connection.query<RowDataPacket[]>(
+      "SELECT global_product_id FROM vendor_products WHERE vendor_id = ? AND global_product_id IN (?) AND deleted_at IS NULL",
+      [vendorId, globalProductIds],
+    );
+    const existingIds = new Set(existingRows.map((row) => row.global_product_id));
 
-      const toInsert = items.filter((item) => validGlobalIds.has(item.globalProductId) && !existingIds.has(item.globalProductId));
-      const addedIds = toInsert.map((item) => item.globalProductId);
-      const skippedIds = globalProductIds.filter((id) => !addedIds.includes(id));
+    const toInsert = items.filter((item) => validGlobalIds.has(item.globalProductId) && !existingIds.has(item.globalProductId));
+    const addedIds = toInsert.map((item) => item.globalProductId);
+    const skippedIds = globalProductIds.filter((id) => !addedIds.includes(id));
 
-      if (toInsert.length === 0) {
-        return { addedIds, skippedIds };
-      }
-
-      const values = toInsert.map((item) => {
-        const price = item.price ?? 0;
-        const stockQuantity = item.stockQuantity ?? 0;
-        const stockWeightGrams = item.stockWeightGrams ?? 0;
-        const isAvailable = stockQuantity > 0 || stockWeightGrams > 0;
-        return [randomUUID(), vendorId, item.globalProductId, item.vendorCategoryId ?? null, price, stockQuantity, stockWeightGrams, 0, isAvailable];
-      });
-      await connection.query(
-        `INSERT INTO vendor_products
-          (id, vendor_id, global_product_id, vendor_category_id, price, stock_quantity, stock_weight_grams, reserved_weight_grams, is_available)
-         VALUES ?`,
-        [values],
-      );
-
+    if (toInsert.length === 0) {
       return { addedIds, skippedIds };
+    }
+
+    const values = toInsert.map((item) => {
+      const price = item.price ?? 0;
+      const stockQuantity = item.stockQuantity ?? 0;
+      const stockWeightGrams = item.stockWeightGrams ?? 0;
+      // Never sellable for free: available only with a price and stock
+      const isAvailable = price > 0 && (stockQuantity > 0 || stockWeightGrams > 0);
+      return [randomUUID(), vendorId, item.globalProductId, item.vendorCategoryId ?? null, price, stockQuantity, stockWeightGrams, 0, isAvailable];
     });
+    // uq_vendor_active_global_product: a link added concurrently by another request is kept
+    // as is instead of failing the whole batch
+    await connection.query(
+      `INSERT INTO vendor_products
+        (id, vendor_id, global_product_id, vendor_category_id, price, stock_quantity, stock_weight_grams, reserved_weight_grams, is_available)
+       VALUES ?
+       ON DUPLICATE KEY UPDATE id = id`,
+      [values],
+    );
+
+    return { addedIds, skippedIds };
+  }
+
+  // The store's live row for a catalog product, added through addFromGlobalProducts when missing
+  async ensureVendorProduct(connection: PoolConnection, vendorId: string, globalProductId: string): Promise<{ vendorProductId: string; created: boolean }> {
+    const { addedIds } = await this.addFromGlobalProducts(connection, vendorId, [{ globalProductId }]);
+    const [rows] = await connection.query<RowDataPacket[]>(
+      "SELECT id FROM vendor_products WHERE vendor_id = ? AND global_product_id = ? AND deleted_at IS NULL LIMIT 1",
+      [vendorId, globalProductId],
+    );
+    if (rows.length === 0) throw new Error("vendor_product_link_failed");
+    return { vendorProductId: rows[0].id, created: addedIds.length > 0 };
   }
 
   private buildFilterQuery(filter: VendorProductFilter): { whereClause: string; values: any[] } {

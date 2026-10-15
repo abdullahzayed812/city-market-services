@@ -60,6 +60,35 @@ export class AdminController {
     }
   };
 
+  // Merchant product proposals. Only the listed query / body fields are forwarded.
+  getProductSubmissions = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      const { status, search, vendorId, page, limit } = req.query;
+      res.json(await this.adminService.getProductSubmissions({ status, search, vendorId, page, limit }, req.user!.userId));
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  getProductSubmission = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      res.json(await this.adminService.getProductSubmission(req.params.id, req.user!.userId));
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  decideProductSubmission = (decision: "approve" | "link" | "reject" | "request-changes") =>
+    async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+      try {
+        const { revision, note, reason, feedback, globalProductId, confirmNotDuplicate } = req.body ?? {};
+        const body = { revision, note, reason, feedback, globalProductId, confirmNotDuplicate };
+        res.json(await this.adminService.decideProductSubmission(req.params.id, decision, body, req.user!.userId));
+      } catch (error) {
+        next(error);
+      }
+    };
+
   suspendVendor = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
       const { vendorId } = req.params;

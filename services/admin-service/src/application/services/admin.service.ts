@@ -49,6 +49,20 @@ export class AdminService {
     return this.serviceClient.vendor.getVendorApprovalHistory(vendorId, userId);
   }
 
+  // Merchant product proposals
+  async getProductSubmissions(params: Record<string, unknown>, userId?: string) {
+    return this.serviceClient.catalog.getProductSubmissions(params, userId);
+  }
+
+  async getProductSubmission(id: string, userId?: string) {
+    return this.serviceClient.catalog.getProductSubmission(id, userId);
+  }
+
+  async decideProductSubmission(id: string, decision: "approve" | "link" | "reject" | "request-changes", body: unknown, userId?: string) {
+    Logger.warn(`Product submission ${id}: ${decision}`);
+    return this.serviceClient.catalog.decideProductSubmission(id, decision, body, userId);
+  }
+
   async suspendVendor(vendorId: string, userId?: string) {
     Logger.warn(`Suspending vendor ${vendorId}`);
     return this.serviceClient.vendor.suspendVendor(vendorId, userId);

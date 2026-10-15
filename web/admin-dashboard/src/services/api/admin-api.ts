@@ -19,6 +19,10 @@ import {
   type GlobalProduct,
   type BulkAddVendorProductsFromGlobalResult,
   type User,
+  type ProductSubmission,
+  type ProductDuplicateMatch,
+  type SimilarPendingSubmission,
+  type ProductSubmissionDecisionResult,
   MeasurementType,
   WeightUnit,
 } from "@city-market/shared";
@@ -70,6 +74,22 @@ export const adminApi = {
   setVendorApproval: (id: string, status: "APPROVED" | "REJECTED" | "SUSPENDED", note?: string) =>
     axiosInstance.patch<ApiResponse<Vendor>>(`/admin/vendors/${id}/approval`, { status, note }),
   getVendorApprovalHistory: (id: string) => axiosInstance.get<ApiResponse<VendorApprovalHistoryEntry[]>>(`/admin/vendors/${id}/approval-history`),
+
+  // Merchant product proposals (review queue)
+  getProductSubmissions: (params: { status?: string; search?: string; page?: number; limit?: number }) =>
+    axiosInstance.get<ApiResponse<{ data: ProductSubmission[]; total: number; page: number; limit: number }>>("/admin/product-submissions", { params }),
+  getProductSubmission: (id: string) =>
+    axiosInstance.get<ApiResponse<{ submission: ProductSubmission; duplicates: ProductDuplicateMatch[]; similarPending: SimilarPendingSubmission[] }>>(
+      `/admin/product-submissions/${id}`,
+    ),
+  approveProductSubmission: (id: string, body: { revision: number; note?: string; confirmNotDuplicate?: boolean }) =>
+    axiosInstance.post<ApiResponse<ProductSubmissionDecisionResult>>(`/admin/product-submissions/${id}/approve`, body),
+  linkProductSubmission: (id: string, body: { revision: number; globalProductId: string; note?: string }) =>
+    axiosInstance.post<ApiResponse<ProductSubmissionDecisionResult>>(`/admin/product-submissions/${id}/link`, body),
+  rejectProductSubmission: (id: string, body: { revision: number; reason: string }) =>
+    axiosInstance.post<ApiResponse<ProductSubmissionDecisionResult>>(`/admin/product-submissions/${id}/reject`, body),
+  requestProductSubmissionChanges: (id: string, body: { revision: number; feedback: string }) =>
+    axiosInstance.post<ApiResponse<ProductSubmissionDecisionResult>>(`/admin/product-submissions/${id}/request-changes`, body),
   getVendorById: (id: string) => axiosInstance.get<ApiResponse<Vendor>>(`/admin/vendors/${id}`),
   updateVendor: (id: string, body: Partial<Vendor>) => axiosInstance.patch<ApiResponse<null>>(`/admin/vendors/${id}`, body),
 

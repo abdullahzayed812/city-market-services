@@ -17,6 +17,11 @@ import { config } from "./config/env";
 import { OrderDeliveredConsumer } from "./application/events/order-delivered.consumer";
 import { OrderStockCheckConsumer } from "./application/events/order-stock-check.consumer";
 import { OrderStockReleaseConsumer } from "./application/events/order-stock-release.consumer";
+import { ProductSubmissionRepository } from "./infrastructure/repositories/product-submission.repository";
+import { ProductSubmissionService } from "./application/services/product-submission.service";
+import { ProductSubmissionController } from "./presentation/controllers/product-submission.controller";
+import { createProductSubmissionRoutes } from "./presentation/routes/product-submission.routes";
+import { SubmissionMediaClient } from "./infrastructure/http/submission-media-client";
 
 export const createApp = () => {
   const app = express();
@@ -44,6 +49,13 @@ export const createApp = () => {
   const catalogService = new CatalogService(vendorProductRepo, categoryRepo, globalProductRepo);
   const categoryService = new CategoryService(categoryRepo);
 
+  const productSubmissionService = new ProductSubmissionService(
+    new ProductSubmissionRepository(db, vendorProductRepo),
+    categoryRepo,
+    new SubmissionMediaClient(),
+    rabbitMQBus,
+  );
+
   const vendorProductController = new VendorProductController(catalogService);
   const categoryController = new CategoryController(categoryService);
   const globalProductController = new GlobalProductController(catalogService);
@@ -69,6 +81,7 @@ export const createApp = () => {
   app.use("/", createVendorProductRoutes(vendorProductController));
   app.use("/", createCategoryRoutes(categoryController));
   app.use("/", createGlobalProductRoutes(globalProductController));
+  app.use("/", createProductSubmissionRoutes(new ProductSubmissionController(productSubmissionService)));
 
   app.get("/health", (req, res) => {
     res.json({ status: "healthy", service: "catalog-service" });
@@ -76,5 +89,5 @@ export const createApp = () => {
 
   app.use(errorHandler);
 
-  return app;
+  return Object.assign(app, { productSubmissionService });
 };

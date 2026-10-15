@@ -111,6 +111,10 @@ export class MediaController {
       if (req.user?.role === UserRole.VENDOR && documentFolders.some((f) => key.startsWith(`${f}/`))) {
         throw new ForbiddenError("cannot_delete_documents");
       }
+      // Product-proposal photos are managed by catalog-service only
+      if (req.authType !== "service" && key.startsWith("product-submissions/")) {
+        throw new ForbiddenError("insufficient_permissions");
+      }
 
       await this.mediaService.deleteFile(key);
       res.json(ApiResponse.success(null, "media_deleted"));

@@ -42,6 +42,8 @@ export enum EventType {
   OFFICE_APPROVAL_UPDATED = "OFFICE_APPROVAL_UPDATED",
   VENDOR_APPROVAL_UPDATED = "VENDOR_APPROVAL_UPDATED",
   COURIER_REVIEW_REQUESTED = "COURIER_REVIEW_REQUESTED",
+  // Admin decision on a merchant's new-product proposal (approved / rejected / changes requested)
+  PRODUCT_SUBMISSION_REVIEWED = "PRODUCT_SUBMISSION_REVIEWED",
 
   // SLA Timer Events
   SLA_TIMER_STARTED = "SLA_TIMER_STARTED",

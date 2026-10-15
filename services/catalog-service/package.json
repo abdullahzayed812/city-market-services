@@ -6,6 +6,7 @@
     "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
     "build": "tsc",
     "start": "node dist/server.js",
+    "test": "node --test -r ts-node/register/transpile-only src/__tests__/*.test.ts",
     "db:init": "ts-node src/infrastructure/database/init-db.ts",
     "db:seed": "ts-node src/infrastructure/database/seed-db.ts",
     "db:reset": "ts-node src/infrastructure/database/reset-db.ts",

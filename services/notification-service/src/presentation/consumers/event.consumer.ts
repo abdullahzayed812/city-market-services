@@ -392,6 +392,27 @@ export class EventConsumer {
       });
     });
 
+    // Admin decision on a merchant's new-product proposal. Published once per actual state change
+    // (a repeated approval publishes nothing), so a redelivered message is the only duplicate source.
+    await rabbitMQBus.subscribe(EventType.PRODUCT_SUBMISSION_REVIEWED, "notification_product_submission_reviewed", async (event: BaseEvent) => {
+      const { vendorUserId, vendorId, submissionId, status, productName, vendorProductId } = event.payload;
+      const key =
+        status === "APPROVED"
+          ? "notification_product_submission_approved"
+          : status === "REJECTED"
+            ? "notification_product_submission_rejected"
+            : "notification_product_submission_needs_changes";
+      await this.notificationService.sendNotification(vendorUserId, "PRODUCT_SUBMISSION", `${key}_title`, `${key}_message`, {
+        type: "PRODUCT_SUBMISSION",
+        role: "VENDOR",
+        vendorId,
+        submissionId,
+        status,
+        productName,
+        vendorProductId: vendorProductId ?? undefined,
+      });
+    });
+
     await rabbitMQBus.subscribe(EventType.DELIVERY_RELEASED_BY_COURIER, "notification_delivery_released_by_courier", async (event: BaseEvent) => {
       const { deliveryId, customerOrderId, customerId, officeUserId } = event.payload;
       if (officeUserId) {

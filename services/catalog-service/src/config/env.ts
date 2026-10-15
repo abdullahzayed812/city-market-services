@@ -13,6 +13,8 @@ export const config = ConfigLoader.load<{
   authServiceTokenUrl: string;
   catalogServiceClientId: string;
   catalogServiceClientSecret: string;
+  submissionImageCleanupIntervalMs: number;
+  submissionImageCleanupGraceSeconds: number;
 }>({
   port: { env: "PORT", default: 3004 },
   dbHost: { env: "DB_HOST", default: "localhost" },
@@ -26,6 +28,10 @@ export const config = ConfigLoader.load<{
   authServiceTokenUrl: { env: "AUTH_SERVICE_TOKEN_URL", default: "http://localhost:3001/oauth/token" },
   catalogServiceClientId: { env: "CATALOG_SERVICE_CLIENT_ID", default: "catalog-service-id" },
   catalogServiceClientSecret: { env: "CATALOG_SERVICE_CLIENT_SECRET", required: true, sensitive: true },
+  // Orphaned product-proposal photo cleanup; 0 disables it
+  submissionImageCleanupIntervalMs: { env: "SUBMISSION_IMAGE_CLEANUP_INTERVAL_MS", default: 6 * 60 * 60 * 1000 },
+  // Uploads younger than this are left alone (the merchant may still be filling in the form)
+  submissionImageCleanupGraceSeconds: { env: "SUBMISSION_IMAGE_CLEANUP_GRACE_SECONDS", default: 24 * 60 * 60 },
 });
 
 export const catalogServiceAuthenticator = new ServiceAuthenticator(

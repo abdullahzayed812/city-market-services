@@ -47,6 +47,7 @@ const NO_ENRICHMENT_EVENTS = new Set<string>([
   EventType.COURIER_APPROVAL_UPDATED,
   EventType.OFFICE_APPROVAL_UPDATED,
   EventType.VENDOR_APPROVAL_UPDATED,
+  EventType.PRODUCT_SUBMISSION_REVIEWED,
 ]);
 
 export const setupEventConsumer = async (io: Server) => {
@@ -138,6 +139,10 @@ export const setupEventConsumer = async (io: Server) => {
     // The merchant's app / dashboard refetches its store and leaves (or enters) the pending screen
     if (type === EventType.VENDOR_APPROVAL_UPDATED && payload.vendorUserId) {
       io.to(`user:${payload.vendorUserId}`).emit(type, { approvalStatus: payload.approvalStatus });
+    }
+    // The merchant's proposal list / detail refetches
+    if (type === EventType.PRODUCT_SUBMISSION_REVIEWED && payload.vendorUserId) {
+      io.to(`user:${payload.vendorUserId}`).emit(type, { submissionId: payload.submissionId, status: payload.status });
     }
   };
 

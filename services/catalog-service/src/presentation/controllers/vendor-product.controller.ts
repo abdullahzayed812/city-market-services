@@ -243,6 +243,11 @@ export class VendorProductController {
       if (invalidIndex !== -1) {
         throw new ValidationError(`item_${invalidIndex}_missing_global_product_id`);
       }
+      // Price and stock are optional (0 when left out) but must be sane when given
+      const isAmount = (v: unknown) => v === undefined || v === null || (typeof v === "number" && Number.isFinite(v) && v >= 0);
+      if (items.some((item) => !isAmount(item.price) || (item.price ?? 0) > 1_000_000)) throw new ValidationError("invalid_price");
+      if (items.some((item) => !isAmount(item.stockQuantity) || !isAmount(item.stockWeightGrams))) throw new ValidationError("invalid_stock");
+      if (items.some((item) => item.stockQuantity != null && !Number.isInteger(item.stockQuantity))) throw new ValidationError("invalid_stock");
 
       // Approved merchants add to their own store only
       const ownVendorId = await resolveWritableVendorId(req);

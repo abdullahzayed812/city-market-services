@@ -10,3 +10,13 @@ app.listen(config.port, async () => {
 
   Logger.info(`Catalog Service running on port ${config.port}`);
 });
+
+// Orphaned product-proposal photos (never attached, replaced, or left after a decision)
+if (config.submissionImageCleanupIntervalMs > 0) {
+  const cleanup = () =>
+    app.productSubmissionService
+      .cleanupOrphanImages(config.submissionImageCleanupGraceSeconds)
+      .catch((error) => Logger.warn("Product-proposal photo cleanup failed", { error: error?.message }));
+  setTimeout(cleanup, 60_000).unref();
+  setInterval(cleanup, config.submissionImageCleanupIntervalMs).unref();
+}

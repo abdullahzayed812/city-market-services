@@ -30,6 +30,13 @@ export const createAdminRoutes = (controller: AdminController): Router => {
   router.patch("/vendors/:id/approval", authorize(UserRole.ADMIN), controller.setVendorApproval);
   router.get("/vendors/:id/approval-history", authorize(UserRole.ADMIN), controller.getVendorApprovalHistory);
   router.patch("/vendors/:id/image", authorize(UserRole.ADMIN), controller.updateVendorImage);
+  // Merchant product proposals (review queue)
+  router.get("/product-submissions", authorize(UserRole.ADMIN), controller.getProductSubmissions);
+  router.get("/product-submissions/:id", authorize(UserRole.ADMIN), controller.getProductSubmission);
+  router.post("/product-submissions/:id/approve", authorize(UserRole.ADMIN), controller.decideProductSubmission("approve"));
+  router.post("/product-submissions/:id/link", authorize(UserRole.ADMIN), controller.decideProductSubmission("link"));
+  router.post("/product-submissions/:id/reject", authorize(UserRole.ADMIN), controller.decideProductSubmission("reject"));
+  router.post("/product-submissions/:id/request-changes", authorize(UserRole.ADMIN), controller.decideProductSubmission("request-changes"));
   router.get("/orders/:id", authorize(UserRole.ADMIN), controller.getOrderById);
   router.patch("/orders/:id/status", authorize(UserRole.ADMIN), controller.updateOrderStatus);
   router.get("/deliveries", authorize(UserRole.ADMIN), controller.getDeliveries);

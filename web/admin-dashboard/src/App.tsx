@@ -10,6 +10,7 @@ import DeliveryOfficesManagement from "./pages/DeliveryOfficesManagement.tsx";
 import CategoriesManagement from "./pages/CategoriesManagement.tsx";
 import VendorsManagement from "./pages/VendorsManagement.tsx";
 import ProductsManagement from "./pages/ProductsManagement.tsx";
+import ProductSubmissionsReview from "./pages/ProductSubmissionsReview.tsx";
 import FinancialAnalytics from "./pages/FinancialAnalytics.tsx";
 import CommissionTiers from "./pages/CommissionTiers.tsx";
 import DeliveryFeeTiers from "./pages/DeliveryFeeTiers.tsx";
@@ -38,6 +39,7 @@ function App() {
               <Route path="users" element={<UsersManagement />} />
               <Route path="vendors" element={<VendorsManagement />} />
               <Route path="products" element={<ProductsManagement />} />
+              <Route path="product-submissions" element={<ProductSubmissionsReview />} />
               <Route path="orders" element={<OrdersManagement />} />
               <Route path="couriers" element={<CouriersManagement />} />
               <Route path="ratings" element={<RatingsPage />} />

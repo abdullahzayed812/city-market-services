@@ -16,6 +16,10 @@ export const productService = {
     );
     return response.data?.data;
   },
+  getVendorProduct: async (id: string) => {
+    const response = await apiClient.get<ApiResponse<VendorProduct>>(`/catalog/products/${id}`);
+    return response.data?.data;
+  },
   updateVendorProduct: async (id: string, data: UpdateVendorProductDto) => {
     const response = await apiClient.patch<ApiResponse<null>>(`/catalog/products/${id}`, data);
     return response.data?.data;

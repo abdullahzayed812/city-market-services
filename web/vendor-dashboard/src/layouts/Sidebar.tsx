@@ -1,6 +1,6 @@
 import { NavLink } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { LayoutDashboard, ShoppingBag, Package, Warehouse, Store, Wallet, Settings } from "lucide-react";
+import { LayoutDashboard, ShoppingBag, Package, PackagePlus, Warehouse, Store, Wallet, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface SidebarProps {
@@ -19,6 +19,7 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
     { icon: LayoutDashboard, label: t("common.dashboard"), path: "/" },
     { icon: ShoppingBag, label: t("common.orders"), path: "/orders" },
     { icon: Package, label: t("common.products"), path: "/products" },
+    { icon: PackagePlus, label: t("product_submissions.nav"), path: "/product-submissions" },
     { icon: Warehouse, label: t("common.inventory"), path: "/inventory" },
     { icon: ShoppingBag, label: t("reviews.title"), path: "/reviews" },
     { icon: Wallet, label: t("common.payouts"), path: "/payouts" },

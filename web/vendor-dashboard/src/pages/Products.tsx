@@ -1,5 +1,7 @@
-import { useState, useMemo, useCallback, memo } from "react";
+import { useState, useMemo, useCallback, memo, useEffect } from "react";
 import { useTranslation } from "react-i18next";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { productService } from "@/services/api/product.service";
 import { useProducts } from "@/hooks/useProducts";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
@@ -10,7 +12,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Image as ImageIcon, MoreHorizontal, Pencil, Trash2, ListPlus } from "lucide-react";
+import { Image as ImageIcon, MoreHorizontal, Pencil, Trash2, ListPlus, PackagePlus } from "lucide-react";
 import { Pagination } from "@/components/ui/pagination";
 import VendorProductImageModal from "@/components/ProductImageModal";
 import { MeasurementType } from "@city-market/shared";
@@ -38,6 +40,30 @@ const Products = () => {
   const [isImageModalOpen, setIsImageModalOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
   const [editingProduct, setEditingProduct] = useState<any>(null);
+
+  // /products?edit=<vendorProductId> (e.g. right after a proposal is approved): open the
+  // price / stock form for that product
+  const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const editId = searchParams.get("edit");
+  useEffect(() => {
+    if (!editId) return;
+    let cancelled = false;
+    productService
+      .getVendorProduct(editId)
+      .then((product) => {
+        if (cancelled || !product) return;
+        setEditingProduct(product);
+        setIsEditDialogOpen(true);
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (!cancelled) setSearchParams({}, { replace: true });
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [editId, setSearchParams]);
 
   const handleUpdateProduct = useCallback((data: any) => {
     const { id, measurementType, ...rest } = data;
@@ -176,7 +202,10 @@ const Products = () => {
           <h1 className="text-3xl font-bold tracking-tight">{t("products.title")}</h1>
           <p className="text-muted-foreground">{t("products.subtitle")}</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" className="gap-2" onClick={() => navigate("/product-submissions?new=1")}>
+            <PackagePlus className="h-4 w-4" /> {t("product_submissions.propose_new")}
+          </Button>
           <Button className="gap-2" onClick={() => setIsBulkAddDialogOpen(true)}>
             <ListPlus className="h-4 w-4" /> {t("products.bulk_add_title", "Add Products")}
           </Button>
