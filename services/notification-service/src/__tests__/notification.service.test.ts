@@ -32,6 +32,14 @@ class FakeRepo implements INotificationRepository {
     unread.forEach((n) => (n.isRead = true));
     return unread.length;
   }
+  async markManyAsRead(userId: string, ids: string[]) {
+    const unread = this.notifications.filter((x) => x.userId === userId && !x.isRead && ids.includes(x.id));
+    unread.forEach((n) => (n.isRead = true));
+    return unread.length;
+  }
+  async findUnread(userId: string, limit: number) {
+    return this.notifications.filter((n) => n.userId === userId && !n.isRead).reverse().slice(0, limit);
+  }
   async countUnread(userId: string) {
     return this.notifications.filter((n) => n.userId === userId && !n.isRead).length;
   }
@@ -172,6 +180,44 @@ describe("read state", () => {
     assert.equal((await service.getNotifications("admin-1")).unread, 0);
     await service.markAllRead("admin-1");
     assert.equal(live.length, 1);
+  });
+});
+
+describe("badges (unread by item)", () => {
+  const vendorReview = (vendorId: string, dedupeKey: string) =>
+    service.sendNotification("admin-1", "ADMIN_VENDOR_REVIEW", "t", "m", { type: "ADMIN_VENDOR_REVIEW", vendorId }, { dedupeKey });
+  const order = (type: string, customerOrderId: string) =>
+    service.sendNotification("admin-1", type, "t", "m", { type, customerOrderId }, { dedupeKey: `${type}:${customerOrderId}` });
+
+  test("the summary lists each unread item once, grouped by the screen it opens", async () => {
+    await vendorReview("v1", "a");
+    await vendorReview("v1", "b"); // resubmitted: still one merchant
+    await vendorReview("v2", "c");
+    await order("ADMIN_NEW_ORDER", "o1");
+    await order("ADMIN_DELIVERY_ISSUE", "o1");
+    await service.sendNotification("admin-1", "X", "t", "m", { type: "UNKNOWN" }, { dedupeKey: "x" });
+    const summary = await service.getUnreadSummary("admin-1");
+    assert.deepEqual(summary.vendor.sort(), ["v1", "v2"]);
+    assert.deepEqual(summary.order, ["o1"]);
+    assert.deepEqual(summary.courier, []);
+  });
+
+  test("opening an item reads all of its notifications and tells the admin's apps", async () => {
+    await vendorReview("v1", "a");
+    await vendorReview("v1", "b");
+    await vendorReview("v2", "c");
+    live = [];
+    assert.equal(await service.markTargetRead("admin-1", "vendor", "v1"), 2);
+    assert.deepEqual((await service.getUnreadSummary("admin-1")).vendor, ["v2"]);
+    assert.equal(live.length, 1);
+    assert.equal(live[0].type, EventType.NOTIFICATION_READ);
+    assert.equal(live[0].payload.ids.length, 2);
+    // Nothing left for v1: no second event
+    assert.equal(await service.markTargetRead("admin-1", "vendor", "v1"), 0);
+    assert.equal(live.length, 1);
+    // Someone else's notifications are untouched
+    assert.equal(await service.markTargetRead("admin-2", "vendor", "v2"), 0);
+    await assert.rejects(service.markTargetRead("admin-1", "bogus", "v2"), (e: any) => e.statusCode === 400);
   });
 });
 

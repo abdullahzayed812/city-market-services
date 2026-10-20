@@ -294,5 +294,9 @@
   "notification_admin_acceptance_expired_title": "لم يقبل أي مكتب التوصيل",
   "notification_admin_acceptance_expired_message": "لم يقبل أي مكتب توصيل الطلب #{{orderId}} في الوقت المحدد.",
   "notification_admin_vendor_confirmation_expired_title": "لم يؤكد التاجر الطلب",
-  "notification_admin_vendor_confirmation_expired_message": "لم يؤكد تاجر الطلب #{{orderId}} في الوقت المحدد فتم إلغاؤه."
+  "notification_admin_vendor_confirmation_expired_message": "لم يؤكد تاجر الطلب #{{orderId}} في الوقت المحدد فتم إلغاؤه.",
+  "notification_admin_new_order_title": "طلب جديد",
+  "notification_admin_new_order_message": "تم إنشاء الطلب #{{orderId}} وهو بانتظار التاجر.",
+  "notification_admin_order_cancelled_title": "تم إلغاء طلب",
+  "notification_admin_order_cancelled_message": "تم إلغاء الطلب #{{orderId}}."
 }

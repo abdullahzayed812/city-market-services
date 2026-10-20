@@ -38,18 +38,28 @@ export class NotificationRepository implements INotificationRepository {
   async findByUserId(userId: string, limit: number, offset: number): Promise<Notification[]> {
     const query = `SELECT * FROM notifications WHERE user_id = ? ORDER BY created_at DESC LIMIT ? OFFSET ?`;
     const [rows] = await this.pool.query<RowDataPacket[]>(query, [userId, limit, offset]);
-    return rows.map((row) => ({
-      id: row.id,
-      userId: row.user_id,
-      type: row.type,
-      title: row.title,
-      message: row.message,
-      isRead: Boolean(row.is_read),
-      metadata: row.metadata,
-      dedupeKey: row.dedupe_key ?? null,
-      createdAt: row.created_at,
-    }));
+    return rows.map(this.toNotification);
   }
+
+  async findUnread(userId: string, limit: number): Promise<Notification[]> {
+    const [rows] = await this.pool.query<RowDataPacket[]>(
+      "SELECT * FROM notifications WHERE user_id = ? AND is_read = FALSE ORDER BY created_at DESC LIMIT ?",
+      [userId, limit],
+    );
+    return rows.map(this.toNotification);
+  }
+
+  private toNotification = (row: RowDataPacket): Notification => ({
+    id: row.id,
+    userId: row.user_id,
+    type: row.type,
+    title: row.title,
+    message: row.message,
+    isRead: Boolean(row.is_read),
+    metadata: row.metadata,
+    dedupeKey: row.dedupe_key ?? null,
+    createdAt: row.created_at,
+  });
 
   async countAll(userId: string): Promise<number> {
     const [rows] = await this.pool.query<RowDataPacket[]>(
@@ -71,6 +81,15 @@ export class NotificationRepository implements INotificationRepository {
     const [result] = await this.pool.execute<ResultSetHeader>(
       "UPDATE notifications SET is_read = TRUE WHERE user_id = ? AND is_read = FALSE",
       [userId],
+    );
+    return result.affectedRows;
+  }
+
+  async markManyAsRead(userId: string, ids: string[]): Promise<number> {
+    if (ids.length === 0) return 0;
+    const [result] = await this.pool.query<ResultSetHeader>(
+      "UPDATE notifications SET is_read = TRUE WHERE user_id = ? AND is_read = FALSE AND id IN (?)",
+      [userId, ids],
     );
     return result.affectedRows;
   }

@@ -174,8 +174,19 @@ export const adminNotificationTarget = (metadata: Record<string, any> | null | u
       return metadata.submissionId ? { screen: "submission", id: metadata.submissionId } : null;
     case "ADMIN_DELIVERY_ISSUE":
     case "ADMIN_ORDER_ISSUE":
+    case "ADMIN_NEW_ORDER":
+    case "ADMIN_ORDER_CANCELLED":
       return metadata.customerOrderId ? { screen: "order", id: metadata.customerOrderId } : null;
     default:
       return null;
   }
 };
+
+/**
+ * Unread notifications grouped by the screen they open, each with the distinct ids involved
+ * (a merchant who resubmits twice is one item). Drives the tab badges, the review-hub counts and
+ * the "new" dots in lists; opening an item marks its notifications read, which clears them.
+ */
+export type AdminUnreadSummary = Record<Exclude<AdminNotificationTarget, null>["screen"], string[]>;
+
+export const emptyAdminUnreadSummary = (): AdminUnreadSummary => ({ vendor: [], courier: [], office: [], submission: [], order: [] });

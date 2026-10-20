@@ -294,5 +294,9 @@
   "notification_admin_acceptance_expired_title": "No office accepted a delivery",
   "notification_admin_acceptance_expired_message": "No delivery office accepted order #{{orderId}} in time.",
   "notification_admin_vendor_confirmation_expired_title": "Merchant didn't confirm an order",
-  "notification_admin_vendor_confirmation_expired_message": "A merchant didn't confirm order #{{orderId}} in time and it was cancelled."
+  "notification_admin_vendor_confirmation_expired_message": "A merchant didn't confirm order #{{orderId}} in time and it was cancelled.",
+  "notification_admin_new_order_title": "New order",
+  "notification_admin_new_order_message": "Order #{{orderId}} was placed and is waiting for the merchant.",
+  "notification_admin_order_cancelled_title": "Order cancelled",
+  "notification_admin_order_cancelled_message": "Order #{{orderId}} was cancelled."
 }

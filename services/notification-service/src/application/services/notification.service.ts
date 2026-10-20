@@ -3,7 +3,22 @@ import { Notification } from "../../core/entities/notification.entity";
 import { AdminDirectory } from "../../infrastructure/clients/admin-directory";
 import { randomUUID } from "crypto";
 import { Logger } from "@city-market/shared/node";
-import { AppType, BaseEvent, EventType, ForbiddenError, PlatformType, UserRole, ValidationError, translate } from "@city-market/shared";
+import {
+  AdminUnreadSummary,
+  AppType,
+  BaseEvent,
+  EventType,
+  ForbiddenError,
+  PlatformType,
+  UserRole,
+  ValidationError,
+  adminNotificationTarget,
+  emptyAdminUnreadSummary,
+  translate,
+} from "@city-market/shared";
+
+// Badges count at most this many unread notifications (older ones are still in the list)
+const UNREAD_SCAN_LIMIT = 1000;
 
 export interface PushSender {
   // Returns the tokens FCM reported as no longer valid
@@ -218,6 +233,31 @@ export class NotificationService {
   async markAllRead(userId: string) {
     const changed = await this.repo.markAllAsRead(userId);
     if (changed > 0) await this.publishLive(EventType.NOTIFICATION_READ, { userId, all: true });
+  }
+
+  // Unread admin notifications grouped by the screen they open (see AdminUnreadSummary)
+  async getUnreadSummary(userId: string): Promise<AdminUnreadSummary> {
+    const summary = emptyAdminUnreadSummary();
+    for (const n of await this.repo.findUnread(userId, UNREAD_SCAN_LIMIT)) {
+      const target = adminNotificationTarget(n.metadata);
+      if (target && !summary[target.screen].includes(target.id)) summary[target.screen].push(target.id);
+    }
+    return summary;
+  }
+
+  // The admin opened this item: every unread notification that leads to it is read now
+  async markTargetRead(userId: string, screen: unknown, id: unknown) {
+    if (typeof screen !== "string" || !(screen in emptyAdminUnreadSummary())) throw new ValidationError("invalid_target");
+    if (typeof id !== "string" || !id) throw new ValidationError("invalid_target");
+    const ids = (await this.repo.findUnread(userId, UNREAD_SCAN_LIMIT))
+      .filter((n) => {
+        const target = adminNotificationTarget(n.metadata);
+        return target?.screen === screen && target.id === id;
+      })
+      .map((n) => n.id);
+    const changed = await this.repo.markManyAsRead(userId, ids);
+    if (changed > 0) await this.publishLive(EventType.NOTIFICATION_READ, { userId, ids });
+    return changed;
   }
 
   // Best effort: the notification is stored either way, and apps resync on reconnect

@@ -9,6 +9,10 @@ export interface INotificationRepository {
   // Only the owner's notification; returns whether it changed
   markAsRead(userId: string, id: string): Promise<boolean>;
   markAllAsRead(userId: string): Promise<number>;
+  // The owner's unread notifications with the given ids; returns how many changed
+  markManyAsRead(userId: string, ids: string[]): Promise<number>;
+  // Newest unread first (id, type, metadata are what the summary needs)
+  findUnread(userId: string, limit: number): Promise<Notification[]>;
   countUnread(userId: string): Promise<number>;
 
   // Preferences

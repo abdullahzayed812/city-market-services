@@ -1,6 +1,6 @@
 import { Response, NextFunction } from "express";
 import { OrderService } from "../../application/services/order.service";
-import { ApiResponse, ProposeChangesDto, ValidationError } from "@city-market/shared";
+import { ApiResponse, ProposeChangesDto, UserRole, ValidationError } from "@city-market/shared";
 import { Logger } from "@city-market/shared/node";
 import { AuthenticatedRequest } from "@city-market/shared/node";
 import { resolveOwnVendorId, assertOwnStore, assertCustomerOrderAccess } from "../middlewares/vendor-access";
@@ -103,7 +103,7 @@ export class OrderController {
   getCustomerOrderById = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
       assertCustomerOrderAccess(req, await this.orderService.getCustomerOrderOwnerId(req.params.id));
-      const order = await this.orderService.getCustomerOrderById(req.params.id, req.user?.userId);
+      const order = await this.orderService.getCustomerOrderById(req.params.id, req.user?.userId, req.user?.role === UserRole.ADMIN);
       res.json(ApiResponse.success(order));
     } catch (error) {
       next(error);

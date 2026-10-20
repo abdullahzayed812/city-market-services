@@ -75,4 +75,21 @@ export class NotificationController {
       next(error);
     }
   };
+
+  getUnreadSummary = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      res.json(ApiResponse.success(await this.service.getUnreadSummary(req.user!.userId)));
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  markTargetRead = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      const changed = await this.service.markTargetRead(req.user!.userId, req.body?.screen, req.body?.id);
+      res.json(ApiResponse.success({ changed }, "marked_as_read"));
+    } catch (error) {
+      next(error);
+    }
+  };
 }

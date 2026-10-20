@@ -58,6 +58,12 @@ export const createApp = (service: NotificationService) => {
     controller.getNotifications,
   );
 
+  // Admin badges: unread notifications grouped by the screen they open
+  app.get("/notifications/unread-summary", authorize(UserRole.ADMIN), controller.getUnreadSummary);
+
+  // Admin opened an item (vendor, courier, office, submission, order): its notifications are read
+  app.patch("/notifications/read-target", authorize(UserRole.ADMIN), controller.markTargetRead);
+
   app.patch(
     "/notifications/:id/read",
     authorize(UserRole.CUSTOMER, UserRole.VENDOR, UserRole.COURIER, UserRole.ADMIN, UserRole.DELIVERY_MANAGER),

@@ -541,6 +541,33 @@ export class EventConsumer {
         { dedupeKey: key(event, vendorOrderId) },
       );
     });
+
+    // A new order sends one VENDOR_ORDER_CREATED per store, so the key is the customer order:
+    // a split order is announced once.
+    await rabbitMQBus.subscribe(EventType.VENDOR_ORDER_CREATED, "notification_admin_new_order", async (event: BaseEvent) => {
+      const { customerOrderId } = event.payload;
+      if (!customerOrderId) return;
+      await this.notificationService.sendToAdmins(
+        "ADMIN_NEW_ORDER",
+        "notification_admin_new_order_title",
+        "notification_admin_new_order_message",
+        { type: "ADMIN_NEW_ORDER", customerOrderId, orderId: shortOrder(customerOrderId) },
+        { dedupeKey: `ADMIN_NEW_ORDER:${customerOrderId}` },
+      );
+    });
+
+    // Published by both the state manager and the cancel paths; an order is cancelled once
+    await rabbitMQBus.subscribe(EventType.ORDER_CANCELLED, "notification_admin_order_cancelled", async (event: BaseEvent) => {
+      const { customerOrderId } = event.payload;
+      if (!customerOrderId) return;
+      await this.notificationService.sendToAdmins(
+        "ADMIN_ORDER_CANCELLED",
+        "notification_admin_order_cancelled_title",
+        "notification_admin_order_cancelled_message",
+        { type: "ADMIN_ORDER_CANCELLED", customerOrderId, orderId: shortOrder(customerOrderId) },
+        { dedupeKey: `ADMIN_ORDER_CANCELLED:${customerOrderId}` },
+      );
+    });
   }
 
   // The courier the customer saw (and may have called) is gone; a new one is being found.

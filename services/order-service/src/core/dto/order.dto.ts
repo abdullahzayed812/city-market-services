@@ -42,7 +42,7 @@ export interface ProposeChangesDto {
 }
 
 export interface OrderWithItems {
-  order: CustomerOrder;
+  order: CustomerOrder & { customerName?: string };
   vendorOrders: (VendorOrder & { items: VendorOrderItem[] })[];
 }
 

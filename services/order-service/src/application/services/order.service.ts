@@ -80,7 +80,8 @@ export class OrderService {
     return OrderMapper.mapOrderWithItems(result.order, result.vendorOrders);
   }
 
-  async getCustomerOrderById(id: string, userId?: string): Promise<OrderWithItems> {
+  // withCustomerName: admins see who placed the order (customers already know)
+  async getCustomerOrderById(id: string, userId?: string, withCustomerName = false): Promise<OrderWithItems> {
     const customerOrder = await this.customerOrderRepo.findById(id);
     if (!customerOrder) throw new NotFoundError("order_not_found");
 
@@ -104,7 +105,12 @@ export class OrderService {
       }),
     );
 
-    return OrderMapper.mapOrderWithItems(customerOrder, vendorOrdersWithItems);
+    const result = OrderMapper.mapOrderWithItems(customerOrder, vendorOrdersWithItems);
+    if (withCustomerName) {
+      const names = await this.userClient.getCustomerNamesByIds([customerOrder.customerId]);
+      result.order = { ...result.order, customerName: names.get(customerOrder.customerId) };
+    }
+    return result;
   }
 
   // Same shape as getCustomerOrderById for many orders at once: one query per table

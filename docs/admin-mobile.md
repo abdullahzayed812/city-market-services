@@ -78,8 +78,11 @@ Same table, same API and same delivery code for web and mobile. A notification r
 | `SLA_COURIER_PICKUP_EXPIRED` | courier didn't pick up in time | yes | yes |
 | `SLA_DELIVERY_ACCEPTANCE_EXPIRED` | no office accepted in time | yes | no (in-app only; frequent) |
 | `SLA_VENDOR_CONFIRMATION_EXPIRED` | merchant didn't confirm, order cancelled | yes | no |
-| `ORDER_CREATED` and other order progress | — | no (real-time list update only) | no |
+| `VENDOR_ORDER_CREATED` (once per customer order, even when split across stores) | customer places an order | yes | yes |
+| `ORDER_CANCELLED` (once per order) | order cancelled by anyone | yes | yes |
+| Other order progress (confirmed, ready, picked up, delivered) | — | no (real-time list update only) | no |
 
+* Badges (mobile): `GET /notifications/unread-summary` returns the unread items per screen (`vendor`, `courier`, `office`, `submission`, `order`; distinct ids). The Review tab badge is the sum of the first four, the Orders tab badge is `order`, and list rows with unread notifications show "New". Opening an item calls `PATCH /notifications/read-target { screen, id }`, which marks all of that item's notifications read and sends `NOTIFICATION_READ` to the admin's other devices.
 * Recipients: every active ADMIN user, read from auth-service (`GET /users?role=ADMIN`) with notification-service's service token, cached 60 s.
 * Preferences: `notification_preferences.push_enabled` per admin (`GET/PATCH /notifications/preferences`). In-app notifications are always stored.
 * Duplicates: each notification has a `dedupe_key` (`<event id>`), unique per user. A redelivered RabbitMQ message inserts nothing and sends no push.
