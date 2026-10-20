@@ -107,7 +107,9 @@ export class VendorService {
       await this.vendorRepo.create(vendor, connection);
       await this.vendorRepo.addApprovalHistory(this.historyEntry(vendor.id, VendorApprovalStatus.PENDING_REVIEW, "submitted", userId), connection);
     });
-    await this.publisher.publishVendorRegistered(vendor.id, vendor.userId).catch((err) => Logger.warn(`VENDOR_REGISTERED publish failed: ${err.message}`));
+    await this.publisher
+      .publishVendorRegistered(vendor.id, vendor.userId, { shopName: vendor.shopName, approvalStatus: vendor.approvalStatus })
+      .catch((err) => Logger.warn(`VENDOR_REGISTERED publish failed: ${err.message}`));
     return vendor;
   }
 
@@ -127,7 +129,11 @@ export class VendorService {
       await this.vendorRepo.resubmitRegistration(vendor.id, fields, connection);
       await this.vendorRepo.addApprovalHistory(this.historyEntry(vendor.id, VendorApprovalStatus.PENDING_REVIEW, "resubmitted", userId), connection);
     });
-    return this.getVendorById(own.id);
+    const updated = await this.getVendorById(own.id);
+    await this.publisher
+      .publishVendorRegistered(updated.id, updated.userId, { shopName: updated.shopName, approvalStatus: VendorApprovalStatus.PENDING_REVIEW, resubmitted: true })
+      .catch((err) => Logger.warn(`VENDOR_REGISTERED publish failed: ${err.message}`));
+    return updated;
   }
 
   // ── Admin review ────────────────────────────────────────────────────────────

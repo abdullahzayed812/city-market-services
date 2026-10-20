@@ -1,7 +1,7 @@
 import React from "react";
 import { NavLink } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { LayoutDashboard, Users, ShoppingBag, Truck, BarChart3, Settings, Building, Box, Percent, PackageCheck, Star, Warehouse, PackagePlus } from "lucide-react";
+import { LayoutDashboard, Users, ShoppingBag, Truck, BarChart3, Settings, Building, Box, Percent, PackageCheck, Star, Warehouse, PackagePlus, Bell } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface SidebarProps {
@@ -31,6 +31,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
     { name: t("financial.analytics", "Financial Settlements"), href: "/financial-analytics", icon: BarChart3 },
     { name: t("financial.commission_tiers", "Commission Tiers"), href: "/commission-tiers", icon: Percent },
     { name: t("delivery_tiers.title", "Delivery Fee Tiers"), href: "/delivery-fee-tiers", icon: PackageCheck },
+    { name: t("notifications.title"), href: "/notifications", icon: Bell },
     { name: t("common.settings"), href: "/settings", icon: Settings },
   ];
 

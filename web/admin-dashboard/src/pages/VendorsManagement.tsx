@@ -12,6 +12,7 @@ import { ShopStatus, VendorType } from "@city-market/shared";
 import { ListToolbar, FilterSelect } from "@/components/ListToolbar";
 import { Pagination } from "@/components/ui/pagination";
 import { useClientPagination } from "@/hooks/useClientPagination";
+import { useSearchParamState } from "@/hooks/useSearchParamState";
 
 const PAGE_SIZE = 20;
 import { useToast } from "@/hooks/use-toast";
@@ -34,7 +35,7 @@ const VendorsManagement: React.FC = () => {
 
   // Merchant applications: filter by approval (server side), review in a dialog
   const [approvalFilter, setApprovalFilter] = useState<ApprovalFilter>("ALL");
-  const [reviewId, setReviewId] = useState<string | null>(null);
+  const [reviewId, setReviewId] = useSearchParamState("review");
 
   const { data: vendors, isLoading } = useQuery({
     queryKey: ["adminVendors", approvalFilter],

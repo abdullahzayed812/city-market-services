@@ -32,6 +32,25 @@ export const createApp = (service: NotificationService) => {
     controller.registerDevice,
   );
 
+  app.delete(
+    "/device-token",
+    authorize(UserRole.CUSTOMER, UserRole.VENDOR, UserRole.COURIER, UserRole.ADMIN, UserRole.DELIVERY_MANAGER),
+    controller.unregisterDevice,
+  );
+
+  // Push on/off for the signed-in user (in-app notifications are always kept)
+  app.get(
+    "/notifications/preferences",
+    authorize(UserRole.CUSTOMER, UserRole.VENDOR, UserRole.COURIER, UserRole.ADMIN, UserRole.DELIVERY_MANAGER),
+    controller.getPreferences,
+  );
+
+  app.patch(
+    "/notifications/preferences",
+    authorize(UserRole.CUSTOMER, UserRole.VENDOR, UserRole.COURIER, UserRole.ADMIN, UserRole.DELIVERY_MANAGER),
+    controller.updatePreferences,
+  );
+
   // Notifications
   app.get(
     "/notifications",

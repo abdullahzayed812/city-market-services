@@ -13,6 +13,7 @@ import { OfficeReviewPanel } from "@/features/offices/components/OfficeReviewPan
 import { ListToolbar } from "@/components/ListToolbar";
 import { Pagination } from "@/components/ui/pagination";
 import { useClientPagination } from "@/hooks/useClientPagination";
+import { useSearchParamState } from "@/hooks/useSearchParamState";
 
 const PAGE_SIZE = 20;
 
@@ -28,7 +29,7 @@ const APPROVAL_BADGE: Record<string, "default" | "secondary" | "destructive" | "
 const DeliveryOfficesManagement: React.FC = () => {
   const { t } = useTranslation();
   const [filter, setFilter] = useState<Filter>("ALL");
-  const [viewId, setViewId] = useState<string | null>(null);
+  const [viewId, setViewId] = useSearchParamState("view");
   const [createOpen, setCreateOpen] = useState(false);
   const queryClient = useQueryClient();
   const { toast } = useToast();

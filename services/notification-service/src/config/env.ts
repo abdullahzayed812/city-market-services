@@ -1,4 +1,4 @@
-import { ConfigLoader } from "@city-market/shared/node";
+import { ConfigLoader, ServiceAuthenticator } from "@city-market/shared/node";
 
 export const config = ConfigLoader.load<{
   port: number;
@@ -9,6 +9,10 @@ export const config = ConfigLoader.load<{
   dbName: string;
   firebaseServiceAccountJson: string;
   firebaseServiceAccountPath: string;
+  authServiceUrl: string;
+  authServiceTokenUrl: string;
+  notificationServiceClientId: string;
+  notificationServiceClientSecret: string;
 }>({
   port: { env: "PORT", default: 3008 },
   dbHost: { env: "DB_HOST", default: "localhost" },
@@ -18,4 +22,16 @@ export const config = ConfigLoader.load<{
   dbName: { env: "DB_NAME", default: "notification_db" },
   firebaseServiceAccountJson: { env: "FIREBASE_SERVICE_ACCOUNT_JSON", default: "" },
   firebaseServiceAccountPath: { env: "FIREBASE_SERVICE_ACCOUNT_PATH", default: "" },
+  // Admin notifications go to every active ADMIN account, read from auth-service
+  authServiceUrl: { env: "AUTH_SERVICE_URL", default: "http://localhost:3001" },
+  authServiceTokenUrl: { env: "AUTH_SERVICE_TOKEN_URL", default: "http://localhost:3001/oauth/token" },
+  notificationServiceClientId: { env: "NOTIFICATION_SERVICE_CLIENT_ID", default: "notification-service-id" },
+  notificationServiceClientSecret: { env: "NOTIFICATION_SERVICE_CLIENT_SECRET", default: "notification-service-secret", sensitive: true },
 });
+
+export const notificationServiceAuthenticator = new ServiceAuthenticator(
+  config.notificationServiceClientId,
+  config.notificationServiceClientSecret,
+  config.authServiceTokenUrl,
+  "NotificationService",
+);

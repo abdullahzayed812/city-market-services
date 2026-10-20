@@ -15,8 +15,13 @@ export class VendorPublisher {
     await this.eventBus.publish(event);
   }
 
-  async publishVendorRegistered(vendorId: string, userId: string): Promise<void> {
-    await this.publish(EventType.VENDOR_REGISTERED, { vendorId, userId });
+  // `details` tells admins whether the store waits for review (self-registration / resubmission)
+  async publishVendorRegistered(
+    vendorId: string,
+    userId: string,
+    details?: { shopName: string; approvalStatus: string; resubmitted?: boolean },
+  ): Promise<void> {
+    await this.publish(EventType.VENDOR_REGISTERED, { vendorId, userId, ...details });
   }
 
   // The merchant's app / dashboard switches screens on this (websocket) and gets a push

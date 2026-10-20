@@ -582,5 +582,23 @@
       "vendor_product_already_exists": "هذا المنتج موجود في المتجر بالفعل.",
       "product_already_in_catalog": "هذا المنتج موجود في الكتالوج في هذا القسم بالفعل."
     }
+  },
+  "notifications": {
+    "title": "الإشعارات",
+    "mark_all_read": "تحديد الكل كمقروء",
+    "empty": "لا توجد إشعارات بعد",
+    "view_all": "عرض كل الإشعارات",
+    "load_more": "تحميل المزيد",
+    "retry": "إعادة المحاولة",
+    "unread_count_zero": "لا توجد إشعارات غير مقروءة",
+    "unread_count_one": "إشعار واحد غير مقروء",
+    "unread_count_two": "إشعاران غير مقروءين",
+    "unread_count_few": "{{count}} إشعارات غير مقروءة",
+    "unread_count_many": "{{count}} إشعارًا غير مقروء",
+    "unread_count_other": "{{count}} إشعار غير مقروء"
+  },
+  "realtime": {
+    "live": "مباشر",
+    "offline": "جارٍ إعادة الاتصال…"
   }
 }

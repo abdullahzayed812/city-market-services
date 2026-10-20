@@ -9,6 +9,8 @@ import {
 import { Button } from '@/components/ui/button';
 import { Globe, User, LogOut, Menu } from 'lucide-react';
 import { useAuth } from '@/components/AuthProvider';
+import { useSocket } from '@/contexts/SocketContext';
+import { NotificationBell } from '@/features/notifications/NotificationBell';
 
 interface NavbarProps {
     onMenuClick: () => void;
@@ -17,6 +19,7 @@ interface NavbarProps {
 const Navbar: React.FC<NavbarProps> = ({ onMenuClick }) => {
     const { t, i18n } = useTranslation();
     const { logout, logoutAllDevices } = useAuth();
+    const { isConnected } = useSocket();
 
     const toggleLanguage = () => {
         const newLang = i18n.language === 'ar' ? 'en' : 'ar';
@@ -35,6 +38,15 @@ const Navbar: React.FC<NavbarProps> = ({ onMenuClick }) => {
                 </h1>
             </div>
             <div className="flex items-center space-x-4 rtl:space-x-reverse">
+                {/* Live updates: green while the socket is connected */}
+                <span
+                    className="flex items-center gap-1.5 text-xs text-gray-500"
+                    title={isConnected ? t('realtime.live') : t('realtime.offline')}
+                >
+                    <span className={`h-2 w-2 rounded-full ${isConnected ? 'bg-emerald-500' : 'bg-gray-300'}`} />
+                    <span className="hidden sm:inline">{isConnected ? t('realtime.live') : t('realtime.offline')}</span>
+                </span>
+                <NotificationBell />
                 <Button variant="ghost" size="icon" onClick={toggleLanguage}>
                     <Globe className="h-5 w-5" />
                     <span className="sr-only">{t('common.language')}</span>

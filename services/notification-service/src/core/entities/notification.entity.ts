@@ -8,6 +8,8 @@ export interface Notification {
   message: string;
   isRead: boolean;
   metadata?: any;
+  // Unique per user: the same source event never creates two notifications
+  dedupeKey?: string | null;
   createdAt: Date;
 }
 

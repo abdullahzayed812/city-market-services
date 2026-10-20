@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { ListToolbar } from "@/components/ListToolbar";
 import { Pagination } from "@/components/ui/pagination";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
+import { useSearchParamState } from "@/hooks/useSearchParamState";
 import { SubmissionReviewPanel, SUBMISSION_STATUS_BADGE, useSubmissionErrorText } from "@/features/product-submissions/components/SubmissionReviewPanel";
 
 const PAGE_SIZE = 20;
@@ -23,7 +24,7 @@ const ProductSubmissionsReview: React.FC = () => {
   const [filter, setFilter] = useState<Filter>("PENDING_REVIEW");
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
-  const [viewId, setViewId] = useState<string | null>(null);
+  const [viewId, setViewId] = useSearchParamState("view");
   const debouncedSearch = useDebouncedValue(search.trim());
 
   React.useEffect(() => setPage(1), [filter, debouncedSearch]);

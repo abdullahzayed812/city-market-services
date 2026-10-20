@@ -106,8 +106,19 @@ export class DeliveryPublisher {
   }
 
   // A manager asked for a new office courier; admins review it
-  async publishCourierReviewRequested(data: { courierId: string; courierName: string; deliveryOfficeId: string; officeName: string }): Promise<void> {
+  async publishCourierReviewRequested(data: {
+    courierId: string;
+    courierName: string;
+    courierType: "OFFICE" | "FREELANCE";
+    deliveryOfficeId: string | null;
+    officeName: string | null;
+  }): Promise<void> {
     await this.publish(EventType.COURIER_REVIEW_REQUESTED, data);
+  }
+
+  // A self-registered office waits for admin review (admin dashboard + notification)
+  async publishOfficeReviewRequested(data: { officeId: string; officeName: string; officeUserId: string }): Promise<void> {
+    await this.publish(EventType.OFFICE_REVIEW_REQUESTED, data);
   }
 
   async publishCourierApprovalUpdated(data: {

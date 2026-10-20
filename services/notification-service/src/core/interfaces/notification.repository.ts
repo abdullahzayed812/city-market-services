@@ -2,11 +2,13 @@ import { Notification, NotificationPreference, DeviceToken } from "../entities/n
 
 export interface INotificationRepository {
   // Notifications
-  create(notification: Notification): Promise<Notification>;
+  // false when a notification with the same (userId, dedupeKey) already exists
+  create(notification: Notification): Promise<boolean>;
   findByUserId(userId: string, limit: number, offset: number): Promise<Notification[]>;
   countAll(userId: string): Promise<number>;
-  markAsRead(id: string): Promise<void>;
-  markAllAsRead(userId: string): Promise<void>;
+  // Only the owner's notification; returns whether it changed
+  markAsRead(userId: string, id: string): Promise<boolean>;
+  markAllAsRead(userId: string): Promise<number>;
   countUnread(userId: string): Promise<number>;
 
   // Preferences
@@ -16,6 +18,7 @@ export interface INotificationRepository {
   // Device Tokens
   addDeviceToken(token: DeviceToken): Promise<void>;
   removeDeviceToken(token: string): Promise<void>;
+  removeUserDeviceToken(userId: string, token: string): Promise<void>;
   getDeviceTokens(userId: string): Promise<DeviceToken[]>;
   getTokensByAppType(appType: string): Promise<DeviceToken[]>;
 }

@@ -44,6 +44,15 @@ export enum EventType {
   COURIER_REVIEW_REQUESTED = "COURIER_REVIEW_REQUESTED",
   // Admin decision on a merchant's new-product proposal (approved / rejected / changes requested)
   PRODUCT_SUBMISSION_REVIEWED = "PRODUCT_SUBMISSION_REVIEWED",
+  // A merchant proposed a new product, or resubmitted one after edits (admin review queue)
+  PRODUCT_SUBMISSION_CREATED = "PRODUCT_SUBMISSION_CREATED",
+  // A delivery office registered itself and waits for admin review
+  OFFICE_REVIEW_REQUESTED = "OFFICE_REVIEW_REQUESTED",
+  // An admin changed something through admin-service (2xx on a mutating request); admins only
+  ADMIN_DATA_CHANGED = "ADMIN_DATA_CHANGED",
+  // A notification was stored / marked read; delivered to that user's sockets only
+  NOTIFICATION_CREATED = "NOTIFICATION_CREATED",
+  NOTIFICATION_READ = "NOTIFICATION_READ",
 
   // SLA Timer Events
   SLA_TIMER_STARTED = "SLA_TIMER_STARTED",

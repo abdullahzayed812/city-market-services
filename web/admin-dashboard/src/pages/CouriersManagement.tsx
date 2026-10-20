@@ -6,12 +6,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Bike, Phone, User, Plus, PowerOff, CheckCircle2, Ban, FileText, Eye, XCircle } from "lucide-react";
-import { EventType } from "@city-market/shared";
-import { useSocket } from "@/contexts/SocketContext";
 import { CourierDetailsDialog } from "@/features/couriers/components/CourierDetailsDialog";
 import { ListToolbar, FilterSelect } from "@/components/ListToolbar";
 import { Pagination } from "@/components/ui/pagination";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
+import { useSearchParamState } from "@/hooks/useSearchParamState";
 
 const PAGE_SIZE = 20;
 import { useToast } from "@/hooks/use-toast";
@@ -40,18 +39,7 @@ const CouriersManagement: React.FC = () => {
   const { toast } = useToast();
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [filter, setFilter] = useState<CourierFilter>("ALL");
-  const [viewCourierId, setViewCourierId] = useState<string | null>(null);
-
-  // A manager just requested a new office courier: refresh so it shows under "Pending review"
-  const { socket } = useSocket();
-  React.useEffect(() => {
-    if (!socket) return;
-    const refresh = () => queryClient.invalidateQueries({ queryKey: ["adminCouriers"] });
-    socket.on(EventType.COURIER_REVIEW_REQUESTED, refresh);
-    return () => {
-      socket.off(EventType.COURIER_REVIEW_REQUESTED, refresh);
-    };
-  }, [socket, queryClient]);
+  const [viewCourierId, setViewCourierId] = useSearchParamState("view");
 
   // Server-side filters + paging (list and count use the same filters)
   const [search, setSearch] = useState("");

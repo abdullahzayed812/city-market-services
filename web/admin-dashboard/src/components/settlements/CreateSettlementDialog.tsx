@@ -43,7 +43,7 @@ export const CreateSettlementDialog: React.FC<CreateSettlementDialogProps> = ({
   const createMutation = useMutation({
     mutationFn: (data: any) => adminApi.createSettlement(data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["pendingEarnings", vendorId] });
+      queryClient.invalidateQueries({ queryKey: ["vendorPendingEarnings", vendorId] });
       queryClient.invalidateQueries({ queryKey: ["vendorSettlements", vendorId] });
       queryClient.invalidateQueries({ queryKey: ["platformFinancialOverview"] });
       toast({

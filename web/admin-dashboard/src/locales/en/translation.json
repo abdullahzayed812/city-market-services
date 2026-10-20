@@ -582,5 +582,19 @@
       "vendor_product_already_exists": "This product is already in the store.",
       "product_already_in_catalog": "This product is already in the catalog in this category."
     }
+  },
+  "notifications": {
+    "title": "Notifications",
+    "mark_all_read": "Mark all as read",
+    "empty": "No notifications yet",
+    "view_all": "View all notifications",
+    "load_more": "Load more",
+    "retry": "Retry",
+    "unread_count_one": "{{count}} unread",
+    "unread_count_other": "{{count}} unread"
+  },
+  "realtime": {
+    "live": "Live",
+    "offline": "Reconnecting…"
   }
 }

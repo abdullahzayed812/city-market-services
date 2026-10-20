@@ -1,5 +1,5 @@
 import { randomUUID } from "crypto";
-import { AppError, CategoryType, ProductSubmissionStatus } from "@city-market/shared";
+import { AppError, CategoryType, EventType, ProductSubmissionStatus } from "@city-market/shared";
 import { Category } from "../../core/entities/category.entity";
 import { GlobalProduct } from "../../core/entities/global-product.entity";
 import { CatalogCandidate, ProductSubmissionHistoryRecord, ProductSubmissionRecord } from "../../core/entities/product-submission.entity";
@@ -295,9 +295,17 @@ export class FakeMedia implements ISubmissionMedia {
 }
 
 export class FakeEvents implements SubmissionEventPublisher {
-  events: Array<{ type: string; payload: Record<string, unknown> }> = [];
+  all: Array<{ type: string; payload: Record<string, unknown> }> = [];
+  // Decision events (what the merchant is notified about)
+  get events() {
+    return this.all.filter((e) => e.type === EventType.PRODUCT_SUBMISSION_REVIEWED);
+  }
+  // Review-queue events (what admins are notified about)
+  get queued() {
+    return this.all.filter((e) => e.type === EventType.PRODUCT_SUBMISSION_CREATED);
+  }
   async publish(event: { type: any; payload: Record<string, unknown> }) {
-    this.events.push({ type: event.type, payload: event.payload });
+    this.all.push({ type: event.type, payload: event.payload });
   }
 }
 

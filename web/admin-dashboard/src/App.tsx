@@ -15,6 +15,7 @@ import FinancialAnalytics from "./pages/FinancialAnalytics.tsx";
 import CommissionTiers from "./pages/CommissionTiers.tsx";
 import DeliveryFeeTiers from "./pages/DeliveryFeeTiers.tsx";
 import LoginPage from "./pages/LoginPage.tsx";
+import NotificationsPage from "./pages/NotificationsPage.tsx";
 import ProtectedRoute from "./components/ProtectedRoute.tsx";
 import { AuthProvider } from "./components/AuthProvider.tsx";
 import { SocketProvider } from "./contexts/SocketContext.tsx";
@@ -48,6 +49,7 @@ function App() {
               <Route path="commission-tiers" element={<CommissionTiers />} />
               <Route path="delivery-fee-tiers" element={<DeliveryFeeTiers />} />
               <Route path="categories" element={<CategoriesManagement />} />
+              <Route path="notifications" element={<NotificationsPage />} />
               <Route path="settings" element={<div>Settings Page (Coming Soon)</div>} />
             </Route>
             <Route path="*" element={<NotFoundPage />} />

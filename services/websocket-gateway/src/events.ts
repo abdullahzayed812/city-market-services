@@ -48,19 +48,34 @@ const NO_ENRICHMENT_EVENTS = new Set<string>([
   EventType.OFFICE_APPROVAL_UPDATED,
   EventType.VENDOR_APPROVAL_UPDATED,
   EventType.PRODUCT_SUBMISSION_REVIEWED,
+  EventType.PRODUCT_SUBMISSION_CREATED,
+  EventType.OFFICE_REVIEW_REQUESTED,
 ]);
 
-export const setupEventConsumer = async (io: Server) => {
-  const channelName = "websocket-gateway-queue";
+// A user's own notifications: only that user's sockets (any app they're signed in to)
+const PERSONAL_EVENTS = new Set<string>([EventType.NOTIFICATION_CREATED, EventType.NOTIFICATION_READ]);
 
-  const handleEvent = async (event: any) => {
-    console.log(`Received event: ${event.type}`, event.payload);
+// Routes one RabbitMQ event to the socket rooms allowed to see it
+export const createEventHandler = (io: Pick<Server, "to">, fetchOrderDetails: (orderId: string) => Promise<any | null> = getFullOrderDetails) => {
+  return async (event: any) => {
+    console.log(`Received event: ${event.type}`);
     let { type, payload } = event; // Use let for payload as we might modify it
+
+    // Never broadcast: carries one user's notification
+    if (PERSONAL_EVENTS.has(type)) {
+      if (payload?.userId) io.to(`user:${payload.userId}`).emit(type, { ...payload, eventId: event.id });
+      return;
+    }
+    // Admin-made changes refresh the other admins' screens only
+    if (type === EventType.ADMIN_DATA_CHANGED) {
+      io.to(`role:${UserRole.ADMIN}`).emit(type, { ...payload, eventId: event.id });
+      return;
+    }
 
     // --- ENRICHMENT LOGIC ---
     // If a customerOrderId is present, ensure we have full order details for routing
     if (payload.customerOrderId && !NO_ENRICHMENT_EVENTS.has(type) && (!payload.customerOrder || !payload.vendorOrders)) {
-      const fullOrderDetails = await getFullOrderDetails(payload.customerOrderId);
+      const fullOrderDetails = await fetchOrderDetails(payload.customerOrderId);
       if (fullOrderDetails) {
         payload.customerOrder = fullOrderDetails.order; // Store the CustomerOrder entity
         payload.vendorOrders = fullOrderDetails.vendorOrders; // Store the array of VendorOrder entities
@@ -70,8 +85,8 @@ export const setupEventConsumer = async (io: Server) => {
 
     // --- ROUTING LOGIC ---
 
-    // 1. Broadcast to Admin (Admins get all events)
-    io.to(`role:${UserRole.ADMIN}`).emit(type, payload);
+    // 1. Broadcast to Admin (Admins get all events). The event id lets admin apps drop duplicates.
+    io.to(`role:${UserRole.ADMIN}`).emit(type, { ...payload, eventId: event.id });
 
     // 2. Broadcast to Customer (Customers get events related to their customer order)
     if (payload.customerId) {
@@ -145,6 +160,11 @@ export const setupEventConsumer = async (io: Server) => {
       io.to(`user:${payload.vendorUserId}`).emit(type, { submissionId: payload.submissionId, status: payload.status });
     }
   };
+};
+
+export const setupEventConsumer = async (io: Server) => {
+  const channelName = "websocket-gateway-queue";
+  const handleEvent = createEventHandler(io);
 
   // Subscribe to all event types
   for (const type of Object.values(EventType)) {

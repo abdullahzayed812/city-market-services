@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { ListToolbar, FilterSelect } from "@/components/ListToolbar";
 import { Pagination } from "@/components/ui/pagination";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
+import { useSearchParamState } from "@/hooks/useSearchParamState";
 
 const PAGE_SIZE = 20;
 import { useToast } from "@/hooks/use-toast";
@@ -19,8 +20,10 @@ import { useToast } from "@/hooks/use-toast";
 const OrdersManagement: React.FC = () => {
   const { t } = useTranslation();
   const { toast } = useToast();
-  const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
-  const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false);
+  // ?order=<id> opens the details (links from notifications)
+  const [selectedOrderId, setSelectedOrderId] = useSearchParamState("order");
+  const isDetailsDialogOpen = !!selectedOrderId;
+  const setIsDetailsDialogOpen = (open: boolean) => !open && setSelectedOrderId(null);
 
   // Server-side filters + paging. Search matches the start of the order id (#xxxxxxxx).
   const [search, setSearch] = useState("");
@@ -59,7 +62,6 @@ const OrdersManagement: React.FC = () => {
 
   const handleViewDetails = (orderId: string) => {
     setSelectedOrderId(orderId);
-    setIsDetailsDialogOpen(true);
   };
 
   const handleCopyId = (id: string) => {

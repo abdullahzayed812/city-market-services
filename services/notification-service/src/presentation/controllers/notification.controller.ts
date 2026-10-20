@@ -15,8 +15,33 @@ export class NotificationController {
       } else {
         language = "ar"; // default fallback
       }
-      await this.service.registerDevice(req.user!.userId, token, platform, appType, language);
+      await this.service.registerDevice(req.user!.userId, req.user!.role, token, platform, appType, language);
       res.status(200).json(ApiResponse.success(null, "device_registered"));
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  unregisterDevice = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      await this.service.unregisterDevice(req.user!.userId, req.body?.token);
+      res.status(200).json(ApiResponse.success(null, "device_unregistered"));
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  getPreferences = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      res.json(ApiResponse.success(await this.service.getPreferences(req.user!.userId)));
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  updatePreferences = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+      res.json(ApiResponse.success(await this.service.updatePreferences(req.user!.userId, req.body), "preferences_updated"));
     } catch (error) {
       next(error);
     }
@@ -24,8 +49,8 @@ export class NotificationController {
 
   getNotifications = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
-      const page = Number(req.query.page) || 1;
-      const limit = Number(req.query.limit) || 20;
+      const page = Math.max(1, Number(req.query.page) || 1);
+      const limit = Math.min(100, Math.max(1, Number(req.query.limit) || 20));
       const result = await this.service.getNotifications(req.user!.userId, page, limit);
       res.json(ApiResponse.success(result));
     } catch (error) {

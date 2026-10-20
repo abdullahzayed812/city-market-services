@@ -1,6 +1,9 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { io, Socket } from "socket.io-client";
+import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "../components/AuthProvider";
+import { getAccessToken, silentRefresh } from "../services/api/axios-instance";
+import { useAdminRealtime } from "../hooks/useAdminRealtime";
 
 import { SOCKET_URL } from "@/lib/server-config";
 
@@ -13,54 +16,74 @@ const SocketContext = createContext<SocketContextType | undefined>(undefined);
 
 export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { token, user } = useAuth();
+  const queryClient = useQueryClient();
   const [socket, setSocket] = useState<Socket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
-
-  // console.log(token, user);
+  const signedIn = !!token && !!user;
 
   useEffect(() => {
-    if (!token || !user) {
-      if (socket) {
-        socket.disconnect();
-        setSocket(null);
-        setIsConnected(false);
-      }
+    if (!signedIn) {
+      setSocket(null);
+      setIsConnected(false);
       return;
     }
 
-    // Initialize socket connection
+    // The access token is read on every (re)connection attempt, so a reconnect after the
+    // token was refreshed doesn't present the expired one it first connected with.
     const newSocket = io(SOCKET_URL, {
-      auth: {
-        token,
-      },
+      auth: (cb) => cb({ token: getAccessToken() }),
       reconnection: true,
-      reconnectionAttempts: 5,
       reconnectionDelay: 1000,
+      reconnectionDelayMax: 15000,
     });
 
+    let connectedOnce = false;
+    let lastRefreshAt = 0;
+    let disposed = false;
+    let retryTimer: ReturnType<typeof setTimeout> | undefined;
     newSocket.on("connect", () => {
-      console.log("Connected to WebSocket Gateway");
       setIsConnected(true);
+      // Anything that changed while we were disconnected: refetch what's on screen
+      if (connectedOnce) queryClient.invalidateQueries();
+      connectedOnce = true;
     });
 
-    newSocket.on("disconnect", () => {
-      console.log("Disconnected from WebSocket Gateway");
-      setIsConnected(false);
-    });
+    newSocket.on("disconnect", () => setIsConnected(false));
 
-    newSocket.on("connect_error", (err) => {
-      console.error("WebSocket connection error:", err.message);
+    newSocket.on("connect_error", async (err) => {
       setIsConnected(false);
+      // Expired access token: get a fresh one, then let socket.io retry with it
+      // (at most every 30 s, so a token the server keeps refusing can't loop)
+      if (err.message.includes("Authentication error") && Date.now() - lastRefreshAt > 30_000) {
+        lastRefreshAt = Date.now();
+        newSocket.disconnect();
+        const refreshed = await silentRefresh();
+        if (refreshed?.accessToken && !disposed) newSocket.connect();
+      } else if (!newSocket.active) {
+        // Refused by the server's auth middleware: socket.io won't retry on its own
+        retryTimer = setTimeout(() => !disposed && newSocket.connect(), 15_000);
+      }
     });
 
     setSocket(newSocket);
 
-    // Cleanup on unmount or token change
+    // Back on the tab after a while: resync (the browser may have throttled the socket)
+    const onVisible = () => {
+      if (document.visibilityState !== "visible") return;
+      if (!newSocket.connected) newSocket.connect();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+
     return () => {
-      console.log("Disconnect websocket");
+      disposed = true;
+      clearTimeout(retryTimer);
+      document.removeEventListener("visibilitychange", onVisible);
       newSocket.disconnect();
     };
-  }, [token, user]);
+    // Reconnect only when the signed-in state changes, not on every token refresh
+  }, [signedIn, queryClient]);
+
+  useAdminRealtime(socket);
 
   return <SocketContext.Provider value={{ socket, isConnected }}>{children}</SocketContext.Provider>;
 };

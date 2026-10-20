@@ -433,7 +433,114 @@ export class EventConsumer {
       if (customerId && previousCourierId) await this.notifyCustomerCourierChanged(customerId, customerOrderId, deliveryId);
     });
 
+    await this.startAdminConsumers();
+
     Logger.info("Notification Service Consumers Started");
+  }
+
+  // ── Admin notifications ──────────────────────────────────────────────────
+  // Own queues (notification_admin_*), so a retry of a customer/vendor handler never re-runs these.
+  // Every admin gets a stored notification; `push: false` keeps frequent, low-urgency ones in-app.
+  // The dedupe key is the source event id, so a redelivered message notifies nobody twice.
+  private async startAdminConsumers() {
+    const key = (event: BaseEvent, fallback: string) => `${event.type}:${event.id ?? fallback}`;
+    const shortOrder = (id?: string) => (id ? String(id).slice(0, 6) : "");
+
+    await rabbitMQBus.subscribe(EventType.VENDOR_REGISTERED, "notification_admin_vendor_registered", async (event: BaseEvent) => {
+      const { vendorId, shopName, approvalStatus, resubmitted } = event.payload;
+      // Stores created by an admin start APPROVED: nothing to review
+      if (approvalStatus !== "PENDING_REVIEW") return;
+      const k = resubmitted ? "notification_admin_vendor_resubmitted" : "notification_admin_vendor_registered";
+      await this.notificationService.sendToAdmins(
+        "ADMIN_VENDOR_REVIEW",
+        `${k}_title`,
+        `${k}_message`,
+        { type: "ADMIN_VENDOR_REVIEW", vendorId, shopName },
+        { dedupeKey: key(event, `${vendorId}:${event.timestamp}`) },
+      );
+    });
+
+    await rabbitMQBus.subscribe(EventType.COURIER_REVIEW_REQUESTED, "notification_admin_courier_review", async (event: BaseEvent) => {
+      const { courierId, courierName, courierType, officeName } = event.payload;
+      const k = courierType === "FREELANCE" ? "notification_admin_freelancer_review" : "notification_admin_courier_review";
+      await this.notificationService.sendToAdmins(
+        "ADMIN_COURIER_REVIEW",
+        `${k}_title`,
+        `${k}_message`,
+        { type: "ADMIN_COURIER_REVIEW", courierId, courierName, officeName: officeName ?? "" },
+        { dedupeKey: key(event, courierId) },
+      );
+    });
+
+    await rabbitMQBus.subscribe(EventType.OFFICE_REVIEW_REQUESTED, "notification_admin_office_review", async (event: BaseEvent) => {
+      const { officeId, officeName } = event.payload;
+      await this.notificationService.sendToAdmins(
+        "ADMIN_OFFICE_REVIEW",
+        "notification_admin_office_review_title",
+        "notification_admin_office_review_message",
+        { type: "ADMIN_OFFICE_REVIEW", officeId, officeName },
+        { dedupeKey: key(event, officeId) },
+      );
+    });
+
+    await rabbitMQBus.subscribe(EventType.PRODUCT_SUBMISSION_CREATED, "notification_admin_product_submission", async (event: BaseEvent) => {
+      const { submissionId, productName, action, revision } = event.payload;
+      // A plain edit of a proposal that is still pending only refreshes the queue
+      if (action !== "SUBMITTED" && action !== "RESUBMITTED") return;
+      const k = action === "RESUBMITTED" ? "notification_admin_product_resubmission" : "notification_admin_product_submission";
+      await this.notificationService.sendToAdmins(
+        "ADMIN_PRODUCT_SUBMISSION",
+        `${k}_title`,
+        `${k}_message`,
+        { type: "ADMIN_PRODUCT_SUBMISSION", submissionId, productName },
+        // Revision-based: the same proposal version is announced once, whatever the publisher does
+        { dedupeKey: `${EventType.PRODUCT_SUBMISSION_CREATED}:${submissionId}:r${revision}` },
+      );
+    });
+
+    await rabbitMQBus.subscribe(EventType.DELIVERY_FAILED, "notification_admin_delivery_failed", async (event: BaseEvent) => {
+      const { deliveryId, customerOrderId, reason } = event.payload;
+      await this.notificationService.sendToAdmins(
+        "ADMIN_DELIVERY_ISSUE",
+        "notification_admin_delivery_failed_title",
+        "notification_admin_delivery_failed_message",
+        { type: "ADMIN_DELIVERY_ISSUE", deliveryId, customerOrderId, orderId: shortOrder(customerOrderId), reason: reason || "—" },
+        { dedupeKey: key(event, deliveryId) },
+      );
+    });
+
+    await rabbitMQBus.subscribe(EventType.SLA_COURIER_PICKUP_EXPIRED, "notification_admin_sla_pickup_expired", async (event: BaseEvent) => {
+      const { deliveryId, customerOrderId } = event.payload;
+      await this.notificationService.sendToAdmins(
+        "ADMIN_DELIVERY_ISSUE",
+        "notification_admin_pickup_expired_title",
+        "notification_admin_pickup_expired_message",
+        { type: "ADMIN_DELIVERY_ISSUE", deliveryId, customerOrderId, orderId: shortOrder(customerOrderId) },
+        { dedupeKey: key(event, deliveryId) },
+      );
+    });
+
+    await rabbitMQBus.subscribe(EventType.SLA_DELIVERY_ACCEPTANCE_EXPIRED, "notification_admin_sla_acceptance_expired", async (event: BaseEvent) => {
+      const { deliveryId, customerOrderId } = event.payload;
+      await this.notificationService.sendToAdmins(
+        "ADMIN_DELIVERY_ISSUE",
+        "notification_admin_acceptance_expired_title",
+        "notification_admin_acceptance_expired_message",
+        { type: "ADMIN_DELIVERY_ISSUE", deliveryId, customerOrderId, orderId: shortOrder(customerOrderId) },
+        { dedupeKey: key(event, deliveryId), push: false },
+      );
+    });
+
+    await rabbitMQBus.subscribe(EventType.SLA_VENDOR_CONFIRMATION_EXPIRED, "notification_admin_sla_vendor_confirmation", async (event: BaseEvent) => {
+      const { vendorOrderId, customerOrderId } = event.payload;
+      await this.notificationService.sendToAdmins(
+        "ADMIN_ORDER_ISSUE",
+        "notification_admin_vendor_confirmation_expired_title",
+        "notification_admin_vendor_confirmation_expired_message",
+        { type: "ADMIN_ORDER_ISSUE", customerOrderId, vendorOrderId, orderId: shortOrder(customerOrderId) },
+        { dedupeKey: key(event, vendorOrderId) },
+      );
+    });
   }
 
   // The courier the customer saw (and may have called) is gone; a new one is being found.

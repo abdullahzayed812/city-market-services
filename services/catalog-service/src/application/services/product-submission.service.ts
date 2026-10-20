@@ -49,7 +49,7 @@ export interface ReviewerActor {
 }
 
 export interface SubmissionEventPublisher {
-  publish(event: { type: EventType; payload: Record<string, unknown>; createdAt: Date }): Promise<void>;
+  publish(event: { id: string; type: EventType; payload: Record<string, unknown>; createdAt: Date; timestamp: Date }): Promise<void>;
 }
 
 // 409 carrying the matches the client should show
@@ -200,6 +200,7 @@ export class ProductSubmissionService {
       await tx.addHistory(this.historyEntry(record, ProductSubmissionAction.SUBMITTED, record.status, record.revision, null, actor.userId, "VENDOR"));
     });
     Logger.info("Product submission created", { submissionId: record.id, vendorId: actor.vendorId });
+    await this.publishQueued(record, ProductSubmissionAction.SUBMITTED, record.revision);
     return this.getForVendor(actor, record.id);
   }
 
@@ -237,7 +238,7 @@ export class ProductSubmissionService {
     const image = imageChanged ? await this.checkOwnImage(actor, input.imageKey) : { width: current.imageWidth, height: current.imageHeight };
     await this.assertNoUnconfirmedDuplicates(input);
 
-    const replacedImageKey = await this.repo.withTransaction(async (tx) => {
+    const result = await this.repo.withTransaction(async (tx) => {
       const locked = await tx.lockById(id);
       if (!locked || locked.vendorId !== actor.vendorId) throw new NotFoundError("submission_not_found");
       if (!isOpen(locked)) throw new AppError(409, "submission_not_editable");
@@ -270,10 +271,12 @@ export class ProductSubmissionService {
           "VENDOR",
         ),
       );
-      return locked.imageKey !== input.imageKey ? locked.imageKey : null;
+      const action = resubmitted ? ProductSubmissionAction.RESUBMITTED : ProductSubmissionAction.UPDATED;
+      return { replaced: locked.imageKey !== input.imageKey ? locked.imageKey : null, queued: { record: updated, action, revision } };
     });
 
-    if (replacedImageKey) await this.safeDeletePrivate(replacedImageKey);
+    if (result.replaced) await this.safeDeletePrivate(result.replaced);
+    await this.publishQueued(result.queued.record, result.queued.action, result.queued.revision);
     return this.getForVendor(actor, id);
   }
 
@@ -639,6 +642,23 @@ export class ProductSubmissionService {
     }
   }
 
+  // The admin review queue changed (new proposal, edit or resubmission). Published after the
+  // transaction commits; a failed publish only delays the admins' live refresh.
+  private async publishQueued(s: ProductSubmissionRecord, action: ProductSubmissionAction, revision: number): Promise<void> {
+    try {
+      const now = new Date();
+      await this.events.publish({
+        id: randomUUID(),
+        type: EventType.PRODUCT_SUBMISSION_CREATED,
+        payload: { submissionId: s.id, vendorId: s.vendorId, productName: s.name, action, revision },
+        createdAt: now,
+        timestamp: now,
+      });
+    } catch (error) {
+      Logger.warn("Failed to publish PRODUCT_SUBMISSION_CREATED", { submissionId: s.id, error: (error as Error)?.message });
+    }
+  }
+
   private async publishDecision(
     s: ProductSubmissionRecord,
     status: ProductSubmissionStatus,
@@ -646,7 +666,10 @@ export class ProductSubmissionService {
     extra: { resolution?: ProductSubmissionResolution; globalProductId?: string; vendorProductId?: string; productName?: string } = {},
   ): Promise<void> {
     try {
+      const now = new Date();
       await this.events.publish({
+        id: randomUUID(),
+        timestamp: now,
         type: EventType.PRODUCT_SUBMISSION_REVIEWED,
         payload: {
           submissionId: s.id,
@@ -659,7 +682,7 @@ export class ProductSubmissionService {
           globalProductId: extra.globalProductId ?? null,
           vendorProductId: extra.vendorProductId ?? null,
         },
-        createdAt: new Date(),
+        createdAt: now,
       });
     } catch (error) {
       Logger.warn("Failed to publish PRODUCT_SUBMISSION_REVIEWED", { submissionId: s.id, error: (error as Error)?.message });

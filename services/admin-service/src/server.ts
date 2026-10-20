@@ -1,8 +1,11 @@
 import { createApp } from "./app";
 import { adminServiceAuthenticator, config } from "./config/env";
-import { Logger } from "@city-market/shared/node";
+import { Logger, rabbitMQBus } from "@city-market/shared/node";
 
 const app = createApp();
+
+// Only used to tell admins' screens that data changed; connect() retries in the background
+rabbitMQBus.connect();
 
 app.listen(config.port, async () => {
   try {

@@ -258,7 +258,7 @@ export class DeliveryService {
     };
     const created = await this.courierRepo.create(courier);
     await this.publisher
-      .publishCourierReviewRequested({ courierId: created.id, courierName: fullName, deliveryOfficeId: office.id, officeName: office.name })
+      .publishCourierReviewRequested({ courierId: created.id, courierName: fullName, courierType: "OFFICE", deliveryOfficeId: office.id, officeName: office.name })
       .catch((err) => Logger.warn(`Failed to publish COURIER_REVIEW_REQUESTED for ${created.id}: ${err.message}`));
     return created;
   }
@@ -295,7 +295,11 @@ export class DeliveryService {
       createdAt: new Date(),
       updatedAt: new Date(),
     };
-    return this.courierRepo.create(courier);
+    const created = await this.courierRepo.create(courier);
+    await this.publisher
+      .publishCourierReviewRequested({ courierId: created.id, courierName: created.fullName, courierType: "FREELANCE", deliveryOfficeId: null, officeName: null })
+      .catch((err) => Logger.warn(`Failed to publish COURIER_REVIEW_REQUESTED for ${created.id}: ${err.message}`));
+    return created;
   }
 
   // ── Delivery offices: self-registration and admin review ──────────────────────
@@ -328,7 +332,11 @@ export class DeliveryService {
       createdAt: new Date(),
       updatedAt: new Date(),
     };
-    return this.officeRepo.create(office);
+    const created = await this.officeRepo.create(office);
+    await this.publisher
+      .publishOfficeReviewRequested({ officeId: created.id, officeName: created.name, officeUserId: userId })
+      .catch((err) => Logger.warn(`Failed to publish OFFICE_REVIEW_REQUESTED for ${created.id}: ${err.message}`));
+    return created;
   }
 
   // Admin adds an office for an existing DELIVERY_MANAGER user. The admin vetted it,

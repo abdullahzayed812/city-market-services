@@ -3,6 +3,7 @@ export enum AppType {
   "VENDOR" = "VENDOR",
   "COURIER" = "COURIER",
   "DELIVERY_MANAGER" = "DELIVERY_MANAGER",
+  "ADMIN" = "ADMIN",
 }
 
 export enum PlatformType {

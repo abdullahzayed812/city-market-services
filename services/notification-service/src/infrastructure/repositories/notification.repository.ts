@@ -1,4 +1,4 @@
-import { Pool, RowDataPacket } from "mysql2/promise";
+import { Pool, ResultSetHeader, RowDataPacket } from "mysql2/promise";
 import { INotificationRepository } from "../../core/interfaces/notification.repository";
 import { Notification, NotificationPreference, DeviceToken } from "../../core/entities/notification.entity";
 import { Database } from "@city-market/shared/node";
@@ -10,22 +10,29 @@ export class NotificationRepository implements INotificationRepository {
     this.pool = db.getPool();
   }
 
-  async create(notification: Notification): Promise<Notification> {
+  async create(notification: Notification): Promise<boolean> {
     const query = `
-      INSERT INTO notifications (id, user_id, type, title, message, is_read, metadata, created_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO notifications (id, user_id, type, title, message, is_read, metadata, dedupe_key, created_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
-    await this.pool.execute(query, [
-      notification.id,
-      notification.userId,
-      notification.type,
-      notification.title,
-      notification.message,
-      notification.isRead,
-      JSON.stringify(notification.metadata || {}),
-      notification.createdAt,
-    ]);
-    return notification;
+    try {
+      await this.pool.execute(query, [
+        notification.id,
+        notification.userId,
+        notification.type,
+        notification.title,
+        notification.message,
+        notification.isRead,
+        JSON.stringify(notification.metadata || {}),
+        notification.dedupeKey ?? null,
+        notification.createdAt,
+      ]);
+      return true;
+    } catch (error: any) {
+      // Same (user_id, dedupe_key): this event was already turned into a notification
+      if (error?.code === "ER_DUP_ENTRY") return false;
+      throw error;
+    }
   }
 
   async findByUserId(userId: string, limit: number, offset: number): Promise<Notification[]> {
@@ -39,6 +46,7 @@ export class NotificationRepository implements INotificationRepository {
       message: row.message,
       isRead: Boolean(row.is_read),
       metadata: row.metadata,
+      dedupeKey: row.dedupe_key ?? null,
       createdAt: row.created_at,
     }));
   }
@@ -51,12 +59,20 @@ export class NotificationRepository implements INotificationRepository {
     return rows[0].count;
   }
 
-  async markAsRead(id: string): Promise<void> {
-    await this.pool.execute("UPDATE notifications SET is_read = TRUE WHERE id = ?", [id]);
+  async markAsRead(userId: string, id: string): Promise<boolean> {
+    const [result] = await this.pool.execute<ResultSetHeader>(
+      "UPDATE notifications SET is_read = TRUE WHERE id = ? AND user_id = ? AND is_read = FALSE",
+      [id, userId],
+    );
+    return result.affectedRows > 0;
   }
 
-  async markAllAsRead(userId: string): Promise<void> {
-    await this.pool.execute("UPDATE notifications SET is_read = TRUE WHERE user_id = ?", [userId]);
+  async markAllAsRead(userId: string): Promise<number> {
+    const [result] = await this.pool.execute<ResultSetHeader>(
+      "UPDATE notifications SET is_read = TRUE WHERE user_id = ? AND is_read = FALSE",
+      [userId],
+    );
+    return result.affectedRows;
   }
 
   async countUnread(userId: string): Promise<number> {
@@ -91,6 +107,9 @@ export class NotificationRepository implements INotificationRepository {
   }
 
   async addDeviceToken(token: DeviceToken): Promise<void> {
+    // A device belongs to whoever signed in on it last: the previous account must stop
+    // receiving pushes there (e.g. an admin phone handed to someone else)
+    await this.pool.execute("DELETE FROM device_tokens WHERE token = ? AND user_id <> ?", [token.token, token.userId]);
     const query = `
       INSERT INTO device_tokens (user_id, token, platform, app_type, language, last_active)
       VALUES (?, ?, ?, ?, ?, ?)
@@ -101,6 +120,10 @@ export class NotificationRepository implements INotificationRepository {
 
   async removeDeviceToken(token: string): Promise<void> {
     await this.pool.execute("DELETE FROM device_tokens WHERE token = ?", [token]);
+  }
+
+  async removeUserDeviceToken(userId: string, token: string): Promise<void> {
+    await this.pool.execute("DELETE FROM device_tokens WHERE user_id = ? AND token = ?", [userId, token]);
   }
 
   async getDeviceTokens(userId: string): Promise<DeviceToken[]> {

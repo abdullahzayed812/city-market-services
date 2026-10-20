@@ -1,5 +1,6 @@
 import { createApp } from "./app";
-import { config } from "./config/env";
+import { config, notificationServiceAuthenticator } from "./config/env";
+import { AuthAdminDirectory } from "./infrastructure/clients/admin-directory";
 import { Logger, Database, rabbitMQBus } from "@city-market/shared/node";
 import { NotificationRepository } from "./infrastructure/repositories/notification.repository";
 import { PushNotificationProvider } from "./infrastructure/providers/push.provider";
@@ -23,7 +24,8 @@ const startServer = async () => {
     // 3. Dependencies
     const repo = new NotificationRepository(db);
     const pushProvider = new PushNotificationProvider();
-    const service = new NotificationService(repo, pushProvider);
+    const admins = new AuthAdminDirectory(config.authServiceUrl, () => notificationServiceAuthenticator.getServiceToken());
+    const service = new NotificationService(repo, pushProvider, (event) => rabbitMQBus.publish(event), admins);
 
     // 4. Consumers
     const consumer = new EventConsumer(service);

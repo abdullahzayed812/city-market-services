@@ -333,7 +333,7 @@ services:
       RABBITMQ_URL: amqp://${RABBITMQ_USER:-guest}:${RABBITMQ_PASSWORD:-guest}@rabbitmq:5672
 
   admin-service:
-    <<: *service-defaults
+    <<: *rabbitmq-service
     build:
       context: .
       dockerfile: Dockerfile.service
@@ -360,6 +360,8 @@ services:
       ADMIN_SERVICE_CLIENT_SECRET: ${ADMIN_SERVICE_CLIENT_SECRET}
       JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET}
       JWT_SERVICE_ACCESS_SECRET: ${JWT_SERVICE_ACCESS_SECRET}
+      # ADMIN_DATA_CHANGED events (admins' screens refresh live)
+      RABBITMQ_URL: amqp://${RABBITMQ_USER:-guest}:${RABBITMQ_PASSWORD:-guest}@rabbitmq:5672
 
   notification-service:
     <<: *rabbitmq-service
@@ -382,6 +384,11 @@ services:
       JWT_SERVICE_ACCESS_SECRET: ${JWT_SERVICE_ACCESS_SECRET}
       FIREBASE_SERVICE_ACCOUNT_JSON: ${FIREBASE_SERVICE_ACCOUNT_JSON:-}
       FIREBASE_SERVICE_ACCOUNT_PATH: ${FIREBASE_SERVICE_ACCOUNT_PATH:-/run/secrets/firebase-service-account.json}
+      # Looks up the admin accounts that receive admin notifications
+      AUTH_SERVICE_URL: http://auth-service:3001
+      AUTH_SERVICE_TOKEN_URL: http://auth-service:3001/oauth/token
+      NOTIFICATION_SERVICE_CLIENT_ID: notification-service-id
+      NOTIFICATION_SERVICE_CLIENT_SECRET: ${NOTIFICATION_SERVICE_CLIENT_SECRET}
     secrets:
       - source: firebase-service-account
         target: /run/secrets/firebase-service-account.json

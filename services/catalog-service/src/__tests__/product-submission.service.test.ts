@@ -266,6 +266,21 @@ describe("editing and withdrawing", () => {
     );
     assert.equal(events.events.length, 1);
     assert.equal(events.events[0].payload.status, "NEEDS_CHANGES");
+    // Admins hear about the new proposal and about the resubmission
+    assert.deepEqual(
+      events.queued.map((e) => [e.payload.action, e.payload.revision]),
+      [
+        ["SUBMITTED", 1],
+        ["RESUBMITTED", 2],
+      ],
+    );
+    assert.equal(events.queued[0].payload.submissionId, s.id);
+  });
+
+  test("a rejected create announces nothing to admins", async () => {
+    const { imageKey: _omit, ...withoutImage } = input(vendorA);
+    await rejects(service.create(vendorA, withoutImage), 400, "submission_image_required");
+    assert.equal(events.all.length, 0);
   });
 
   test("final proposals can't be edited or withdrawn", async () => {
