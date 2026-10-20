@@ -103,7 +103,9 @@ export class OrderController {
   getCustomerOrderById = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
       assertCustomerOrderAccess(req, await this.orderService.getCustomerOrderOwnerId(req.params.id));
-      const order = await this.orderService.getCustomerOrderById(req.params.id, req.user?.userId, req.user?.role === UserRole.ADMIN);
+      // Admin apps reach this through admin-service, which calls with its own service token
+      const forAdmin = req.user?.role === UserRole.ADMIN || (req.authType === "service" && req.service?.scope === "admin");
+      const order = await this.orderService.getCustomerOrderById(req.params.id, req.user?.userId, forAdmin);
       res.json(ApiResponse.success(order));
     } catch (error) {
       next(error);
